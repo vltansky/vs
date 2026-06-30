@@ -1,0 +1,16 @@
+{
+  "name": "vs",
+  "owner": {
+    "name": "Vlad Tansky"
+  },
+  "metadata": {
+    "description": "Plan-to-ship workflow skills for shaping ideas, building autonomously, reviewing code, and shipping PRs with agent discipline."
+  },
+  "plugins": [
+    {
+      "name": "vs",
+      "source": ".",
+      "description": "Plan-to-ship workflow skills for shaping ideas, building autonomously, reviewing code, and shipping PRs with agent discipline."
+    }
+  ]
+}

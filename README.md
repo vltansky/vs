@@ -8,13 +8,14 @@ vs is a framework for making that division work. The human makes strategic decis
 
 ## Install
 
-vs ships native plugin manifests for both Claude Code (`.claude-plugin/`) and
-Codex (`.codex-plugin/`).
+vs ships native plugin manifests for Claude Code (`.claude-plugin/`), Codex
+(`.codex-plugin/`), and Cursor (`.cursor-plugin/`). All three read the same
+`SKILL.md` files under `skills/`.
 
 ### Quick install
 
-One command installs vs into whichever of Claude Code / Codex you have on your
-`PATH`. Run it without cloning:
+One command installs vs into whichever of Claude Code / Codex / Cursor it finds.
+Run it without cloning:
 
 ```
 curl -fsSL https://raw.githubusercontent.com/vltansky/vs/main/install.sh | bash
@@ -46,6 +47,18 @@ Add the repo as a plugin marketplace, then install the plugin:
 codex plugin marketplace add vltansky/vs
 codex plugin add vs@vs
 ```
+
+### Cursor
+
+Cursor (2.5+) has no plugin-install CLI. Either install from a team marketplace
+(Dashboard → Settings → Plugins → import `vltansky/vs`), or load it locally by
+linking a clone into Cursor's local plugin dir, then reload Cursor:
+
+```
+git clone https://github.com/vltansky/vs ~/.cursor/plugins/local/vs
+```
+
+The quick-install script does this link step for you.
 
 ### Manual
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Install the vs plugin into Claude Code and/or Codex.
+# Install the vs plugin into Claude Code, Codex, and/or Cursor.
 #
 # Local:  ./install.sh
 # Remote: curl -fsSL https://raw.githubusercontent.com/vltansky/vs/main/install.sh | bash
@@ -29,7 +29,31 @@ install_for() {
   rm -f "$log"
 }
 
+# Cursor has no plugin CLI; the documented path is a local plugin under
+# ~/.cursor/plugins/local/. Symlink a clone if we're running from one, else
+# clone the repo there.
+install_cursor() {
+  if [ ! -d "$HOME/.cursor" ] && ! command -v cursor >/dev/null 2>&1; then
+    skip "cursor not found — skipping"
+    return
+  fi
+  local dest="$HOME/.cursor/plugins/local/vs"
+  mkdir -p "$HOME/.cursor/plugins/local"
+  local src=""
+  [ -n "${BASH_SOURCE[0]:-}" ] && src="$(cd "$(dirname "${BASH_SOURCE[0]}")" 2>/dev/null && pwd)"
+  if [ -n "$src" ] && [ -f "$src/.cursor-plugin/plugin.json" ]; then
+    ln -sfn "$src" "$dest"
+    ok "cursor: linked $dest -> $src"
+  elif git clone --depth 1 "https://github.com/$REPO" "$dest.tmp" >/dev/null 2>&1; then
+    rm -rf "$dest"; mv "$dest.tmp" "$dest"
+    ok "cursor: cloned to $dest"
+  else
+    rm -rf "$dest.tmp"; fail "cursor: clone failed"
+  fi
+}
+
 echo "Installing vs plugin..."
 install_for claude "claude plugin marketplace add" "claude plugin install"
 install_for codex  "codex plugin marketplace add"  "codex plugin add"
-echo "Done. Restart your agent session to load vs."
+install_cursor
+echo "Done. Restart your agent session (Cursor: Developer: Reload Window) to load vs."
