@@ -66,7 +66,7 @@ Never write into the project tree (`docs/`, `.context/`, `.octocode/`) for sessi
 Each user-facing vs skill has a kind classification:
 
 - **Workflow** — takes a loose human goal and drives a full outcome (`shape-it`, `improve`, `build-it`, `ship-it`, `bugfix`, `fix-pr`, `afk`, `baby-sit`)
-- **Building block** — owns one bounded job and can be used directly or composed by workflows (`tdd`, `qa`, `brief`, `verify`, `deslop`, `second-opinion`, `perf`, `debug-mode`, `roast-review`, `github-research`, `rfc-research`, `pushback`, `to-issues`, `steal`, `setup-adr`, `decide-for-me`, `caveman`, `retro`, `try-skill`)
+- **Building block** — owns one bounded job and can be used directly or composed by workflows (`tdd`, `qa`, `brief`, `verify`, `deslop`, `second-opinion`, `perf`, `debug-mode`, `roast-review`, `github-research`, `rfc-research`, `pushback`, `to-issues`, `steal`, `setup-adr`, `decide-for-me`, `retro`, `try-skill`)
 
 `internal-shared` is repo-local shared reference material, not a user-facing skill kind.
 

@@ -47,7 +47,7 @@ by the branch.
 vs has beginner-friendly workflows and surgical tools underneath them.
 
 - **Workflows** take a loose goal and drive a full outcome. Use these when you want the system to own the path: `/shape-it`, `/improve`, `/build-it`, `/ship-it`, `/bugfix`, `/fix-pr`, `/afk`, `/baby-sit`.
-- **Building blocks** own one bounded job and can be used directly or composed by workflows. Use these when you want precision: `/pushback`, `/github-research`, `/rfc-research`, `/tdd`, `/debug-mode`, `/roast-review`, `/roast-ui`, `/qa`, `/verify`, `/deslop`, `/brief`, `/second-opinion`, `/perf`, `/to-issues`, `/steal`, `/setup-adr`, `/decide-for-me`, `/caveman`, `/out-of-context`, `/recap`, `/retro`, `/try-skill`.
+- **Building blocks** own one bounded job and can be used directly or composed by workflows. Use these when you want precision: `/pushback`, `/github-research`, `/rfc-research`, `/tdd`, `/debug-mode`, `/roast-review`, `/roast-ui`, `/qa`, `/verify`, `/deslop`, `/brief`, `/second-opinion`, `/perf`, `/to-issues`, `/steal`, `/setup-adr`, `/decide-for-me`, `/out-of-context`, `/recap`, `/retro`, `/try-skill`.
 
 The workflows are intentionally built from building blocks. For example, `/build-it` stress-tests with `/pushback`, uses `/decide-for-me` to resolve tactical uncertainty, executes with TDD/debug discipline, reviews with `/roast-review`, runs `/qa` for web apps, verifies with `/verify`, and ends with `/brief`. `/ship-it` turns the reviewed branch into a PR and uses `/brief` as the human-readable orientation layer.
 
@@ -77,7 +77,7 @@ You do not need to learn every skill at once. Learn the system in layers:
 
 1. **Start with the two main entry loops:** use `/shape-it`, `/build-it`, `/ship-it` when you have an idea to turn into a PR; use `/improve` when you want the repo to tell you what work is worth doing next.
 2. **Learn the improvement variants:** `/improve quick` for a cheap hotspot pass, `/improve deep` for a broader audit, `/improve branch` before a PR, `/improve next` for direction, `/improve plan <thing>` for one known concern, and `/improve reconcile` to keep the plan backlog alive.
-3. **Learn the high-leverage shortcuts:** `/pushback`, `/caveman`, `/github-research`, `/second-opinion`, `/fix-pr`, `/steal`, `/decide-for-me`. These quickly change how useful the agent feels day to day: better plans, shorter communication, source-backed answers, independent critique, review-feedback handling, reusable ideas from other repos, and fewer tactical interruptions.
+3. **Learn the high-leverage shortcuts:** `/pushback`, `/github-research`, `/second-opinion`, `/fix-pr`, `/steal`, `/decide-for-me`. These quickly change how useful the agent feels day to day: better plans, source-backed answers, independent critique, review-feedback handling, reusable ideas from other repos, and fewer tactical interruptions.
 4. **Learn the delivery blocks as needed:** `/tdd`, `/debug-mode`, `/roast-review`, `/roast-ui`, `/qa`, `/verify`, `/brief`, `/deslop`. These are most useful when you want to steer or inspect one phase of implementation.
 5. **Learn the specialized workflows when the situation appears:** `/bugfix`, `/afk`, `/baby-sit`, `/to-issues`, `/rfc-research`, `/perf`, `/setup-adr`, `/out-of-context`, `/recap`, `/retro`, `/try-skill`. These are powerful, but you usually reach for them because a specific job asks for them.
 
@@ -152,7 +152,6 @@ Under the hood, the workflows compose the rest:
 | `/steal` | Building block | Scan a named repo for ideas worth porting | you |
 | `/setup-adr` | Building block | Bootstrap ADR support in a repo | agent |
 | `/decide-for-me` | Building block | Resolve tactical uncertainty before interrupting the user | agent |
-| `/caveman` | Building block | Ultra-terse communication mode for lower-token responses | you |
 | `/out-of-context` | Building block | Explain the current situation from zero prior context | you |
 | `/recap` | Building block | Tiny catch-up on recent changes and next actions | you |
 | `/retro` | Building block | Extract session learnings and route them to the right destination | you |
@@ -240,7 +239,6 @@ Some direct lineage:
 | `/shape-it` | Inspired by Matt Pocock's Grill Me skill from [mattpocock/skills](https://github.com/mattpocock/skills), the interview-skill pattern shared by [trq212](https://x.com/trq212/status/2005315275026260309), and brainstorming workflows in [obra/superpowers](https://github.com/obra/superpowers). |
 | `/roast-review` | Inspired by OpenClaw's [autoreview skill](https://github.com/openclaw/agent-skills/blob/main/skills/autoreview/SKILL.md), Cursor's [thermo-nuclear-code-quality-review](https://github.com/cursor/plugins/tree/main/cursor-team-kit/skills/thermo-nuclear-code-quality-review), and Claude Code's [code-simplifier](https://github.com/anthropics/claude-code/blob/main/plugins/pr-review-toolkit/agents/code-simplifier.md). |
 | `/roast-ui` | Copies and adapts Paul Bakaus' Apache-2.0 licensed [impeccable](https://github.com/pbakaus/impeccable) skill, including its references and bundled scripts. Its `verdict` command is adapted from Yeachan Heo's MIT-licensed [oh-my-claudecode visual-verdict skill](https://github.com/Yeachan-Heo/oh-my-claudecode/blob/main/skills/visual-verdict/SKILL.md). |
-| `/caveman` | Directly adapted from Matt Pocock's caveman skill in [mattpocock/skills](https://github.com/mattpocock/skills). |
 
 The pipeline framing owes a lot to gstack. vs takes these ideas in a repo-maintainer direction: opinionated skill layers, stricter flow contracts, built-in review/testing loops, and local workflow handoffs for coding agents.
 
