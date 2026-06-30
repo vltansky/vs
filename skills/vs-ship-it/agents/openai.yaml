@@ -1,5 +1,5 @@
 interface:
-  display_name: "vs:ship-it"
+  display_name: "vs-ship-it"
   short_description: "Create PRs with AI session context"
 
 policy:

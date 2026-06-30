@@ -1,5 +1,5 @@
 ---
-name: steal
+name: vs-steal
 description: "Use when asked to scan a named external repo for ideas worth porting. Produces a cited, ranked steals report."
 disable-model-invocation: true
 ---
@@ -18,13 +18,13 @@ Do NOT copy code verbatim, ignore licensing, or file PRs here. The output is a r
 - You noticed another project solving a problem this repo is also solving, and want a side-by-side of approaches
 - Before writing a new skill / prompt / convention, look at 1-2 similar projects first
 
-Compare with `/github-research` — that skill builds a landscape of multiple competitors on shared axes. `/steal` is one target, maximum depth.
+Compare with `/vs-github-research` — that skill builds a landscape of multiple competitors on shared axes. `/vs-steal` is one target, maximum depth.
 
 ## Phase 0: Scope the target
 
 Confirm the target and the intent:
 
-- `owner/repo` — exactly one. Multiple targets → use `/github-research` instead.
+- `owner/repo` — exactly one. Multiple targets → use `/vs-github-research` instead.
 - Scope — "skills and prompts", "workflow shape", "test patterns", "everything". Pick one to avoid a shallow scan over a huge repo.
 - Anything known-irrelevant — language, runtime, domain mismatches — say so up front so the scan doesn't waste time on them.
 
@@ -69,7 +69,7 @@ Prioritize **high value + low cost**. Flag interesting but expensive ideas separ
 
 ## Phase 4: Write the steals report
 
-Resolve `$PROJECT_ID` (see [../internal-shared/SKILL.md](../internal-shared/SKILL.md)) and write to `~/.vs/$PROJECT_ID/steals/YYYY-MM-DD-<target-slug>.md`:
+Resolve `$PROJECT_ID` (see [../vs-internal-shared/SKILL.md](../vs-internal-shared/SKILL.md)) and write to `~/.vs/$PROJECT_ID/steals/YYYY-MM-DD-<target-slug>.md`:
 
 ```markdown
 # Steals from <owner/repo> — YYYY-MM-DD
@@ -110,8 +110,8 @@ License: <target repo license — matters for porting>
 
 Print the report path + the top recommendation. Suggest next step:
 
-- User wants to port a recommendation → frame it as a proper work item via `/to-issues` or `/shape-it` (not an ad-hoc patch)
-- User wants another scan → rerun `/steal` with a different target, or `/github-research` for a landscape view
+- User wants to port a recommendation → frame it as a proper work item via `/vs-to-issues` or `/vs-shape-it` (not an ad-hoc patch)
+- User wants another scan → rerun `/vs-steal` with a different target, or `/vs-github-research` for a landscape view
 - Nothing worth stealing → say so directly. "Target scanned, nothing meets the value/cost bar" is a valid outcome.
 
 ## Guardrails
@@ -119,7 +119,7 @@ Print the report path + the top recommendation. Suggest next step:
 - **Cite always.** Every claim points at a file + line range or a PR number. Uncited observations are opinions, not steals.
 - **Respect licensing.** Note the target repo's license in the report header. If copying code (not just ideas), the license decides whether it's legal.
 - **Don't inflate value.** "High value" requires a one-sentence concrete improvement to this repo, not "interesting pattern."
-- **One target per report.** Landscape comparisons belong in `/github-research`.
+- **One target per report.** Landscape comparisons belong in `/vs-github-research`.
 
 ## Verification
 
@@ -135,4 +135,4 @@ Blocked until all items pass:
 ## Workflow
 
 **Prev:** (entry point — user points at an external repo)
-**Next:** `/shape-it` (adapt a steal into a design) | `/to-issues` (file the port) | `/github-research` (broaden the scan)
+**Next:** `/vs-shape-it` (adapt a steal into a design) | `/vs-to-issues` (file the port) | `/vs-github-research` (broaden the scan)

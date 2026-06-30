@@ -1,5 +1,5 @@
 ---
-name: improve
+name: vs-improve
 description: Survey any codebase as a senior advisor and produce prioritized, self-contained implementation plans for OTHER models/agents to execute. Strictly read-only on source code — never implements, fixes, or refactors anything itself. Use when asked to audit a codebase, find improvement opportunities (bugs, security, performance, test coverage, tech debt, migrations, DX), suggest features or where to take the project next (roadmap, product direction), or generate handoff plans for another agent to implement.
 license: MIT
 metadata:
@@ -16,14 +16,14 @@ The economics of this skill: an expensive, high-ceiling model does the part wher
 ## Codex Goal Integration
 
 When running in Codex, use
-[`../internal-shared/references/codex-goal.md`](../internal-shared/references/codex-goal.md)
+[`../vs-internal-shared/references/codex-goal.md`](../vs-internal-shared/references/codex-goal.md)
 for goal ownership and completion rules.
 
 Improve may own the audit/planning goal: "produce prioritized, executable
 improvement plans for <scope>." Complete it after the findings table, selected
 plans, and index are written or reported. Each plan should include a goal-ready
 implementation objective, scope, success criteria, and verification plan so
-`/build-it`, `/afk`, or an executor subagent can create its own execution goal.
+`/vs-build-it`, `/vs-afk`, or an executor subagent can create its own execution goal.
 
 For `execute <plan>`, create or reuse a separate execution goal only after the
 plan is concrete enough to run, and complete it after the executor diff is
@@ -47,7 +47,7 @@ Map the territory before judging it:
 - Read `README`, `CLAUDE.md`/`AGENTS.md`, `CONTRIBUTING`, root config files (`package.json`, `pyproject.toml`, `go.mod`, etc.), CI config, and the directory structure.
 - Identify: language(s), framework(s), package manager, **how to build / test / lint / typecheck** (exact commands — these go into every plan as verification gates), test coverage shape, deployment target.
 - Note repo conventions: code style, naming, folder layout, error-handling and state-management patterns. Plans must tell the executor to *match* these, with examples.
-- **Ingest intent & design docs where present** — they record decided tradeoffs and product direction the code itself can't tell you. Glob for ADRs (`docs/adr/`, `docs/adrs/`, `docs/decisions/`), PRDs / specs, `CONTEXT.md` (shared domain vocabulary), `DESIGN.md` (design-system spec), and `PRODUCT.md` (product brief). Strictly additive: read what exists, no-op when absent. Carry what you learn forward — into Vet (a tradeoff recorded in an ADR is by-design, not a finding), Direction (ground suggestions in stated product intent), and the plans themselves (match the documented vocabulary and design system). Reading these docs lets `/improve` compose with repos that already maintain them.
+- **Ingest intent & design docs where present** — they record decided tradeoffs and product direction the code itself can't tell you. Glob for ADRs (`docs/adr/`, `docs/adrs/`, `docs/decisions/`), PRDs / specs, `CONTEXT.md` (shared domain vocabulary), `DESIGN.md` (design-system spec), and `PRODUCT.md` (product brief). Strictly additive: read what exists, no-op when absent. Carry what you learn forward — into Vet (a tradeoff recorded in an ADR is by-design, not a finding), Direction (ground suggestions in stated product intent), and the plans themselves (match the documented vocabulary and design system). Reading these docs lets `/vs-improve` compose with repos that already maintain them.
 - Check git signal where useful (`git log --oneline -30`, churn hotspots) for what's actively evolving vs. frozen.
 
 If the repo has no working verification command (no tests, broken build), record that — "establish a verification baseline" is often finding #1, and it must precede risky plans in the dependency order.
@@ -124,7 +124,7 @@ Finish by writing `plans/README.md` with the recommended execution order, depend
 
 - Bare invocation → full workflow above.
 - `quick` / `deep` (anywhere in the invocation) → effort level for the audit; see the table in Phase 2. Composes with everything: `quick security`, `deep --issues`. Default is `standard`.
-- With a focus argument (e.g. `security`, `perf`, `tests`) → run Recon, then audit only that category, then plan.
+- With a focus argument (e.g. `security`, `vs-perf`, `tests`) → run Recon, then audit only that category, then plan.
 - `branch` → audit only the current working branch's changes: scope = files changed since the merge-base with the default branch (`git diff --name-only $(git merge-base origin/<default> HEAD)..HEAD`) plus their direct importers/callers. Light recon, all categories, usually no subagents. **Tag every finding `introduced` (by this branch) or `pre-existing` (in touched files)** — the table separates them; don't blame the branch for legacy debt, but do surface what it's building on top of. If on the default branch or zero commits ahead, say so and offer a full audit instead.
 - `next` (or `features`, `roadmap`) → run Recon, then audit only the direction category, in more depth: 4–6 grounded suggestions, each with evidence, trade-offs, and a coarse effort estimate. Selected ones become design/spike plans, not build-everything plans.
 - `plan <description>` → skip the audit; the user already knows what they want. Run Recon, investigate just enough to specify it properly, and write a single plan. If the description is too ambiguous to specify honestly, first try to resolve each ambiguity from the codebase itself; only what's left becomes questions to the user — asked one at a time, each with a recommended answer.

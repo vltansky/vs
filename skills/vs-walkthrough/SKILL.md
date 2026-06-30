@@ -1,6 +1,6 @@
 ---
-name: walkthrough
-description: "Use when explicitly invoked as walkthrough, /walkthrough, or vs:walkthrough to show a scenario, explain a flow, or produce a concrete walkthrough."
+name: vs-walkthrough
+description: "Use when explicitly invoked as walkthrough, /vs-walkthrough, or vs:walkthrough to show a scenario, explain a flow, or produce a concrete walkthrough."
 disable-model-invocation: true
 ---
 
@@ -132,6 +132,6 @@ producing them because they cost more tokens.
 
 ## Workflow
 
-**Prev:** `/shape-it`, `/build-it`, `/brief`, a diff, a function, or a rough idea
-**Next:** `/pushback` when the walkthrough exposes unclear intent, `/build-it`
+**Prev:** `/vs-shape-it`, `/vs-build-it`, `/vs-brief`, a diff, a function, or a rough idea
+**Next:** `/vs-pushback` when the walkthrough exposes unclear intent, `/vs-build-it`
 when the scenario is accepted and implementation is still needed

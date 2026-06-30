@@ -1,5 +1,5 @@
 ---
-name: brief
+name: vs-brief
 description: "Use when asked what changed, orient me, show the diff, or summarize a branch. Produces a compact review brief from git diff."
 ---
 
@@ -129,5 +129,5 @@ Call the LLM with a constrained JSON schema:
 
 ## Workflow
 
-**Prev:** `/build-it` (loads this skill for Phase 7) | standalone on any branch
-**Next:** `/ship-it` | done
+**Prev:** `/vs-build-it` (loads this skill for Phase 7) | standalone on any branch
+**Next:** `/vs-ship-it` | done

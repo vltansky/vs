@@ -1,5 +1,5 @@
 ---
-name: ship-it
+name: vs-ship-it
 description: "Use when the user says create PR, open PR, ship it, submit changes, or send to dev. Creates a GitHub PR with session context."
 disable-model-invocation: true
 ---
@@ -11,16 +11,16 @@ disable-model-invocation: true
 Ship-it is a workflow. It composes building blocks to keep the PR surface
 reviewable:
 
-- `roast-review` ensures the branch has had a review pass before shipping.
-- `verify` records the evidence that the branch is ready to present.
-- `brief` provides the reusable human-readable change orientation for chat,
+- `vs-roast-review` ensures the branch has had a review pass before shipping.
+- `vs-verify` records the evidence that the branch is ready to present.
+- `vs-brief` provides the reusable human-readable change orientation for chat,
   PR body, and CI-watch context.
-- `fix-pr` takes over if reviewer-bot findings or review threads need action.
+- `vs-fix-pr` takes over if reviewer-bot findings or review threads need action.
 
 ## Codex Goal Integration
 
 When running in Codex, use
-[`../internal-shared/references/codex-goal.md`](../internal-shared/references/codex-goal.md)
+[`../vs-internal-shared/references/codex-goal.md`](../vs-internal-shared/references/codex-goal.md)
 for goal ownership and completion rules.
 
 Ship-it owns the shipping goal once the branch/diff and PR target are clear.
@@ -28,11 +28,11 @@ The objective should be "create a review-ready PR for <change>" rather than the
 broader implementation goal that produced the diff. Complete it after changes
 are committed and pushed, the PR is created with brief/session context, verify
 evidence is included, and CI/reviewer checks are either clean or handed off to
-`/fix-pr` or `/baby-sit` with explicit status.
+`/vs-fix-pr` or `/vs-baby-sit` with explicit status.
 
 ## Step 0: Ensure review ran
 
-Before shipping, check if `roast-review` was already run in this session.
+Before shipping, check if `vs-roast-review` was already run in this session.
 
 If **not run yet**: run it now. Wait for both passes to complete (Pass 1 auto-fixes,
 Pass 2 presents sins — auto-select option b for critical + serious). Apply fixes
@@ -122,7 +122,7 @@ Skip AI Session Context if:
 
 ## Step 4: Generate brief
 
-Always run `brief` against the pushed branch. Capture the rendered markdown —
+Always run `vs-brief` against the pushed branch. Capture the rendered markdown —
 it goes into the PR body (Step 5) and is shown again while watching CI (Step 7).
 
 Store the brief output in a variable (or temp file) so it can be reused:
@@ -137,7 +137,7 @@ the AI Session Context skip conditions.
 
 ## Step 4b: Verify readiness
 
-Run `verify` against the pushed branch before creating the PR when available.
+Run `vs-verify` against the pushed branch before creating the PR when available.
 Capture the rendered `## Verification Result` and include a concise version in
 the PR body or handoff.
 
@@ -276,9 +276,9 @@ gh api repos/$REPO/issues/$PR_NUM/comments \
   | jq -r --arg t "$LAST_PUSH" '.[] | select(.user.login | test("\\breview\\b|\\bcodex\\b|\\bcopilot\\b|\\bclaude\\b|\\bbot\\b|\\bactions\\b"; "i")) | select(.updated_at >= $t) | .body'
 ```
 
-Flag outdated threads (`isOutdated: true`) separately in the summary — the concern may already be addressed; `/fix-pr` re-evaluates each against HEAD.
+Flag outdated threads (`isOutdated: true`) separately in the summary — the concern may already be addressed; `/vs-fix-pr` re-evaluates each against HEAD.
 
-**If any unresolved reviewer-bot threads exist:** summarize (active vs outdated), hand off with `/fix-pr`.
+**If any unresolved reviewer-bot threads exist:** summarize (active vs outdated), hand off with `/vs-fix-pr`.
 **Otherwise:** "Ready for human review." Include PR URL + suggested reviewers.
 
 ### If build checks fail
@@ -299,8 +299,8 @@ Blocked until all items pass — do not report "shipped" without evidence for ea
 
 - [ ] Review ran (roast-review completed, fixes applied)
 - [ ] All changes committed and pushed to remote
-- [ ] `brief` generated and captured (unless trivial diff)
-- [ ] `verify` generated a PASS/WARN result or was skipped as trivial
+- [ ] `vs-brief` generated and captured (unless trivial diff)
+- [ ] `vs-verify` generated a PASS/WARN result or was skipped as trivial
 - [ ] PR created with conventional format title and body
 - [ ] Change Brief included in PR body as collapsed `<details>` (unless trivial)
 - [ ] AI Session Context included (unless skip conditions met)
@@ -311,5 +311,5 @@ Blocked until all items pass — do not report "shipped" without evidence for ea
 
 ## Workflow
 
-**Prev:** `/roast-review` (review passed) | `/build-it` (handoff suggests ship-it)
-**Next:** `/fix-pr` (address reviewer feedback) | done
+**Prev:** `/vs-roast-review` (review passed) | `/vs-build-it` (handoff suggests ship-it)
+**Next:** `/vs-fix-pr` (address reviewer feedback) | done

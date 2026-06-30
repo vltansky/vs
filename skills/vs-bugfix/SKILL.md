@@ -1,5 +1,5 @@
 ---
-name: bugfix
+name: vs-bugfix
 description: "Use when the user says fix, bugfix, broken, or describes a bug. Reproduces, fixes, verifies, reviews, and hands back a clean branch."
 disable-model-invocation: true
 ---
@@ -23,7 +23,7 @@ Four circuit breakers halt the run:
 ## Codex Goal Integration
 
 When running in Codex, use
-[`../internal-shared/references/codex-goal.md`](../internal-shared/references/codex-goal.md)
+[`../vs-internal-shared/references/codex-goal.md`](../vs-internal-shared/references/codex-goal.md)
 for goal ownership and completion rules.
 
 Bugfix owns an execution goal only after the bug is concrete enough to verify:
@@ -94,12 +94,12 @@ Skills to load per phase:
 
 | Phase | Skill | Fallback if not found |
 |-------|-------|-----------------------|
-| Phase 2 (Hypothesize) | `../debug-mode/SKILL.md` | Inline hypothesis methodology |
-| Phase 3 (Reproduce) | `../tdd/SKILL.md` | Manual reproduction script |
-| Phase 3 (Web bugs) | `../qa/SKILL.md` | Skip browser verification |
+| Phase 2 (Hypothesize) | `../vs-debug-mode/SKILL.md` | Inline hypothesis methodology |
+| Phase 3 (Reproduce) | `../vs-tdd/SKILL.md` | Manual reproduction script |
+| Phase 3 (Web bugs) | `../vs-qa/SKILL.md` | Skip browser verification |
 | Phase 1 (Deep exploration) | Local repo search | Grep + read |
-| Phase 5 (Verify) | `../verify/SKILL.md` | Manual evidence summary |
-| Phase 6 (Review) | `../roast-review/SKILL.md` | Lightweight self-review |
+| Phase 5 (Verify) | `../vs-verify/SKILL.md` | Manual evidence summary |
+| Phase 6 (Review) | `../vs-roast-review/SKILL.md` | Lightweight self-review |
 
 ---
 
@@ -315,7 +315,7 @@ Do NOT commit yet — Phase 5 verifies first.
 
 Full validation after the fix:
 
-If available, load `../verify/SKILL.md` and use its
+If available, load `../vs-verify/SKILL.md` and use its
 `## Verification Result` as the Phase 5 evidence wrapper. The checks below are
 the required evidence inputs.
 
@@ -444,7 +444,7 @@ List every auto-resolved decision here.
 
 ### Suggested next step
 [Based on results:]
-- All green → `/ship-it`
+- All green → `/vs-ship-it`
 - Guardrail failures → list what's broken, recommend fixing
 - Deferred issues → note for future work
 ```
@@ -468,5 +468,5 @@ List every auto-resolved decision here.
 
 ## Workflow
 
-**Prev:** user bug report | GitHub issue | test failure | `/debug-mode` (wants autonomous fix after investigation)
-**Next:** `/ship-it` (create PR) | `/roast-review` (manual review if not satisfied)
+**Prev:** user bug report | GitHub issue | test failure | `/vs-debug-mode` (wants autonomous fix after investigation)
+**Next:** `/vs-ship-it` (create PR) | `/vs-roast-review` (manual review if not satisfied)

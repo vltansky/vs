@@ -2,7 +2,7 @@ Shape the UX and UI for a feature before any code is written. This command produ
 
 **Scope**: Design planning only. This command does NOT write code. It produces the thinking that makes code good.
 
-**Output**: A design brief that can be handed off to /roast-ui craft, or directly to /roast-ui for freeform implementation. When visual direction probes are used, the images are supporting artifacts, not the primary output.
+**Output**: A design brief that can be handed off to /vs-roast-ui craft, or directly to /vs-roast-ui for freeform implementation. When visual direction probes are used, the images are supporting artifacts, not the primary output.
 
 ## Philosophy
 
@@ -168,4 +168,4 @@ Ask the user. Ask for explicit confirmation of the brief before finishing.
 
 If the user disagrees with any part, revisit the relevant discovery questions. A shape run is incomplete until the user confirms direction.
 
-Once confirmed, the brief is complete. The user can now hand it to /roast-ui, or use it to guide any other implementation approach. (If the user wants the full discovery-then-build flow in one step, they should use /roast-ui craft instead, which runs this command internally.)
+Once confirmed, the brief is complete. The user can now hand it to /vs-roast-ui, or use it to guide any other implementation approach. (If the user wants the full discovery-then-build flow in one step, they should use /vs-roast-ui craft instead, which runs this command internally.)

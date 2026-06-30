@@ -9,7 +9,7 @@ Several vs skills wait on long-running subprocesses such as CI checks, reviewer-
 - Claude Code foreground `Bash` calls hit a timeout ceiling, while background commands with `run_in_background: true` wake the agent when the process exits.
 - Codex CLI unified-exec background terminals keep the process running, but long waits are better handled by the `awaiter` builtin sub-agent or by raising `background_terminal_max_timeout`.
 
-Earlier versions of `fix-pr` and `ship-it` incorrectly claimed Codex had no background-with-notify primitive and recommended busy-polling. That guidance was stale.
+Earlier versions of `vs-fix-pr` and `vs-ship-it` incorrectly claimed Codex had no background-with-notify primitive and recommended busy-polling. That guidance was stale.
 
 ## Decision
 

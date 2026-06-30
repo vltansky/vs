@@ -1,5 +1,5 @@
 interface:
-  display_name: "vs:github-research"
+  display_name: "vs-github-research"
   short_description: "GitHub-backed prior art and landscape research"
 
 dependencies:

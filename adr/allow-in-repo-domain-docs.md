@@ -42,7 +42,7 @@ The rest of the session-artifact invariant (grill reports, specs, briefs, QA rep
 ## Consequences
 
 - `CLAUDE.md` invariants clarify that `CONTEXT.md` and ADRs can live in-repo, controlled by the cached preference. Other session artifacts still never live in the project tree.
-- `skills/internal-shared/SKILL.md` gains a "Domain-doc storage preference" section that both `domain-model` and `setup-adr` reference, so the prompt + cache logic lives in one place.
+- `skills/vs-internal-shared/SKILL.md` gains a "Domain-doc storage preference" section that both `domain-model` and `vs-setup-adr` reference, so the prompt + cache logic lives in one place.
 - First-time users get a one-question prompt. After that, the skill is silent.
 - Users on a shared repo can pick per-user at install time and avoid polluting the team's tree without editing skills.
 - If the cached preference drifts from what the user wants, a single natural-language override flips it.

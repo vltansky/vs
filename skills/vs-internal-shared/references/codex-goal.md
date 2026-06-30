@@ -9,11 +9,11 @@ Only VS **workflow** skills should create or complete Codex goals. Building
 blocks contribute evidence to the active workflow goal unless the user invoked
 the building block as a standalone outcome.
 
-- **Owns goals:** `shape-it` for shaping sessions, `improve`, `build-it`,
-  `ship-it`, `bugfix`, `fix-pr`, `afk`, `baby-sit`
-- **Usually contributes evidence:** `tdd`, `debug-mode`, `qa`, `verify`,
-  `roast-review`, `deslop`, `brief`, `pushback`, `github-research`, `rfc-research`,
-  `to-issues`, `steal`, `perf`
+- **Owns goals:** `vs-shape-it` for shaping sessions, `vs-improve`, `vs-build-it`,
+  `vs-ship-it`, `vs-bugfix`, `vs-fix-pr`, `vs-afk`, `vs-baby-sit`
+- **Usually contributes evidence:** `vs-tdd`, `vs-debug-mode`, `vs-qa`, `vs-verify`,
+  `vs-roast-review`, `vs-deslop`, `vs-brief`, `vs-pushback`, `vs-github-research`, `vs-rfc-research`,
+  `vs-to-issues`, `vs-steal`, `vs-perf`
 - **Standalone exception:** a building block may own a goal when the user invokes
   it directly as the whole task, for example "optimize this endpoint with perf"
   or "turn this spec into GitHub issues"
@@ -30,7 +30,7 @@ A goal is ready when it has:
 - **Verification plan:** tests, guardrails, CI, UI checks, review state, or
   acceptance checks to run before completion
 
-If intent is vague, route through `shape-it` or ask the minimum blocking
+If intent is vague, route through `vs-shape-it` or ask the minimum blocking
 clarification needed to produce this shape. Do not create an implementation goal
 for vague intent.
 
@@ -65,16 +65,16 @@ commits, tests, CI, review-thread state, issue links, or handoff summaries.
 
 | Skill | Create/reuse goal when | Complete when |
 |---|---|---|
-| `shape-it` | A shaping session has a clear planning objective | Approved design/spec or challenge verdict produces goal-ready next step |
-| `improve` | Audit scope and output target are clear | Findings/plans/index are written, or `execute` verdict is delivered |
-| `build-it` | Build objective is goal-ready; vague intent has been shaped | Implementation, verification, review/QA, and handoff are complete |
-| `ship-it` | Branch/PR outcome is clear | PR is created, pushed, evidence is included, and CI/reviewer state is handled or handed off |
-| `bugfix` | Bug statement, target area, and reproduction/verification plan are clear | Root cause fixed, regression verified, guardrails run, handoff complete |
-| `fix-pr` | Target PR and unresolved feedback scope are known | Accepted fixes are pushed, approved replies posted, approved threads resolved, build rechecked |
-| `afk` | Work source and time-boxed session plan are selected | AFK handoff reports completed work/current state, or blocker is recorded |
-| `baby-sit` | Target PR is known | PR is merge-ready, merged, or explicitly blocked with evidence |
-| `to-issues` | Standalone issue-generation task is the whole request | Drafts/index/issues are created or ready for approval |
-| `perf` | Standalone performance objective is the whole request | Baseline/target/evidence reaches PASS, FAIL, WARN, or BLOCKED status |
+| `vs-shape-it` | A shaping session has a clear planning objective | Approved design/spec or challenge verdict produces goal-ready next step |
+| `vs-improve` | Audit scope and output target are clear | Findings/plans/index are written, or `execute` verdict is delivered |
+| `vs-build-it` | Build objective is goal-ready; vague intent has been shaped | Implementation, verification, review/QA, and handoff are complete |
+| `vs-ship-it` | Branch/PR outcome is clear | PR is created, pushed, evidence is included, and CI/reviewer state is handled or handed off |
+| `vs-bugfix` | Bug statement, target area, and reproduction/verification plan are clear | Root cause fixed, regression verified, guardrails run, handoff complete |
+| `vs-fix-pr` | Target PR and unresolved feedback scope are known | Accepted fixes are pushed, approved replies posted, approved threads resolved, build rechecked |
+| `vs-afk` | Work source and time-boxed session plan are selected | AFK handoff reports completed work/current state, or blocker is recorded |
+| `vs-baby-sit` | Target PR is known | PR is merge-ready, merged, or explicitly blocked with evidence |
+| `vs-to-issues` | Standalone issue-generation task is the whole request | Drafts/index/issues are created or ready for approval |
+| `vs-perf` | Standalone performance objective is the whole request | Baseline/target/evidence reaches PASS, FAIL, WARN, or BLOCKED status |
 
 ## Handoff Line
 

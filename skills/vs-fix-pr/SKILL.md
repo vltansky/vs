@@ -1,5 +1,5 @@
 ---
-name: fix-pr
+name: vs-fix-pr
 description: "Use when developers left PR comments or the user says fix PR feedback, address comments, or resolve review threads."
 disable-model-invocation: true
 ---
@@ -10,8 +10,8 @@ disable-model-invocation: true
 
 Fix-pr is a workflow for reviewer feedback. It composes:
 
-- `decide-for-me` for tactical uncertainty around implementation details.
-- `verify` after applying fixes so replies are backed by evidence.
+- `vs-decide-for-me` for tactical uncertainty around implementation details.
+- `vs-verify` after applying fixes so replies are backed by evidence.
 
 When the current checkout is not already on the PR branch, fix-pr owns the
 branch/worktree setup directly: inspect the PR, preserve unrelated dirty state,
@@ -20,7 +20,7 @@ then switch to or create the appropriate isolated checkout before editing.
 ## Codex Goal Integration
 
 When running in Codex, use
-[`../internal-shared/references/codex-goal.md`](../internal-shared/references/codex-goal.md)
+[`../vs-internal-shared/references/codex-goal.md`](../vs-internal-shared/references/codex-goal.md)
 for goal ownership and completion rules.
 
 Fix-pr owns the reviewer-feedback goal after Step 0 resolves the target PR and
@@ -405,5 +405,5 @@ Blocked until all items pass — do not report "all addressed" without evidence 
 
 ## Workflow
 
-**Prev:** `/ship-it` (PR created, reviewers left comments)
-**Next:** `/ship-it` (re-push after fixes) | `/roast-review` (self-review before re-push) | done
+**Prev:** `/vs-ship-it` (PR created, reviewers left comments)
+**Next:** `/vs-ship-it` (re-push after fixes) | `/vs-roast-review` (self-review before re-push) | done

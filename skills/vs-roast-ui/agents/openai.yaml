@@ -1,5 +1,5 @@
 interface:
-  display_name: "vs:roast-ui"
+  display_name: "vs-roast-ui"
 
 policy:
   allow_implicit_invocation: false

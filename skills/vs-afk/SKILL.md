@@ -1,5 +1,5 @@
 ---
-name: afk
+name: vs-afk
 description: "Use when the user says afk or asks you to keep working while they are away. Runs a scoped autonomous work session with stop-hook cleanup."
 disable-model-invocation: true
 ---
@@ -11,7 +11,7 @@ Use the available time to make scoped progress on the current conversation, bran
 ## Codex Goal Integration
 
 When running in Codex, use
-[`../internal-shared/references/codex-goal.md`](../internal-shared/references/codex-goal.md)
+[`../vs-internal-shared/references/codex-goal.md`](../vs-internal-shared/references/codex-goal.md)
 for goal ownership and completion rules.
 
 AFK owns a time-boxed session goal after Step 2 identifies the work source and
@@ -23,7 +23,7 @@ leave the goal active or blocked according to Codex goal policy and report why.
 
 ## Step 0: Initialize + install Ralph loop hook
 
-Parse duration from invocation args (`/afk 30m`, `/afk 2h`, `/afk 1.5h`, or unset for the default cap) with this deterministic snippet before installing hooks:
+Parse duration from invocation args (`/vs-afk 30m`, `/vs-afk 2h`, `/vs-afk 1.5h`, or unset for the default cap) with this deterministic snippet before installing hooks:
 
 ```bash
 ARG="${1:-}"
@@ -44,7 +44,7 @@ fi
 Then install the stop hook that keeps this session looping until time expires:
 
 ```bash
-SKILL_DIR="${SKILL_DIR:-plugins/vs/skills/afk}"
+SKILL_DIR="${SKILL_DIR:-plugins/vs/skills/vs-afk}"
 bash "$SKILL_DIR/hooks/install.sh" on "$DURATION_SECS"
 ```
 
@@ -59,7 +59,7 @@ Both hosts share the same `{"decision":"block","reason":...}` Stop-hook contract
 - **Type anything at the prompt** — a `UserPromptSubmit` hook wipes state the moment you're back. This is the default way to interrupt.
 - Close/reopen the host — `SessionStart` hook wipes stale state on next launch (handles force-quit / Ctrl+C mid-turn).
 - Manual: `bash "$SKILL_DIR/hooks/install.sh" off`
-- Nuclear: `rm ~/.vs/afk/state.json`
+- Nuclear: `rm ~/.vs/vs-afk/state.json`
 
 ```bash
 START_TIME=$(date +%s)
@@ -133,7 +133,7 @@ Work through the plan. For each task:
 
 ### No-questions contract (decide-for-me applied)
 
-The user is unreachable. Resolve every question with the `decide-for-me` decision ladder before considering a stop:
+The user is unreachable. Resolve every question with the `vs-decide-for-me` decision ladder before considering a stop:
 
 1. **Decide locally** — pick the most reasonable interpretation from context.
 2. **Verify locally** — read files, grep, run one targeted command.
@@ -146,9 +146,9 @@ When hitting a conflicting requirement or ambiguous review comment: best-effort 
 
 ### PR-mode: hand off to baby-sit
 
-If the chosen work source is "open PR" (review comments / failing CI), switch to the `/baby-sit` loop for that PR:
+If the chosen work source is "open PR" (review comments / failing CI), switch to the `/vs-baby-sit` loop for that PR:
 
-- Follow `../baby-sit/SKILL.md`. Its loop already handles review threads, CI fixes, and idle-wait cadence.
+- Follow `../vs-baby-sit/SKILL.md`. Its loop already handles review threads, CI fixes, and idle-wait cadence.
 - The Ralph hook stays installed — baby-sit's waits happen inside the same session, so the Stop hook won't fire between its polls.
 - When baby-sit returns (merge-ready / blocked / merged), pull the next work source and continue.
 
@@ -170,7 +170,7 @@ If time remains: pull next task from the work queue and continue.
 Uninstall the Ralph loop hook first so the next normal session isn't forced to keep looping:
 
 ```bash
-SKILL_DIR="${SKILL_DIR:-plugins/vs/skills/afk}"
+SKILL_DIR="${SKILL_DIR:-plugins/vs/skills/vs-afk}"
 bash "$SKILL_DIR/hooks/install.sh" off
 ```
 
@@ -208,7 +208,7 @@ If nothing was found to work on: say so clearly and explain what was checked.
 - [ ] Duration parsed and tracked via `date +%s`
 - [ ] Ralph stop hook installed at Step 0 and removed at Step 5 (check `.claude/settings.local.json`)
 - [ ] Work source identified from context (not guessed)
-- [ ] PR-mode sessions delegated to `baby-sit`, not reimplemented inline
+- [ ] PR-mode sessions delegated to `vs-baby-sit`, not reimplemented inline
 - [ ] No-questions contract held — every ambiguity resolved via decide-for-me ladder, logged in handoff
 - [ ] Time budget used ambitiously — not one small task and done
 - [ ] All commits pushed to remote before handoff
@@ -217,4 +217,4 @@ If nothing was found to work on: say so clearly and explain what was checked.
 ## Workflow
 
 **Prev:** any in-progress work session
-**Next:** user returns, reviews handoff summary | `/baby-sit` (if a PR needs watching) | `/ship-it` (if work is done and needs a PR)
+**Next:** user returns, reviews handoff summary | `/vs-baby-sit` (if a PR needs watching) | `/vs-ship-it` (if work is done and needs a PR)

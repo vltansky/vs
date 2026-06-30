@@ -1,5 +1,5 @@
 interface:
-  display_name: "vs:build-it"
+  display_name: "vs-build-it"
   short_description: "Plan-to-code autonomous pipeline"
 
 policy:

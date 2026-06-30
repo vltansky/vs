@@ -1,5 +1,5 @@
 ---
-name: pushback
+name: vs-pushback
 description: "Use when a formed idea, plan, spec, or RFC needs adversarial review. Stress-tests assumptions, scores readiness, and returns a verdict."
 disable-model-invocation: true
 ---
@@ -15,7 +15,7 @@ Do NOT write code or begin implementation. Output is a stress-test, verdict, and
 handoff only.
 </HARD-GATE>
 
-If the input is raw or unformed, route to `/shape-it` first.
+If the input is raw or unformed, route to `/vs-shape-it` first.
 
 ## Core rules
 
@@ -102,7 +102,7 @@ pivots toward implementation. Do not keep expanding just to be exhaustive.
 
 The chat report is compact by default, under about 500 words unless the user asks
 for the full version. Save the same report to
-`~/.vs/$PROJECT_ID/pushback/YYYY-MM-DD-<topic>.md` when file tools are available;
+`~/.vs/$PROJECT_ID/vs-pushback/YYYY-MM-DD-<topic>.md` when file tools are available;
 do not write it into the project tree.
 
 Always include `Verdict: <label>` and `Score: <n>/100` near the top, plus the
@@ -179,9 +179,9 @@ If the user asks to test or implement after a `NOT_READY` verdict, emit the
 report first if needed, then use these anchors:
 
 - `Stress-test only - not implementing here.`
-- `Recommended next step: rework the proposal first, then /build-it.`
+- `Recommended next step: rework the proposal first, then /vs-build-it.`
 
 ## Workflow
 
-**Prev:** `/shape-it`, `/rfc-research`, or a formed user idea/spec/plan
-**Next:** `/build-it`, `/to-issues`, `/rfc-research`, or rework and run `/pushback` again
+**Prev:** `/vs-shape-it`, `/vs-rfc-research`, or a formed user idea/spec/plan
+**Next:** `/vs-build-it`, `/vs-to-issues`, `/vs-rfc-research`, or rework and run `/vs-pushback` again

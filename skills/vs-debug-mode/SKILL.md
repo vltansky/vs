@@ -1,5 +1,5 @@
 ---
-name: debug-mode
+name: vs-debug-mode
 description: "Use when the user says debug, root cause, investigate, trace this bug, or something is broken. Runs hypothesis-driven debugging."
 disable-model-invocation: true
 ---
@@ -230,5 +230,5 @@ export default {
 
 ## Workflow
 
-**Prev:** test failure | user report | `/build-it` (guardrail failures)
-**Next:** `/tdd` (write regression test for the fix) | `/roast-review` (review the fix)
+**Prev:** test failure | user report | `/vs-build-it` (guardrail failures)
+**Next:** `/vs-tdd` (write regression test for the fix) | `/vs-roast-review` (review the fix)

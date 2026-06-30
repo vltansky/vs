@@ -1,5 +1,5 @@
 ---
-name: internal-shared
+name: vs-internal-shared
 description: "Internal reference for vs shared conventions: artifact paths, project ID resolution, storage preference, and skill taxonomy."
 disable-model-invocation: true
 user-invocable: false
@@ -65,10 +65,10 @@ Never write into the project tree (`docs/`, `.context/`, `.octocode/`) for sessi
 
 Each user-facing vs skill has a kind classification:
 
-- **Workflow** — takes a loose human goal and drives a full outcome (`shape-it`, `improve`, `build-it`, `ship-it`, `bugfix`, `fix-pr`, `afk`, `baby-sit`)
-- **Building block** — owns one bounded job and can be used directly or composed by workflows (`tdd`, `qa`, `brief`, `verify`, `deslop`, `second-opinion`, `perf`, `debug-mode`, `roast-review`, `github-research`, `rfc-research`, `pushback`, `to-issues`, `steal`, `setup-adr`, `decide-for-me`, `retro`, `try-skill`)
+- **Workflow** — takes a loose human goal and drives a full outcome (`vs-shape-it`, `vs-improve`, `vs-build-it`, `vs-ship-it`, `vs-bugfix`, `vs-fix-pr`, `vs-afk`, `vs-baby-sit`)
+- **Building block** — owns one bounded job and can be used directly or composed by workflows (`vs-tdd`, `vs-qa`, `vs-brief`, `vs-verify`, `vs-deslop`, `vs-second-opinion`, `vs-perf`, `vs-debug-mode`, `vs-roast-review`, `vs-github-research`, `vs-rfc-research`, `vs-pushback`, `vs-to-issues`, `vs-steal`, `vs-setup-adr`, `vs-decide-for-me`, `vs-retro`, `vs-try-skill`)
 
-`internal-shared` is repo-local shared reference material, not a user-facing skill kind.
+`vs-internal-shared` is repo-local shared reference material, not a user-facing skill kind.
 
 Keep kind classifications in skill body text or local references, not custom top-level frontmatter.
 

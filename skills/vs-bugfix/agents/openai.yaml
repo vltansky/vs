@@ -1,5 +1,5 @@
 interface:
-  display_name: "vs:bugfix"
+  display_name: "vs-bugfix"
   short_description: "Autonomous bug fix pipeline"
 
 policy:

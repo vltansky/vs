@@ -1,5 +1,5 @@
 ---
-name: setup-adr
+name: vs-setup-adr
 description: "Set up ADR support in the current repository. Creates an `adr/` directory with a README, adds an adoption ADR, and updates the repo's existing guidance surfaces so architecture-impacting or hard-to-reverse decisions live in ADRs. Use when user says 'setup adr', 'add adr support', 'adopt adrs', 'create adr directory', 'architecture decision records', or wants to bootstrap ADRs in a repo."
 disable-model-invocation: true
 metadata:

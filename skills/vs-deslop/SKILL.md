@@ -1,5 +1,5 @@
 ---
-name: deslop
+name: vs-deslop
 description: "Use when code works but feels AI-generated, bloated, repetitive, over-defensive, or needs cleanup before review or shipping."
 ---
 
@@ -68,5 +68,5 @@ Inspect the requested scope for:
 
 ## Workflow
 
-**Prev:** `/build-it`, `/roast-review`, `/qa`, direct implementation
-**Next:** `/verify`, `/brief`, `/ship-it`
+**Prev:** `/vs-build-it`, `/vs-roast-review`, `/vs-qa`, direct implementation
+**Next:** `/vs-verify`, `/vs-brief`, `/vs-ship-it`

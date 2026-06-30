@@ -1,6 +1,6 @@
 ---
-name: out-of-context
-description: "Explain the current situation from zero prior context. Use when the user says /out-of-context, out of context, I have no context, or explain what is going on."
+name: vs-out-of-context
+description: "Explain the current situation from zero prior context. Use when the user says /vs-out-of-context, out of context, I have no context, or explain what is going on."
 disable-model-invocation: true
 ---
 
@@ -10,7 +10,7 @@ Explain the current situation to a smart reader who did not read anything before
 
 ## Use When
 
-- The user says `/out-of-context`, `out of context`, `I have no context`, or asks what is going on from scratch.
+- The user says `/vs-out-of-context`, `out of context`, `I have no context`, or asks what is going on from scratch.
 - The user needs a short orientation before deciding what to do next.
 
 ## Gather
@@ -40,7 +40,7 @@ End with `Possible actions:` followed by 2-4 concise options the user can choose
 Example:
 
 ```markdown
-We are adding a new `/out-of-context` skill to the VS workflow so you can ask for a tiny explanation of the current situation when you have not followed the previous discussion. It is separate from `/recap`: this one explains the problem from scratch, while recap focuses on recent changes. The only real decision is whether the wording is short enough or needs an eval.
+We are adding a new `/vs-out-of-context` skill to the VS workflow so you can ask for a tiny explanation of the current situation when you have not followed the previous discussion. It is separate from `/vs-recap`: this one explains the problem from scratch, while recap focuses on recent changes. The only real decision is whether the wording is short enough or needs an eval.
 
 Possible actions: ship it, tighten wording, add eval, stop here.
 ```

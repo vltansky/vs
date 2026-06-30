@@ -1,5 +1,5 @@
 ---
-name: perf
+name: vs-perf
 description: "Use when optimizing latency, throughput, memory, startup, bundle size, or any performance target that needs evaluator-backed proof."
 ---
 
@@ -12,7 +12,7 @@ guard against regressions.
 ## Codex Goal Integration
 
 When running in Codex, use
-[`../internal-shared/references/codex-goal.md`](../internal-shared/references/codex-goal.md)
+[`../vs-internal-shared/references/codex-goal.md`](../vs-internal-shared/references/codex-goal.md)
 for standalone-goal rules.
 
 Perf normally contributes measurement evidence to another workflow. If invoked
@@ -68,5 +68,5 @@ and frame the work as cleanup or architecture, not proven performance.
 
 ## Workflow
 
-**Prev:** `/shape-it`, `/rfc-research`, direct optimization request
-**Next:** `/build-it`, `/verify`, `/ship-it`
+**Prev:** `/vs-shape-it`, `/vs-rfc-research`, direct optimization request
+**Next:** `/vs-build-it`, `/vs-verify`, `/vs-ship-it`

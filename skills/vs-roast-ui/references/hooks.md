@@ -1,4 +1,4 @@
-# /roast-ui hooks
+# /vs-roast-ui hooks
 
 Manage the **design detector hook** for the current project.
 
@@ -34,7 +34,7 @@ The first argument is the action. Defaults to `status`.
    node $ROAST_UI_SKILL_DIR/scripts/hook-admin.mjs <action> [args...]
    ```
 
-3. If `<action>` is `off`, follow up with a one-line note: "Done. New edits will not trigger the design hook in this project until you run `/roast-ui hooks on`."
+3. If `<action>` is `off`, follow up with a one-line note: "Done. New edits will not trigger the design hook in this project until you run `/vs-roast-ui hooks on`."
 4. If `<action>` is `on`, follow up with: "Done. The design hook will fire after the next Edit/Write/MultiEdit on a UI file."
 5. If `<action>` is `ignore-value`, `ignore-file`, or `ignore-rule`, just print the script output. The default scope is shared `.impeccable/config.json`; add `--local` only when the user explicitly asks for a private exception.
 6. If `<action>` is `status`, just print the script output. Do not add commentary unless the user asked a follow-up question.
@@ -85,4 +85,4 @@ node $ROAST_UI_SKILL_DIR/scripts/hook-admin.mjs ignore-file "src/legacy/Card.tsx
 ## Failure modes
 
 - If `.impeccable/config.json` or `.impeccable/config.local.json` is unreadable or malformed, the hook ignores that file and uses the remaining valid config/defaults. `hook-admin.mjs status` will show malformed files as ignored.
-- If the user asks to "disable the hook" globally, lead with `/roast-ui hooks off` (persistent for this project; writes `hook.enabled: false` to config). The legacy `IMPECCABLE_HOOK_DISABLED=1` env var also works as a one-shot override that follows the shell.
+- If the user asks to "disable the hook" globally, lead with `/vs-roast-ui hooks off` (persistent for this project; writes `hook.enabled: false` to config). The legacy `IMPECCABLE_HOOK_DISABLED=1` env var also works as a one-shot override that follows the shell.

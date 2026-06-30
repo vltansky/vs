@@ -195,7 +195,7 @@ Codex Run Notes are final-chat only. Do not include this section in the persiste
 
 ### Persist the Snapshot
 
-Once the report above is finalized, write it to `.impeccable/critique/` so the user can refer back, and so `/roast-ui polish` can pick up the priority issues without a copy-paste.
+Once the report above is finalized, write it to `.impeccable/critique/` so the user can refer back, and so `/vs-roast-ui polish` can pick up the priority issues without a copy-paste.
 
 Skip this step if the Setup slug was null (vague or root-level target).
 
@@ -273,13 +273,13 @@ List recommended commands in priority order, based on the user's answers:
 - Skip commands that would address zero issues
 - If the user chose a limited scope, only include items within that scope
 - If the user marked areas as off-limits, exclude commands that would touch those areas
-- End with `/roast-ui polish` as the final step if any fixes were recommended
+- End with `/vs-roast-ui polish` as the final step if any fixes were recommended
 
 After presenting the summary, tell the user:
 
 > You can ask me to run these one at a time, all at once, or in any order you prefer.
 >
-> Re-run `/roast-ui critique` after fixes to see your score improve.
+> Re-run `/vs-roast-ui critique` after fixes to see your score improve.
 
 ---
 

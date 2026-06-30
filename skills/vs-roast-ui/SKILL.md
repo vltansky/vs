@@ -1,5 +1,5 @@
 ---
-name: roast-ui
+name: vs-roast-ui
 description: "Use when user asks to design, redesign, critique, polish, or improve frontend UI. Covers websites, dashboards, product screens, components, forms, onboarding, empty states, and visual fidelity checks."
 argument-hint: "[command] [target]"
 user-invocable: true
@@ -18,7 +18,7 @@ The copied upstream license is included at [LICENSE.impeccable](LICENSE.impeccab
 
 When running bundled scripts, first resolve this skill directory and use it as
 `$ROAST_UI_SKILL_DIR`. In this repository the source path is
-`plugins/vs/skills/roast-ui`; in an installed agent runtime, use the installed
+`plugins/vs/skills/vs-roast-ui`; in an installed agent runtime, use the installed
 skill directory exposed by that runtime.
 
 ## Setup
@@ -172,7 +172,7 @@ Plus three management commands: `pin <command>`, `unpin <command>`, and `hooks <
 
    Reason over the signals; there is no score to obey:
    - `setup.hasDesign` false while `setup.hasCode` true → `document` (capture the visual system).
-   - `critique.latest` is `null` → the project has never been critiqued; for a set-up project with a real surface, offering `/roast-ui critique <surface>` is a strong default.
+   - `critique.latest` is `null` → the project has never been critiqued; for a set-up project with a real surface, offering `/vs-roast-ui critique <surface>` is a strong default.
    - `critique.latest` with a low `score` or non-zero `p0` / `p1` → `polish` (it reads that snapshot as its backlog), or re-run `critique` if the snapshot looks stale.
    - `git.changedFiles` pointing at one surface → scope `audit` or `polish` to those files specifically, naming them.
    - `devServer.running` true → `live` is available for in-browser iteration; if false, don't lead with `live`.
@@ -185,7 +185,7 @@ Plus three management commands: `pin <command>`, `unpin <command>`, and `hooks <
 3. **First word doesn't match, but the intent clearly maps to one command** (e.g. "fix the spacing" → `layout`, "rewrite this error message" → `clarify`, "compare this screenshot to the mock" → `verdict`, "the colors feel flat" → `colorize`): load that command's reference and proceed as if invoked. If two commands could fit, ask once which.
 4. **No clear command match**: general design invocation. Apply the setup steps, the General rules, and the loaded register reference, using the full argument as context.
 
-Setup (context gathering, register) is already loaded by then; sub-commands don't re-invoke `/roast-ui`.
+Setup (context gathering, register) is already loaded by then; sub-commands don't re-invoke `/vs-roast-ui`.
 
 If the first word is `craft`, setup still runs first, but [references/craft.md](references/craft.md) owns the rest of the flow. If setup invokes `init` as a blocker, finish init, refresh context, then resume the original command and target.
 
@@ -193,7 +193,7 @@ If the first word is `craft`, setup still runs first, but [references/craft.md](
 
 ## Pin / Unpin
 
-**Pin** creates a standalone shortcut so `<command>` invokes `/roast-ui <command>` directly. **Unpin** removes it. The script writes to every harness directory present in the project.
+**Pin** creates a standalone shortcut so `<command>` invokes `/vs-roast-ui <command>` directly. **Unpin** removes it. The script writes to every harness directory present in the project.
 
 ```bash
 node "$ROAST_UI_SKILL_DIR/scripts/pin.mjs" <pin|unpin> <command>
@@ -203,4 +203,4 @@ Valid `<command>` is any command from the table above. Report the script's resul
 
 ## Hooks
 
-`/roast-ui hooks <on|off|status|ignore-rule|ignore-file|ignore-value|reset>` manages the design detector hook for this project. The hook auto-runs the detector after direct UI file edits and surfaces findings as system reminders. Full flow is in [references/hooks.md](references/hooks.md); load it when the user invokes `/roast-ui hooks` with any argument.
+`/vs-roast-ui hooks <on|off|status|ignore-rule|ignore-file|ignore-value|reset>` manages the design detector hook for this project. The hook auto-runs the detector after direct UI file edits and surfaces findings as system reminders. Full flow is in [references/hooks.md](references/hooks.md); load it when the user invokes `/vs-roast-ui hooks` with any argument.

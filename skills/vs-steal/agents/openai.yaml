@@ -1,5 +1,5 @@
 interface:
-  display_name: "vs:steal"
+  display_name: "vs-steal"
 
 policy:
   allow_implicit_invocation: false

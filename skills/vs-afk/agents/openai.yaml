@@ -1,5 +1,5 @@
 interface:
-  display_name: "vs:afk"
+  display_name: "vs-afk"
 
 policy:
   allow_implicit_invocation: false

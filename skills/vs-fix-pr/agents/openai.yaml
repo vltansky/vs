@@ -1,5 +1,5 @@
 interface:
-  display_name: "vs:fix-pr"
+  display_name: "vs-fix-pr"
   short_description: "Address PR review feedback"
 
 policy:

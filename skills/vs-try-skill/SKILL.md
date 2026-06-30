@@ -1,5 +1,5 @@
 ---
-name: try-skill
+name: vs-try-skill
 description: "Use when asked to blind test, dogfood, or try a skill change. Spawns a fresh agent and compares actual behavior to expectations."
 ---
 
@@ -99,5 +99,5 @@ If the user applies a fix, offer to re-run Step 3-5 with the same blind prompt t
 
 - One blind run is a signal, not proof. For flaky behavior, run 2-3 blind runs with slightly varied prompts before drawing conclusions.
 - If the subagent's report mentions your expected behavior verbatim, you leaked context — rewrite the prompt.
-- This is complementary to `skill-test` (offline `claude -p` canary runs) — use `try-skill` mid-iteration, `skill-test` for scripted regression.
+- This is complementary to `skill-test` (offline `claude -p` canary runs) — use `vs-try-skill` mid-iteration, `skill-test` for scripted regression.
 - Does not produce session artifacts. Comparison is inline.

@@ -1,5 +1,5 @@
 interface:
-  display_name: "vs:walkthrough"
+  display_name: "vs-walkthrough"
 
 policy:
   allow_implicit_invocation: false

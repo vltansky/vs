@@ -1,5 +1,5 @@
 ---
-name: retro
+name: vs-retro
 description: "Use when asked for retro, session learnings, what did we learn, or extract learnings. Routes findings to the right destination."
 ---
 
@@ -119,7 +119,7 @@ Only if `~/.agents/skills/<name>/` exists. Skip if the skill directory isn't fou
 
 1. **Always run tsc before committing**
    - Evidence: "build failed because you didn't type-check" (session 2026-04-12, turn 28)
-   - File: `~/.agents/skills/build-it/references/user-learnings.md`
+   - File: `~/.agents/skills/vs-build-it/references/user-learnings.md`
 
 ### Nothing for project CLAUDE.md this round.
 
@@ -147,7 +147,7 @@ Format for per-skill references:
 ## What this does NOT do
 
 - Does not modify skill files (that's `improve-skills`)
-- Does not analyze git history (that's `retro` and `rules-from-prs`)
+- Does not analyze git history (that's `vs-retro` and `rules-from-prs`)
 - Does not run automatically — explicit invocation only
 - Does not extract code patterns (derivable from the code itself)
 - Does not duplicate what's already in CLAUDE.md or memory files — check before proposing

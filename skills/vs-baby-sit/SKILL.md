@@ -1,5 +1,5 @@
 ---
-name: baby-sit
+name: vs-baby-sit
 description: "Use when asked to watch a PR, fix CI, address review comments, or keep a branch merge-ready in a loop."
 disable-model-invocation: true
 ---
@@ -11,7 +11,7 @@ Loop on the current branch's PR. Resolve review comments, fix CI, stop when merg
 ## Codex Goal Integration
 
 When running in Codex, use
-[`../internal-shared/references/codex-goal.md`](../internal-shared/references/codex-goal.md)
+[`../vs-internal-shared/references/codex-goal.md`](../vs-internal-shared/references/codex-goal.md)
 for goal ownership and completion rules.
 
 Baby-sit owns the PR readiness goal after Step 0 resolves the target PR. The
@@ -284,5 +284,5 @@ Update `PREV_HEAD_SHA`, `PREV_THREADS`, and `PREV_CI` after each iteration.
 
 ## Workflow
 
-**Prev:** `/ship-it` (PR just created) | standalone
-**Next:** PR merged | `/fix-pr` (if human wants to handle ambiguous threads)
+**Prev:** `/vs-ship-it` (PR just created) | standalone
+**Next:** PR merged | `/vs-fix-pr` (if human wants to handle ambiguous threads)

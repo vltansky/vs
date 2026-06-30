@@ -1,5 +1,5 @@
 ---
-name: github-research
+name: vs-github-research
 description: "Use when the user asks how GitHub projects solve a problem, wants prior art, external code examples, ecosystem patterns, or a landscape comparison across parallel projects."
 ---
 
@@ -16,7 +16,7 @@ Choose one output mode from the user's wording:
 - **Prior-art answer:** compact synthesis of patterns, examples, tradeoffs, and takeaways.
 - **Landscape report:** structured comparison across multiple parallel projects on fixed axes.
 
-Do not turn the result into an RFC unless the user asks for one. Hand off to `/rfc-research` when they want a decision document.
+Do not turn the result into an RFC unless the user asks for one. Hand off to `/vs-rfc-research` when they want a decision document.
 
 For a prior-art answer, give the user:
 
@@ -25,7 +25,7 @@ For a prior-art answer, give the user:
 3. What tradeoffs those examples reveal
 4. What is worth borrowing, avoiding, or researching next
 
-For a landscape report, produce a matrix-centered map of projects in the same space. Do not recommend a winner or propose copying everything the "best" project does; porting specific ideas belongs in `/steal`, and architectural pivots belong in `/shape-it`.
+For a landscape report, produce a matrix-centered map of projects in the same space. Do not recommend a winner or propose copying everything the "best" project does; porting specific ideas belongs in `/vs-steal`, and architectural pivots belong in `/vs-shape-it`.
 
 ## Tool Source
 
@@ -175,7 +175,7 @@ Aim for 5-10 projects, not 30. Prefer projects that are active, show real usage,
 
 For each project, fill in each axis in one sentence. Cite a file/line when a sentence describes a concrete mechanism. Uncited axis values get flagged as `[inference]`.
 
-Resolve `$PROJECT_ID` (see [../internal-shared/SKILL.md](../internal-shared/SKILL.md)) and write to `~/.vs/$PROJECT_ID/github-research/YYYY-MM-DD-landscape.md`:
+Resolve `$PROJECT_ID` (see [../vs-internal-shared/SKILL.md](../vs-internal-shared/SKILL.md)) and write to `~/.vs/$PROJECT_ID/vs-github-research/YYYY-MM-DD-landscape.md`:
 
 ```markdown
 # GitHub landscape — YYYY-MM-DD
@@ -233,11 +233,11 @@ Print the report path plus a short clusters summary.
 
 ## Relationship To Nearby Skills
 
-- `/github-research` answers broad GitHub-backed questions and can create a landscape map across multiple projects.
-- `/steal` deeply inspects one named repo for portable ideas.
-- `/rfc-research` turns evidence into a formal proposal or decision document.
+- `/vs-github-research` answers broad GitHub-backed questions and can create a landscape map across multiple projects.
+- `/vs-steal` deeply inspects one named repo for portable ideas.
+- `/vs-rfc-research` turns evidence into a formal proposal or decision document.
 
 ## Workflow
 
-**Prev:** user question, `/shape-it` needing prior art, or `/pushback` needing external evidence.
-**Next:** `/rfc-research` (formalize decision), `/steal` (deep dive one repo), `/github-research` in landscape mode (broaden the scan), or `/shape-it` (turn findings into design).
+**Prev:** user question, `/vs-shape-it` needing prior art, or `/vs-pushback` needing external evidence.
+**Next:** `/vs-rfc-research` (formalize decision), `/vs-steal` (deep dive one repo), `/vs-github-research` in landscape mode (broaden the scan), or `/vs-shape-it` (turn findings into design).

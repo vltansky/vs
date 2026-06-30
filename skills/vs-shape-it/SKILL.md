@@ -1,5 +1,5 @@
 ---
-name: shape-it
+name: vs-shape-it
 description: "Use when the user says shape it, brainstorm, explore this idea, grill this, or wants to turn an idea into a buildable design."
 ---
 
@@ -25,7 +25,7 @@ If you guessed wrong, pivot immediately.
 ## Codex Goal Integration
 
 When running in Codex, use the shared Codex goal guidance from
-`internal-shared` for goal-ready output shape.
+`vs-internal-shared` for goal-ready output shape.
 
 Shape-it may own a **planning goal** for the shaping session, but it does not
 create or complete the later implementation goal. Its output should be fit for
@@ -76,7 +76,7 @@ Context intake:
 
 - Check prior artifacts when relevant:
   `~/.vs/$PROJECT_ID/{pushback,specs,context,rfcs}/` (resolve `$PROJECT_ID` per
-  [../internal-shared/SKILL.md](../internal-shared/SKILL.md)).
+  [../vs-internal-shared/SKILL.md](../vs-internal-shared/SKILL.md)).
 - Explore code and docs lazily, only where it changes the design.
 
 Design output:
@@ -86,7 +86,7 @@ Design output:
 - Include 1-2 alternatives with tradeoffs; use 3 only for genuinely complex work.
 - Cover scope, boundaries, data/control flow, risks, and verification.
 - Ask for approval once at the end. No section-by-section gates.
-- If the design depends on a performance claim, load [../perf/SKILL.md](../perf/SKILL.md)
+- If the design depends on a performance claim, load [../vs-perf/SKILL.md](../vs-perf/SKILL.md)
   when available and define the metric/evaluator before calling it build-ready.
 
 Spec writing:
@@ -100,7 +100,7 @@ Spec writing:
 
 ## Challenge mode
 
-Use `/pushback` when the host can invoke it. If not, run a compact stress-test
+Use `/vs-pushback` when the host can invoke it. If not, run a compact stress-test
 yourself:
 
 - challenge the premise
@@ -112,7 +112,7 @@ yourself:
 - list the top 3 risks and the recommended next step
 
 If the verdict is `NOT_READY`, help rework the idea in Explore mode. If it is
-ready enough, suggest `/build-it`.
+ready enough, suggest `/vs-build-it`.
 
 ## Confusion
 
@@ -136,9 +136,9 @@ Before finishing, check:
 - Explore produced a design with tradeoffs and one approval gate
 - Challenge produced a verdict and score
 - unresolved strategic ambiguity is explicit
-- next step is `/build-it`, `/pushback`, or rework
+- next step is `/vs-build-it`, `/vs-pushback`, or rework
 
 ## Workflow
 
 **Prev:** idea, rough plan, or question
-**Next:** `/build-it` when shaped, `/pushback` when the plan needs adversarial review
+**Next:** `/vs-build-it` when shaped, `/vs-pushback` when the plan needs adversarial review

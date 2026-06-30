@@ -44,13 +44,13 @@ the work you did.
 [Anything borderline or debatable — or "None"]
 ```
 
-After presenting the summary, load and run `../../brief/SKILL.md` for the change
+After presenting the summary, load and run `../../vs-brief/SKILL.md` for the change
 orientation brief when the host can resolve repo-relative skill paths. Follow its
 steps using the current branch diff and this session's context (decisions log,
 flagged items). The brief provides the reviewer-facing orientation layer on top
 of the pipeline summary above.
 
-Then load and run `../../walkthrough/SKILL.md` when available. Use the final diff,
+Then load and run `../../vs-walkthrough/SKILL.md` when available. Use the final diff,
 verification result, and any QA evidence to produce a scenario-first walkthrough
 of the shipped behavior, including branches and proof signal. Keep this separate
 from the brief: the brief says what changed and where to review; the walkthrough
@@ -70,6 +70,6 @@ git diff --stat "$BASE"..HEAD
 Before sending the final response, audit it against the Phase 7 shell. If any required heading, commit list, decision row, guardrail result, or explicit next step is missing, revise before sending. Do not assume the user can infer the workflow from git history alone.
 
 Suggest next step based on results:
-- All green → `/ship-it`
+- All green → `/vs-ship-it`
 - Guardrail failures → list what's broken, recommend fixing
 - QA deferred issues → note them for future work

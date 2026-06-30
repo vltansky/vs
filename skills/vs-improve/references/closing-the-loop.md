@@ -85,11 +85,11 @@ Finish with a short report: what's verified done, what was refreshed, what's rej
 
 ## `--issues` — publish plans as GitHub issues
 
-Modifier on any planning invocation (`/improve --issues`, `/improve security --issues`). The flag is the user's authorization to create issues — never create them without it.
+Modifier on any planning invocation (`/vs-improve --issues`, `/vs-improve security --issues`). The flag is the user's authorization to create issues — never create them without it.
 
 1. Preflight: `gh auth status` succeeds and the repo has a GitHub remote. If either fails, write the plan files as normal and say why issues were skipped.
 2. Show the list of titles about to become issues; confirm once if interactive.
-3. Per plan: `gh issue create --title "<plan title>" --body-file <plan file>`. Labels: `improve` plus the category — apply only if the labels exist or can be created without erroring; skip labels rather than fail.
+3. Per plan: `gh issue create --title "<plan title>" --body-file <plan file>`. Labels: `vs-improve` plus the category — apply only if the labels exist or can be created without erroring; skip labels rather than fail.
 4. Record each issue URL in the plan's Status block (`- **Issue**: <url>`) and the index.
 
 The plan file remains the source of truth; the issue is distribution. The self-containment rule pays off here — the issue body needs no edits to make sense to whoever (or whatever) picks it up.

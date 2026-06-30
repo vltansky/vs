@@ -1,5 +1,5 @@
 ---
-name: build-it
+name: vs-build-it
 description: "Use when the user says build-it, implement this plan, take it from here, or wants autonomous plan-to-code execution."
 disable-model-invocation: true
 ---
@@ -12,10 +12,10 @@ Build-it takes a plan (or generates one if needed) and runs seven phases within 
 1. **Roast** — load and follow the pushback skill to stress-test the plan
 2. **Fix** — apply pushback findings directly to the plan
 3. **Execute** — create branch, add debug instrumentation, implement with TDD + parallel subagents
-4. **Review** — run roast-review/deslop on the diff (code reuse, quality, efficiency, roast)
+4. **Review** — run roast-review/vs-deslop on the diff (code reuse, quality, efficiency, roast)
 5. **QA** — browser-based testing if it's a web app (debug logs provide runtime evidence)
 6. **Cleanup** — remove debug instrumentation, verify everything still passes
-7. **Handoff** — present results, suggest `/ship-it`
+7. **Handoff** — present results, suggest `/vs-ship-it`
 
 Resolve tactical implementation decisions locally; do not expand scope beyond what is directly required for the stated outcome.
 
@@ -24,21 +24,21 @@ Resolve tactical implementation decisions locally; do not expand scope beyond wh
 Build-it is a workflow. It composes building blocks instead of inventing
 one-off behavior:
 
-- `pushback` stress-tests the plan in Phase 1.
-- `decide-for-me` owns the no-questions decision ladder for tactical uncertainty.
-- `tdd` and `debug-mode` guide implementation and failure investigation.
-- `roast-review` and `deslop` clean and review the diff in Phase 4.
-- `qa` tests affected web behavior in Phase 5.
-- `verify` produces the final evidence-backed completion status.
-- `brief` produces the human-readable orientation layer for the handoff.
-- `walkthrough` explains how the shipped change behaves and how to prove it.
+- `vs-pushback` stress-tests the plan in Phase 1.
+- `vs-decide-for-me` owns the no-questions decision ladder for tactical uncertainty.
+- `vs-tdd` and `vs-debug-mode` guide implementation and failure investigation.
+- `vs-roast-review` and `vs-deslop` clean and review the diff in Phase 4.
+- `vs-qa` tests affected web behavior in Phase 5.
+- `vs-verify` produces the final evidence-backed completion status.
+- `vs-brief` produces the human-readable orientation layer for the handoff.
+- `vs-walkthrough` explains how the shipped change behaves and how to prove it.
 
 ## Codex Goal Integration
 
 When running in Codex and goal tools are available, use Codex goal as the
 run-level progress contract for build-it:
 
-- Load [`../internal-shared/references/codex-goal.md`](../internal-shared/references/codex-goal.md) during Phase 0.
+- Load [`../vs-internal-shared/references/codex-goal.md`](../vs-internal-shared/references/codex-goal.md) during Phase 0.
 - Ensure vague intent is shaped into a Codex-goal-ready objective before calling
   `create_goal`.
 - Keep goal state as bookkeeping only; the handoff still needs commits,
@@ -46,7 +46,7 @@ run-level progress contract for build-it:
 
 ## Decision Principles
 
-These apply the shared `decide-for-me` contract to every question that would normally go to the user:
+These apply the shared `vs-decide-for-me` contract to every question that would normally go to the user:
 
 1. **Completeness** — ship the whole thing. Pick the approach that covers more edge cases.
 2. **Pragmatic** — if two options fix the same thing, pick the simpler one. 5 seconds choosing, not 5 minutes.
@@ -82,7 +82,7 @@ These are the behaviors evals punish hardest; prioritize them during autonomous 
 
 ### Step 0: Initialize Codex goal
 
-Load and follow [`../internal-shared/references/codex-goal.md`](../internal-shared/references/codex-goal.md) when
+Load and follow [`../vs-internal-shared/references/codex-goal.md`](../vs-internal-shared/references/codex-goal.md) when
 Codex goal tools are available or the user asks build-it to use Codex goal.
 
 ### Step 1: Read context
@@ -114,7 +114,7 @@ implementation spec — just a feature request, bug description, or vague goal):
    for the rest of the pipeline.
 4. Log this in the decision log: "No plan provided — auto-generated via plan-mode subagent."
 
-This replaces the need for the user to run `/shape-it` or write a plan manually.
+This replaces the need for the user to run `/vs-shape-it` or write a plan manually.
 The roast phase (Phase 1) still stress-tests whatever plan comes out, so a weak
 auto-generated plan gets caught by the circuit breaker.
 
@@ -134,7 +134,7 @@ Common fixes: `bun install`, `npm install`, `pip install -r requirements.txt`.
 If installation is blocked by sandbox network limits but a declared guardrail is failing only because dev-only ambient types are missing (for example `bun-types`), prefer the smallest local compatibility fix in a dedicated support location (`types/`, test-only file move, or equivalent) rather than leaving the guardrail unverified. Do not change product/runtime behavior just to satisfy the guardrail.
 If such a support-only guardrail fix is needed, treat it as a dedicated **prep step** before the real implementation loop:
 - commit it separately as a chore/support change before the failing test commit
-- keep it out of the product diff summary and decision rationale for the actual feature/bugfix
+- keep it out of the product diff summary and decision rationale for the actual feature/vs-bugfix
 - in the final handoff, report it under support/guardrail prep, not as part of the product behavior change
 Do not proceed to Step 2 until all guardrail commands execute without
 "command not found" or "module not found" errors.
@@ -170,7 +170,7 @@ List the steps and move on. Do not ask for confirmation.
 
 ## Phase 1: Roast the Plan
 
-Load and follow the sibling skill at `../pushback/SKILL.md`. If the host cannot resolve sibling skill paths, run a lightweight adversarial review yourself (premise challenge, assumptions, feasibility, edge cases — same dimensions, less ceremony).
+Load and follow the sibling skill at `../vs-pushback/SKILL.md`. If the host cannot resolve sibling skill paths, run a lightweight adversarial review yourself (premise challenge, assumptions, feasibility, edge cases — same dimensions, less ceremony).
 
 ### Auto-decision overrides for pushback
 
@@ -230,7 +230,7 @@ Implement the fixed plan. Use parallel subagents when possible.
 
 ### Step 0: Load TDD and Debug skills
 
-Load sibling skills `../tdd/SKILL.md` and `../debug-mode/SKILL.md` when the host can resolve them. Workers follow TDD discipline (test first, then implement). If sibling resolution fails, workers write tests after implementation as a fallback.
+Load sibling skills `../vs-tdd/SKILL.md` and `../vs-debug-mode/SKILL.md` when the host can resolve them. Workers follow TDD discipline (test first, then implement). If sibling resolution fails, workers write tests after implementation as a fallback.
 
 If the debug skill resolves: read its instrumentation approach for Phase 3 step 0b below.
 
@@ -352,7 +352,7 @@ Collect findings from pipelined review subagents (launched during Phase 3).
 If no pipelined reviews ran (sequential execution or no subagent support),
 run the full review now.
 
-Load sibling skill `../roast-review/SKILL.md` when the host can resolve it. If found, read it and follow its full two-pass methodology:
+Load sibling skill `../vs-roast-review/SKILL.md` when the host can resolve it. If found, read it and follow its full two-pass methodology:
 - **Pass 1 (Simplify)**: 3 agents (reuse, quality, efficiency) — auto-fix. No override needed,
   this pass is non-interactive by design.
 - **Pass 2 (Roast + Codex)**: 2 agents (roast, codex review) — findings only.
@@ -360,7 +360,7 @@ Load sibling skill `../roast-review/SKILL.md` when the host can resolve it. If f
 If not found: run a lightweight self-review yourself covering the same dimensions
 on the branch diff.
 
-Load and run `../deslop/SKILL.md` when available for focused
+Load and run `../vs-deslop/SKILL.md` when available for focused
 cleanup of working code before final verification. Keep the deslop scope to the
 branch diff or the files changed by build-it; do not use it as permission for
 unrelated refactors. If the skill is unavailable, treat roast-review Pass 1 as
@@ -415,7 +415,7 @@ echo "HAS_WEB=$HAS_WEB"
 
 If not a web app: skip Phase 5, proceed to handoff.
 
-If web app: load sibling skill `../qa/SKILL.md` when the host can resolve it.
+If web app: load sibling skill `../vs-qa/SKILL.md` when the host can resolve it.
 
 If the QA skill resolves: read it and follow its methodology in **diff-aware mode** — only test
 pages affected by the branch diff, not the full app.
@@ -462,15 +462,15 @@ After removal:
 
 ## Phase 7: Handoff
 
-Load and run `../verify/SKILL.md` when available and include its
+Load and run `../vs-verify/SKILL.md` when available and include its
 `## Verification Result` in the handoff. If unavailable, record the final
 guardrail commands and results manually.
 
 Use the required shell in [references/handoff.md](./references/handoff.md), then
-load and run `../brief/SKILL.md` when available; otherwise append a minimal diff
-stat fallback. After the brief, load and run `../walkthrough/SKILL.md` when
+load and run `../vs-brief/SKILL.md` when available; otherwise append a minimal diff
+stat fallback. After the brief, load and run `../vs-walkthrough/SKILL.md` when
 available to add a scenario-first walkthrough with proof signal. Do not replace
-the brief: `brief` explains the diff for reviewers and PR reuse; `walkthrough`
+the brief: `vs-brief` explains the diff for reviewers and PR reuse; `vs-walkthrough`
 explains the behavior for user understanding.
 
 ---
@@ -496,4 +496,4 @@ explains the behavior for user understanding.
   do not implement it. [EASY TO MISS: "cleaning up" adjacent code or adding
   "helpful" extras IS scope expansion, even when it feels like good practice.]
 
-**Prev:** `/shape-it`, `/pushback`, `/rfc-research`, or none. **Next:** `/ship-it` or `/roast-review`.
+**Prev:** `/vs-shape-it`, `/vs-pushback`, `/vs-rfc-research`, or none. **Next:** `/vs-ship-it` or `/vs-roast-review`.

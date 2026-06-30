@@ -1,6 +1,6 @@
 ---
-name: recap
-description: "Create a tiny out-of-context recap of recent changes. Use when the user says /recap, recap, catch me up, or summarize where we are."
+name: vs-recap
+description: "Create a tiny out-of-context recap of recent changes. Use when the user says /vs-recap, recap, catch me up, or summarize where we are."
 ---
 
 # Recap
@@ -9,7 +9,7 @@ Give the user a compact handoff for a reader who just arrived from another topic
 
 ## Use When
 
-- The user says `/recap`, `recap`, `catch me up`, `where are we`, or asks for recent changes.
+- The user says `/vs-recap`, `vs-recap`, `catch me up`, `where are we`, or asks for recent changes.
 - The user needs enough context to decide the next step, not a full history.
 
 ## Gather
@@ -39,7 +39,7 @@ End with `Possible actions:` followed by 2-4 concise options. Each option should
 Example:
 
 ```markdown
-We added the `recap` skill as a standalone marketplace skill and wired the VS plugin to reuse it, so `/recap` can travel with VS without duplicating instructions. Validation passes, and the only remaining decision is whether to ship this as-is or add behavior eval coverage.
+We added the `vs-recap` skill as a standalone marketplace skill and wired the VS plugin to reuse it, so `/vs-recap` can travel with VS without duplicating instructions. Validation passes, and the only remaining decision is whether to ship this as-is or add behavior eval coverage.
 
 Possible actions: create PR, add eval, adjust wording, stop here.
 ```

@@ -1,5 +1,5 @@
 interface:
-  display_name: "vs:brief"
+  display_name: "vs-brief"
 
 policy:
   allow_implicit_invocation: false

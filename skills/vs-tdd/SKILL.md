@@ -1,5 +1,5 @@
 ---
-name: tdd
+name: vs-tdd
 description: "Use when the user says tdd, test first, red green refactor, or wants a bug fix proven by a failing test first."
 disable-model-invocation: true
 ---
@@ -155,5 +155,5 @@ TDD returns: test file path, implementation file paths, guardrail results.
 
 ## Workflow
 
-**Prev:** `/debug-mode` (found root cause, need a regression test) | `/build-it` (uses TDD internally)
-**Next:** `/roast-review` (review the implementation) | `/ship-it` (ship it)
+**Prev:** `/vs-debug-mode` (found root cause, need a regression test) | `/vs-build-it` (uses TDD internally)
+**Next:** `/vs-roast-review` (review the implementation) | `/vs-ship-it` (ship it)

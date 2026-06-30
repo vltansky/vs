@@ -1,5 +1,5 @@
 ---
-name: roast-review
+name: vs-roast-review
 description: "Use when the user says roast, roast-review, or tear apart code. Prefer over simplify for roast requests. Runs codex review --uncommitted as second opinion."
 ---
 
@@ -11,10 +11,10 @@ Two-pass review. First pass cleans. Second pass roasts what's left.
 
 Roast-review is a building-block review tool. It consumes:
 
-- `deslop` semantics during Pass 1: simplify working code while preserving behavior.
-- `second-opinion` semantics during Pass 2: Codex or another advisor is an
+- `vs-deslop` semantics during Pass 1: simplify working code while preserving behavior.
+- `vs-second-opinion` semantics during Pass 2: Codex or another advisor is an
   independent signal, not the final judge.
-- `verify` after fixes when the cleanup or review change could affect behavior.
+- `vs-verify` after fixes when the cleanup or review change could affect behavior.
 
 ## Critical Rules
 
@@ -249,5 +249,5 @@ Cite the specific positive assertions that earned the clean bill.
 
 ## Workflow
 
-**Prev:** `/build-it` (runs review internally) | `/tdd` | `/qa` | any implementation work
-**Next:** `/ship-it` (create PR — runs review automatically if skipped)
+**Prev:** `/vs-build-it` (runs review internally) | `/vs-tdd` | `/vs-qa` | any implementation work
+**Next:** `/vs-ship-it` (create PR — runs review automatically if skipped)

@@ -171,7 +171,7 @@ Test that copy improvements work:
 - **Consistency**: Does it match terminology elsewhere?
 - **Tone**: Is it appropriate for the situation?
 
-When the copy reads cleanly, hand off to `/roast-ui polish` for the final pass.
+When the copy reads cleanly, hand off to `/vs-roast-ui polish` for the final pass.
 
 ---
 

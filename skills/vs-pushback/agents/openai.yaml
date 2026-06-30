@@ -1,5 +1,5 @@
 interface:
-  display_name: "vs:pushback"
+  display_name: "vs-pushback"
 
 policy:
   allow_implicit_invocation: false

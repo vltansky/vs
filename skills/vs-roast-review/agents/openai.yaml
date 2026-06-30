@@ -1,5 +1,5 @@
 interface:
-  display_name: "vs:roast-review"
+  display_name: "vs-roast-review"
   short_description: "Roast or tear apart changed code with Codex review"
 
 policy:

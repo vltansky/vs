@@ -1,5 +1,5 @@
 interface:
-  display_name: "vs:debug-mode"
+  display_name: "vs-debug-mode"
   short_description: "Hypothesis-driven root-cause debugging"
 
 policy:

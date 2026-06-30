@@ -1,5 +1,5 @@
 ---
-name: verify
+name: vs-verify
 description: "Use when asked to verify, prove it works, check completion, or before claiming done. Produces evidence-backed PASS/WARN/FAIL status."
 ---
 
@@ -63,5 +63,5 @@ enough; do not run the entire suite by reflex.
 
 ## Workflow
 
-**Prev:** `/build-it`, `/bugfix`, `/fix-pr`, `/qa`, direct implementation
-**Next:** `/brief`, `/ship-it`, or fix the failing evidence
+**Prev:** `/vs-build-it`, `/vs-bugfix`, `/vs-fix-pr`, `/vs-qa`, direct implementation
+**Next:** `/vs-brief`, `/vs-ship-it`, or fix the failing evidence

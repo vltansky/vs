@@ -1,5 +1,5 @@
 ---
-name: second-opinion
+name: vs-second-opinion
 description: "Use when a plan, RFC, review, or risky change needs an independent advisor perspective from another model, tool, or reviewer."
 metadata:
   verified: true
@@ -60,5 +60,5 @@ credentials and send only the minimum context needed.
 
 ## Workflow
 
-**Prev:** `/pushback`, `/rfc-research`, `/roast-review`, risky implementation
-**Next:** revise plan, `/verify`, `/build-it`, or `/ship-it`
+**Prev:** `/vs-pushback`, `/vs-rfc-research`, `/vs-roast-review`, risky implementation
+**Next:** revise plan, `/vs-verify`, `/vs-build-it`, or `/vs-ship-it`

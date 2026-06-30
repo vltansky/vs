@@ -1,5 +1,5 @@
 ---
-name: to-issues
+name: vs-to-issues
 description: "Use when asked to turn a plan, spec, RFC, or brief into vertical-slice GitHub issues with handoff-ready bodies."
 disable-model-invocation: true
 ---
@@ -8,16 +8,16 @@ disable-model-invocation: true
 
 Take a plan, spec, RFC, or brief and turn it into a set of GitHub issues that an agent (or human) can pick up and ship independently. Each issue is a vertical slice with its own acceptance criteria, labeled for human-in-the-loop or AFK execution, and wired into a blocking dependency graph.
 
-This skill exists because most plans die at the "now what?" moment. The plan is solid but the jump from prose to concrete, bounded, assignable work is too high. `/to-issues` makes that jump mechanical.
+This skill exists because most plans die at the "now what?" moment. The plan is solid but the jump from prose to concrete, bounded, assignable work is too high. `/vs-to-issues` makes that jump mechanical.
 
 <HARD-GATE>
-Do NOT start implementing the plan. Output is a set of GitHub issues (via `gh issue create`) and a short index comment. Code comes later via `/build-it` or direct agent work on the issues.
+Do NOT start implementing the plan. Output is a set of GitHub issues (via `gh issue create`) and a short index comment. Code comes later via `/vs-build-it` or direct agent work on the issues.
 </HARD-GATE>
 
 ## Codex Goal Integration
 
 When running in Codex, use
-[`../internal-shared/references/codex-goal.md`](../internal-shared/references/codex-goal.md)
+[`../vs-internal-shared/references/codex-goal.md`](../vs-internal-shared/references/codex-goal.md)
 for standalone-goal rules.
 
 To-issues normally contributes handoff material to a larger planning workflow.
@@ -33,7 +33,7 @@ implementation of those issues as part of the to-issues goal.
 - The user wants to hand off work to async agents and needs durable issue bodies that survive reorg
 - A PRD-shaped doc exists and the implementation is non-trivial (3+ slices worth of work)
 
-If the plan is still fuzzy on terminology or framing, route to `/shape-it` first. If the plan hasn't been stress-tested, route to `/pushback` first.
+If the plan is still fuzzy on terminology or framing, route to `/vs-shape-it` first. If the plan hasn't been stress-tested, route to `/vs-pushback` first.
 
 ## Phase 0: Read the plan and the repo
 
@@ -51,7 +51,7 @@ Before slicing:
    ```
    Do not create duplicates; extend or link instead.
 
-Resolve `$PROJECT_ID` per [`../internal-shared/SKILL.md`](../internal-shared/SKILL.md) so the index file ends up in the right place.
+Resolve `$PROJECT_ID` per [`../vs-internal-shared/SKILL.md`](../vs-internal-shared/SKILL.md) so the index file ends up in the right place.
 
 ## Label contract
 
@@ -219,16 +219,16 @@ Emit a handoff block:
 - Codex Goal: completed / left active because ... / unavailable
 - Dependency depth: <max blocked-by chain length>
 - Recommended next step:
-  - AFK: run `/build-it` or dispatch agents against the afk-labeled issues
+  - AFK: run `/vs-build-it` or dispatch agents against the afk-labeled issues
   - HITL: pick up the first unblocked human-in-the-loop issue yourself
 ```
 
 ## References
 
 - Agent-brief format: [`references/agent-brief.md`](./references/agent-brief.md)
-- Shared conventions (project ID, storage): [`../internal-shared/SKILL.md`](../internal-shared/SKILL.md)
+- Shared conventions (project ID, storage): [`../vs-internal-shared/SKILL.md`](../vs-internal-shared/SKILL.md)
 
 ## Workflow
 
-**Prev:** `/shape-it` (plan formed) | `/pushback` (plan stress-tested)
-**Next:** `/build-it` (execute afk slices) | direct agent dispatch against issues | human review of `needs-review` drafts
+**Prev:** `/vs-shape-it` (plan formed) | `/vs-pushback` (plan stress-tested)
+**Next:** `/vs-build-it` (execute afk slices) | direct agent dispatch against issues | human review of `needs-review` drafts

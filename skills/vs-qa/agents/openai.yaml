@@ -1,5 +1,5 @@
 interface:
-  display_name: "vs:qa"
+  display_name: "vs-qa"
   short_description: "Browser-based testing and bug fixing"
 
 policy:

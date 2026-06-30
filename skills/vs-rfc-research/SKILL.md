@@ -1,5 +1,5 @@
 ---
-name: rfc-research
+name: vs-rfc-research
 description: "Use when asked to write an RFC, ADR, technical proposal, or research a technical decision with code evidence."
 metadata:
   author: vltansky
@@ -264,15 +264,15 @@ After the subagent returns:
 2. Remove the "Roast Notes" section
 3. The result is the final RFC
 
-For high-risk RFCs or disputed tradeoffs, load `../second-opinion/SKILL.md`
+For high-risk RFCs or disputed tradeoffs, load `../vs-second-opinion/SKILL.md`
 when available before finalizing. Use it to test the central decision, not to
 rerun the whole RFC. If the RFC contains a performance claim, load
-`../perf/SKILL.md` when available and include the evaluator or
+`../vs-perf/SKILL.md` when available and include the evaluator or
 benchmark contract before recommending implementation.
 
 ### Phase 6: Deliver
 
-1. Resolve `$PROJECT_ID` (see [../internal-shared/SKILL.md](../internal-shared/SKILL.md)):
+1. Resolve `$PROJECT_ID` (see [../vs-internal-shared/SKILL.md](../vs-internal-shared/SKILL.md)):
 
    ```bash
    PROJECT_ID=$(git config --get remote.origin.url 2>/dev/null \
@@ -282,7 +282,7 @@ benchmark contract before recommending implementation.
 
    Save the RFC to `~/.vs/$PROJECT_ID/rfcs/NNNN-[slug].md` (create the directory if missing; pick `NNNN` as the next sequential number in that folder)
 2. If the user explicitly asked for the RFC itself in the response, output the full final RFC markdown in chat. Otherwise present a concise summary with key findings and the file path.
-3. Suggest `/pushback` to stress-test the proposal before committing to it — the RFC is a plan, and plans benefit from adversarial review
+3. Suggest `/vs-pushback` to stress-test the proposal before committing to it — the RFC is a plan, and plans benefit from adversarial review
 
 ## Research Quality Gates
 
@@ -320,5 +320,5 @@ Before completing the RFC, verify:
 
 ## Workflow
 
-**Prev:** `/github-research` (deep-dive GitHub research that feeds the RFC)
-**Next:** `/pushback` (stress-test the RFC) | `/build-it` (implement the approved RFC)
+**Prev:** `/vs-github-research` (deep-dive GitHub research that feeds the RFC)
+**Next:** `/vs-pushback` (stress-test the RFC) | `/vs-build-it` (implement the approved RFC)

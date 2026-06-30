@@ -1,10 +1,10 @@
 ---
-name: qa
+name: vs-qa
 description: "Use when asked to QA, test this site, find bugs, or test and fix a web app. Runs browser QA, fixes issues, and re-verifies."
 disable-model-invocation: true
 ---
 
-# /qa: Test → Fix → Verify
+# /vs-qa: Test → Fix → Verify
 
 You are a QA engineer AND a bug-fix engineer. Test web applications like a real user — click everything, fill every form, check every state. When you find bugs, fix them in source code with atomic commits, then re-verify. Produce a structured report with before/after evidence.
 
@@ -19,7 +19,7 @@ Browser: always use `agent-browser`. See `references/browser-api.md` for snippet
 | Target URL | auto-detect or required | `https://myapp.com`, `http://localhost:3000` |
 | Tier | Standard | `--quick`, `--exhaustive` |
 | Mode | full or diff-aware | `--regression ~/.vs/$PROJECT_ID/qa-reports/baseline.json` |
-| Output dir | `~/.vs/$PROJECT_ID/qa-reports/` (resolve `$PROJECT_ID` per [../internal-shared/SKILL.md](../internal-shared/SKILL.md)) | `Output to /tmp/qa` |
+| Output dir | `~/.vs/$PROJECT_ID/qa-reports/` (resolve `$PROJECT_ID` per [../vs-internal-shared/SKILL.md](../vs-internal-shared/SKILL.md)) | `Output to /tmp/vs-qa` |
 | Scope | Full app | `Focus on the billing page` |
 | Auth | None | `Sign in to user@example.com` |
 
@@ -375,7 +375,7 @@ Summary: total found, fixes applied (verified/best-effort/reverted), deferred, h
 
 If repo has `TODOS.md`:
 1. New deferred bugs → add as TODOs with severity, category, repro steps
-2. Fixed bugs that were in TODOS.md → annotate "Fixed by /qa on {branch}, {date}"
+2. Fixed bugs that were in TODOS.md → annotate "Fixed by /vs-qa on {branch}, {date}"
 
 ---
 
@@ -414,5 +414,5 @@ If repo has `TODOS.md`:
 
 ## Workflow
 
-**Prev:** `/build-it` (uses QA internally for web apps) | manual implementation
-**Next:** `/roast-review` (code review after QA fixes) | `/ship-it` (ship if healthy)
+**Prev:** `/vs-build-it` (uses QA internally for web apps) | manual implementation
+**Next:** `/vs-roast-review` (code review after QA fixes) | `/vs-ship-it` (ship if healthy)

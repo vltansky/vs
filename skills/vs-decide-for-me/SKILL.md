@@ -1,5 +1,5 @@
 ---
-name: decide-for-me
+name: vs-decide-for-me
 description: "Use when the user says decide-for-me, answer it yourself, or only ask strategic questions. Resolves tactical uncertainty before interrupting."
 ---
 

@@ -1,5 +1,5 @@
 interface:
-  display_name: "vs:internal-shared"
+  display_name: "vs-internal-shared"
 
 policy:
   allow_implicit_invocation: false
