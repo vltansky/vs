@@ -10,6 +10,9 @@
     "plugin"
   ],
   "homepage": "https://github.com/vltansky/vs",
+  "scripts": {
+    "install-plugin": "bash install.sh"
+  },
   "repository": {
     "type": "git",
     "url": "https://github.com/vltansky/vs.git"
