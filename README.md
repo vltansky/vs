@@ -1,6 +1,6 @@
 # vs
 
-You are the bottleneck. You also know more than the agent.
+You are the bottleneck. But you have the taste and context the agent doesn't.
 
 You have the domain knowledge, the business context, the taste. The agent has the throughput — it can research, implement, review, and test faster than you can. But it doesn't know *what* to build or *why*.
 
