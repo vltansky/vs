@@ -6,6 +6,34 @@ You have the domain knowledge, the business context, the taste. The agent has th
 
 vs is a framework for making that division work. The human makes strategic decisions. The agent executes with discipline. The framework connects the two so neither wastes the other's time.
 
+## Install
+
+vs ships native plugin manifests for both Claude Code (`.claude-plugin/`) and
+Codex (`.codex-plugin/`).
+
+### Claude Code
+
+Add the repo as a plugin marketplace, then install the plugin:
+
+```
+/plugin marketplace add vltansky/vs
+/plugin install vs@vs
+```
+
+### Codex
+
+Add the repo as a plugin marketplace, then install the plugin:
+
+```
+codex plugin marketplace add vltansky/vs
+codex plugin add vs@vs
+```
+
+### Manual
+
+Every skill under `skills/` is self-contained — you can also copy individual
+skill directories straight into your agent's skills folder.
+
 ## How it works
 
 Start with the three core workflows. The first is for you. The second is for the agent. The third is for you again.
@@ -182,30 +210,6 @@ The skills are written to fail closed. They'd rather stop and ask than silently 
 - Circuit breakers that stop autonomous execution when the plan is broken
 
 These matter more than clever prompting. They reduce the cases where the agent wastes your time by building the wrong thing.
-
-## Install
-
-vs ships native plugin manifests for both Claude Code (`.claude-plugin/`) and
-Codex (`.codex-plugin/`).
-
-### Claude Code
-
-Add the repo as a plugin marketplace, then install the plugin:
-
-```
-/plugin marketplace add vltansky/vs
-/plugin install vs@vs
-```
-
-### Codex
-
-Add the repo as a Codex plugin source and install `vs` from the plugin menu, or
-point Codex at the `.codex-plugin/plugin.json` manifest in your clone.
-
-### Manual
-
-Every skill under `skills/` is self-contained — you can also copy individual
-skill directories straight into your agent's skills folder.
 
 ## Included MCP
 
