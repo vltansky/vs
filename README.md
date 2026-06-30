@@ -223,7 +223,6 @@ The stack degrades gracefully when these extras are missing:
 
 ```
 skills/        skill definitions (SKILL.md plus supporting files)
-instructions/  plugin-wide agent guidance
 adr/           architecture decision records
 ```
 
