@@ -1,0 +1,20 @@
+{
+  "name": "vs",
+  "version": "1.0.1",
+  "description": "Plan-to-ship workflow skills for shaping ideas, building autonomously, reviewing code, and shipping PRs with agent discipline.",
+  "keywords": [
+    "claude-code",
+    "codex",
+    "agent",
+    "skills",
+    "plugin"
+  ],
+  "homepage": "https://github.com/vltansky/vs",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/vltansky/vs.git"
+  },
+  "author": "Vlad Tansky (https://github.com/vltansky)",
+  "license": "MIT",
+  "type": "commonjs"
+}

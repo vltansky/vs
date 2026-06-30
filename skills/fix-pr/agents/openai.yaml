@@ -1,0 +1,6 @@
+interface:
+  display_name: "vs:fix-pr"
+  short_description: "Address PR review feedback"
+
+policy:
+  allow_implicit_invocation: false

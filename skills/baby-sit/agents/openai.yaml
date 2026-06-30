@@ -1,0 +1,5 @@
+interface:
+  display_name: "vs:baby-sit"
+
+policy:
+  allow_implicit_invocation: false

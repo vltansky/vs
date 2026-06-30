@@ -1,0 +1,5 @@
+interface:
+  display_name: "vs:decide-for-me"
+
+policy:
+  allow_implicit_invocation: false

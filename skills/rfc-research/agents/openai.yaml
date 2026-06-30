@@ -1,0 +1,12 @@
+interface:
+  display_name: "vs:rfc-research"
+  short_description: "Evidence-backed technical proposals"
+
+dependencies:
+  tools:
+    - type: "mcp"
+      value: "octocode"
+      description: "Octocode MCP server for GitHub code evidence"
+
+policy:
+  allow_implicit_invocation: true

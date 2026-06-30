@@ -1,0 +1,6 @@
+interface:
+  display_name: "vs:tdd"
+  short_description: "Test-driven development loop"
+
+policy:
+  allow_implicit_invocation: false

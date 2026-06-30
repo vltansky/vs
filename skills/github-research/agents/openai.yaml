@@ -1,0 +1,12 @@
+interface:
+  display_name: "vs:github-research"
+  short_description: "GitHub-backed prior art and landscape research"
+
+dependencies:
+  tools:
+    - type: "mcp"
+      value: "octocode"
+      description: "Octocode MCP server for code search and analysis"
+
+policy:
+  allow_implicit_invocation: true

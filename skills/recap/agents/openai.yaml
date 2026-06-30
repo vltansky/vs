@@ -1,0 +1,5 @@
+interface:
+  display_name: "vs:recap"
+
+policy:
+  allow_implicit_invocation: false
