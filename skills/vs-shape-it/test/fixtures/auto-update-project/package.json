@@ -1,0 +1,9 @@
+{
+  "name": "vs",
+  "version": "1.0.1",
+  "private": true,
+  "description": "Plan-to-ship workflow skills installed into the user scope",
+  "scripts": {
+    "install-plugin": "bash install.sh"
+  }
+}

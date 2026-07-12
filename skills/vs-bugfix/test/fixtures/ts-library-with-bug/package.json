@@ -1,0 +1,14 @@
+{
+  "name": "bugfix-eval-project",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "bun test",
+    "typecheck": "bunx tsc --noEmit"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.0",
+    "bun-types": "^1.2.0"
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "name": "api-migration-fixture",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "test": "node tests/run.js",
+    "start": "node src/server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.0",
+    "graphql": "^16.8.0",
+    "apollo-server-express": "^3.13.0"
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "name": "shape-it-eval-project",
+  "version": "1.0.0",
+  "description": "Simple Express API for shape-it evals",
+  "main": "src/api.js"
+}

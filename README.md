@@ -258,8 +258,32 @@ The stack degrades gracefully when these extras are missing:
 
 ```
 skills/        skill definitions (SKILL.md plus supporting files)
+  vs-*/test/   pathgrade behavior evals (*.eval.ts) + fixtures
 adr/           architecture decision records
+vitest.config.ts   pathgrade plugin config
 ```
+
+## Evals
+
+Skill behavior is tested with [`@wix/pathgrade`](https://github.com/wix-incubator/pathgrade),
+which drives a real coding agent against each skill and scores the outcome.
+Evals live next to each skill in `skills/vs-*/test/*.eval.ts`.
+
+On macOS, pathgrade reuses your local Claude Code (or Codex) subscription auth
+from the Keychain — no API key required. Set `ANTHROPIC_API_KEY` /
+`OPENAI_API_KEY` only if you want to bill a key or target a proxy.
+
+```bash
+npm install                                    # one-time: pathgrade + vitest
+
+npm run eval                                   # run every eval (uses local auth)
+npx vitest run skills/vs-shape-it/test          # one skill
+PATHGRADE_AGENT=codex npm run eval              # drive Codex instead of Claude
+npm run eval:preview                            # browser report
+```
+
+Each eval spawns a live agent, so a full run takes minutes. Static, no-agent
+evals (e.g. `architecture-depth.static.eval.ts`) run instantly.
 
 ## Acknowledgements
 
