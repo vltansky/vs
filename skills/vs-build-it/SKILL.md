@@ -335,6 +335,24 @@ while the next layer executes:
 This means review runs concurrently with execution of later layers.
 For single-layer plans, review runs after execution (no pipelining benefit).
 
+### Step 3b: Capture ADRs for durable decisions
+
+If execution settled a durable, repo-level architecture decision — one that is
+expensive to reverse and future readers will ask "why did we do it this way"
+(a shaped ADR from `/vs-shape-it`, or a decision-principle resolution that
+changed the approach) — write an ADR alongside the code.
+
+- Follow the repo's ADR convention if one exists. Otherwise use `adr/` at the
+  repo root with a slug-only filename (lowercase, dash-separated, no numeric
+  prefix), and run `/setup-adr` to bootstrap scaffolding if none exists.
+- Record the context, the decision, the alternatives considered, and the
+  rationale. Never edit a merged ADR — supersede it with a new one.
+- Commit the ADR separately: `docs: add ADR for [decision]`.
+- Note it in the decision log and reference it in the Phase 7 handoff.
+
+Skip this for tactical implementation choices — ADRs are for repo-level
+decisions, not session notes.
+
 ### Step 4: Final validation
 
 After all layers complete, run the full validation suite:

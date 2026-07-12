@@ -85,6 +85,13 @@ Design output:
 - Lead with the recommended approach and why.
 - Include 1-2 alternatives with tradeoffs; use 3 only for genuinely complex work.
 - Cover scope, boundaries, data/control flow, risks, and verification.
+- When the design settles a durable, repo-level architecture call (a tradeoff
+  that is expensive to reverse and future readers will ask "why did we do it
+  this way"), recommend capturing it as an ADR. Follow the repo's ADR
+  convention if one exists; otherwise suggest `adr/` at the repo root with a
+  slug-only filename, and `/setup-adr` to bootstrap scaffolding. Name the
+  decision, the alternatives, and the chosen rationale so `/vs-build-it` can
+  write the ADR during implementation.
 - Ask for approval once at the end. No section-by-section gates.
 - If the design depends on a performance claim, load [../vs-perf/SKILL.md](../vs-perf/SKILL.md)
   when available and define the metric/evaluator before calling it build-ready.
