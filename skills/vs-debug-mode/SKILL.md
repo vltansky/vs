@@ -1,7 +1,6 @@
 ---
 name: vs-debug-mode
-description: "Use when the user says debug, root cause, investigate, trace this bug, or something is broken. Runs hypothesis-driven debugging."
-disable-model-invocation: true
+description: "Use when encountering any technical failure or unexpected behavior, including production incidents, test/build/CI failures, crashes, integration issues, performance regressions, and intermittent bugs, before proposing or implementing a fix. Finds the root cause through reproduction, evidence gathering, and testable hypotheses."
 ---
 
 # Debug

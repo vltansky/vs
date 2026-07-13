@@ -3,4 +3,4 @@ interface:
   short_description: "Hypothesis-driven root-cause debugging"
 
 policy:
-  allow_implicit_invocation: false
+  allow_implicit_invocation: true
