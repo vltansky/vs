@@ -2,6 +2,18 @@
 
 This plugin includes or adapts material from the following third-party projects.
 
+## Matt Pocock's skills
+
+- Project: https://github.com/mattpocock/skills
+- Used in: `skills/vs-prototype`
+- Source: https://github.com/mattpocock/skills/tree/main/skills/engineering/prototype
+- License: MIT
+
+The `vs-prototype` question-first contract and UI/logic prototype branches adapt
+Matt Pocock's prototype skill. The implementation is rewritten for the vs flow,
+repository safeguards, and decision-artifact conventions. The MIT license text
+is included at `skills/vs-prototype/LICENSE.mattpocock-skills`.
+
 ## Impeccable
 
 - Project: https://github.com/pbakaus/impeccable

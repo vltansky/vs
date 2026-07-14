@@ -22,6 +22,7 @@
     "./skills/vs-internal-shared",
     "./skills/vs-out-of-context",
     "./skills/vs-perf",
+    "./skills/vs-prototype",
     "./skills/vs-pushback",
     "./skills/vs-qa",
     "./skills/vs-recap",

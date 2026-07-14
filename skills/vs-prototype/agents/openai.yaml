@@ -1,0 +1,5 @@
+interface:
+  display_name: "vs-prototype"
+  short_description: "Build throwaway UI or logic code to answer one design question before production implementation."
+policy:
+  allow_implicit_invocation: true

@@ -51,6 +51,7 @@ Paste this inline — skills must stay self-contained in case they're installed 
 ├── briefs/       # brief outputs
 ├── verification/ # verification result summaries
 ├── perf/         # performance baselines and evaluator checkpoints
+├── prototypes/   # prototype questions, decisions, and evidence
 ├── improve/      # improvement backlog plans and indexes
 ├── sessions/     # workflow session handoffs
 ├── issues/       # to-issues drafts / index
@@ -66,7 +67,7 @@ Never write into the project tree (`docs/`, `.context/`, `.octocode/`) for sessi
 Each user-facing vs skill has a kind classification:
 
 - **Workflow** — takes a loose human goal and drives a full outcome (`vs-shape-it`, `vs-improve`, `vs-build-it`, `vs-ship-it`, `vs-bugfix`, `vs-fix-pr`, `vs-afk`, `vs-baby-sit`)
-- **Building block** — owns one bounded job and can be used directly or composed by workflows (`vs-tdd`, `vs-qa`, `vs-brief`, `vs-verify`, `vs-deslop`, `vs-second-opinion`, `vs-perf`, `vs-debug-mode`, `vs-roast-review`, `vs-github-research`, `vs-rfc-research`, `vs-pushback`, `vs-to-issues`, `vs-steal`, `vs-setup-adr`, `vs-decide-for-me`, `vs-retro`, `vs-try-skill`)
+- **Building block** — owns one bounded job and can be used directly or composed by workflows (`vs-tdd`, `vs-qa`, `vs-brief`, `vs-verify`, `vs-deslop`, `vs-second-opinion`, `vs-perf`, `vs-debug-mode`, `vs-roast-review`, `vs-github-research`, `vs-rfc-research`, `vs-pushback`, `vs-prototype`, `vs-to-issues`, `vs-steal`, `vs-setup-adr`, `vs-decide-for-me`, `vs-retro`, `vs-try-skill`)
 
 `vs-internal-shared` is repo-local shared reference material, not a user-facing skill kind.
 
