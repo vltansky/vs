@@ -13,6 +13,15 @@ describe('prototype', () => {
     expect(SKILL).toMatch(/Do not commit, branch, delete/i);
   });
 
+  it('chooses the easiest trustworthy seam in an existing project', () => {
+    expect(SKILL).toMatch(/time to a useful comparison/i);
+    expect(SKILL).toMatch(/Wire into the app/);
+    expect(SKILL).toMatch(/Build a lookalike/);
+    expect(SKILL).toMatch(/Mock data is allowed in either path/);
+    expect(SKILL).toMatch(/Prototype seam: existing app \| lookalike/);
+    expect(SKILL).toMatch(/tactical decision for the agent/);
+  });
+
   it('separates UI exploration from logic exploration', () => {
     expect(SKILL).toMatch(/UI:.*three structurally/is);
     expect(SKILL).toMatch(/Logic:.*interactive harness/is);

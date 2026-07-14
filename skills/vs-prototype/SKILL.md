@@ -1,6 +1,6 @@
 ---
 name: vs-prototype
-description: "Use when the user wants to prototype, spike, sanity-check a state model, or compare UI directions before committing to production implementation. Builds throwaway code that answers one explicit design question."
+description: "Use when the user wants to prototype, spike, sanity-check a state model, or compare UI directions before committing to production implementation. In existing projects, chooses the easiest trustworthy seam: wire into the app or recreate a lightweight lookalike."
 ---
 
 # Prototype
@@ -30,6 +30,32 @@ Ask only when both branches remain plausible after reading the relevant docs and
 code. If the user is unavailable, choose from the surrounding code and state the
 assumption.
 
+## Choose the easiest seam
+
+In an existing project, optimize for **time to a useful comparison**, not maximum
+reuse. After inspecting the relevant route and its runtime dependencies, choose:
+
+- **Wire into the app** when the project already runs, the target surface is easy
+  to reach, and a dev-only variant or harness can be added without threading
+  prototype concerns through production code.
+- **Build a lookalike** when app startup, auth, backend dependencies, routing, or
+  component wiring would take longer than recreating the relevant surface. Make
+  a small standalone project or file that matches only the product context that
+  affects the question.
+
+Mock data is allowed in either path. Prefer a few representative fixtures over
+wiring real services when live data does not affect the answer. Keep fixtures
+obviously synthetic and include the edge states the human needs to compare.
+
+State the choice in one line before editing:
+
+```text
+Prototype seam: existing app | lookalike — <why this is the fastest trustworthy path>
+```
+
+Do not ask the user to choose the seam unless both paths have similar cost and
+different fidelity tradeoffs. This is normally a tactical decision for the agent.
+
 ## Shared rules
 
 1. **Explore before editing.** Read repository docs and inspect the nearest real
@@ -38,8 +64,9 @@ assumption.
 2. **Keep the question narrow.** Prototype one uncertain decision. Split
    unrelated questions into separate prototypes.
 3. **Mark it as disposable.** Put the word `prototype` in new route, file, and
-   script names. Keep files close to the code they inform unless the repo already
-   has a prototype convention.
+   script names. Keep an in-app prototype close to the code it informs. Keep a
+   lookalike isolated from production source under the repo's prototype location,
+   or `~/.vs/$PROJECT_ID/prototypes/<topic>/` when none exists.
 4. **One command to run.** Add a narrowly named script to the existing task
    runner, or give the exact direct command when no task runner exists.
 5. **No production hardening.** Skip tests, persistence, migrations, analytics,
@@ -53,9 +80,10 @@ assumption.
 
 ## UI prototype
 
-Prefer an existing route or surface. Keep its real shell, density, data fetching,
-params, and auth; swap only the subtree under evaluation. A blank prototype route
-makes weak designs look acceptable.
+For an in-app prototype, keep the real shell, density, params, and relevant data
+shape; swap only the subtree under evaluation. For a lookalike, reproduce those
+same contextual constraints with the least code possible. Do not recreate parts
+of the product that cannot change the answer.
 
 Create three variants by default, capped at five when the user asks for broader
 exploration. Each variant must disagree about structure, information hierarchy,
@@ -98,6 +126,7 @@ named scratch store that cannot be mistaken for production data.
 Return:
 
 - `Question:` the single question being tested
+- `Prototype seam:` `existing app` or `lookalike`, with the reason
 - `Run:` the exact command, plus variant URLs or controls
 - `Changed:` prototype-only files and any temporary seam in existing code
 - `Review:` what the human should compare or try
@@ -136,6 +165,7 @@ explicit direction.
 Before finishing, check:
 
 - the question is explicit and the artifact answers only that question
+- the chosen seam is the fastest trustworthy path and its reason is stated
 - prototype names make throwaway status obvious
 - UI variants are structurally distinct, or logic is isolated from its shell
 - the prototype has one exact run command
