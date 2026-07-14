@@ -71,17 +71,51 @@ git add . && git commit -m "<msg>" && git push -u origin HEAD
 
 Commit message: conventional format (`feat:`, `fix:`, `refactor:`, etc.), concise.
 
-## Step 3: Generate AI Session Context
+## Step 3: Establish the WHY
 
-Generate a privacy-safe summary for reviewers from the current conversation.
+The PR body leads with **why** this change is needed — the motivation, not the
+mechanics. Get this right before anything else; it's the part a reviewer reads
+first and the part a diff can't reconstruct on its own.
 
-You already have full context of:
-- What problem was discussed
-- What approaches were considered
-- What decisions were made and why
-- What trade-offs were evaluated
+### Source the WHY (in order)
 
-Synthesize directly from your memory of this session.
+1. **Live conversation first.** You usually have full context of what problem was
+   discussed, what approaches were considered, what decisions were made and why,
+   and what trade-offs were evaluated. Synthesize the WHY directly from your
+   memory of this session.
+
+2. **Transcript fallback.** If the WHY isn't recoverable from live context — the
+   session was resumed, compacted, or the change predates this conversation —
+   read the session transcript before falling back to the diff:
+
+   ```bash
+   PROJECT_SLUG=$(pwd | sed 's/[^a-zA-Z0-9]/-/g')
+   SESSION_DIR="$HOME/.claude/projects/$PROJECT_SLUG"
+   SESSION_FILE=$(ls -t "$SESSION_DIR"/*.jsonl 2>/dev/null | head -1)
+
+   jq -r 'select(.message.role == "user" or .message.role == "assistant") |
+     .message.role as $role |
+     (if (.message.content | type) == "string" then .message.content
+      else [.message.content[] | select(.type == "text") | .text] | join("\n")
+      end) as $text |
+     select($text != "") | "\($role): \($text)"' "$SESSION_FILE" | tail -150
+   ```
+
+   Mine the earliest user turns — the original request and its justification are
+   usually there. Prefer the user's own framing of the problem over your later
+   paraphrase.
+
+3. **Ask, don't invent.** If neither source yields a real motivation, ask the
+   user one concise line for the WHY rather than fabricating one. A diff-derived
+   "what" with no "why" is the trivial-change case (skip the WHY section).
+
+Ground the WHY in what was actually said. Do not manufacture business
+justification the conversation never contained.
+
+## Step 3b: Generate AI Session Context
+
+Generate a privacy-safe summary for reviewers from the same source (live context
+or transcript) captured above.
 
 ### What to include vs exclude
 
@@ -95,11 +129,12 @@ Synthesize directly from your memory of this session.
 
 ### Format as collapsible block
 
+The WHY already leads the PR body (Step 5), so this collapsed block carries the
+deeper detail — approach, decisions, and trade-offs — not a restated problem.
+
 ```markdown
 <details>
 <summary>AI Session Context</summary>
-
-**Problem:** [1 sentence - what was broken/needed]
 
 **Approach:** [1 sentence - solution strategy]
 
@@ -152,7 +187,13 @@ reasonably resolve.
 ```
 <feature_area>: <Title> (80 chars max)
 
-<TLDR> (1-2 sentences)
+## Why
+
+<2-4 sentences: the problem/motivation from Step 3 and why it matters now.
+Sourced from chat context or transcript — not invented. Omit this section only
+for trivial changes.>
+
+## What changed
 
 - bullet 1
 - bullet 2
@@ -302,6 +343,7 @@ Blocked until all items pass — do not report "shipped" without evidence for ea
 - [ ] `vs-brief` generated and captured (unless trivial diff)
 - [ ] `vs-verify` generated a PASS/WARN result or was skipped as trivial
 - [ ] PR created with conventional format title and body
+- [ ] WHY established from chat context or transcript (not invented) and shown as the lead `## Why` section (unless trivial)
 - [ ] Change Brief included in PR body as collapsed `<details>` (unless trivial)
 - [ ] AI Session Context included (unless skip conditions met)
 - [ ] Reviewer suggestions reported in chat only
