@@ -16,6 +16,9 @@ Roast-review is a building-block review tool. It consumes:
   independent signal, not the final judge.
 - `vs-verify` after fixes when the cleanup or review change could affect behavior.
 
+Before delegating, load and follow
+[`../vs-internal-shared/references/subagents.md`](../vs-internal-shared/references/subagents.md).
+
 ## Critical Rules
 
 1. **Respect chat context** — review ONLY files in scope. Never expand uninvited.
@@ -52,7 +55,7 @@ Before LLM passes, run a deterministic AI-slop scanner. Fast, reproducible, zero
 npx -y slop-scan scan . --json 2>/dev/null
 ```
 
-Parse the JSON, filter to files in scope. Show a one-line summary: `slop-scan: N findings (N strong, N medium, N weak)`. Feed the findings into Agent 2 (Code Quality) and Agent 4 (Roast) as pre-computed evidence — label them `[slop-scan]` so the source is visible. The LLM agents should not re-report these unless they have additional context to add.
+Parse the JSON, filter to files in scope. Show a one-line summary: `slop-scan: N findings (N strong, N medium, N weak)`. Feed the findings into the Code Quality lens and Parent Roast as pre-computed evidence — label them `[slop-scan]` so the source is visible. Do not re-report them without additional context.
 
 **If it fails:** skip silently. Continue to Pass 1.
 
@@ -60,17 +63,19 @@ Parse the JSON, filter to files in scope. Show a one-line summary: `slop-scan: N
 
 ## Pass 1: Simplify (auto-fix)
 
-Clean the code first. Run 3 agents in parallel, auto-apply fixes, no user interaction.
+Clean the code first. The parent performs one integrated reuse, quality, and
+efficiency pass. For a large diff with clearly separate domains, delegate at
+most two narrow review lanes and verify their findings before applying fixes.
 
 Get the full diff: `git diff` (or `git diff HEAD` for staged changes).
 
-### Agent 1: Code Reuse
+### Lens 1: Code Reuse
 
 1. Search for existing utilities that could replace new code
 2. Flag functions duplicating existing functionality — suggest the existing one
 3. Flag inline logic where an existing utility applies
 
-### Agent 2: Code Quality
+### Lens 2: Code Quality
 
 1. Redundant state / derived values that should be computed
 2. Parameter sprawl instead of restructuring
@@ -81,7 +86,7 @@ Get the full diff: `git diff` (or `git diff HEAD` for staged changes).
 7. Comments explaining WHAT (delete; keep only non-obvious WHY)
 8. AI slop: hallucinated imports, verbose boilerplate, defensive nulls on non-null types, wrappers adding zero logic — augment with any `[slop-scan]` findings from Pass 0
 
-### Agent 3: Efficiency
+### Lens 3: Efficiency
 
 1. Redundant computations, repeated reads, duplicate API calls, N+1
 2. Independent operations that could run in parallel
@@ -93,15 +98,17 @@ Get the full diff: `git diff` (or `git diff HEAD` for staged changes).
 
 ### Auto-apply
 
-Aggregate findings from all 3 agents. Fix each issue directly. Skip false positives — don't argue, just move on. Briefly summarize what was fixed.
+Aggregate findings from all three lenses. Fix each issue directly. Skip false positives — don't argue, just move on. Briefly summarize what was fixed.
 
 ---
 
 ## Pass 2: Roast + Codex Review
 
-Run on the cleaned code. Two agents in parallel: Roast (local) + Codex (cross-model).
+Run on the cleaned code. The parent owns the roast while Codex provides the
+cross-model second opinion. Do not spawn another local child merely to restate
+the parent's review.
 
-### Agent 4: Roast
+### Parent Roast
 
 Gather intel first: imports/exports, callers, tests. Then sweep all scan lenses — find what Pass 1 missed:
 - **Correctness** — runtime breakage, logic errors, null access, off-by-one
@@ -122,7 +129,7 @@ Rate each finding with confidence (0-100). Only report 80+.
 
 Deliver 2-4 opening zingers based on worst patterns. Reference actual names, line counts. See [comedy-techniques.md](references/comedy-techniques.md).
 
-### Agent 5: Codex Review
+### Codex Review
 
 Cross-model second opinion from a different LLM. Always try to run Codex review during Pass 2; do not replace it with a mental review or a slash-command reference.
 

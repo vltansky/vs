@@ -76,16 +76,16 @@ describe('vs-ship-it remote-first validation', () => {
   });
 });
 
-describe('vs-ship-it automatic PR babysitting', () => {
-  it('continues into baby-sit without waiting for another user prompt', () => {
-    expect(SKILL).toMatch(/automatically continue with `vs-baby-sit`/);
-    expect(SKILL).toMatch(/Do not ask the user to invoke it/);
-    expect(SKILL).toMatch(/merge-ready, merged, blocked,\s+or interrupted/);
-    expect(OPENAI_CONFIG).toContain('and babysit it');
+describe('vs-ship-it finite goal boundary', () => {
+  it('finishes shipping before optional monitoring starts', () => {
+    expect(SKILL).toMatch(/complete the shipping goal before/);
+    expect(SKILL).toMatch(/only when the user explicitly requested/);
+    expect(SKILL).toMatch(/separate monitoring goal/);
+    expect(OPENAI_CONFIG).not.toContain('and babysit it');
   });
 
-  it('does not stop after the initial CI watch or a ready-for-review snapshot', () => {
-    expect(SKILL).not.toContain('Final "Ready for human review" message sent');
-    expect(SKILL).toMatch(/initial snapshot, not a stop condition/);
+  it('stops at a verified initial readiness snapshot by default', () => {
+    expect(SKILL).toMatch(/stop after the verified initial readiness snapshot/);
+    expect(SKILL).not.toMatch(/automatically continue with `vs-baby-sit`/);
   });
 });

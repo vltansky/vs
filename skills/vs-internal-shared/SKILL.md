@@ -80,6 +80,11 @@ goal ownership, goal-ready output shape, completion rules, and handoff wording.
 Workflow skills should link to that reference instead of duplicating the goal
 contract in their always-loaded body.
 
+## Subagent orchestration
+
+Use [`references/subagents.md`](./references/subagents.md) for shared fanout,
+context, ownership, and collection limits.
+
 ## Flow contracts
 
 Public building blocks should include a short Flow Contract section so workflows

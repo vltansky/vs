@@ -1,6 +1,6 @@
 interface:
   display_name: "vs-ship-it"
-  short_description: "Commit, push, create a PR, and babysit it"
+  short_description: "Commit, push, and create or verify a PR"
 
 policy:
   allow_implicit_invocation: true

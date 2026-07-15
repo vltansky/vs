@@ -11,7 +11,7 @@ Work within the user's stated plan or requested outcome; stop for strategic bloc
 Build-it takes a plan (or generates one if needed) and runs seven phases within that scope:
 1. **Roast** — load and follow the pushback skill to stress-test the plan
 2. **Fix** — apply pushback findings directly to the plan
-3. **Execute** — create branch, add debug instrumentation, implement with TDD + parallel subagents
+3. **Execute** — create branch, add debug instrumentation, and implement with TDD
 4. **Review** — run roast-review/vs-deslop on the diff (code reuse, quality, efficiency, roast)
 5. **QA** — browser-based testing if it's a web app (debug logs provide runtime evidence)
 6. **Cleanup** — remove debug instrumentation, verify everything still passes
@@ -35,10 +35,11 @@ one-off behavior:
 
 ## Codex Goal Integration
 
-When running in Codex and goal tools are available, use Codex goal as the
-run-level progress contract for build-it:
+When the user explicitly requests a Codex goal and goal tools are available,
+use it as the run-level progress contract for build-it:
 
 - Load [`../vs-internal-shared/references/codex-goal.md`](../vs-internal-shared/references/codex-goal.md) during Phase 0.
+- Load [`../vs-internal-shared/references/subagents.md`](../vs-internal-shared/references/subagents.md) before delegating any work.
 - Ensure vague intent is shaped into a Codex-goal-ready objective before calling
   `create_goal`.
 - Keep goal state as bookkeeping only; the handoff still needs commits,
@@ -82,8 +83,8 @@ These are the behaviors evals punish hardest; prioritize them during autonomous 
 
 ### Step 0: Initialize Codex goal
 
-Load and follow [`../vs-internal-shared/references/codex-goal.md`](../vs-internal-shared/references/codex-goal.md) when
-Codex goal tools are available or the user asks build-it to use Codex goal.
+Load and follow [`../vs-internal-shared/references/codex-goal.md`](../vs-internal-shared/references/codex-goal.md)
+when the user asks build-it to use a Codex goal.
 
 ### Step 1: Read context
 
@@ -96,23 +97,13 @@ Codex goal tools are available or the user asks build-it to use Codex goal.
 
 ### Step 1a: Auto-generate plan if missing
 
-If no plan was provided (no plan file, no plan in conversation context, no clear
-implementation spec — just a feature request, bug description, or vague goal):
+If no plan was provided, inspect the relevant code and produce a concise plan in
+the parent. Delegate planning only when the task is non-trivial and has a
+distinct exploration lane that benefits from fresh context. Use one planning
+subagent, give it exact paths and the expected plan shape, then verify its plan
+against the code before adopting it.
 
-1. Launch a **subagent** with `EnterPlanMode` to create the plan autonomously.
-   The subagent receives:
-   - The user's original request/goal
-   - CLAUDE.md project context
-   - Current codebase state (git status, relevant files)
-   - This directive: "Create a concrete implementation plan. Break it into discrete
-     steps ordered by dependency. Include file paths, function names, and test
-     strategy. Do not ask the user any questions — make every decision yourself
-     using the codebase as evidence. When done, call ExitPlanMode."
-2. The subagent explores the codebase, designs the approach, and produces a
-   structured plan — all without user interaction.
-3. Once the subagent returns, use its plan output as the implementation plan
-   for the rest of the pipeline.
-4. Log this in the decision log: "No plan provided — auto-generated via plan-mode subagent."
+Log whether the plan was produced inline or delegated and why.
 
 This replaces the need for the user to run `/vs-shape-it` or write a plan manually.
 The roast phase (Phase 1) still stress-tests whatever plan comes out, so a weak
@@ -226,7 +217,8 @@ Emit a short transition summary:
 
 ## Phase 3: Execute
 
-Implement the fixed plan. Use parallel subagents when possible.
+Implement the fixed plan. Execute directly unless independent steps make
+delegation materially faster or safer. Follow the shared subagent budget.
 
 ### Step 0: Load TDD and Debug skills
 
@@ -277,15 +269,16 @@ Layer 2: [steps that depend on Layer 1]
 ...
 ```
 
-If all steps are independent (no shared files, no import dependencies between them),
-they are all Layer 0 — maximum parallelism.
+If all steps are independent (no shared files, no import dependencies between
+them), they are all Layer 0, but the shared two-active-child limit still applies.
 
 If the plan is small (3 or fewer steps) or all steps touch the same files:
 skip parallelism, execute sequentially on the current branch.
 
 ### Step 2: Execute layers
 
-**For each layer**, launch subagents in parallel. Each subagent gets:
+For a layer with genuinely independent work, launch at most two subagents. Batch
+additional independent steps or execute them in the parent. Each child gets:
 
 - The overall plan context (one-liner summary, not the full plan)
 - Its specific step(s) to implement
@@ -314,8 +307,9 @@ Implement the assigned step using TDD:
    and any issues you could not resolve.
 ```
 
-**Sequential fallback:** If the host does not support subagents, or if all steps
-have dependencies, execute sequentially yourself — same guardrail gate after each step.
+If delegation adds coordination cost, the host does not support subagents, or
+steps share files or dependencies, execute sequentially in the parent with the
+same guardrail gate after each step.
 
 **Layer transitions:** Wait for all subagents in a layer to complete before starting
 the next layer. If a subagent in Layer N fails, assess whether Layer N+1 steps
@@ -324,10 +318,10 @@ continue the next layer in parallel.
 
 ### Step 3: Pipeline review while executing
 
-As soon as a layer completes, kick off review on that layer's diff in the background
-while the next layer executes:
+Pipeline review only when another layer is still running and the shared child
+budget has capacity:
 
-- Launch a background subagent to review the completed layer's changes
+- Launch one narrow background subagent to review the completed layer's changes
   (code reuse, quality, efficiency — same as Phase 4 roast-review logic).
 - The review subagent reports findings but does NOT apply fixes yet —
   fixes happen in Phase 4 after all execution is done, to avoid conflicts.
@@ -370,10 +364,9 @@ Collect findings from pipelined review subagents (launched during Phase 3).
 If no pipelined reviews ran (sequential execution or no subagent support),
 run the full review now.
 
-Load sibling skill `../vs-roast-review/SKILL.md` when the host can resolve it. If found, read it and follow its full two-pass methodology:
-- **Pass 1 (Simplify)**: 3 agents (reuse, quality, efficiency) — auto-fix. No override needed,
-  this pass is non-interactive by design.
-- **Pass 2 (Roast + Codex)**: 2 agents (roast, codex review) — findings only.
+Load sibling skill `../vs-roast-review/SKILL.md` when the host can resolve it.
+Follow its bounded two-pass methodology within the remaining workflow child
+budget; do not restart a five-agent review fanout after implementation children.
 
 If not found: run a lightweight self-review yourself covering the same dimensions
 on the branch diff.
@@ -391,8 +384,9 @@ auto-select option **b) Critical + serious** and apply immediately. Do not wait.
 
 ### Test verification before applying fixes
 
-Before applying review findings, launch a subagent to write tests that stress
-the implementation. The subagent gets the plan summary, the diff, and:
+Before applying review findings, stress the implementation with focused edge
+case tests. Use one fresh subagent only when the remaining child budget permits
+and independent context is valuable; otherwise do this in the parent. Provide:
 
 > "Write tests that try to break this implementation. Cover edge cases,
 > boundary conditions, and assumptions the code makes. Run the tests.

@@ -19,6 +19,9 @@ When running in Codex, use
 [`../vs-internal-shared/references/codex-goal.md`](../vs-internal-shared/references/codex-goal.md)
 for goal ownership and completion rules.
 
+Before delegating, load and follow
+[`../vs-internal-shared/references/subagents.md`](../vs-internal-shared/references/subagents.md).
+
 Improve may own the audit/planning goal: "produce prioritized, executable
 improvement plans for <scope>." Complete it after the findings table, selected
 plans, and index are written or reported. Each plan should include a goal-ready
@@ -56,7 +59,11 @@ If the repo has no working verification command (no tests, broken build), record
 
 Audit the codebase across the categories in [references/audit-playbook.md](references/audit-playbook.md) — read it now. Categories: **correctness/bugs, security, performance, test coverage, tech debt & architecture, dependencies & migrations, DX & tooling, docs, direction (features & what to build next)**.
 
-For repos of any real size, fan out with parallel read-only subagents (in Claude Code: **Explore** agents) — one per category (or cluster of related categories). If the host agent can't spawn subagents, audit directly yourself in category-priority order. **Subagents do not inherit this skill's context**, so each subagent prompt must include:
+For repos of real size, delegate only distinct category clusters that benefit
+from independent context. Run at most two read-only subagents concurrently and
+audit remaining categories directly or in later batches. If the host cannot
+spawn subagents, audit directly in category-priority order. **Subagents do not
+inherit this skill's context**, so each child prompt includes:
 
 - the **absolute path** to this skill's `references/audit-playbook.md` plus the exact section headings to read — **always including "## Finding format"** (subagents can read files — this is far cheaper than pasting; paste the sections only if the path may not resolve in the subagent's environment),
 - the recon facts that scope the search (languages, frameworks, key directories, what to skip),
@@ -70,7 +77,7 @@ Audit depth follows the **effort level** (default `standard`; the user sets it w
 | | `quick` | `standard` (default) | `deep` |
 |---|---|---|---|
 | Coverage | Recon hotspots only — highest-churn, highest-criticality code | Hotspot-weighted, key packages | Whole repo, every package |
-| Subagents | 0–1 (sweep directly when feasible) | ≤4 concurrent | ≤8 concurrent, one per category |
+| Subagents | 0–1 (sweep directly when feasible) | ≤2 concurrent, ≤4 total | ≤2 concurrent in batches, ≤8 total |
 | Breadth | "medium" | "very thorough" for correctness + security, "medium" rest | "very thorough" everywhere |
 | Categories | correctness, security, tests | all nine | all nine |
 | Findings | top ~6, HIGH-confidence only | full table | full table incl. LOW-confidence "investigate" items |

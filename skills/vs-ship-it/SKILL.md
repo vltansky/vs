@@ -1,6 +1,6 @@
 ---
 name: vs-ship-it
-description: "Use when the user wants to ship or publish local Git changes: commit and push, push to main/master or the current branch, create/open a PR, submit changes, or send to dev. Honors an explicit direct-push request; otherwise creates a GitHub PR with session context and automatically babysits it until a terminal state."
+description: "Use when the user wants to ship or publish local Git changes: commit and push, push to main/master or the current branch, create/open a PR, submit changes, or send to dev. Honors an explicit direct-push request; otherwise creates and verifies a GitHub PR, with ongoing babysitting only when requested."
 ---
 
 # Ship Changes
@@ -53,12 +53,12 @@ When running in Codex, use
 [`../vs-internal-shared/references/codex-goal.md`](../vs-internal-shared/references/codex-goal.md)
 for goal ownership and completion rules.
 
-Ship-it owns the shipping goal once the branch/diff and PR target are clear.
-The objective should be "ship and keep PR <change> merge-ready" rather than the
-broader implementation goal that produced the diff. Complete it after changes
-are committed and pushed, the PR is created with brief/session context, verify
-evidence is included, and the automatic `vs-baby-sit` continuation reaches
-merge-ready or merged. Preserve blocked or interrupted state with evidence.
+Ship-it owns a finite shipping goal only when the user explicitly requests a
+Codex goal. Complete it after changes are committed and pushed, the PR is
+created when requested, brief/session context is attached, and initial verify
+evidence is included. Complete the shipping goal before optional monitoring
+starts. Ongoing PR health belongs to a separate monitoring goal owned by
+`vs-baby-sit`, only when the user explicitly requested continued watching.
 
 ## Step 0: Ensure review ran
 
@@ -406,7 +406,7 @@ Flag outdated threads (`isOutdated: true`) separately in the summary — the con
 **If any unresolved reviewer-bot threads exist:** summarize active vs outdated
 threads for the babysitting loop.
 **Otherwise:** report an initial ready-for-review snapshot with the PR URL and
-suggested reviewers. This is an initial snapshot, not a stop condition.
+suggested reviewers.
 
 ### If build checks fail
 
@@ -420,17 +420,16 @@ suggested reviewers. This is an initial snapshot, not a stop condition.
 start a separate `claude` session to keep working on something else in
 parallel.
 
-## Step 8: Continue babysitting automatically
+## Step 8: Optional continued monitoring
 
-After the initial CI classification, automatically continue with `vs-baby-sit`
-for the verified `PR_URL`. Do not ask the user to invoke it and do not end the
-task merely because the first CI run passed or the PR is ready for human review.
+By default, stop after the verified initial readiness snapshot. When the user
+explicitly requested ongoing watching, babysitting, or a terminal merge-ready
+outcome, complete the shipping goal before continuing with `vs-baby-sit` for
+the verified `PR_URL`. Baby-sit owns a separate monitoring goal when the user
+also explicitly requested a Codex goal.
 
-Follow [`../vs-baby-sit/SKILL.md`](../vs-baby-sit/SKILL.md) in the same task and
-reuse the verified repository, PR, branch, and goal context. Keep polling and
-handling clear CI or review work until the PR is merge-ready, merged, blocked,
-or interrupted. The baby-sit stop conditions and fix-attempt limits govern this
-continuation.
+Follow [`../vs-baby-sit/SKILL.md`](../vs-baby-sit/SKILL.md), reuse the verified
+repository and PR context, and keep the goal boundaries separate.
 
 ## Verification
 
@@ -448,10 +447,10 @@ Blocked until all items pass — do not report "shipped" without evidence for ea
 - [ ] Reviewer suggestions reported in chat only
 - [ ] Brief printed to chat before CI watch starts
 - [ ] CI checks pass (or failures investigated and fixed, max 2 attempts)
-- [ ] `vs-baby-sit` started automatically for the verified PR
-- [ ] Final status is merge-ready, merged, blocked with evidence, or interrupted
+- [ ] Shipping goal reconciled before handoff or optional monitoring
+- [ ] `vs-baby-sit` started only when continued monitoring was requested
 
 ## Workflow
 
 **Prev:** `/vs-roast-review` (review passed) | `/vs-build-it` (handoff suggests ship-it)
-**Next:** automatic `/vs-baby-sit` continuation | done
+**Next:** requested `/vs-baby-sit` continuation | done

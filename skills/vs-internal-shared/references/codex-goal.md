@@ -5,9 +5,15 @@ tools.
 
 ## Ownership Rule
 
-Only VS **workflow** skills should create or complete Codex goals. Building
-blocks contribute evidence to the active workflow goal unless the user invoked
-the building block as a standalone outcome.
+Only the parent VS **workflow** may own a Codex goal, and only after the user
+explicitly asks to use or pursue a Codex goal. Goal-tool availability is not
+authorization to create one. Invoking a VS workflow by itself does not imply a
+goal request.
+
+Building blocks contribute evidence to the active workflow goal unless the user
+invoked the building block as a standalone goal. Subagents do not create,
+complete, or block goals; the parent workflow owns goal state and verifies the
+evidence needed for terminal updates.
 
 - **Owns goals:** `vs-shape-it` for shaping sessions, `vs-improve`, `vs-build-it`,
   `vs-ship-it`, `vs-bugfix`, `vs-fix-pr`, `vs-afk`, `vs-baby-sit`
@@ -36,7 +42,7 @@ for vague intent.
 
 ## Goal Tool Setup
 
-When goal tools are available:
+When the user explicitly asks for a Codex goal and goal tools are available:
 
 1. Call `get_goal`.
 2. If there is no active goal, call `create_goal` with the goal-ready objective.
@@ -49,6 +55,9 @@ When goal tools are available:
 5. If goal tools are unavailable, continue normally and report goal state as
    unavailable in the handoff when the workflow has a handoff section.
 
+When the user did not request a goal, skip goal-tool setup. Do not add a noisy
+"goal unavailable" line; the normal workflow handoff is sufficient.
+
 Goal state is bookkeeping, not evidence. Do not use it as a replacement for
 commits, tests, CI, review-thread state, issue links, or handoff summaries.
 
@@ -60,6 +69,10 @@ commits, tests, CI, review-thread state, issue links, or handoff summaries.
   pending review, or human decision remains.
 - Use `blocked` only when Codex goal policy allows it. Otherwise leave the goal
   active and report the blocker in the workflow handoff.
+- Before the parent workflow ends a finite task, reconcile any goal it created:
+  complete it when all criteria are proven, block it only when host policy
+  permits, or keep it active only when the user explicitly requested ongoing
+  continuation and the next continuation is actually scheduled.
 
 ## Workflow Mapping
 
@@ -68,7 +81,7 @@ commits, tests, CI, review-thread state, issue links, or handoff summaries.
 | `vs-shape-it` | A shaping session has a clear planning objective | Approved design/spec or challenge verdict produces goal-ready next step |
 | `vs-improve` | Audit scope and output target are clear | Findings/plans/index are written, or `execute` verdict is delivered |
 | `vs-build-it` | Build objective is goal-ready; vague intent has been shaped | Implementation, verification, review/QA, and handoff are complete |
-| `vs-ship-it` | Branch/PR outcome is clear | PR is created, pushed, evidence is included, and automatic baby-sit reaches merge-ready, merged, or an evidenced terminal blocker |
+| `vs-ship-it` | The user explicitly requests a shipping goal and the branch/PR outcome is clear | Changes are pushed, the PR is created when requested, and initial verification evidence is included |
 | `vs-bugfix` | Bug statement, target area, and reproduction/verification plan are clear | Root cause fixed, regression verified, guardrails run, handoff complete |
 | `vs-fix-pr` | Target PR and unresolved feedback scope are known | Accepted fixes are pushed, approved replies posted, approved threads resolved, build rechecked |
 | `vs-afk` | Work source and time-boxed session plan are selected | AFK handoff reports completed work/current state, or blocker is recorded |
