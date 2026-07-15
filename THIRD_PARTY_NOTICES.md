@@ -5,10 +5,10 @@ This plugin includes or adapts material from the following third-party projects.
 ## GOV.UK style agent skill
 
 - Author: fofr
-- Used in: `skills/vs-copy`
+- Used in: `skills/vs-write`
 - Source: https://gist.github.com/fofr/505e225f9bf5e839d30c12ba6bfa0be2
 
-The `vs-copy` skill is an original rewrite inspired by the source skill's use of
+The `vs-write` skill is an original rewrite inspired by the source skill's use of
 GOV.UK content-design principles: reader needs, front-loaded structure, plain
 language, active voice, and accessible formatting. No source text is reproduced
 verbatim.
@@ -16,14 +16,21 @@ verbatim.
 ## Matt Pocock's skills
 
 - Project: https://github.com/mattpocock/skills
-- Used in: `skills/vs-prototype`
-- Source: https://github.com/mattpocock/skills/tree/main/skills/engineering/prototype
+- Used in: `skills/vs-prototype`, `skills/vs-write`
+- Sources:
+  - https://github.com/mattpocock/skills/tree/main/skills/engineering/prototype
+  - https://github.com/mattpocock/skills/blob/main/skills/in-progress/writing-shape/SKILL.md
 - License: MIT
 
 The `vs-prototype` question-first contract and UI/logic prototype branches adapt
 Matt Pocock's prototype skill. The implementation is rewritten for the vs flow,
 repository safeguards, and decision-artifact conventions. The MIT license text
 is included at `skills/vs-prototype/LICENSE.mattpocock-skills`.
+
+The `vs-write` source-grounding and long-form shaping guidance adapts Matt
+Pocock's `writing-shape` skill. It keeps routine rewrites direct while applying
+the source skill's model for grounding concepts, ordering blocks, preserving
+raw material, and naming gaps.
 
 ## Impeccable
 

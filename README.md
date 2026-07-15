@@ -106,7 +106,7 @@ by the branch.
 vs has beginner-friendly workflows and surgical tools underneath them.
 
 - **Workflows** take a loose goal and drive a full outcome. Use these when you want the system to own the path: `/vs-shape-it`, `/vs-improve`, `/vs-build-it`, `/vs-ship-it`, `/vs-bugfix`, `/vs-fix-pr`, `/vs-afk`, `/vs-baby-sit`.
-- **Building blocks** own one bounded job and can be used directly or composed by workflows. Use these when you want precision: `/vs-pushback`, `/vs-prototype`, `/vs-github-research`, `/vs-rfc-research`, `/vs-tdd`, `/vs-debug-mode`, `/vs-roast-review`, `/vs-roast-ui`, `/vs-qa`, `/vs-verify`, `/vs-deslop`, `/vs-copy`, `/vs-brief`, `/vs-second-opinion`, `/vs-perf`, `/vs-to-issues`, `/vs-steal`, `/vs-setup-adr`, `/vs-decide-for-me`, `/vs-out-of-context`, `/vs-recap`, `/vs-retro`, `/vs-try-skill`.
+- **Building blocks** own one bounded job and can be used directly or composed by workflows. Use these when you want precision: `/vs-pushback`, `/vs-prototype`, `/vs-github-research`, `/vs-rfc-research`, `/vs-tdd`, `/vs-debug-mode`, `/vs-roast-review`, `/vs-roast-ui`, `/vs-qa`, `/vs-verify`, `/vs-deslop`, `/vs-write`, `/vs-brief`, `/vs-second-opinion`, `/vs-perf`, `/vs-to-issues`, `/vs-steal`, `/vs-setup-adr`, `/vs-decide-for-me`, `/vs-out-of-context`, `/vs-recap`, `/vs-retro`, `/vs-try-skill`.
 
 The workflows are intentionally built from building blocks. For example, `/vs-build-it` stress-tests with `/vs-pushback`, uses `/vs-decide-for-me` to resolve tactical uncertainty, executes with TDD/debug discipline, reviews with `/vs-roast-review`, runs `/vs-qa` for web apps, verifies with `/vs-verify`, and ends with `/vs-brief`. `/vs-ship-it` turns the reviewed branch into a PR and uses `/vs-brief` as the human-readable orientation layer.
 
@@ -137,7 +137,7 @@ You do not need to learn every skill at once. Learn the system in layers:
 1. **Start with the two main entry loops:** use `/vs-shape-it`, `/vs-build-it`, `/vs-ship-it` when you have an idea to turn into a PR; use `/vs-improve` when you want the repo to tell you what work is worth doing next.
 2. **Learn the improvement variants:** `/vs-improve quick` for a cheap hotspot pass, `/vs-improve deep` for a broader audit, `/vs-improve branch` before a PR, `/vs-improve next` for direction, `/vs-improve plan <thing>` for one known concern, and `/vs-improve reconcile` to keep the plan backlog alive.
 3. **Learn the high-leverage shortcuts:** `/vs-pushback`, `/vs-prototype`, `/vs-github-research`, `/vs-second-opinion`, `/vs-fix-pr`, `/vs-steal`, `/vs-decide-for-me`. These quickly change how useful the agent feels day to day: better plans, cheap answers to design uncertainty, source-backed answers, independent critique, review-feedback handling, reusable ideas from other repos, and fewer tactical interruptions.
-4. **Learn the delivery blocks as needed:** `/vs-tdd`, `/vs-debug-mode`, `/vs-roast-review`, `/vs-roast-ui`, `/vs-qa`, `/vs-verify`, `/vs-brief`, `/vs-deslop`, `/vs-copy`. These are most useful when you want to steer or inspect one phase of implementation or publication.
+4. **Learn the delivery blocks as needed:** `/vs-tdd`, `/vs-debug-mode`, `/vs-roast-review`, `/vs-roast-ui`, `/vs-qa`, `/vs-verify`, `/vs-brief`, `/vs-deslop`, `/vs-write`. These are most useful when you want to steer or inspect one phase of implementation or publication.
 5. **Learn the specialized workflows when the situation appears:** `/vs-bugfix`, `/vs-afk`, `/vs-baby-sit`, `/vs-to-issues`, `/vs-rfc-research`, `/vs-perf`, `/vs-setup-adr`, `/vs-out-of-context`, `/vs-recap`, `/vs-retro`, `/vs-try-skill`. These are powerful, but you usually reach for them because a specific job asks for them.
 
 ## The problem this solves
@@ -207,7 +207,7 @@ Under the hood, the workflows compose the rest:
 | `/vs-qa` | Building block | Browser-based QA with atomic fixes | agent |
 | `/vs-verify` | Building block | Prove a change works with concrete evidence | agent |
 | `/vs-deslop` | Building block | Clean AI-ish code while preserving behavior | agent |
-| `/vs-copy` | Building block | Write or edit clear, direct, accessible prose without losing substance | you |
+| `/vs-write` | Building block | Write, rewrite, or shape clear, direct prose without losing substance | you |
 | `/vs-brief` | Building block | Orientation brief from a git diff: what changed, where to look | you |
 | `/vs-second-opinion` | Building block | Get an independent advisor perspective and synthesize it | agent |
 | `/vs-perf` | Building block | Run evaluator-backed performance optimization | agent |
