@@ -51,3 +51,27 @@ describe('vs-ship-it PR association handshake', () => {
     expect(SKILL).toMatch(/On failure,[\s\S]*report the mismatch, and stop/);
   });
 });
+
+describe('vs-ship-it remote-first validation', () => {
+  it('starts PR feedback before broad local validation', () => {
+    expect(SKILL).toMatch(/focused test or smallest relevant validation/);
+    expect(SKILL).toMatch(/create the PR promptly/);
+    expect(SKILL).toContain('Running locally and in CI');
+    expect(SKILL).toContain(
+      'Step 2 → Step 3/3b → Step 5/5b → Step 4/4b → update the PR body → Step 6/7',
+    );
+    expect(SKILL).toMatch(
+      /Run `vs-brief` and `vs-verify` after PR creation while CI and automated review\s+run/,
+    );
+    expect(SKILL).toMatch(
+      /Do not run Step 4 or Step 4b before Step 5 unless repository policy requires it/,
+    );
+  });
+
+  it('requires local and remote evidence before readiness', () => {
+    expect(SKILL).toMatch(
+      /local verification and remote checks both\s+pass/,
+    );
+    expect(SKILL).toMatch(/repository policy requires pre-push validation/);
+  });
+});

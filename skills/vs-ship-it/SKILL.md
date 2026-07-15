@@ -100,6 +100,33 @@ git add . && git commit -m "<msg>" && git push -u origin HEAD
 
 Commit message: conventional format (`feat:`, `fix:`, `refactor:`, etc.), concise.
 
+### Start PR feedback before broad local validation
+
+When opening a PR triggers CI or automated review, do not leave those systems
+idle while broad local validation runs. Unless repository instructions explicitly
+require the broad suite before push or PR creation:
+
+1. Run the focused test or smallest relevant validation for the changed behavior.
+2. Commit and push using Step 2.
+3. Establish the WHY and create the PR promptly with verification marked
+   `Running locally and in CI`.
+4. Run `vs-brief` and `vs-verify` after PR creation while CI and automated review
+   run, then update the PR body with their final output.
+
+Do not describe the PR as ready until local verification and remote checks both
+pass. If local verification fails after PR creation, fix it and push a new commit.
+If repository policy requires pre-push validation, follow it and report that
+parallelism was not available.
+
+The default PR-mode execution order is:
+
+`Step 2 → Step 3/3b → Step 5/5b → Step 4/4b → update the PR body → Step 6/7`
+
+This execution order overrides the document order below. Create and verify the
+PR association before running `vs-brief` or `vs-verify`; use `Generating` for
+the brief and `Running locally and in CI` for verification in the initial body.
+Do not run Step 4 or Step 4b before Step 5 unless repository policy requires it.
+
 ## Step 3: Establish the WHY
 
 The PR body leads with **why** this change is needed — the motivation, not the
@@ -186,8 +213,10 @@ Skip AI Session Context if:
 
 ## Step 4: Generate brief
 
-Always run `vs-brief` against the pushed branch. Capture the rendered markdown —
-it goes into the PR body (Step 5) and is shown again while watching CI (Step 7).
+After the PR is created and Step 5b confirms its association, run `vs-brief`
+against the pushed branch while CI and automated review proceed. Capture the
+rendered markdown, update the PR body, and show it again while watching CI
+(Step 7).
 
 Store the brief output in a variable (or temp file) so it can be reused:
 
@@ -201,14 +230,15 @@ the AI Session Context skip conditions.
 
 ## Step 4b: Verify readiness
 
-Run `vs-verify` against the pushed branch before creating the PR when available.
-Capture the rendered `## Verification Result` and include a concise version in
-the PR body or handoff.
+Run `vs-verify` against the pushed branch after Step 5b when available, while CI
+and automated review proceed in parallel. Capture
+the rendered `## Verification Result` and update the PR body or handoff with a
+concise version.
 
 Skip only for trivial diffs. If verification returns `FAIL` or `BLOCKED`, stop
-and fix/unblock before creating the PR. If it returns `WARN`, continue only when
-the warning is an explicit manual-verification gap that the PR reviewer can
-reasonably resolve.
+and fix/unblock before describing the PR as ready. If it returns `WARN`, continue
+only when the warning is an explicit manual-verification gap that the PR reviewer
+can reasonably resolve.
 
 ## Step 5: Create PR
 
@@ -230,14 +260,14 @@ for trivial changes.>
 <details>
 <summary>Change Brief</summary>
 
-<brief output>
+<brief output, or `Generating` until Step 4 completes>
 
 </details>
 
 <details>
 <summary>Verification</summary>
 
-<verify output>
+<verify output, or `Running locally and in CI` until Step 4b completes>
 
 </details>
 
@@ -250,6 +280,9 @@ for trivial changes.>
 ```bash
 gh pr create --title "<title>" --body "<body>"
 ```
+
+If the PR was created before Step 4 or Step 4b completed, update its body with
+the final brief and verification evidence before declaring it ready.
 
 ### Step 5b: Verify PR association before the turn ends
 
