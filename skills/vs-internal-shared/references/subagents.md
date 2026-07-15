@@ -6,13 +6,31 @@ is the default for small, coupled, or sequential work.
 
 ## Budget
 
-- At most two active subagents at a time.
-- At most four total child runs in one workflow unless the user explicitly asks
-  for a deep or large parallel audit. Deep work still runs in batches of two.
+Choose the smallest effort level that covers the request. Skills may tighten
+these limits for their workflow, but do not loosen them implicitly:
+
+- **Quick:** zero child runs. Execute directly with deterministic tools.
+- **Standard (default):** at most one active child and two total child runs.
+- **Deep:** at most two active children and four total child runs, still
+  dispatched in batches of two.
+
+Use deep only when the user asks for deep or exhaustive work, or the scope has
+multiple independent domains that cannot be covered honestly at standard depth.
+A model-backed advisor, reviewer, or CLI session counts toward the same child
+budget even when it is launched through a shell command instead of the host's
+subagent tool.
+
 - Do not delegate work the parent can finish quickly with the context it already
   has, or work that touches the same files as another active child.
 - Reuse a completed child with a follow-up only when the task needs its existing
   context. Otherwise prefer a fresh, narrow child.
+
+## Escalation
+
+Collect deterministic evidence before delegating: inspect the scoped diff and
+files, search for existing implementations, and run the smallest relevant
+test, type, lint, or repository-native analysis command. Delegate only when the
+remaining question needs independent judgment, fresh context, or parallel work.
 
 ## Context
 

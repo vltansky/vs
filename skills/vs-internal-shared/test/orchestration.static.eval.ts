@@ -15,8 +15,24 @@ const BUILD_IT = fs.readFileSync(
   path.resolve(SHARED_DIR, '..', 'vs-build-it', 'SKILL.md'),
   'utf8',
 );
+const BUILD_HANDOFF = fs.readFileSync(
+  path.resolve(SHARED_DIR, '..', 'vs-build-it', 'references', 'handoff.md'),
+  'utf8',
+);
 const ROAST_REVIEW = fs.readFileSync(
   path.resolve(SHARED_DIR, '..', 'vs-roast-review', 'SKILL.md'),
+  'utf8',
+);
+const BUGFIX = fs.readFileSync(
+  path.resolve(SHARED_DIR, '..', 'vs-bugfix', 'SKILL.md'),
+  'utf8',
+);
+const RFC_RESEARCH = fs.readFileSync(
+  path.resolve(SHARED_DIR, '..', 'vs-rfc-research', 'SKILL.md'),
+  'utf8',
+);
+const IMPROVE = fs.readFileSync(
+  path.resolve(SHARED_DIR, '..', 'vs-improve', 'SKILL.md'),
   'utf8',
 );
 
@@ -35,11 +51,18 @@ describe('Codex goal ownership', () => {
 });
 
 describe('subagent budget', () => {
-  it('sets bounded fanout and fresh-context defaults', () => {
-    expect(SUBAGENTS).toMatch(/At most two active subagents/);
-    expect(SUBAGENTS).toMatch(/At most four total child runs/);
+  it('sets effort-based fanout and fresh-context defaults', () => {
+    expect(SUBAGENTS).toMatch(/quick.*zero child runs/is);
+    expect(SUBAGENTS).toMatch(/standard.*one active child.*two total/is);
+    expect(SUBAGENTS).toMatch(/deep.*two active children.*four total/is);
     expect(SUBAGENTS).toMatch(/fresh context/);
     expect(SUBAGENTS).toMatch(/Do not\s+poll `wait_agent`/);
+  });
+
+  it('counts model-backed advisors and requires deterministic evidence first', () => {
+    expect(SUBAGENTS).toMatch(/model-backed advisor, reviewer, or CLI session/is);
+    expect(SUBAGENTS).toMatch(/counts toward the same child\s+budget/is);
+    expect(SUBAGENTS).toMatch(/deterministic.*before delegating/is);
   });
 
   it('is applied by build and review workflows', () => {
@@ -51,5 +74,44 @@ describe('subagent budget', () => {
     );
     expect(ROAST_REVIEW).not.toMatch(/Run 3 agents in parallel/);
     expect(ROAST_REVIEW).not.toMatch(/Two agents in parallel/);
+  });
+
+  it('does not let improve loosen the shared effort budget', () => {
+    expect(IMPROVE).toMatch(/quick[\s\S]*?\| 0 \|/i);
+    expect(IMPROVE).toMatch(/standard[\s\S]*?one active, two total/is);
+    expect(IMPROVE).toMatch(/deep[\s\S]*?two active, four total/is);
+    expect(IMPROVE).not.toMatch(/≤8 total/);
+    expect(IMPROVE).toMatch(/execute.*standard budget.*first child slot/is);
+  });
+
+  it('keeps expensive review and QA conditional in build workflows', () => {
+    expect(BUILD_IT).not.toMatch(/Pipeline review while executing/);
+    expect(BUILD_IT).toMatch(/Load.*debug-mode.*only after/is);
+    expect(BUILD_IT).toMatch(/user-visible.*browser behavior/is);
+    expect(BUILD_IT).toMatch(/small, low-risk diff.*parent/is);
+    expect(BUILD_HANDOFF).toMatch(/brief.*only when/is);
+    expect(BUILD_HANDOFF).toMatch(/walkthrough.*only when/is);
+  });
+
+  it('gates bugfix stress testing and cross-model review by risk', () => {
+    expect(BUGFIX).toContain('../vs-internal-shared/references/subagents.md');
+    expect(BUGFIX).toMatch(/stress-test subagent only when/is);
+    expect(BUGFIX).not.toMatch(/Pass 2 \(Roast \+ Codex\): 2 agents/);
+  });
+
+  it('batches RFC evidence and passes the draft by path', () => {
+    expect(RFC_RESEARCH).toContain(
+      '../vs-internal-shared/references/subagents.md',
+    );
+    expect(RFC_RESEARCH).toMatch(/one Explore child per evidence domain/is);
+    expect(RFC_RESEARCH).toMatch(/reserve one child slot for Phase 5/is);
+    expect(RFC_RESEARCH).toMatch(/draft\s+file path.*do not paste/is);
+    expect(RFC_RESEARCH).toMatch(/second opinion.*budget remains/is);
+  });
+
+  it('gates cross-model review instead of running it unconditionally', () => {
+    expect(ROAST_REVIEW).toMatch(/Run Codex review only when/is);
+    expect(ROAST_REVIEW).toMatch(/Parent Roast \+ Gated Codex Review/);
+    expect(ROAST_REVIEW).not.toMatch(/Always try to run Codex review/);
   });
 });

@@ -20,6 +20,10 @@ Four circuit breakers halt the run:
 3. Fix causes more test failures than it solves
 4. Bug is in an external dependency or infrastructure (can't fix from this repo)
 
+Before delegating, load and follow
+[`../vs-internal-shared/references/subagents.md`](../vs-internal-shared/references/subagents.md).
+Use the standard budget unless the user explicitly asks for deep investigation.
+
 ## Codex Goal Integration
 
 When running in Codex, use
@@ -358,15 +362,19 @@ Two sub-phases: test verification first, then code review. Run both.
 
 ### Phase 6a: Test Verification
 
-Before code review, launch a subagent to write tests that stress the fix.
-The subagent gets: the bug description, the diff, and one instruction:
+The parent first extends the regression test with the nearest boundary and
+failure cases suggested by the root cause. Use a stress-test subagent only when
+the fix touches auth, security, persistence, migrations, concurrency, payments,
+or a public API; spans more than 3 production files; or the affected branch has
+no meaningful test coverage. The subagent gets the bug description, exact
+changed paths, the diff location, and one instruction:
 
 > "Write tests that try to break this fix. Cover: the original bug,
 > edge cases adjacent to the fix, and any state the fix assumes.
 > Run the tests. Report which pass and which fail."
 
-This catches bugs the fix introduced (the review agent found 2 in the
-session that spawned this rule). If the subagent finds failing tests:
+If the risk gate does not apply, run these focused cases in the parent and spend
+no child budget. If a subagent finds failing tests:
 - Fix each failure
 - Re-run the full test suite
 - Commit test + fix atomically
@@ -376,11 +384,13 @@ it in the decision log.
 
 ### Phase 6b: Code Review
 
-Load the roast-review skill if available.
+For a small, low-risk fix, review the complete changed files in the parent:
+search for existing helpers, inspect callers, and run the focused regression
+test plus deterministic guardrails. Do not add a second model by default.
 
-If found: read it and follow its methodology on the branch diff:
-- Pass 1 (Simplify): reuse, quality, efficiency — auto-fix
-- Pass 2 (Roast + Codex): 2 agents (roast, codex review) — findings only
+Load roast-review only when the Phase 6a risk gate applies or the diff exceeds
+5 files or 300 changed lines. If found, follow its methodology within the shared
+child budget; any cross-model review counts toward that same budget.
 
 Auto-select option **b) Critical + serious** and apply immediately
 (same as build-it's override).

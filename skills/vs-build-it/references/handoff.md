@@ -44,17 +44,14 @@ the work you did.
 [Anything borderline or debatable — or "None"]
 ```
 
-After presenting the summary, load and run `../../vs-brief/SKILL.md` for the change
-orientation brief when the host can resolve repo-relative skill paths. Follow its
-steps using the current branch diff and this session's context (decisions log,
-flagged items). The brief provides the reviewer-facing orientation layer on top
-of the pipeline summary above.
+Load and run `../../vs-brief/SKILL.md` only when the change touches more than 3
+files, records a durable design decision, or the user asks for PR orientation.
+Use the current branch diff, decision log, and flagged items. Otherwise the
+pipeline summary and minimal diff stat are the handoff.
 
-Then load and run `../../vs-walkthrough/SKILL.md` when available. Use the final diff,
-verification result, and any QA evidence to produce a scenario-first walkthrough
-of the shipped behavior, including branches and proof signal. Keep this separate
-from the brief: the brief says what changed and where to review; the walkthrough
-shows how the behavior works and how to prove it.
+Load and run `../../vs-walkthrough/SKILL.md` only when the user asks for a
+walkthrough or the changed behavior needs a scenario to explain how to prove it.
+Use the final diff, verification result, and QA evidence when applicable.
 
 If not found: append a minimal fallback using the resolved default branch:
 

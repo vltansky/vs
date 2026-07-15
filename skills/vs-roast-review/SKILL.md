@@ -1,6 +1,6 @@
 ---
 name: vs-roast-review
-description: "Use when the user says roast, roast-review, or tear apart code. Prefer over simplify for roast requests. Runs codex review --uncommitted as second opinion."
+description: "Use when the user says roast, roast-review, or tear apart code. Prefer over simplify for roast requests. Adds a cross-model second opinion for risky or substantial diffs."
 ---
 
 # Roast Review
@@ -52,7 +52,11 @@ Before delegating, load and follow
 Before LLM passes, run a deterministic AI-slop scanner. Fast, reproducible, zero-hallucination.
 
 ```bash
-npx -y slop-scan scan . --json 2>/dev/null
+if command -v slop-scan >/dev/null 2>&1; then
+  slop-scan scan . --json 2>/dev/null
+elif [ -x node_modules/.bin/slop-scan ]; then
+  node_modules/.bin/slop-scan scan . --json 2>/dev/null
+fi
 ```
 
 Parse the JSON, filter to files in scope. Show a one-line summary: `slop-scan: N findings (N strong, N medium, N weak)`. Feed the findings into the Code Quality lens and Parent Roast as pre-computed evidence — label them `[slop-scan]` so the source is visible. Do not re-report them without additional context.
@@ -64,8 +68,8 @@ Parse the JSON, filter to files in scope. Show a one-line summary: `slop-scan: N
 ## Pass 1: Simplify (auto-fix)
 
 Clean the code first. The parent performs one integrated reuse, quality, and
-efficiency pass. For a large diff with clearly separate domains, delegate at
-most two narrow review lanes and verify their findings before applying fixes.
+efficiency pass. Delegate separate review domains only when deep effort was
+selected and the shared budget permits it; verify findings before applying fixes.
 
 Get the full diff: `git diff` (or `git diff HEAD` for staged changes).
 
@@ -102,7 +106,7 @@ Aggregate findings from all three lenses. Fix each issue directly. Skip false po
 
 ---
 
-## Pass 2: Roast + Codex Review
+## Pass 2: Parent Roast + Gated Codex Review
 
 Run on the cleaned code. The parent owns the roast while Codex provides the
 cross-model second opinion. Do not spawn another local child merely to restate
@@ -131,7 +135,15 @@ Deliver 2-4 opening zingers based on worst patterns. Reference actual names, lin
 
 ### Codex Review
 
-Cross-model second opinion from a different LLM. Always try to run Codex review during Pass 2; do not replace it with a mental review or a slash-command reference.
+Run Codex review only when the user explicitly asks for a second opinion, the
+diff exceeds 5 files or 300 changed lines, or it changes auth, security,
+persistence, migrations, concurrency, payments, or a public API. The CLI run is
+a model-backed advisor and counts toward the shared child budget. For a smaller,
+low-risk diff, the parent roast plus deterministic evidence is the complete
+second pass.
+
+When the risk gate applies, use the cross-model review as independent evidence;
+do not replace it with a mental review or a slash-command reference.
 
 **In Claude Code:** run the codex plugin's review command:
 ```bash
@@ -204,8 +216,8 @@ Remaining: [count by tier]
 
 ## Zero-Finding Gate
 
-If ALL review passes (Roast + Codex) produce zero findings — no critical, serious, or
-medium issues across every lens:
+If all applicable review passes (Parent Roast plus gated Codex review) produce
+zero findings — no critical, serious, or medium issues across every lens:
 
 1. Verify you read the changed files in full, not just diffstat.
 2. Name at least one specific positive assertion with `file:line` evidence:

@@ -13,6 +13,9 @@ metadata:
 
 You're landing this RFC on the desk of a chief architect who has no time and no patience. They reject two kinds of documents: shallow ones (hand-wavy claims, no evidence, "we should consider...") and bloated ones (walls of text, obvious statements, sections that exist to look thorough). You get one shot. The RFC must be deeply researched, grounded in real code, and dense enough that every paragraph teaches them something they didn't know. If it reads like filler, it gets rejected. If it lacks evidence, it gets rejected. Deliver a document that respects their time and earns their trust.
 
+Before delegating, load and follow
+[`../vs-internal-shared/references/subagents.md`](../vs-internal-shared/references/subagents.md).
+
 ## Phase 0: Pre-flight Check
 
 Before starting, verify octocode MCP is available by checking if `mcp__octocode__githubSearchRepositories` (or any `mcp__octocode__*` tool) is in your available tools. The vs plugin includes `octocode` in its plugin `.mcp.json`, so absence usually means the host did not load plugin MCP config for this session.
@@ -84,15 +87,25 @@ Proceed?
 
 ### Phase 3: Execute Research
 
-Use octocode MCP tools via subagents for parallel investigation.
+Use Octocode MCP tools through bounded Explore children. Group related research
+questions by evidence domain and dispatch one Explore child per evidence domain,
+not one child per query or tool call. Separate children only when domains are
+genuinely independent, such as repository implementation, migration history,
+and ecosystem alternatives.
 
 **Rules:**
-- ALWAYS use the Agent tool with `subagent_type="Explore"` for octocode MCP calls (keeps main context clean)
-- Independent research domains -> parallel agents
-- Sequential dependencies -> sequential agents
+- Use the Agent tool with `subagent_type="Explore"` for octocode MCP calls
+- Apply the shared standard budget unless the user asks for deep research
+- Reserve one child slot for Phase 5. Standard mode combines Phase 3 into one
+  Explore batch; deep mode may use at most three research children plus the
+  cold reviewer.
+- Run discovery and shortlist queries before fetching full files or PR history
+- Independent evidence domains may run in parallel; sequential dependencies stay together
 - Every tool call MUST include `mainResearchGoal`, `researchGoal`, and `reasoning`
 - Follow hints in tool responses
 - Collect file:line references for every finding
+- Return a compact evidence ledger: claim, URL or file:line, supporting excerpt
+  summary, limitation, and relevance. Do not return source dumps.
 
 **Tool selection guide:**
 
@@ -215,12 +228,20 @@ The Phase 5 roast subagent is instructed not to cut this section.
 
 ### Phase 5: Roast & Distill (Subagent)
 
-**Why a subagent:** The main agent is biased — it spent tokens researching, has sunk-cost attachment to findings, and sees every detail as important. A fresh subagent receives only the RFC text with zero research context. Its clean context window IS the objectivity. It reads the RFC the way a reviewer would: cold.
+**Why a subagent:** The main agent is biased — it spent tokens researching, has sunk-cost attachment to findings, and sees every detail as important. A fresh subagent reads the draft cold.
 
-Spawn a subagent with the following prompt (pass the full RFC markdown as input):
+Write the draft to its intended RFC path, or to a temporary file outside the
+project when the final path is not available yet. Give the reviewer the draft
+file path; do not paste the full RFC into the child prompt. Ask for at most 15
+specific edit directives rather than another full copy of the RFC. The parent
+owns the document and applies accepted edits.
+
+Spawn a subagent with the following prompt:
 
 ```
-You are a senior staff engineer reviewing an RFC you've never seen before. You have 5 minutes. Your job: cut this RFC down to only what's needed to make a decision, then return the edited version.
+You are a senior staff engineer reviewing an RFC you've never seen before. Read
+the RFC at [draft file path]. You have 5 minutes. Identify what to cut or tighten
+so only decision-relevant evidence remains.
 
 ## Kill on sight
 - Obvious statements ("We need good performance", "Security is important")
@@ -254,19 +275,22 @@ You are a senior staff engineer reviewing an RFC you've never seen before. You h
 - Total: under 500 lines of markdown
 
 ## Output
-Return the complete edited RFC markdown. Add a brief "## Roast Notes" section at the end listing what you cut and why (this section will be removed before delivery — it's for the main agent to review your cuts).
+Return at most 15 edit directives, ordered by impact. Each directive names the
+heading or exact passage, the action (cut, compress, restore evidence, or
+rewrite), and why it improves the decision. Do not return the complete RFC.
 
 If any section makes you think "obviously" — that section shouldn't exist.
 ```
 
-After the subagent returns:
-1. Review the roast notes — if any cut removed genuinely important context, restore it
-2. Remove the "Roast Notes" section
-3. The result is the final RFC
+After the subagent returns, verify each directive against the evidence and apply
+accepted edits in the parent. Reject cuts that remove decision-critical context.
+The edited draft becomes the final RFC.
 
-For high-risk RFCs or disputed tradeoffs, load `../vs-second-opinion/SKILL.md`
-when available before finalizing. Use it to test the central decision, not to
-rerun the whole RFC. If the RFC contains a performance claim, load
+For high-risk RFCs or disputed tradeoffs, use a second opinion through
+`../vs-second-opinion/SKILL.md` only when child budget remains after research
+and the cold review. Otherwise
+test the central decision in the parent against the strongest contrary evidence;
+do not exceed the shared budget. If the RFC contains a performance claim, load
 `../vs-perf/SKILL.md` when available and include the evaluator or
 benchmark contract before recommending implementation.
 

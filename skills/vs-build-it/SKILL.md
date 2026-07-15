@@ -11,10 +11,10 @@ Work within the user's stated plan or requested outcome; stop for strategic bloc
 Build-it takes a plan (or generates one if needed) and runs seven phases within that scope:
 1. **Roast** — load and follow the pushback skill to stress-test the plan
 2. **Fix** — apply pushback findings directly to the plan
-3. **Execute** — create branch, add debug instrumentation, and implement with TDD
-4. **Review** — run roast-review/vs-deslop on the diff (code reuse, quality, efficiency, roast)
-5. **QA** — browser-based testing if it's a web app (debug logs provide runtime evidence)
-6. **Cleanup** — remove debug instrumentation, verify everything still passes
+3. **Execute** — create branch and implement with TDD; escalate to debugging on evidence
+4. **Review** — review the integrated diff once, with depth proportional to risk
+5. **QA** — browser-test only changed user-visible browser behavior
+6. **Cleanup** — remove temporary artifacts and verify everything still passes
 7. **Handoff** — present results, suggest `/vs-ship-it`
 
 Resolve tactical implementation decisions locally; do not expand scope beyond what is directly required for the stated outcome.
@@ -26,9 +26,11 @@ one-off behavior:
 
 - `vs-pushback` stress-tests the plan in Phase 1.
 - `vs-decide-for-me` owns the no-questions decision ladder for tactical uncertainty.
-- `vs-tdd` and `vs-debug-mode` guide implementation and failure investigation.
-- `vs-roast-review` and `vs-deslop` clean and review the diff in Phase 4.
-- `vs-qa` tests affected web behavior in Phase 5.
+- `vs-tdd` guides implementation; `vs-debug-mode` is loaded only after evidence
+  shows that ordinary red/green feedback is insufficient.
+- `vs-roast-review` and `vs-deslop` clean and review risky or substantial diffs
+  in Phase 4; small diffs stay in the parent.
+- `vs-qa` tests affected user-visible browser behavior in Phase 5.
 - `vs-verify` produces the final evidence-backed completion status.
 - `vs-brief` produces the human-readable orientation layer for the handoff.
 - `vs-walkthrough` explains how the shipped change behaves and how to prove it.
@@ -220,43 +222,18 @@ Emit a short transition summary:
 Implement the fixed plan. Execute directly unless independent steps make
 delegation materially faster or safer. Follow the shared subagent budget.
 
-### Step 0: Load TDD and Debug skills
+### Step 0: Load TDD; escalate to debugging only on evidence
 
-Load sibling skills `../vs-tdd/SKILL.md` and `../vs-debug-mode/SKILL.md` when the host can resolve them. Workers follow TDD discipline (test first, then implement). If sibling resolution fails, workers write tests after implementation as a fallback.
+Load sibling skill `../vs-tdd/SKILL.md` when the host can resolve it. Workers
+follow TDD discipline: reproduce or specify behavior with a failing test, then
+implement the minimum green change.
 
-If the debug skill resolves: read its instrumentation approach for Phase 3 step 0b below.
-
-### Step 0b: Add debug instrumentation (when modifying existing code)
-
-Skip this step if the plan only creates new files. Instrumentation is for
-observing existing behavior during modification — there's nothing to observe
-in code that doesn't exist yet.
-
-If the plan modifies existing functions or modules, instrument the codebase
-for observability during execution:
-
-1. Identify the modules/files the plan touches.
-2. Add lightweight logging at key boundaries — function entry/exit for new or modified
-   functions, error paths, and integration points.
-3. Use the project's existing logging pattern (console.log, logger.debug, logging.debug, etc.).
-   Search the codebase for the existing pattern before adding logs:
-   ```bash
-   # Find the project's logging convention
-   grep -r "console\.\|logger\.\|logging\." --include="*.ts" --include="*.js" --include="*.py" -l | head -5
-   ```
-4. Wrap all debug instrumentation in a marker comment so it can be found and removed later:
-   ```
-   // #region build-it-debug
-   console.log('[build-it] functionName entry', { arg1, arg2 });
-   // #endregion build-it-debug
-   ```
-5. Commit the instrumentation separately: `chore: add build-it debug instrumentation`
-
-This instrumentation serves two purposes:
-- During execution: when guardrails fail, the logs help diagnose why
-- During QA: runtime evidence for browser-based testing
-
-The instrumentation is removed in Phase 6 (cleanup) after everything passes.
+Load `../vs-debug-mode/SKILL.md` only after a reproduction or guardrail fails in
+an unexplained way, two focused fix attempts fail, or runtime state cannot be
+observed through existing tests and logs. Add temporary instrumentation only at
+the boundary needed to distinguish the active hypotheses; do not instrument
+every modified function preemptively. Mark any temporary code with
+`build-it-debug` so Phase 6 can remove it.
 
 ### Step 1: Build dependency graph
 
@@ -270,7 +247,7 @@ Layer 2: [steps that depend on Layer 1]
 ```
 
 If all steps are independent (no shared files, no import dependencies between
-them), they are all Layer 0, but the shared two-active-child limit still applies.
+them), they are all Layer 0, but the selected shared effort budget still applies.
 
 If the plan is small (3 or fewer steps) or all steps touch the same files:
 skip parallelism, execute sequentially on the current branch.
@@ -316,18 +293,11 @@ the next layer. If a subagent in Layer N fails, assess whether Layer N+1 steps
 depend on it — if yes, execute those sequentially yourself with the fix. If no,
 continue the next layer in parallel.
 
-### Step 3: Pipeline review while executing
+### Step 3: Integrate once
 
-Pipeline review only when another layer is still running and the shared child
-budget has capacity:
-
-- Launch one narrow background subagent to review the completed layer's changes
-  (code reuse, quality, efficiency — same as Phase 4 roast-review logic).
-- The review subagent reports findings but does NOT apply fixes yet —
-  fixes happen in Phase 4 after all execution is done, to avoid conflicts.
-
-This means review runs concurrently with execution of later layers.
-For single-layer plans, review runs after execution (no pipelining benefit).
+Do not spend child budget reviewing partial layers. Inspect the integrated diff
+and run the final review once in Phase 4, after dependency and merge issues are
+visible together.
 
 ### Step 3b: Capture ADRs for durable decisions
 
@@ -360,22 +330,18 @@ Fix any integration issues introduced by combining parallel work.
 
 ## Phase 4: Review
 
-Collect findings from pipelined review subagents (launched during Phase 3).
-If no pipelined reviews ran (sequential execution or no subagent support),
-run the full review now.
+Measure the integrated diff. A small, low-risk diff (at most 5 changed files and
+300 changed lines, with no auth, security, persistence, migration, concurrency,
+payment, or public-API change) stays in the parent: inspect every changed file,
+search for reuse, run deterministic checks, and review correctness, security,
+error handling, and unnecessary complexity.
 
-Load sibling skill `../vs-roast-review/SKILL.md` when the host can resolve it.
-Follow its bounded two-pass methodology within the remaining workflow child
-budget; do not restart a five-agent review fanout after implementation children.
-
-If not found: run a lightweight self-review yourself covering the same dimensions
-on the branch diff.
-
-Load and run `../vs-deslop/SKILL.md` when available for focused
-cleanup of working code before final verification. Keep the deslop scope to the
-branch diff or the files changed by build-it; do not use it as permission for
-unrelated refactors. If the skill is unavailable, treat roast-review Pass 1 as
-the cleanup building block.
+For larger or high-risk diffs, load `../vs-roast-review/SKILL.md` and follow its
+bounded methodology within the remaining workflow child budget. Load
+`../vs-deslop/SKILL.md` only when the integrated diff contains confirmed
+duplication, indirection, or generated-looking boilerplate that the parent
+cannot remove confidently during its review. Keep either skill scoped to the
+branch diff.
 
 ### Auto-decision override for Pass 2
 
@@ -397,7 +363,7 @@ suite, commit test + fix atomically.
 
 ### Applying review fixes
 
-Merge findings from all review sources (pipelined + final). Deduplicate.
+Merge findings from all review sources and deduplicate.
 For each finding that claims a bug: write a failing test first to confirm
 it's real. If you can't write a failing test, note it in the decision log
 instead of applying a speculative fix.
@@ -411,7 +377,7 @@ Then for each validated finding:
 
 ---
 
-## Phase 5: QA (conditional — web apps only)
+## Phase 5: QA (conditional — affected browser behavior only)
 
 Detect if this is a web app:
 
@@ -425,15 +391,23 @@ grep -q '"start"' package.json 2>/dev/null && grep -qE '"(react|vue|svelte|next|
 echo "HAS_WEB=$HAS_WEB"
 ```
 
-If not a web app: skip Phase 5, proceed to handoff.
+If not a web app, or the diff changes only server, build, test, documentation,
+or internal library code with no user-visible browser behavior: skip Phase 5.
 
-If web app: load sibling skill `../vs-qa/SKILL.md` when the host can resolve it.
+If the diff changes routes, rendered components, interaction handlers, browser
+state, styles, accessibility behavior, or another user-visible browser contract,
+load sibling skill `../vs-qa/SKILL.md` when the host can resolve it.
 
 If the QA skill resolves: read it and follow its methodology in **diff-aware mode** — only test
 pages affected by the branch diff, not the full app.
 
 If not found: skip QA. Do not attempt browser testing without the QA skill — it
 requires `agent-browser` setup and structured methodology.
+
+Use an existing reachable preview and available authentication context. If QA
+would require starting a forbidden dev server, obtaining new credentials, or
+asking for a routine URL that repository configuration cannot resolve, mark QA
+as not run with the exact missing prerequisite and continue to handoff.
 
 ### Auto-decision overrides for QA
 
@@ -450,10 +424,8 @@ requires `agent-browser` setup and structured methodology.
 
 ## Phase 6: Cleanup
 
-If no debug instrumentation was added in Phase 3 (plan only created new files),
-skip to Phase 7.
-
-Remove debug instrumentation added in Phase 3 Step 0b.
+If no temporary instrumentation or artifacts were added in Phase 3, skip to
+Phase 7. Otherwise remove everything marked `build-it-debug`.
 
 ```bash
 # Find all build-it-debug regions
@@ -478,12 +450,11 @@ Load and run `../vs-verify/SKILL.md` when available and include its
 `## Verification Result` in the handoff. If unavailable, record the final
 guardrail commands and results manually.
 
-Use the required shell in [references/handoff.md](./references/handoff.md), then
-load and run `../vs-brief/SKILL.md` when available; otherwise append a minimal diff
-stat fallback. After the brief, load and run `../vs-walkthrough/SKILL.md` when
-available to add a scenario-first walkthrough with proof signal. Do not replace
-the brief: `vs-brief` explains the diff for reviewers and PR reuse; `vs-walkthrough`
-explains the behavior for user understanding.
+Use the required shell in [references/handoff.md](./references/handoff.md) and
+include a minimal diff stat. Load `../vs-brief/SKILL.md` only when the change is
+non-trivial (more than 3 files, a durable design decision, or user-requested PR
+orientation). Load `../vs-walkthrough/SKILL.md` only when the user asks for a
+walkthrough or the changed behavior needs a scenario to explain how to prove it.
 
 ---
 
