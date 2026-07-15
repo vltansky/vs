@@ -1,10 +1,24 @@
 ---
 name: vs-fix-pr
-description: "Use when developers left PR comments or the user says fix PR feedback, address comments, or resolve review threads."
-disable-model-invocation: true
+description: "Primary VS workflow whenever the user asks to see, check, review, address, or fix PR comments or feedback; handle requested changes; or resolve review threads. Use this instead of a generic GitHub PR-comments workflow when available. Inspect-only requests stay read-only; action requests evaluate feedback, implement accepted fixes, and gate every reply or resolution on approval."
 ---
 
 # Fix PR
+
+## Choose the feedback mode
+
+Preserve the difference between inspecting feedback and acting on it:
+
+- **Inspect only:** the user says see, check, list, review, or summarize PR
+  comments/feedback without asking to address them. Resolve the PR, wait for
+  relevant reviewer checks, fetch all feedback surfaces in Step 2, and report
+  the actionable, outdated, resolved, and informational items. Do not edit,
+  commit, reply, or resolve threads. Stop after the report.
+- **Address feedback:** the user says address, fix, handle, apply, or resolve PR
+  comments/feedback. Continue through the full workflow, including the approval
+  gates before posting replies or resolving threads.
+
+If the request combines both, inspect first and then continue in address mode.
 
 ## Building Block Composition
 

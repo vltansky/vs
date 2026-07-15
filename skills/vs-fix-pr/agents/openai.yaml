@@ -1,6 +1,6 @@
 interface:
   display_name: "vs-fix-pr"
-  short_description: "Address PR review feedback"
+  short_description: "Inspect or address PR review comments"
 
 policy:
-  allow_implicit_invocation: false
+  allow_implicit_invocation: true

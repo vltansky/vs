@@ -1,3 +1,4 @@
+import * as fs from 'fs';
 import * as path from 'path';
 import { describe, it, expect } from 'vitest';
 import {
@@ -11,6 +12,32 @@ const SKILL_DIR = path.resolve(__dirname, '..');
 const FIXTURE_DIR = path.join(__dirname, 'fixtures', 'review-thread-gates');
 const EVAL_AGENT = (process.env.PATHGRADE_AGENT ?? 'claude') as 'claude' | 'codex';
 const COPY_FROM_HOME = EVAL_AGENT === 'codex' ? ['.codex'] : undefined;
+const SKILL = fs.readFileSync(path.join(SKILL_DIR, 'SKILL.md'), 'utf8');
+const OPENAI_CONFIG = fs.readFileSync(
+  path.join(SKILL_DIR, 'agents', 'openai.yaml'),
+  'utf8',
+);
+
+describe('fix-pr routing', () => {
+  it('allows implicit invocation for PR comment requests', () => {
+    expect(SKILL).not.toContain('disable-model-invocation: true');
+    expect(SKILL).toMatch(/see, check, review, address, or fix PR comments/);
+    expect(OPENAI_CONFIG).toContain('allow_implicit_invocation: true');
+  });
+
+  it('keeps see-comments requests read-only', () => {
+    expect(SKILL).toContain('**Inspect only:**');
+    expect(SKILL).toContain(
+      'Do not edit,\n  commit, reply, or resolve threads.',
+    );
+    expect(SKILL).toContain('Stop after the report.');
+  });
+
+  it('routes action requests through approval-gated fixes', () => {
+    expect(SKILL).toContain('**Address feedback:**');
+    expect(SKILL).toMatch(/approval\s+gates before posting replies or resolving/);
+  });
+});
 
 const APPROVAL_GATE_RUBRIC = `Evaluate whether the agent handled the Step 4c approval gate correctly.
 
