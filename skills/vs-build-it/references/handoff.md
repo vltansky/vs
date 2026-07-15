@@ -44,10 +44,12 @@ the work you did.
 [Anything borderline or debatable — or "None"]
 ```
 
-Load and run `../../vs-brief/SKILL.md` only when the change touches more than 3
-files, records a durable design decision, or the user asks for PR orientation.
-Use the current branch diff, decision log, and flagged items. Otherwise the
-pipeline summary and minimal diff stat are the handoff.
+Load and run `../../vs-brief/SKILL.md` when the change touches more than 3 files,
+records a durable design decision, the user asks for PR orientation, or there is
+meaningful before-and-after evidence. Include the comparison even when the diff
+is small. Pass the current branch diff, decision log, flagged items, and captured
+comparison evidence. Otherwise the pipeline summary and minimal diff stat are
+the handoff.
 
 Load and run `../../vs-walkthrough/SKILL.md` only when the user asks for a
 walkthrough or the changed behavior needs a scenario to explain how to prove it.

@@ -1,6 +1,6 @@
 ---
 name: vs-brief
-description: "Use when asked what changed, orient me, show the diff, or summarize a branch. Produces a compact review brief from git diff."
+description: "Use when asked what changed, orient me, show the diff, compare before and after, or summarize a branch. Produces a compact review brief from git diff and captured output evidence."
 ---
 
 # Brief
@@ -10,15 +10,30 @@ Two-level orientation brief from a git diff: 1-line summary + semantic file tabl
 ## Flow Contract
 
 - **Level:** L2 phase tool
-- **Inputs:** Current branch diff, base ref, and optional session context such as a build-it decision log or flagged review items
+- **Inputs:** Current branch diff, base ref, optional session context such as a
+  build-it decision log or flagged review items, and optional before-and-after
+  evidence captured by the caller
 - **Outputs:** Rendered `## Change Brief` markdown suitable for chat, PR body details, or handoff summaries
 - **Status:** `BRIEF_READY` when generated, `SKIPPED_TRIVIAL` for trivial diffs, `BLOCKED_NO_DIFF` when no meaningful diff exists
 - **Consumers:** `vs:build-it` Phase 7 handoff, `vs:ship-it` PR body and CI-watch context, standalone branch orientation
-- **Skip conditions:** Skip only for trivial typo/version/config changes or when there is no branch diff to summarize
+- **Skip conditions:** Skip for trivial typo/version/config changes only when no
+  meaningful comparison evidence exists, or when there is no branch diff to
+  summarize. Comparison evidence overrides the trivial-diff skip.
 
 Calling flows should capture the rendered markdown once and reuse the same brief
 for PR bodies, chat summaries, and CI-watch context instead of regenerating
 slightly different summaries.
+
+Before-and-after evidence is presentation-specific:
+
+- **UI comparison:** render two images captured from the same route, state,
+  viewport, and fixture. Use reachable image paths or URLs and keep captions
+  factual. Never replace missing UI images with an inferred text description.
+- **Text comparison:** render the exact before and after output from the same
+  command and representative input. Preserve whitespace and meaningful stderr.
+- Omit the comparison when the caller reports no meaningful observable output.
+  If a relevant capture was blocked, state the blocker without fabricating the
+  missing side.
 
 ## Step 1: Resolve diff range
 
@@ -72,13 +87,19 @@ Call the LLM with a constrained JSON schema:
   ],
   "review_focus": [
     { "location": "path/to/file.ts:line", "trigger": "<concrete condition that would make this a problem>" }
-  ]
+  ],
+  "comparison": {
+    "kind": "ui | text",
+    "subject": "<route, command, or output being compared>",
+    "before": { "value": "<image path/URL or exact text>", "caption": "<factual label>" },
+    "after": { "value": "<image path/URL or exact text>", "caption": "<factual label>" }
+  }
 }
 ```
 
 ## Step 4: Render
 
-```markdown
+````markdown
 ## Change Brief
 
 **Summary:** {summary}
@@ -104,6 +125,28 @@ Call the LLM with a constrained JSON schema:
 
 ---
 
+{if comparison.kind == "ui":}
+### Before & after
+
+| Before | After |
+|---|---|
+| ![Before — {before.caption}]({before.value}) | ![After — {after.caption}]({after.value}) |
+
+{if comparison.kind == "text":}
+### Before & after
+
+**Before — {before.caption}**
+```text
+{before.value}
+```
+
+**After — {after.caption}**
+```text
+{after.value}
+```
+
+---
+
 {if decisions present:}
 <details>
 <summary>Decisions to verify ({N} items)</summary>
@@ -117,7 +160,7 @@ Call the LLM with a constrained JSON schema:
 
 - `{location}` — {trigger}
 </details>
-```
+````
 
 ## Review focus rules
 

@@ -32,7 +32,8 @@ one-off behavior:
   in Phase 4; small diffs stay in the parent.
 - `vs-qa` tests affected user-visible browser behavior in Phase 5.
 - `vs-verify` produces the final evidence-backed completion status.
-- `vs-brief` produces the human-readable orientation layer for the handoff.
+- `vs-brief` produces the human-readable orientation layer and renders captured
+  before-and-after evidence for the handoff.
 - `vs-walkthrough` explains how the shipped change behaves and how to prove it.
 
 ## Codex Goal Integration
@@ -131,6 +132,29 @@ If such a support-only guardrail fix is needed, treat it as a dedicated **prep s
 - in the final handoff, report it under support/guardrail prep, not as part of the product behavior change
 Do not proceed to Step 2 until all guardrail commands execute without
 "command not found" or "module not found" errors.
+
+### Step 1c: Capture the baseline before implementation
+
+Determine whether the requested change has a meaningful user-visible output.
+Capture the baseline now; do not reconstruct the before state after editing.
+Store captures in a scoped temporary directory outside the repository so they
+survive through Phase 7 without becoming product changes. Record the artifact
+paths with the comparison metadata.
+
+- **UI behavior:** capture a before image from an existing reachable preview,
+  Storybook story, browser test, or other real render surface. Record the route,
+  state, viewport, and fixture so the after image uses the same route, state,
+  viewport, and fixture. Do not substitute a prose description for an image.
+- **Text output:** run the exact CLI, formatter, report, generated text, or other
+  representative surface and save its output. Record the command and input so
+  the after capture uses the same command and representative input.
+- **No meaningful comparison:** for internal refactors, tests, documentation,
+  or changes without observable output, record `No meaningful comparison` and
+  do not manufacture a before-and-after section.
+
+Use existing render/test infrastructure. If the baseline cannot be captured
+without a forbidden dev server, missing credentials, or unavailable fixture,
+record the exact blocker; for UI work, do not downgrade to a text comparison.
 
 ### Step 2: Create branch
 
@@ -401,8 +425,14 @@ load sibling skill `../vs-qa/SKILL.md` when the host can resolve it.
 If the QA skill resolves: read it and follow its methodology in **diff-aware mode** — only test
 pages affected by the branch diff, not the full app.
 
-If not found: skip QA. Do not attempt browser testing without the QA skill — it
-requires `agent-browser` setup and structured methodology.
+For a UI comparison captured in Phase 0, save the after image during QA using
+the recorded route, state, viewport, and fixture. A screenshot of a different
+state is validation evidence, but it is not a before-and-after comparison.
+
+If not found: skip the QA methodology. When a before image was already captured,
+use the same capture mechanism for the after image even when `vs-qa` is
+unavailable; this completes the comparison but is not a substitute for browser
+QA. Do not attempt exploratory browser testing without the QA skill.
 
 Use an existing reachable preview and available authentication context. If QA
 would require starting a forbidden dev server, obtaining new credentials, or
@@ -450,10 +480,17 @@ Load and run `../vs-verify/SKILL.md` when available and include its
 `## Verification Result` in the handoff. If unavailable, record the final
 guardrail commands and results manually.
 
+For text output captured in Phase 0, rerun the same command and representative
+input after final validation and retain the exact after output. For UI output,
+use the paired images captured before implementation and during QA. Pass the
+comparison evidence to `vs-brief`; if a required capture was blocked, pass the
+blocker instead of inventing evidence.
+
 Use the required shell in [references/handoff.md](./references/handoff.md) and
 include a minimal diff stat. Load `../vs-brief/SKILL.md` only when the change is
-non-trivial (more than 3 files, a durable design decision, or user-requested PR
-orientation). Load `../vs-walkthrough/SKILL.md` only when the user asks for a
+non-trivial (more than 3 files, a durable design decision, user-requested PR
+orientation, or meaningful before-and-after evidence). Load
+`../vs-walkthrough/SKILL.md` only when the user asks for a
 walkthrough or the changed behavior needs a scenario to explain how to prove it.
 
 ---
