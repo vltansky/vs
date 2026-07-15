@@ -24,8 +24,10 @@ summary.
 ## Step 0: Find the PR
 
 ```bash
-PR_NUM=$(gh pr view --json number --jq .number 2>/dev/null)
-REPO=$(gh repo view --json nameWithOwner --jq .nameWithOwner)
+PR_CONTEXT=$(gh pr view --json number,url 2>/dev/null)
+PR_NUM=$(jq -r '.number // empty' <<<"$PR_CONTEXT")
+PR_URL=$(jq -r '.url // empty' <<<"$PR_CONTEXT")
+REPO=$(jq -r '.url | capture("^https://github.com/(?<repo>[^/]+/[^/]+)/pull/[0-9]+$").repo' <<<"$PR_CONTEXT")
 ```
 
 If `PR_NUM` is empty: "No PR found for the current branch." Stop.
@@ -178,20 +180,43 @@ Batch multiple fixes from the same push cycle into one commit where it makes sen
 ### CI phase
 
 ```bash
-jq -r '.[] | select(.conclusion != null) | [.name, .status, .conclusion, .details_url] | @tsv' <<<"$CI_FAILURES"
+CI_REPORT=$(mktemp)
+CI_INSPECT_EXIT=0
+python3 <skill-dir>/scripts/inspect_pr_checks.py \
+  --repo . \
+  --pr "$PR_URL" \
+  --json > "$CI_REPORT" || CI_INSPECT_EXIT=$?
+jq . "$CI_REPORT"
 ```
 
-If failures:
-1. Resolve the latest failed run for the current branch:
-   ```bash
-   RUN_ID=$(gh run list --branch "$(git branch --show-current)" \
-     --status failure --limit 1 --json databaseId \
-     --jq '.[0].databaseId')
-   ```
-2. Get logs: `gh run view "$RUN_ID" --log-failed | tail -80`
-3. Read failing files, diagnose, fix
-4. Commit: `fix: resolve CI failure in <check-name>`
-5. Push
+Resolve `<skill-dir>` to this skill's installed directory. Exit `1` means the
+report contains failing checks; exit `2` means inspection itself failed. Stop
+and report an exit-2 error instead of treating missing evidence as a passing or
+actionable check.
+
+For each result:
+
+- `provider: external` — report the check name and URL. Do not guess at
+  Buildkite, Falcon, or another provider's logs unless the user explicitly
+  expands the investigation scope.
+- `status: log_pending` — wait; there is no stable failure to diagnose yet.
+- `status: log_unavailable` — report the exact retrieval error and URL. Do not
+  infer root cause from the check name alone.
+- `status: ok` — use `logSnippet` as the starting evidence and `logTail` only
+  for additional context. Prefer `logScope: job`; `logScope: run` means the
+  job-specific endpoint was unavailable and the evidence covers the whole run.
+  The inspector ties each log to the failing check instead of selecting the
+  latest failed run on the branch.
+
+For an actionable GitHub Actions failure:
+
+1. Summarize the observed root cause from the log snippet.
+2. Compare the failing paths and SHA against the PR diff. If unrelated, report
+   it as pre-existing or external rather than editing unrelated code.
+3. Read the failing files, diagnose, and apply the smallest fix.
+4. Run the relevant local verification.
+5. Commit `fix: resolve CI failure in <check-name>` and push.
+6. Re-run the inspector after the new check reaches a terminal state.
 
 If CI is pending/running: wait for current interval, re-check on next iteration.
 
@@ -279,6 +304,7 @@ Update `PREV_HEAD_SHA`, `PREV_THREADS`, and `PREV_CI` after each iteration.
 
 - [ ] All clear-intent review threads fixed, committed, pushed, replied-to, and resolved
 - [ ] CI passing after any fixes
+- [ ] Every failing check tied to its own log evidence or explicitly classified as external, pending, or unavailable
 - [ ] Ambiguous threads listed in summary (not silently dropped)
 - [ ] Only stopped when merge-ready, merged, unrecoverable, or interrupted
 

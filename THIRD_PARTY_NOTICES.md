@@ -2,6 +2,19 @@
 
 This plugin includes or adapts material from the following third-party projects.
 
+## OpenAI GitHub Actions CI Fix skill
+
+- Project: https://github.com/openai/plugins
+- Used in: `skills/vs-baby-sit`
+- Source: `github/skills/gh-fix-ci/scripts/inspect_pr_checks.py`
+- License: Apache-2.0
+
+The `vs-baby-sit` CI inspector adapts OpenAI's check-field compatibility,
+GitHub Actions run/job log fallback, external-provider classification, and
+focused failure-snippet extraction. The implementation was modified for the vs
+autonomous PR-watch loop and stable JSON output. The copied Apache-2.0 license
+text is included at `skills/vs-baby-sit/LICENSE.openai-gh-fix-ci`.
+
 ## GOV.UK style agent skill
 
 - Author: fofr
