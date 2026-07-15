@@ -1,10 +1,39 @@
 ---
 name: vs-ship-it
-description: "Use when the user says create PR, open PR, ship it, submit changes, or send to dev. Creates a GitHub PR with session context."
-disable-model-invocation: true
+description: "Use when the user wants to ship or publish local Git changes: commit and push, push to main/master or the current branch, create/open a PR, submit changes, or send to dev. Honors an explicit direct-push request; otherwise creates a review-ready GitHub PR with session context."
 ---
 
-# Create PR
+# Ship Changes
+
+## Choose the shipping mode
+
+Honor the outcome the user named instead of expanding a narrow push into a PR:
+
+- **Direct push:** the user explicitly says to push to `main`, `master`, another
+  named branch, or the current branch, or says to commit and push without a PR.
+  Follow the direct-push path below and stop after verifying the remote SHA.
+- **PR:** the user asks to create/open a PR, submit for review, send to dev, or
+  says only "ship it" without naming a destination. Continue with the full PR
+  workflow.
+
+If the named destination branch does not exist, do not silently create or map
+it. Report the repository's default branch and ask only when the intended
+destination remains ambiguous.
+
+### Direct-push path
+
+1. Inspect `git status -sb`, the intended diff, the current branch, and remotes.
+   Preserve unrelated changes and stage only the files in scope.
+2. Run the relevant validation if it has not already passed for the current
+   diff. Do not repeat fresh evidence without a reason.
+3. Commit staged or clearly scoped changes with a concise conventional commit
+   message when a commit is needed.
+4. Fetch the destination branch and check divergence before pushing. Stop on a
+   remote-ahead or non-fast-forward state instead of rewriting history.
+5. Push exactly the requested branch, then verify the local and remote SHAs
+   match. Report the branch, commit, and validation evidence.
+
+Do not create a feature branch or PR in direct-push mode.
 
 ## Building Block Composition
 

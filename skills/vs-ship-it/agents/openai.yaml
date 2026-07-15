@@ -1,6 +1,6 @@
 interface:
   display_name: "vs-ship-it"
-  short_description: "Create PRs with AI session context"
+  short_description: "Commit, push, or create a review-ready PR"
 
 policy:
-  allow_implicit_invocation: false
+  allow_implicit_invocation: true
