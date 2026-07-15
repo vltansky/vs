@@ -52,6 +52,31 @@ describe('vs-ship-it PR association handshake', () => {
   });
 });
 
+describe('vs-ship-it mechanical PR fast path', () => {
+  it('honors explicit requests to skip shipping ceremony', () => {
+    expect(SKILL).toMatch(/just create (?:the\s+)?PR/);
+    expect(SKILL).toMatch(/skip review/);
+    expect(SKILL).toMatch(/do not run `vs-roast-review`/);
+    expect(SKILL).toMatch(/do not spawn review agents/);
+  });
+
+  it('recognizes conservative trivial documentation diffs', () => {
+    expect(SKILL).toMatch(/exactly one documentation or instruction file/);
+    expect(SKILL).toMatch(/50\s+changed lines or fewer/);
+    expect(SKILL).toMatch(
+      /dependencies, CI, security,\s+permissions, ownership, schemas, migrations/,
+    );
+  });
+
+  it('keeps the fast path focused and bounded', () => {
+    expect(SKILL).toMatch(/repository-required checks/);
+    expect(SKILL).toMatch(/requested PR modifiers/);
+    expect(SKILL).toMatch(/Skip the brief, AI session context, reviewer suggestions, and CI watch/);
+    expect(SKILL).toMatch(/verify the PR association/);
+    expect(SKILL).toMatch(/Verify\s+each requested modifier took effect/);
+  });
+});
+
 describe('vs-ship-it remote-first validation', () => {
   it('starts PR feedback before broad local validation', () => {
     expect(SKILL).toMatch(/focused test or smallest relevant validation/);

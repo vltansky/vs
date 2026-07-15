@@ -35,6 +35,40 @@ destination remains ambiguous.
 
 Do not create a feature branch or PR in direct-push mode.
 
+### Mechanical PR fast path
+
+Use this path when either condition holds:
+
+- The user explicitly narrows the task with wording such as "just create the
+  PR", "PR only", "skip review", or "skip ceremony".
+- The diff changes exactly one documentation or instruction file, contains 50
+  changed lines or fewer, and does not affect dependencies, CI, security,
+  permissions, ownership, schemas, migrations, generated files, or executable
+  behavior.
+
+This path exists because creating a small PR is a mechanical Git operation, not
+a reason to launch a review program. An explicit request to skip review also
+overrides Step 0: do not run `vs-roast-review`, do not spawn review agents, and
+do not invoke another model reviewer unless a concrete high-risk issue is found
+while inspecting the diff.
+
+1. Inspect status, the scoped diff, branch, and remotes. Preserve unrelated
+   changes and create a feature branch only when the checkout requires one.
+2. Run repository-required checks and the smallest validation relevant to the
+   changed file. Reuse fresh evidence instead of repeating it.
+3. Commit the scoped files, push, and create a concise PR.
+4. Re-resolve and verify the PR association using Step 5b before any modifier
+   can merge or otherwise change the PR state.
+5. Apply only requested PR modifiers such as `#skipreview` or auto-merge. Verify
+   each requested modifier took effect, report the URL and validation evidence,
+   then stop.
+
+Skip the brief, AI session context, reviewer suggestions, and CI watch. Do not
+create a Codex goal for this path unless the user explicitly requested one.
+Fall back to the full PR workflow when the diff fails the conservative criteria,
+required validation fails, unrelated changes cannot be isolated, the remote has
+diverged, or a high-risk concern appears.
+
 ## Building Block Composition
 
 Ship-it is a workflow. It composes building blocks to keep the PR surface
@@ -60,7 +94,12 @@ evidence is included. Complete the shipping goal before optional monitoring
 starts. Ongoing PR health belongs to a separate monitoring goal owned by
 `vs-baby-sit`, only when the user explicitly requested continued watching.
 
-## Step 0: Ensure review ran
+## Full PR workflow
+
+The remaining steps apply only after direct-push and mechanical-PR routing have
+been ruled out.
+
+### Step 0: Ensure review ran
 
 Before shipping, check if `vs-roast-review` was already run in this session.
 
@@ -433,7 +472,10 @@ repository and PR context, and keep the goal boundaries separate.
 
 ## Verification
 
-Blocked until all items pass — do not report "shipped" without evidence for each.
+For the mechanical PR fast path, require only scoped Git safety, relevant
+validation, commit/push success, requested modifiers, and Step 5b association
+evidence. For the full PR workflow, do not report "shipped" without evidence for
+each item below.
 
 - [ ] Review ran (roast-review completed, fixes applied)
 - [ ] All changes committed and pushed to remote
