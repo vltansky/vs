@@ -222,8 +222,29 @@ for trivial changes.>
 gh pr create --title "<title>" --body "<body>"
 ```
 
-Display the returned PR URL on its own line so it's clickable. Also print the
-brief to chat once so the user sees it without opening the PR.
+### Step 5b: Verify PR association before the turn ends
+
+Immediately re-resolve the PR from the same checkout:
+
+```bash
+PR_JSON=$(gh pr view --json number,url,state,headRefName,headRefOid)
+LOCAL_BRANCH=$(git branch --show-current)
+LOCAL_HEAD=$(git rev-parse HEAD)
+
+echo "$PR_JSON" | jq -e \
+  --arg branch "$LOCAL_BRANCH" --arg head "$LOCAL_HEAD" \
+  '.state == "OPEN" and .headRefName == $branch and .headRefOid == $head' >/dev/null || exit 1
+
+PR_NUM=$(echo "$PR_JSON" | jq -r '.number')
+PR_URL=$(echo "$PR_JSON" | jq -r '.url')
+REPO=$(gh repo view --json nameWithOwner --jq .nameWithOwner)
+printf '%s\n' "$PR_URL"
+```
+
+Do not switch branches or end the turn before this succeeds; Codex uses the
+current checkout and authenticated `gh` to refresh native PR context. On failure,
+run `gh auth status`, report the mismatch, and stop. Use the verified `PR_NUM`,
+`PR_URL`, and `REPO` below. Print `PR_URL` and the brief to chat.
 
 ## Step 6: Suggest reviewers
 
@@ -343,6 +364,7 @@ Blocked until all items pass — do not report "shipped" without evidence for ea
 - [ ] `vs-brief` generated and captured (unless trivial diff)
 - [ ] `vs-verify` generated a PASS/WARN result or was skipped as trivial
 - [ ] PR created with conventional format title and body
+- [ ] PR re-resolved from the current checkout before turn completion; state, branch, and HEAD verified
 - [ ] WHY established from chat context or transcript (not invented) and shown as the lead `## Why` section (unless trivial)
 - [ ] Change Brief included in PR body as collapsed `<details>` (unless trivial)
 - [ ] AI Session Context included (unless skip conditions met)
