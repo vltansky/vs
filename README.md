@@ -74,7 +74,7 @@ Start with the three core workflows. The first is for you. The second is for the
    you + agent       agent alone       you
 ```
 
-**`/vs-shape-it`** — you bring whatever you have: a vague idea, a rough plan, a half-formed question. The agent helps you think. It explores options when you're unsure, challenges your plan when you're sure, gathers evidence when you need it. Every interaction is a strategic decision you're making — the agent just makes you faster at making it.
+**`/vs-shape-it`** — you bring whatever you have: a vague idea, a rough plan, a half-formed question. The agent helps you think. It explores options when you're unsure, challenges your plan when you're sure, gathers evidence when you need it. The default handoff stays an approved design; for work that genuinely spans sessions, it may propose durable issues and host-native parallel workers without creating them automatically.
 
 **`/vs-build-it`** — you hand off the design. The agent takes it from direction to working code: stress-tests the plan, implements with TDD, reviews its own work, runs QA. You come back when it's done. Zero hand-holding in between.
 

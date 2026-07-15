@@ -54,7 +54,7 @@ Score 0.0: It skipped questions and jumped straight to a design dump or code.`,
           { weight: 1 },
         ),
       ],
-      { failFast: false, onScorerError: 'zero' },
+      { failFast: false, onScorerError: 'skip' },
     );
 
     expect(result.score).toBeGreaterThan(0.5);
@@ -122,7 +122,7 @@ Score 0.0: The agent never surfaces an ADR despite the user asking for one.`,
           { weight: 1 },
         ),
       ],
-      { failFast: false, onScorerError: 'zero' },
+      { failFast: false, onScorerError: 'skip' },
     );
 
     expect(result.score).toBeGreaterThan(0.5);

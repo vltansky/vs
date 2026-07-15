@@ -5,66 +5,54 @@ description: "Use when the user says shape it, brainstorm, explore this idea, gr
 
 # Shape It
 
-Turn loose ideas and rough plans into buildable designs. Keep the chat output
-short and decision-focused; the human makes the calls.
+Turn loose ideas and rough plans into approved, buildable designs. Keep the
+conversation short and decision-focused; the human makes strategic calls.
 
 <HARD-GATE>
-Do NOT write code, scaffold projects, or invoke implementation skills. Output is
-questions, design, or stress-test only.
+Do NOT write code, scaffold projects, create issues or parallel work sessions,
+or invoke implementation skills. Output is questions, design, stress-test, or
+an optional handoff recommendation.
 </HARD-GATE>
 
-## Pick the mode
+## Route the input
 
-Infer mode from the input. Do not ask which mode.
+Infer the route; do not ask the user to choose a mode.
 
-- **Explore**: vague idea, open question, no chosen approach. This is the default.
-- **Challenge**: formed plan/spec/RFC, or the user says grill, challenge, or stress-test.
+- **Explore:** vague idea, open question, or no chosen approach. This is the
+  default; follow the workflow below.
+- **Challenge:** formed plan, spec, or RFC, or an explicit request to grill,
+  challenge, or stress-test. Delegate to `/vs-pushback`; do not duplicate its
+  scoring and verdict workflow here.
 
-If you guessed wrong, pivot immediately.
+If the initial route was wrong, pivot immediately.
 
-## Codex Goal Integration
+When Codex goal tools are available, follow
+[Codex Goal Integration](../vs-internal-shared/references/codex-goal.md).
+Shape-it owns only the planning goal, never the later implementation goal.
 
-When running in Codex, use the shared Codex goal guidance from
-`vs-internal-shared` for goal-ready output shape.
+## Explore workflow
 
-Shape-it may own a **planning goal** for the shaping session, but it does not
-create or complete the later implementation goal. Its output should be fit for
-the next workflow's goal:
+### 1. Gather evidence
 
-- one concise implementation objective
-- scope and explicit non-goals
-- success criteria
-- verification plan
+Read relevant repository docs, nearby code, screenshots, and prior artifacts
+before asking anything they can answer. Check
+`~/.vs/$PROJECT_ID/{pushback,specs,context,rfcs}/` when relevant, resolving
+`$PROJECT_ID` per [internal-shared](../vs-internal-shared/SKILL.md).
 
-Complete a planning goal only after the design/spec or challenge verdict is
-reported and the next implementation objective is clear.
+Start with sources the user named and the nearest relevant implementation. Do
+not inventory the repo or launch broad research until a specific design question
+requires it. Stop when more reading is unlikely to change the next decision.
 
-## Explore mode
+### 2. Clarify once
 
-First reply: ask 1-2 blocking questions immediately, before tools or file reads.
-Do not propose a solution yet. If the conversation already contains intent,
-constraints, and success criteria, state the assumptions and continue instead of
-interviewing again.
+If intent, constraints, success criteria, or an expensive-to-reverse choice is
+still unclear, ask 1-2 strategic questions in one round. Otherwise state the
+assumptions and continue without interviewing again.
 
-Question rules:
-
-- Keep question output tiny: under about 120 words for the first reply, and under
-  about 90 words for later clarification turns.
-- Ask only strategic questions that change purpose, constraints, success criteria,
-  or expensive-to-reverse architecture.
-- If code, docs, screenshots, or prior artifacts can answer it, inspect them after
-  the first reply instead of asking.
-- Make safe defaults for tactical details; state them briefly.
-- Use one clarification round. After the user's reply, infer the rest and move to
-  design unless there is a true contradiction.
-- Include your recommendation when asking a choice.
-- Make the recommended path option `A` and label it as the default. If the user
-  replies `A`, `yes`, `recommended`, or similar, treat it as acceptance and
-  continue.
-- Number the round as `Question 1 of N`, where `N` is the number of questions in
-  this clarification round. For one question, write `Question 1 of 1`.
-- Do not output long question inventories, background analysis, or sectioned
-  questionnaires. Use this shape:
+- Keep the first question turn under about 120 words.
+- Recommend a path for every choice; make it option `A` and the default.
+- Infer tactical details and state safe defaults briefly.
+- After the reply, move to design unless a real contradiction remains.
 
 ```text
 Question 1 of N: ...
@@ -72,80 +60,80 @@ Recommendation: A
 Options: A) [recommended default] B) ... C) ...
 ```
 
-Context intake:
+### 3. Design
 
-- Check prior artifacts when relevant:
-  `~/.vs/$PROJECT_ID/{pushback,specs,context,rfcs}/` (resolve `$PROJECT_ID` per
-  [../vs-internal-shared/SKILL.md](../vs-internal-shared/SKILL.md)).
-- Explore code and docs lazily, only where it changes the design.
+Lead with the recommended approach and why. Keep the default chat design under
+about 450 words and include:
 
-Design output:
+- scope and explicit non-goals
+- terminology and system boundaries
+- data/control flow and important interfaces
+- 1-2 alternatives with concrete tradeoffs
+- risks, success criteria, and verification
 
-- Keep the default chat design under about 450 words.
-- Lead with the recommended approach and why.
-- Include 1-2 alternatives with tradeoffs; use 3 only for genuinely complex work.
-- Cover scope, boundaries, data/control flow, risks, and verification.
-- When the design settles a durable, repo-level architecture call (a tradeoff
-  that is expensive to reverse and future readers will ask "why did we do it
-  this way"), recommend capturing it as an ADR. Follow the repo's ADR
-  convention if one exists; otherwise suggest `adr/` at the repo root with a
-  slug-only filename, and `/setup-adr` to bootstrap scaffolding. Name the
-  decision, the alternatives, and the chosen rationale so `/vs-build-it` can
-  write the ADR during implementation.
-- Ask for approval once at the end. No section-by-section gates.
-- If the design depends on a performance claim, load [../vs-perf/SKILL.md](../vs-perf/SKILL.md)
-  when available and define the metric/evaluator before calling it build-ready.
+When a cheap prototype would answer a costly design question, recommend
+`/vs-prototype`. When a performance claim shapes the design, use `/vs-perf` to
+define the metric and evaluator before calling it build-ready.
 
-Spec writing:
+For an expensive-to-reverse repo-level decision, recommend an ADR. Follow the
+repo convention, or suggest slug-only files under `adr/` and `/vs-setup-adr`.
+Name the decision, alternatives, and rationale so implementation can record it.
 
-- Small work: a verbal design is enough.
-- Medium/large work: write
-  `~/.vs/$PROJECT_ID/specs/YYYY-MM-DD-<topic>-design.md`, then return only a short
-  summary and the path in chat.
-- Specs must include `Terminology` and `Boundaries` sections.
-- For large work, after approval, switch to Challenge mode automatically.
+### 4. Finalize the spec
 
-## Challenge mode
+Do not restart the interview. Synthesize the conversation and repository
+evidence into the design:
 
-Use `/vs-pushback` when the host can invoke it. If not, run a compact stress-test
-yourself:
+- Small work: the approved chat design is enough.
+- Medium or large work: write
+  `~/.vs/$PROJECT_ID/specs/YYYY-MM-DD-<topic>-design.md`.
+- Include Problem, Solution, Terminology, Boundaries, Decisions, Testing,
+  Out of Scope, Risks, and Success Criteria.
+- In Testing, prefer the highest existing behavioral seam. Name relevant test
+  prior art; propose a new seam only when existing seams cannot prove success.
 
-- challenge the premise
-- name key assumptions
-- check feasibility
-- probe edge cases
-- give `Verdict: READY | READY_WITH_RISKS | NOT_READY`
-- give `Score: <n>/100`
-- list the top 3 risks and the recommended next step
+Ask for approval once, after the whole design. For large work, route the
+approved design through `/vs-pushback` before implementation.
 
-If the verdict is `NOT_READY`, help rework the idea in Explore mode. If it is
-ready enough, suggest `/vs-build-it`.
+### 5. Recommend the handoff
+
+Default to the smallest handoff: approved design or spec, then `/vs-build-it`.
+Recommend extra coordination only when it materially helps:
+
+- **Durability:** propose issues when work spans sessions or people, needs a
+  shared dependency graph, or must survive chat context. Distinguish unresolved
+  decision issues from ready-to-build implementation issues; route only the
+  latter to `/vs-to-issues`.
+- **Parallelism:** propose host-native workers only for independent, bounded
+  lanes. In Codex, propose tasks/threads. In Claude Code, propose subagents. If
+  the host has no parallel primitive, recommend sequential execution. Name the
+  concrete primitive; do not stop at generic “sessions,” “lanes,” or “agents.”
+- **Both:** issues remain the source of truth; each worker references one issue.
+
+These are recommendations, not the default. Never create issues or workers
+without explicit user approval.
+
+```text
+Coordination: none | issues | issues + Codex tasks/threads | issues + Claude subagents — <why>
+```
 
 ## Confusion
 
-When signals conflict, stop and name the conflict:
-
-```text
-CONFUSION:
-[specific conflict]
-Options:
-A) [first interpretation + consequence]
-B) [second interpretation + consequence]
-C) Ask - I should not decide this alone
-```
+When strategic signals conflict, stop and name the conflict with recommended
+options. Do not silently choose between materially different outcomes.
 
 ## Verification
 
 Before finishing, check:
 
-- no implementation happened
-- mode was inferred or corrected
-- Explore produced a design with tradeoffs and one approval gate
-- Challenge produced a verdict and score
+- no implementation, issues, or parallel workers were created
+- evidence was read before asking answerable questions
+- the design has one approval gate and a behavioral verification seam
 - unresolved strategic ambiguity is explicit
-- next step is `/vs-build-it`, `/vs-pushback`, or rework
+- the handoff is minimal; extra coordination is justified and optional
 
 ## Workflow
 
 **Prev:** idea, rough plan, or question
-**Next:** `/vs-build-it` when shaped, `/vs-pushback` when the plan needs adversarial review
+**Next:** `/vs-build-it` by default; `/vs-pushback`, `/vs-prototype`, or
+`/vs-to-issues` when the shaped work warrants it
