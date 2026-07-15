@@ -1,14 +1,37 @@
 ---
 name: vs-qa
-description: "Use when asked to QA, test this site, find bugs, or test and fix a web app. Runs browser QA, fixes issues, and re-verifies."
+description: "Use when asked to QA, test this site or app, find bugs, or test and fix a user-facing interface. Runs harness-aware browser or computer-use QA, fixes issues, and re-verifies."
 disable-model-invocation: true
 ---
 
 # /vs-qa: Test → Fix → Verify
 
-You are a QA engineer AND a bug-fix engineer. Test web applications like a real user — click everything, fill every form, check every state. When you find bugs, fix them in source code with atomic commits, then re-verify. Produce a structured report with before/after evidence.
+You are a QA engineer AND a bug-fix engineer. Test user-facing applications like a real user — click everything, fill every form, check every state. When you find bugs, fix them in source code with atomic commits, then re-verify. Produce a structured report with before/after evidence.
 
-Browser: always use `agent-browser`. See `references/browser-api.md` for snippets.
+## Control surface priority
+
+Choose the highest available control surface for the current harness and keep it
+for the whole run so authentication, tabs, and state remain stable:
+
+1. **Harness-native in-app browser or extension.** Prefer the Codex in-app
+   browser/browser extension in Codex, or the authenticated Claude browser
+   extension in Claude Code. Use the existing user profile when it preserves the
+   user's existing session.
+2. **Playwright.** Use the harness Playwright integration, MCP, or installed
+   Playwright tooling when no native browser surface is available.
+3. **Browser fallback.** Use `agent-browser` or another available browser fallback.
+   Do not stop merely because `agent-browser` is missing, and do not install a
+   lower-priority tool when a higher-priority surface already works.
+
+For a non-browser desktop or native-app surface, use harness-native computer use:
+Codex computer use in Codex or Claude Code computer use in Claude Code. Fall back
+to another available OS-control tool only when the harness-native capability is
+unavailable. If no suitable control surface exists, report that exact blocker.
+
+The `agent-browser` commands below and in `references/browser-api.md` are fallback
+syntax. When another control surface is selected, perform the equivalent
+navigate, inspect, interact, network/console inspection, and screenshot actions
+with that surface instead of shelling out to `agent-browser`.
 
 ## Setup
 
@@ -39,13 +62,10 @@ git status --porcelain
 If non-empty, STOP — ask user: commit/stash/abort before QA adds its own fix commits.
 Format: A) Commit my changes B) Stash C) Abort. RECOMMENDATION: A.
 
-**Verify agent-browser:**
-
-```bash
-which agent-browser && agent-browser --version 2>/dev/null || echo "NEEDS_INSTALL"
-```
-
-If `NEEDS_INSTALL`: tell user to install agent-browser and stop.
+**Select and record the control surface:** inspect the tools exposed by the
+current harness, apply the priority above, and add the selected surface to the
+report metadata. Reuse an authenticated surface rather than signing in again
+when possible.
 
 **Create output directories:**
 
@@ -73,7 +93,8 @@ Primary mode for developers verifying their work.
    git log main..HEAD --oneline
    ```
 2. Map changed files → affected pages/routes (controllers → URLs, views/components → pages, CSS → pages that include them)
-3. Detect running app:
+3. Detect the running app with the selected control surface. The following is
+   the `agent-browser` fallback form:
    ```bash
    agent-browser <<'EOF'
    const page = await browser.getPage("qa-probe");
@@ -91,7 +112,9 @@ Primary mode for developers verifying their work.
 5. Check `TODOS.md` for known issues related to changed files.
 6. Report: "Changes tested: N pages/routes affected by this branch."
 
-**Never skip browser testing** — backend/config changes affect app behavior. Always verify.
+**Never skip surface testing** — backend/config changes affect observable app
+behavior. For browser apps use the selected browser surface; for native apps use
+computer use.
 
 ### Full (default when URL provided)
 Systematic exploration. Every reachable page. 5-10 well-evidenced issues. Health score.
@@ -390,7 +413,9 @@ If repo has `TODOS.md`:
 7. **Depth over breadth.** 5-10 well-documented issues > 20 vague descriptions.
 8. **Never delete output files.** Screenshots and reports accumulate.
 9. **Show screenshots inline.** After every screenshot, Read the file to display it.
-10. **Never refuse to use the browser.** Always open it and test, even for backend changes.
+10. **Use the real surface.** Open the selected browser for browser apps or
+    harness-native computer use for non-browser apps, even when the changed code
+    is backend-facing.
 11. **Clean working tree required.** Commit or stash before starting fix loop.
 12. **One commit per fix.** Never bundle.
 13. **Revert on regression.** `git revert HEAD` if a fix makes things worse.

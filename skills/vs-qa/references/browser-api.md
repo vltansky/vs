@@ -1,6 +1,12 @@
-# agent-browser API Reference for QA
+# agent-browser Fallback Reference for QA
 
-All browser automation uses `agent-browser`. Scripts run in a sandboxed QuickJS runtime — no `require`, no `fetch`, no `process`. Use the `browser` global.
+Use this reference only when `agent-browser` is the selected control surface
+after applying the priority in `../SKILL.md`. Harness-native browser or extension
+control and Playwright take precedence. Translate these operations to the selected
+control surface when a higher-priority tool is available.
+
+Scripts run in a sandboxed QuickJS runtime — no `require`, no `fetch`, no
+`process`. Use the `browser` global.
 
 ## Page Names
 
