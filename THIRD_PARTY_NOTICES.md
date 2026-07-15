@@ -2,6 +2,17 @@
 
 This plugin includes or adapts material from the following third-party projects.
 
+## GOV.UK style agent skill
+
+- Author: fofr
+- Used in: `skills/vs-copy`
+- Source: https://gist.github.com/fofr/505e225f9bf5e839d30c12ba6bfa0be2
+
+The `vs-copy` skill is an original rewrite inspired by the source skill's use of
+GOV.UK content-design principles: reader needs, front-loaded structure, plain
+language, active voice, and accessible formatting. No source text is reproduced
+verbatim.
+
 ## Matt Pocock's skills
 
 - Project: https://github.com/mattpocock/skills
