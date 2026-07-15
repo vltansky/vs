@@ -1,6 +1,6 @@
 ---
 name: vs-ship-it
-description: "Use when the user wants to ship or publish local Git changes: commit and push, push to main/master or the current branch, create/open a PR, submit changes, or send to dev. Honors an explicit direct-push request; otherwise creates a review-ready GitHub PR with session context."
+description: "Use when the user wants to ship or publish local Git changes: commit and push, push to main/master or the current branch, create/open a PR, submit changes, or send to dev. Honors an explicit direct-push request; otherwise creates a GitHub PR with session context and automatically babysits it until a terminal state."
 ---
 
 # Ship Changes
@@ -45,6 +45,7 @@ reviewable:
 - `vs-brief` provides the reusable human-readable change orientation for chat,
   PR body, and CI-watch context.
 - `vs-fix-pr` takes over if reviewer-bot findings or review threads need action.
+- `vs-baby-sit` keeps the created PR healthy after the initial shipping setup.
 
 ## Codex Goal Integration
 
@@ -53,11 +54,11 @@ When running in Codex, use
 for goal ownership and completion rules.
 
 Ship-it owns the shipping goal once the branch/diff and PR target are clear.
-The objective should be "create a review-ready PR for <change>" rather than the
+The objective should be "ship and keep PR <change> merge-ready" rather than the
 broader implementation goal that produced the diff. Complete it after changes
 are committed and pushed, the PR is created with brief/session context, verify
-evidence is included, and CI/reviewer checks are either clean or handed off to
-`/vs-fix-pr` or `/vs-baby-sit` with explicit status.
+evidence is included, and the automatic `vs-baby-sit` continuation reaches
+merge-ready or merged. Preserve blocked or interrupted state with evidence.
 
 ## Step 0: Ensure review ran
 
@@ -402,8 +403,10 @@ gh api repos/$REPO/issues/$PR_NUM/comments \
 
 Flag outdated threads (`isOutdated: true`) separately in the summary — the concern may already be addressed; `/vs-fix-pr` re-evaluates each against HEAD.
 
-**If any unresolved reviewer-bot threads exist:** summarize (active vs outdated), hand off with `/vs-fix-pr`.
-**Otherwise:** "Ready for human review." Include PR URL + suggested reviewers.
+**If any unresolved reviewer-bot threads exist:** summarize active vs outdated
+threads for the babysitting loop.
+**Otherwise:** report an initial ready-for-review snapshot with the PR URL and
+suggested reviewers. This is an initial snapshot, not a stop condition.
 
 ### If build checks fail
 
@@ -416,6 +419,18 @@ Flag outdated threads (`isOutdated: true`) separately in the summary — the con
 **Tip:** while this agent watches CI, the user can open a new terminal and
 start a separate `claude` session to keep working on something else in
 parallel.
+
+## Step 8: Continue babysitting automatically
+
+After the initial CI classification, automatically continue with `vs-baby-sit`
+for the verified `PR_URL`. Do not ask the user to invoke it and do not end the
+task merely because the first CI run passed or the PR is ready for human review.
+
+Follow [`../vs-baby-sit/SKILL.md`](../vs-baby-sit/SKILL.md) in the same task and
+reuse the verified repository, PR, branch, and goal context. Keep polling and
+handling clear CI or review work until the PR is merge-ready, merged, blocked,
+or interrupted. The baby-sit stop conditions and fix-attempt limits govern this
+continuation.
 
 ## Verification
 
@@ -433,9 +448,10 @@ Blocked until all items pass — do not report "shipped" without evidence for ea
 - [ ] Reviewer suggestions reported in chat only
 - [ ] Brief printed to chat before CI watch starts
 - [ ] CI checks pass (or failures investigated and fixed, max 2 attempts)
-- [ ] Final "Ready for human review" message sent with PR URL and reviewers
+- [ ] `vs-baby-sit` started automatically for the verified PR
+- [ ] Final status is merge-ready, merged, blocked with evidence, or interrupted
 
 ## Workflow
 
 **Prev:** `/vs-roast-review` (review passed) | `/vs-build-it` (handoff suggests ship-it)
-**Next:** `/vs-fix-pr` (address reviewer feedback) | done
+**Next:** automatic `/vs-baby-sit` continuation | done

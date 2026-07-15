@@ -78,7 +78,7 @@ Start with the three core workflows. The first is for you. The second is for the
 
 **`/vs-build-it`** — you hand off the design. The agent takes it from direction to working code: stress-tests the plan, implements with TDD, reviews its own work, runs QA. You come back when it's done. Zero hand-holding in between.
 
-**`/vs-ship-it`** — you verify what was built. The agent creates the PR. You decide if it ships.
+**`/vs-ship-it`** — you verify what was built. The agent creates the PR, then automatically babysits CI and review until it is merge-ready, merged, or blocked. You decide if it merges.
 
 The human is in the loop where it matters (design, prioritization, verification)
 and out of the loop where they'd just slow things down (implementation, review,
@@ -191,7 +191,7 @@ Under the hood, the workflows compose the rest:
 | `/vs-shape-it` | Workflow | Explore ideas and challenge plans into buildable designs | you |
 | `/vs-improve` | Workflow | Audit a repo and write executable improvement plans | you |
 | `/vs-build-it` | Workflow | Plan-to-code with TDD, review, QA, and handoff | agent |
-| `/vs-ship-it` | Workflow | Create PR with change brief and AI session context | you verify |
+| `/vs-ship-it` | Workflow | Create PR with change brief, then babysit CI and review | agent after your verification |
 | `/vs-bugfix` | Workflow | End-to-end bug fix pipeline | agent |
 | `/vs-fix-pr` | Workflow | Address reviewer comments with approval gates | you |
 | `/vs-afk` | Workflow | Scoped autonomous work session while you are away | agent |

@@ -68,7 +68,7 @@ commits, tests, CI, review-thread state, issue links, or handoff summaries.
 | `vs-shape-it` | A shaping session has a clear planning objective | Approved design/spec or challenge verdict produces goal-ready next step |
 | `vs-improve` | Audit scope and output target are clear | Findings/plans/index are written, or `execute` verdict is delivered |
 | `vs-build-it` | Build objective is goal-ready; vague intent has been shaped | Implementation, verification, review/QA, and handoff are complete |
-| `vs-ship-it` | Branch/PR outcome is clear | PR is created, pushed, evidence is included, and CI/reviewer state is handled or handed off |
+| `vs-ship-it` | Branch/PR outcome is clear | PR is created, pushed, evidence is included, and automatic baby-sit reaches merge-ready, merged, or an evidenced terminal blocker |
 | `vs-bugfix` | Bug statement, target area, and reproduction/verification plan are clear | Root cause fixed, regression verified, guardrails run, handoff complete |
 | `vs-fix-pr` | Target PR and unresolved feedback scope are known | Accepted fixes are pushed, approved replies posted, approved threads resolved, build rechecked |
 | `vs-afk` | Work source and time-boxed session plan are selected | AFK handoff reports completed work/current state, or blocker is recorded |

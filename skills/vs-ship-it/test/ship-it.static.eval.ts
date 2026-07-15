@@ -75,3 +75,17 @@ describe('vs-ship-it remote-first validation', () => {
     expect(SKILL).toMatch(/repository policy requires pre-push validation/);
   });
 });
+
+describe('vs-ship-it automatic PR babysitting', () => {
+  it('continues into baby-sit without waiting for another user prompt', () => {
+    expect(SKILL).toMatch(/automatically continue with `vs-baby-sit`/);
+    expect(SKILL).toMatch(/Do not ask the user to invoke it/);
+    expect(SKILL).toMatch(/merge-ready, merged, blocked,\s+or interrupted/);
+    expect(OPENAI_CONFIG).toContain('and babysit it');
+  });
+
+  it('does not stop after the initial CI watch or a ready-for-review snapshot', () => {
+    expect(SKILL).not.toContain('Final "Ready for human review" message sent');
+    expect(SKILL).toMatch(/initial snapshot, not a stop condition/);
+  });
+});
