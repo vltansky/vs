@@ -57,21 +57,26 @@ Check if the user mentioned a PR number or URL in the conversation.
 
 If yes — use that:
 ```bash
-PR_NUM=$(gh pr view <number-or-url> --json number --jq .number)
-PR_BRANCH=$(gh pr view <number-or-url> --json headRefName --jq .headRefName)
+PR_JSON=$(gh pr view <number-or-url> --json number,headRefName,url)
 ```
 
 If no — use the current branch's PR:
 ```bash
-PR_NUM=$(gh pr view --json number --jq .number)
-PR_BRANCH=$(gh pr view --json headRefName --jq .headRefName)
+PR_JSON=$(gh pr view --json number,headRefName,url)
 ```
 
 If `gh pr view` fails (no PR found): tell user "No PR found" and stop.
 
 ```bash
-REPO=$(gh repo view --json nameWithOwner --jq .nameWithOwner)
+PR_NUM=$(echo "$PR_JSON" | jq -r .number)
+PR_BRANCH=$(echo "$PR_JSON" | jq -r .headRefName)
+PR_URL=$(echo "$PR_JSON" | jq -r .url)
+REPO=$(echo "$PR_JSON" | jq -r '.url | capture("^https://github.com/(?<repo>[^/]+/[^/]+)/pull/[0-9]+$").repo')
 ```
+
+Derive `REPO` from the PR URL, not the checkout remote. A fork PR's number
+belongs to the base repository even when the current branch lives in the head
+repository.
 
 ### 0b. Check Current Branch
 
@@ -169,29 +174,27 @@ gh pr view $PR_NUM --json comments --jq '.comments[-1].body' | head -50
 The goal is **unresolved** feedback. Don't filter by `commit_id == HEAD` — bots re-attach open threads to every new commit, and a filter by HEAD misses legitimately active threads that were opened on an earlier commit and never resolved. Use GraphQL `reviewThreads` with `isResolved: false` as the primary filter, and carry `isOutdated` along so stale-against-HEAD threads can be flagged (not dropped).
 
 ```bash
-OWNER=$(echo "$REPO" | cut -d/ -f1)
-NAME=$(echo "$REPO" | cut -d/ -f2)
-
-# Unresolved inline review threads (with isOutdated carried along)
-gh api graphql -F owner="$OWNER" -F name="$NAME" -F pr="$PR_NUM" -f query='
-query($owner:String!,$name:String!,$pr:Int!) {
-  repository(owner:$owner,name:$name) {
-    pullRequest(number:$pr) {
-      reviewThreads(first:100) {
-        nodes {
-          id isResolved isOutdated path line
-          comments(first:50) { nodes { databaseId body author { login } } }
-        }
-      }
-    }
-  }
-}' | jq '[.data.repository.pullRequest.reviewThreads.nodes[] | select(.isResolved == false)]'
-
-# General (issue-level) PR comments
-gh pr view $PR_NUM --json comments --jq '.comments[] | {id, body, author: .author.login}'
+COMMENTS_JSON=$(python3 <skill-dir>/scripts/fetch_comments.py --pr "$PR_URL")
+UNRESOLVED_THREADS=$(echo "$COMMENTS_JSON" | jq '[.review_threads[] | select(.isResolved == false)]')
+GENERAL_COMMENTS=$(echo "$COMMENTS_JSON" | jq '.conversation_comments')
+REVIEW_BODIES=$(echo "$COMMENTS_JSON" | jq '[.reviews[] | select((.body | length) > 0)]')
 ```
 
-Run the block above as-is — don't improvise on the jq filter. `$PR_NUM` and `$REPO` are the only substitutable vars.
+Resolve `<skill-dir>` to this skill's installed directory. Use the bundled
+script instead of rebuilding the GraphQL query ad hoc. It independently
+paginates conversation comments, review submissions, review threads, and long
+thread conversations; it also resolves fork PRs against their base repository.
+
+Inspect all three feedback surfaces:
+
+- `UNRESOLVED_THREADS` — inline conversations where resolution state matters.
+- `GENERAL_COMMENTS` — top-level PR conversation comments.
+- `REVIEW_BODIES` — review submission summaries, including requested changes
+  that may not appear in either of the other surfaces.
+
+Cluster feedback by file or behavior area, then remove semantic duplicates.
+Separate actionable requests from approvals, informational notes, already
+resolved threads, and superseded discussion.
 
 For each unresolved thread, tag it:
 - **Active** — `isOutdated == false`: still anchored to current HEAD, address normally.
@@ -199,15 +202,20 @@ For each unresolved thread, tag it:
 
 **Outdated bulk-resolve** — don't walk each outdated thread through Step 4 individually. Offer one prompt: "N outdated threads — resolve all as addressed-by-rewrite?" If the user keeps one open, label it `[OUTDATED]` in the finding list and re-evaluate whether the concern migrated to a new line.
 
-Exit gate — only report "No PR comments to address" when **both** the unresolved-thread list and the issue-level comment list are empty. Issue-level reviewer summaries are valid feedback even when no inline threads remain.
+Exit gate — only report "No PR comments to address" when the unresolved-thread
+list, issue-level comment list, and actionable review-submission bodies are all
+empty. A review body can contain valid feedback even when no inline threads
+remain.
 
 ## Step 3: Create TODO List
 
 One TODO per **thread**, not per comment. Long threads have back-and-forth — act on the reviewer's **latest** comment (`.comments.nodes[-1]` from the GraphQL fetch), not the original one. Earlier comments in a thread are usually superseded by follow-ups.
 
-Include file:line for inline threads.
+Create one TODO per actionable top-level comment or review-body feedback cluster
+too. Include file:line for inline threads. If feedback asks only for an
+explanation, draft a response instead of forcing an unnecessary code change.
 
-## Step 4: For Each Thread
+## Step 4: For Each Feedback Item
 
 ### 4a. Evaluate
 
@@ -333,9 +341,13 @@ Good: the three options live inside `AskUserQuestion`, and chat only says the qu
 gh api repos/$REPO/pulls/$PR_NUM/comments/$COMMENT_ID/replies \
   -f body="<reply>"
 
-# Reply to general PR comment
-gh pr comment $PR_NUM --body "<reply>" --reply-to $COMMENT_ID
+# Respond to a general PR comment or review-body summary
+gh pr comment "$PR_URL" --body "<reply>"
 ```
+
+Top-level PR conversation comments and review submissions are not resolvable
+inline threads. After approval, post an attributed top-level response and skip
+Step 4e. Never call `resolveReviewThread` for these feedback items.
 
 ### 4e. Resolve Thread (only if user chose "Post reply and resolve")
 
@@ -377,8 +389,8 @@ Mark TODO complete, move to next comment.
 ## Critical Rules
 
 1. **Never post or resolve without explicit approval** — show draft first, wait for confirmation
-2. **Always reply to the specific comment** — use replies API, not a new top-level comment
-3. **Never post a general PR comment** when addressing inline review comments (stay on-thread)
+2. **Keep inline feedback on-thread** — use the replies API for inline comments
+3. **Use top-level comments only for non-inline feedback** — general PR comments and review-body summaries have no resolvable inline thread
 4. **Default: reply + resolve** for inline threads after user approves (unless they opt out)
 5. **Cite the fix commit** — every reply to a fixed comment must name the SHA (`git log -n 1 --format=%h -- <path>`) and summarize what that commit actually changed on the flagged line
 6. **No duplicate bodies across threads** — if the same text fits two threads, rewrite with thread-specific detail (file, line, diff) or drop the reply and just resolve
