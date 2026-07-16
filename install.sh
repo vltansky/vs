@@ -14,13 +14,16 @@ skip() { printf '  \033[33m-\033[0m %s\n' "$1"; }
 fail() { printf '  \033[31m✗\033[0m %s\n' "$1"; }
 
 install_for() {
-  local cli="$1" market_cmd="$2" install_cmd="$3"
+  local cli="$1" market_cmd="$2" market_update_cmd="$3" install_cmd="$4" update_cmd="$5"
   if ! command -v "$cli" >/dev/null 2>&1; then
     skip "$cli not found — skipping"
     return
   fi
   local log; log="$(mktemp)"
-  if $market_cmd "$REPO" >"$log" 2>&1 && $install_cmd "$PLUGIN" >>"$log" 2>&1; then
+  if $market_cmd "$REPO" >"$log" 2>&1 \
+    && $market_update_cmd >>"$log" 2>&1 \
+    && $install_cmd "$PLUGIN" >>"$log" 2>&1 \
+    && { [ -z "$update_cmd" ] || $update_cmd "$PLUGIN" >>"$log" 2>&1; }; then
     ok "$cli: installed $PLUGIN"
   else
     fail "$cli: install failed"
@@ -53,7 +56,7 @@ install_cursor() {
 }
 
 echo "Installing vs plugin..."
-install_for claude "claude plugin marketplace add" "claude plugin install"
-install_for codex  "codex plugin marketplace add"  "codex plugin add"
+install_for claude "claude plugin marketplace add" "claude plugin marketplace update vs" "claude plugin install" "claude plugin update"
+install_for codex  "codex plugin marketplace add"  "codex plugin marketplace upgrade vs" "codex plugin add" ""
 install_cursor
 echo "Done. Restart your agent session (Cursor: Developer: Reload Window) to load vs."
