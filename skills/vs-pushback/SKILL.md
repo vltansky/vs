@@ -17,6 +17,15 @@ handoff only.
 
 If the input is raw or unformed, route to `/vs-shape-it` first.
 
+## Re-check mode
+
+When pushback is re-invoked on a plan it already scored — in this session or
+with a saved report under `~/.vs/$PROJECT_ID/vs-pushback/` — do not restart the
+full grill. Verify what changed since the last verdict, lead with the single
+highest-severity open concern as one round, and update the score and verdict.
+A "one more pass" request wants the top remaining risk, not the full ceremony.
+Return to the full flow only when the plan changed materially.
+
 ## Core rules
 
 - Push back first. Do not accept the framing just because the user proposed it.
@@ -28,7 +37,9 @@ If the input is raw or unformed, route to `/vs-shape-it` first.
   round; every question in a round must be answerable without the others'
   answers. When a question depends on an earlier answer, hold it for a later
   round or state the dependency inline ("if Q1 is B, skip this").
-- Every question must include a recommendation and concrete options.
+- Every question must include a recommendation with a one-clause rationale —
+  `Recommendation: A — <why>` — and concrete options. Users reliably ask "why
+  is that better?" when the reason is withheld; answer it before it is asked.
 - Keep each question compact: one concern sentence, one recommendation
   sentence, and up to 4 options on one line. Keep a round turn under about 250
   words. No issue inventories.
@@ -38,7 +49,10 @@ If the input is raw or unformed, route to `/vs-shape-it` first.
 - Number questions continuously across rounds (`Q1`..`Qn`) and show progress in
   the round header as `Round 1 of 2`; if the grill may expand beyond the
   planned minimum, write `Round 1 of 2+`.
-- Demand numbers for claims like "fast", "simple", "small", or "scales".
+- Demand numbers for claims like "fast", "simple", "small", or "scales". When
+  a count or measurement is contested or load-bearing, compute it
+  deterministically (a script or saved file), persist it with the report, and
+  cite that artifact — do not re-derive it in chat where compaction can lose it.
 - Do not accept "we'll handle it later" without owner, date, ticket, or explicit
   unresolved risk.
 - Score the defense, not the vibes. Hand-waving loses points.
@@ -77,7 +91,7 @@ Stress-Test Assessment
 
 **Q1 - Premise**
 Concern: ...
-Recommendation: A
+Recommendation: A — <one-clause why>
 Options: A) Accept recommendation (default) B) Defend current plan C) Modify D) Skip
 
 **Q2 - Assumptions**
@@ -109,9 +123,10 @@ Between rounds:
 - challenge a vague answer in the next round as a named follow-up, not by
   re-asking the whole round
 
-Minimum coverage before verdict: 3 dimensions, including Premise Challenge. Once
-that gate is met, stop and report when the user says `done`, signals closure, or
-pivots toward implementation. Do not keep expanding just to be exhaustive.
+Minimum coverage before verdict: 3 dimensions, including Premise Challenge
+(re-check mode is exempt). Once that gate is met, stop and report when the user
+says `done`, signals closure, or pivots toward implementation. Do not keep
+expanding just to be exhaustive.
 
 ### 4. Report
 
@@ -145,6 +160,11 @@ Score: 72/100
 ## Recommended Next Step
 - ...
 ```
+
+When Architecture Depth was active, add a short options comparison to the
+report — the ranked alternatives and the deciding factor in plain terms (e.g.
+latency vs ownership coupling). The user's real decision usually happens here,
+not at the per-question options.
 
 If high risk or disputed architecture remains and a second opinion skill is
 available, use it briefly before the verdict. Treat it as evidence, not an
