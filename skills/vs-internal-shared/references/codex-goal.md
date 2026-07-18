@@ -16,7 +16,8 @@ complete, or block goals; the parent workflow owns goal state and verifies the
 evidence needed for terminal updates.
 
 - **Owns goals:** `vs-shape-it` for shaping sessions, `vs-improve`, `vs-build-it`,
-  `vs-ship-it`, `vs-bugfix`, `vs-fix-pr`, `vs-baby-sit`
+  `vs-ship-it`, `vs-bugfix`, `vs-fix-pr`, `vs-baby-sit`; `vs-orchestrate` owns one
+  milestone goal at a time
 - **Usually contributes evidence:** `vs-tdd`, `vs-debug-mode`, `vs-qa`, `vs-verify`,
   `vs-roast-review`, `vs-deslop`, `vs-brief`, `vs-pushback`, `vs-github-research`, `vs-rfc-research`,
   `vs-to-issues`, `vs-steal`, `vs-perf`
@@ -85,6 +86,7 @@ commits, tests, CI, review-thread state, issue links, or handoff summaries.
 | `vs-bugfix` | Bug statement, target area, and reproduction/verification plan are clear | Root cause fixed, regression verified, guardrails run, handoff complete |
 | `vs-fix-pr` | Target PR and unresolved feedback scope are known | Accepted fixes are pushed, approved replies posted, approved threads resolved, build rechecked |
 | `vs-baby-sit` | Target PR is known | PR is merge-ready, merged, or explicitly blocked with evidence |
+| `vs-orchestrate` | Approved multi-milestone spec exists; current milestone is set | Milestone's required evidence exists; goal reactivates on the next milestone until all are complete |
 | `vs-to-issues` | Standalone issue-generation task is the whole request | Drafts/index/issues are created or ready for approval |
 | `vs-perf` | Standalone performance objective is the whole request | Baseline/target/evidence reaches PASS, FAIL, WARN, or BLOCKED status |
 

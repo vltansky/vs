@@ -207,12 +207,18 @@ must follow the execution class and blueprint above:
   host has no parallel primitive, recommend sequential execution. Name the
   concrete primitive; do not stop at generic “sessions,” “lanes,” or “agents.”
 - **Both:** issues remain the source of truth; each worker references one issue.
+- **Multi-milestone:** when the spec has several milestones expected to span
+  hours or days and surface new facts, recommend `/vs-orchestrate`. It seeds a
+  living GOALS.md from this spec's Goal Contract and Execution Strategy and
+  drives one milestone at a time. The spec stays frozen; GOALS.md tracks the
+  changing state.
 
 ```text
 Execution: direct | orchestrated — <why>
 Source of truth: spec | spec + GitHub issues — <why>
 Runtime: parent only | parent + subagents | Codex tasks/threads | Claude subagents — <why>
 Next: /vs-build-it with implementation objective: <objective>
+      (or /vs-orchestrate when the spec is multi-milestone)
 ```
 
 ## Confusion
@@ -237,5 +243,6 @@ Before finishing, check:
 ## Workflow
 
 **Prev:** idea, rough plan, or question
-**Next:** `/vs-build-it` by default; `/vs-pushback`, `/vs-prototype`, or
-`/vs-to-issues` when the shaped work warrants it
+**Next:** `/vs-build-it` by default; `/vs-orchestrate` for a multi-milestone
+spec; `/vs-pushback`, `/vs-prototype`, or `/vs-to-issues` when the shaped work
+warrants it

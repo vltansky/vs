@@ -1,0 +1,5 @@
+interface:
+  display_name: "vs-orchestrate"
+
+policy:
+  allow_implicit_invocation: false

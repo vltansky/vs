@@ -554,4 +554,4 @@ walkthrough or the changed behavior needs a scenario to explain how to prove it.
   do not implement it. [EASY TO MISS: "cleaning up" adjacent code or adding
   "helpful" extras IS scope expansion, even when it feels like good practice.]
 
-**Prev:** `/vs-shape-it`, `/vs-pushback`, `/vs-rfc-research`, or none. **Next:** `/vs-ship-it` or `/vs-roast-review`.
+**Prev:** `/vs-shape-it`, `/vs-pushback`, `/vs-rfc-research`, `/vs-orchestrate` (one milestone), or none. **Next:** `/vs-ship-it` or `/vs-roast-review`.
