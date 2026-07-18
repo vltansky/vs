@@ -278,7 +278,9 @@ concise version.
 Skip only for trivial diffs. If verification returns `FAIL` or `BLOCKED`, stop
 and fix/unblock before describing the PR as ready. If it returns `WARN`, continue
 only when the warning is an explicit manual-verification gap that the PR reviewer
-can reasonably resolve.
+can reasonably resolve. When continuing on `WARN`, carry the WARN wording into
+the PR body and the chat summary — do not describe the change as fixed or
+verified while the gap is open.
 
 ## Step 5: Create PR
 

@@ -46,6 +46,19 @@ enough; do not run the entire suite by reflex.
   not `PASS`.
 - Keep logs concise. The result should be a proof summary, not a transcript dump.
 
+## Status inheritance
+
+Consumers repeat the verify status; they do not soften it:
+
+- A workflow that includes verification reports the verify status verbatim in
+  its completion summary. While the status is `WARN`, `FAIL`, or `BLOCKED`, the
+  summary must not say "fixed", "working", or "complete" — say what was proven
+  and what was not, e.g. "Deployed; fix not verified against the reported
+  crash."
+- A bug-fix claim requires the reproduction that defined the bug to pass now.
+  Green adjacent tests, passing guardrails, or a successful deploy do not
+  upgrade the claim.
+
 ## Output
 
 ```markdown

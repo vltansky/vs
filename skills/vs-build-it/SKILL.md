@@ -480,6 +480,13 @@ Load and run `../vs-verify/SKILL.md` when available and include its
 `## Verification Result` in the handoff. If unavailable, record the final
 guardrail commands and results manually.
 
+The handoff verdict inherits the verification status. Use `## Build It
+Complete` only for `PASS` or `SKIPPED_TRIVIAL`. For `WARN`, `FAIL`, or
+`BLOCKED`, head the handoff `## Build It — <STATUS>`, state exactly what was
+not proven, and do not describe the outcome as fixed or working. When the work
+fixes a reported bug, completion additionally requires the original
+reproduction to pass — local guardrails alone do not earn "fixed".
+
 For text output captured in Phase 0, rerun the same command and representative
 input after final validation and retain the exact after output. For UI output,
 use the paired images captured before implementation and during QA. Pass the
