@@ -51,10 +51,6 @@ is small. Pass the current branch diff, decision log, flagged items, and capture
 comparison evidence. Otherwise the pipeline summary and minimal diff stat are
 the handoff.
 
-Load and run `../../vs-walkthrough/SKILL.md` only when the user asks for a
-walkthrough or the changed behavior needs a scenario to explain how to prove it.
-Use the final diff, verification result, and QA evidence when applicable.
-
 If not found: append a minimal fallback using the resolved default branch:
 
 ```bash

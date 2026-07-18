@@ -21,7 +21,6 @@
     "./skills/vs-github-research",
     "./skills/vs-improve",
     "./skills/vs-internal-shared",
-    "./skills/vs-out-of-context",
     "./skills/vs-perf",
     "./skills/vs-prototype",
     "./skills/vs-pushback",
@@ -39,7 +38,6 @@
     "./skills/vs-tdd",
     "./skills/vs-to-issues",
     "./skills/vs-try-skill",
-    "./skills/vs-verify",
-    "./skills/vs-walkthrough"
+    "./skills/vs-verify"
   ]
 }

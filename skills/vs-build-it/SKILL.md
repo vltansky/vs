@@ -34,7 +34,6 @@ one-off behavior:
 - `vs-verify` produces the final evidence-backed completion status.
 - `vs-brief` produces the human-readable orientation layer and renders captured
   before-and-after evidence for the handoff.
-- `vs-walkthrough` explains how the shipped change behaves and how to prove it.
 
 ## Codex Goal Integration
 
@@ -520,9 +519,7 @@ include a minimal diff stat. If the user asked build-it to also ship, load and
 follow `../vs-ship-it/SKILL.md`; if the host cannot resolve it, say to type
 `/vs-ship-it` and stop — do not hand-roll a PR flow in its place. Load `../vs-brief/SKILL.md` only when the change is
 non-trivial (more than 3 files, a durable design decision, user-requested PR
-orientation, or meaningful before-and-after evidence). Load
-`../vs-walkthrough/SKILL.md` only when the user asks for a
-walkthrough or the changed behavior needs a scenario to explain how to prove it.
+orientation, or meaningful before-and-after evidence).
 
 ---
 

@@ -89,8 +89,7 @@ describe('subagent budget', () => {
     expect(BUILD_IT).toMatch(/Load.*debug-mode.*only after/is);
     expect(BUILD_IT).toMatch(/user-visible.*browser behavior/is);
     expect(BUILD_IT).toMatch(/small, low-risk diff.*parent/is);
-    expect(BUILD_HANDOFF).toMatch(/brief.*only when/is);
-    expect(BUILD_HANDOFF).toMatch(/walkthrough.*only when/is);
+    expect(BUILD_HANDOFF).toMatch(/vs-brief\/SKILL\.md.*when the change/is);
   });
 
   it('gates bugfix stress testing and cross-model review by risk', () => {

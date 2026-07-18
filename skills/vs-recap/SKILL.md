@@ -1,6 +1,6 @@
 ---
 name: vs-recap
-description: "Create a tiny out-of-context recap of recent changes. Use when the user says /vs-recap, recap, catch me up, or summarize where we are."
+description: "Create a tiny out-of-context recap of the current situation and recent changes. Use when the user says /vs-recap, recap, catch me up, where are we, out of context, I have no context, or explain what is going on."
 ---
 
 # Recap
@@ -9,8 +9,11 @@ Give the user a compact handoff for a reader who just arrived from another topic
 
 ## Use When
 
-- The user says `/vs-recap`, `vs-recap`, `catch me up`, `where are we`, or asks for recent changes.
-- The user needs enough context to decide the next step, not a full history.
+- The user says `/vs-recap`, `vs-recap`, `catch me up`, `where are we`, `out of
+  context`, `I have no context`, `explain what is going on`, or asks for recent
+  changes.
+- The user needs enough context to decide the next step, not a full history —
+  whether they followed the session so far or are arriving cold.
 
 ## Gather
 

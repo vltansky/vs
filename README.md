@@ -126,11 +126,9 @@ Before shipping:      /vs-improve branch -> /vs-ship-it
 | `/vs-steal` | Find ideas worth porting from another repository |
 | `/vs-setup-adr` | Add an ADR convention and scaffolding to a repository |
 | `/vs-decide-for-me` | Resolve tactical uncertainty before interrupting you |
-| `/vs-out-of-context` | Explain the current situation from zero prior context |
-| `/vs-recap` | Produce a tiny catch-up on recent changes and next actions |
+| `/vs-recap` | Explain the current situation or recent changes from zero prior context, with next actions |
 | `/vs-retro` | Extract session learnings and route them to durable destinations |
 | `/vs-try-skill` | Blind-test a skill and compare its behavior with expectations |
-| `/vs-walkthrough` | Explain a flow through a concrete scenario |
 
 ## Why this workflow exists
 
