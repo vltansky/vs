@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
- * `/impeccable hooks <on|off|status|reset>` — manage the design hook
- * via the `hook` key of .impeccable/config.json and .impeccable/config.local.json
+ * `/vs-roast-ui hooks <on|off|status|reset>` — manage the design hook
+ * via the `hook` key of .vs/config.json and .vs/config.local.json
  * in the current project.
  *
  * Usage:
@@ -35,12 +35,12 @@ import {
 } from './hook-lib.mjs';
 
 const ACTIONS = new Set(['status', 'on', 'off', 'ignore-rule', 'ignore-file', 'ignore-value', 'reset']);
-const IMPECCABLE_HOOK_COMMAND_MARKERS = [
-  'skills/impeccable/scripts/hook-probe.mjs',
-  'skills/impeccable/scripts/hook.mjs',
-  'skills/impeccable/scripts/hook-before-edit.mjs',
-  'skills/impeccable/scripts/hook-after-edit.mjs',
-  'skills/impeccable/scripts/hook-stop.mjs',
+const VS_HOOK_COMMAND_MARKERS = [
+  'skills/vs-roast-ui/scripts/hook-probe.mjs',
+  'skills/vs-roast-ui/scripts/hook.mjs',
+  'skills/vs-roast-ui/scripts/hook-before-edit.mjs',
+  'skills/vs-roast-ui/scripts/hook-after-edit.mjs',
+  'skills/vs-roast-ui/scripts/hook-stop.mjs',
 ];
 const TIMEOUT_SECONDS = 5;
 const STATUS_MESSAGE = 'Checking UI changes';
@@ -48,11 +48,11 @@ const STATUS_MESSAGE = 'Checking UI changes';
 const HOOK_MANIFEST_TARGETS = [
   {
     provider: '.claude',
-    skillRel: '.claude/skills/impeccable',
+    skillRel: '.claude/skills/vs-roast-ui',
     destRel: '.claude/settings.local.json',
     sharedDestRel: '.claude/settings.json',
     manifest: () => ({
-      description: 'Impeccable design detector: runs after Edit/Write/MultiEdit on UI files and surfaces findings as system reminders.',
+      description: 'VS design detector: runs after Edit/Write/MultiEdit on UI files and surfaces findings as system reminders.',
       hooks: {
         PostToolUse: [
           {
@@ -60,7 +60,7 @@ const HOOK_MANIFEST_TARGETS = [
             hooks: [
               {
                 type: 'command',
-                command: 'node "${CLAUDE_PROJECT_DIR}/.claude/skills/impeccable/scripts/hook.mjs"',
+                command: 'node "${CLAUDE_PROJECT_DIR}/.claude/skills/vs-roast-ui/scripts/hook.mjs"',
                 timeout: TIMEOUT_SECONDS,
                 statusMessage: STATUS_MESSAGE,
               },
@@ -72,10 +72,10 @@ const HOOK_MANIFEST_TARGETS = [
   },
   {
     provider: '.agents',
-    skillRel: '.agents/skills/impeccable',
+    skillRel: '.agents/skills/vs-roast-ui',
     destRel: '.codex/hooks.json',
     manifest: () => ({
-      description: 'Impeccable design detector: runs after Edit/Write/apply_patch on UI files and surfaces findings as system reminders.',
+      description: 'VS design detector: runs after Edit/Write/apply_patch on UI files and surfaces findings as system reminders.',
       hooks: {
         PostToolUse: [
           {
@@ -83,7 +83,7 @@ const HOOK_MANIFEST_TARGETS = [
             hooks: [
               {
                 type: 'command',
-                command: 'node "$(git rev-parse --show-toplevel)/.agents/skills/impeccable/scripts/hook.mjs"',
+                command: 'node "$(git rev-parse --show-toplevel)/.agents/skills/vs-roast-ui/scripts/hook.mjs"',
                 timeout: TIMEOUT_SECONDS,
                 statusMessage: STATUS_MESSAGE,
               },
@@ -95,14 +95,14 @@ const HOOK_MANIFEST_TARGETS = [
   },
   {
     provider: '.cursor',
-    skillRel: '.cursor/skills/impeccable',
+    skillRel: '.cursor/skills/vs-roast-ui',
     destRel: '.cursor/hooks.json',
     manifest: () => ({
       version: 1,
       hooks: {
         preToolUse: [
           {
-            command: 'node ".cursor/skills/impeccable/scripts/hook-before-edit.mjs"',
+            command: 'node ".cursor/skills/vs-roast-ui/scripts/hook-before-edit.mjs"',
             timeout: TIMEOUT_SECONDS,
           },
         ],
@@ -138,7 +138,7 @@ function writeConfig(cwd, hookConfig, opts = {}) {
   const existing = existingRaw && typeof existingRaw === 'object' && !Array.isArray(existingRaw) ? existingRaw : {};
   const existingHook = existing.hook && typeof existing.hook === 'object' && !Array.isArray(existing.hook) ? existing.hook : {};
   // Merge over the existing hook object so fields the merge helpers don't manage
-  // (consent, quiet, auditLog) survive a `/impeccable hooks` edit.
+  // (consent, quiet, auditLog) survive a `/vs-roast-ui hooks` edit.
   const next = { ...existing, hook: { ...existingHook, ...hookConfig } };
   fs.mkdirSync(path.dirname(filePath), { recursive: true });
   fs.writeFileSync(filePath, JSON.stringify(next, null, 2) + '\n');
@@ -146,7 +146,7 @@ function writeConfig(cwd, hookConfig, opts = {}) {
 }
 
 function mergeConfig(existing) {
-  // Persist the full shape so /impeccable hooks edits leave a complete file
+  // Persist the full shape so /vs-roast-ui hooks edits leave a complete file
   // for the user to see, not an unhelpful `{"enabled":false}`.
   const base = existing && typeof existing === 'object' ? existing : {};
   return {
@@ -187,11 +187,11 @@ function statusReport(cwd) {
   const shared = readRawConfigFile(getConfigPath(cwd));
   const local = readRawConfigFile(getLocalConfigPath(cwd));
   const cfg = readConfig(cwd);
-  const envKill = process.env.IMPECCABLE_HOOK_DISABLED;
-  const envState = envKill ? `IMPECCABLE_HOOK_DISABLED=${envKill}` : 'unset';
-  const cfgPath = path.relative(cwd, getConfigPath(cwd)) || '.impeccable/config.json';
-  const localPath = path.relative(cwd, getLocalConfigPath(cwd)) || '.impeccable/config.local.json';
-  const cachePath = path.relative(cwd, getCachePath(cwd)) || '.impeccable/hook.cache.json';
+  const envKill = process.env.VS_HOOK_DISABLED;
+  const envState = envKill ? `VS_HOOK_DISABLED=${envKill}` : 'unset';
+  const cfgPath = path.relative(cwd, getConfigPath(cwd)) || '.vs/config.json';
+  const localPath = path.relative(cwd, getLocalConfigPath(cwd)) || '.vs/config.local.json';
+  const cachePath = path.relative(cwd, getCachePath(cwd)) || '.vs/hook.cache.json';
   const fileState = (info, relPath, absent) => {
     if (info.malformed) return `${relPath} (malformed; ignored)`;
     if (info.exists) return relPath;
@@ -200,7 +200,7 @@ function statusReport(cwd) {
   const ignoreValues = cfg.ignoreValues.map((entry) => `${entry.rule}=${entry.value}`);
 
   const lines = [
-    `Impeccable design hook`,
+    `VS design hook`,
     `  state:        ${cfg.enabled ? 'enabled' : 'disabled'}`,
     `  shared file:  ${fileState(shared, cfgPath, 'using defaults; file not present')}`,
     `  local file:   ${fileState(local, localPath, 'not present')}`,
@@ -249,8 +249,8 @@ function repairHookManifests(cwd) {
     const dest = path.join(cwd, target.destRel);
     const sharedDest = target.sharedDestRel ? path.join(cwd, target.sharedDestRel) : null;
 
-    if (sharedDest && fileHasImpeccableHookMarker(sharedDest)) {
-      pruneImpeccableHookFromManifest(dest);
+    if (sharedDest && fileHasVSHookMarker(sharedDest)) {
+      pruneVSHookFromManifest(dest);
       result.already.push(target.provider);
       continue;
     }
@@ -304,7 +304,7 @@ function mergeHookManifests(existing, fresh) {
 
   const hookEvents = new Set([...Object.keys(existingHooks), ...Object.keys(freshHooks)]);
   for (const event of hookEvents) {
-    const preserved = stripImpeccableHookEntries(existingHooks[event]);
+    const preserved = stripVSHookEntries(existingHooks[event]);
     const added = Array.isArray(freshHooks[event]) ? freshHooks[event] : [];
     const mergedEntries = [...preserved, ...added];
     if (mergedEntries.length > 0) merged.hooks[event] = mergedEntries;
@@ -312,7 +312,7 @@ function mergeHookManifests(existing, fresh) {
   return merged;
 }
 
-function fileHasImpeccableHookMarker(filePath) {
+function fileHasVSHookMarker(filePath) {
   if (!fs.existsSync(filePath)) return false;
   let parsed;
   try {
@@ -322,44 +322,44 @@ function fileHasImpeccableHookMarker(filePath) {
   }
   if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return false;
   if (!parsed.hooks || typeof parsed.hooks !== 'object') return false;
-  return valueHasImpeccableHookMarker(parsed.hooks);
+  return valueHasVSHookMarker(parsed.hooks);
 }
 
-function valueHasImpeccableHookMarker(value) {
+function valueHasVSHookMarker(value) {
   if (typeof value === 'string') {
-    return IMPECCABLE_HOOK_COMMAND_MARKERS.some((marker) => value.includes(marker));
+    return VS_HOOK_COMMAND_MARKERS.some((marker) => value.includes(marker));
   }
-  if (Array.isArray(value)) return value.some(valueHasImpeccableHookMarker);
-  if (value && typeof value === 'object') return Object.values(value).some(valueHasImpeccableHookMarker);
+  if (Array.isArray(value)) return value.some(valueHasVSHookMarker);
+  if (value && typeof value === 'object') return Object.values(value).some(valueHasVSHookMarker);
   return false;
 }
 
-function stripImpeccableHookEntry(entry) {
+function stripVSHookEntry(entry) {
   if (!entry || typeof entry !== 'object') return entry;
-  if (valueHasImpeccableHookMarker(entry.command) || valueHasImpeccableHookMarker(entry.args)) {
+  if (valueHasVSHookMarker(entry.command) || valueHasVSHookMarker(entry.args)) {
     return null;
   }
   if (!Array.isArray(entry.hooks)) return entry;
 
   const strippedHooks = entry.hooks
-    .map(stripImpeccableHookEntry)
+    .map(stripVSHookEntry)
     .filter(Boolean);
 
-  if (strippedHooks.length === 0 && entry.hooks.some(valueHasImpeccableHookMarker)) {
+  if (strippedHooks.length === 0 && entry.hooks.some(valueHasVSHookMarker)) {
     return null;
   }
   return { ...entry, hooks: strippedHooks };
 }
 
-function stripImpeccableHookEntries(entries) {
+function stripVSHookEntries(entries) {
   if (!Array.isArray(entries)) return [];
   return entries
-    .map(stripImpeccableHookEntry)
+    .map(stripVSHookEntry)
     .filter(Boolean);
 }
 
-function pruneImpeccableHookFromManifest(manifestPath) {
-  if (!fileHasImpeccableHookMarker(manifestPath)) return false;
+function pruneVSHookFromManifest(manifestPath) {
+  if (!fileHasVSHookMarker(manifestPath)) return false;
   let parsed;
   try {
     parsed = JSON.parse(fs.readFileSync(manifestPath, 'utf-8'));
@@ -372,7 +372,7 @@ function pruneImpeccableHookFromManifest(manifestPath) {
     : {};
   const cleanedHooks = {};
   for (const [event, entries] of Object.entries(existingHooks)) {
-    const kept = stripImpeccableHookEntries(entries);
+    const kept = stripVSHookEntries(entries);
     if (kept.length > 0) cleanedHooks[event] = kept;
   }
 
@@ -425,9 +425,9 @@ function parseIgnoreRuleArgs(args) {
 function addIgnoreRule(cwd, args) {
   const parsed = parseIgnoreRuleArgs(args);
   const rule = parsed.rule;
-  if (!rule) throw new Error('Pass a rule id, e.g. /impeccable hooks ignore-rule side-tab');
+  if (!rule) throw new Error('Pass a rule id, e.g. /vs-roast-ui hooks ignore-rule side-tab');
   if (rule === 'overused-font' && !parsed.allValues) {
-    throw new Error('overused-font is value-specific by default. Use /impeccable hooks ignore-value overused-font <font> for a confirmed font, or /impeccable hooks ignore-rule overused-font --all-values only when the user asked to ignore overused fonts generally.');
+    throw new Error('overused-font is value-specific by default. Use /vs-roast-ui hooks ignore-value overused-font <font> for a confirmed font, or /vs-roast-ui hooks ignore-rule overused-font --all-values only when the user asked to ignore overused fonts generally.');
   }
   const config = mergeConfig(readRawConfig(cwd));
   if (!config.ignoreRules.includes(rule)) config.ignoreRules.push(rule);
@@ -436,7 +436,7 @@ function addIgnoreRule(cwd, args) {
 }
 
 function addIgnoreFile(cwd, glob) {
-  if (!glob) throw new Error('Pass a glob, e.g. /impeccable hooks ignore-file "src/legacy/**"');
+  if (!glob) throw new Error('Pass a glob, e.g. /vs-roast-ui hooks ignore-file "src/legacy/**"');
   const config = mergeConfig(readRawConfig(cwd));
   if (!config.ignoreFiles.includes(glob)) config.ignoreFiles.push(glob);
   writeConfig(cwd, config);
@@ -481,7 +481,7 @@ function parseIgnoreValueArgs(args) {
 function addIgnoreValue(cwd, args) {
   const parsed = parseIgnoreValueArgs(args);
   if (!parsed.rule || !parsed.value) {
-    throw new Error('Pass a rule id and value, e.g. /impeccable hooks ignore-value overused-font Inter');
+    throw new Error('Pass a rule id and value, e.g. /vs-roast-ui hooks ignore-value overused-font Inter');
   }
 
   if (parsed.shared && parsed.local) {

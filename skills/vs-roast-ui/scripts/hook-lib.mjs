@@ -1,5 +1,5 @@
 /**
- * Shared library for the Impeccable design hook.
+ * Shared library for the VS design hook.
  *
  * Pure-ish helpers split out from `hook.mjs` so unit tests can exercise
  * config parsing, finding filtering, dedup, render, and cache logic without
@@ -41,7 +41,7 @@ import { pathToFileURL, fileURLToPath } from 'node:url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-export const ENVELOPE_PREFIX = '[impeccable@1]';
+export const ENVELOPE_PREFIX = '[vs@1]';
 
 export const ALLOWED_EXTS = new Set([
   '.tsx', '.jsx', '.html', '.htm', '.vue', '.svelte', '.astro',
@@ -80,13 +80,13 @@ export const DEFAULT_CONFIG = Object.freeze({
 });
 
 export const HOOK_LOCAL_IGNORE_PATTERNS = Object.freeze([
-  '.impeccable/hook.cache.json',
-  '.impeccable/hook.pending.json',
-  '.impeccable/config.local.json',
+  '.vs/hook.cache.json',
+  '.vs/hook.pending.json',
+  '.vs/config.local.json',
 ]);
 
-const HOOK_IGNORE_MARKER_OPEN = '# impeccable-hook-ignore-start';
-const HOOK_IGNORE_MARKER_CLOSE = '# impeccable-hook-ignore-end';
+const HOOK_IGNORE_MARKER_OPEN = '# vs-hook-ignore-start';
+const HOOK_IGNORE_MARKER_CLOSE = '# vs-hook-ignore-end';
 const CACHE_MAX_SESSIONS = 8;
 export const EDIT_COUNT_THRESHOLD = 6;
 
@@ -111,19 +111,19 @@ function safeReadJson(filePath) {
 }
 
 export function getConfigPath(cwd) {
-  return path.join(cwd, '.impeccable', 'config.json');
+  return path.join(cwd, '.vs', 'config.json');
 }
 
 export function getLocalConfigPath(cwd) {
-  return path.join(cwd, '.impeccable', 'config.local.json');
+  return path.join(cwd, '.vs', 'config.local.json');
 }
 
 export function getCachePath(cwd) {
-  return path.join(cwd, '.impeccable', 'hook.cache.json');
+  return path.join(cwd, '.vs', 'hook.cache.json');
 }
 
 export function getPendingPath(cwd) {
-  return path.join(cwd, '.impeccable', 'hook.pending.json');
+  return path.join(cwd, '.vs', 'hook.pending.json');
 }
 
 export function resolveProjectCwd(event, fallback = process.cwd()) {
@@ -373,7 +373,7 @@ export function bumpEditCount(cache, sessionId, filePath) {
 }
 
 export function suppressionNotice(filePath) {
-  return `${ENVELOPE_PREFIX} Suppressing further design hints on ${filePath}. More than ${EDIT_COUNT_THRESHOLD} edits in this session reached. Run /impeccable audit to revisit.`;
+  return `${ENVELOPE_PREFIX} Suppressing further design hints on ${filePath}. More than ${EDIT_COUNT_THRESHOLD} edits in this session reached. Run /vs-roast-ui audit to revisit.`;
 }
 
 // Glob → RegExp. Supports `**`, `*`, `?`, and `{a,b}` alternation.
@@ -551,7 +551,7 @@ export function renderTemplate(findings, filePath, config, opts = {}) {
   const header = `${ENVELOPE_PREFIX} Design hook findings requiring review in ${display} (${total} issue(s)):`;
   const lines = shown.map((f) => formatFindingLine(f));
   const more = remaining > 0
-    ? `... and ${remaining} more (see /impeccable audit).`
+    ? `... and ${remaining} more (see /vs-roast-ui audit).`
     : null;
   const footer = directiveFooter(display);
 
@@ -595,7 +595,7 @@ function renderGroupedTemplate(groups, config, opts = {}) {
     shownCount += shown.length;
     const hidden = group.findings.length - shown.length;
     if (hidden > 0) {
-      lines.push(`- ... ${hidden} more in ${display} (see /impeccable audit).`);
+      lines.push(`- ... ${hidden} more in ${display} (see /vs-roast-ui audit).`);
     }
   }
 
@@ -611,7 +611,7 @@ function clampGroupedToBudget(header, lines, footer, maxChars) {
   const assemble = (linesArr, omitted) => [
     header,
     ...linesArr,
-    ...(omitted ? ['... and more (see /impeccable audit).'] : []),
+    ...(omitted ? ['... and more (see /vs-roast-ui audit).'] : []),
     '',
     footer,
   ].join('\n');
@@ -644,7 +644,7 @@ function clampToBudget(header, lines, more, footer, maxChars) {
   let assembled = assemble(working, moreText);
   while (assembled.length > maxChars && working.length > 1) {
     working.pop();
-    moreText = '... and more (see /impeccable audit).';
+    moreText = '... and more (see /vs-roast-ui audit).';
     assembled = assemble(working, moreText);
   }
   if (assembled.length > maxChars) {
@@ -676,7 +676,7 @@ function formatFindingIgnoreCommand(finding) {
   const value = extractFindingIgnoreValueRaw(finding);
   const valueArg = quoteCommandArg(value);
   const reason = quoteCommandArg(`User confirmed ${value} is intentional`);
-  return `/impeccable hooks ignore-value ${rule} ${valueArg} --shared --reason ${reason}`;
+  return `/vs-roast-ui hooks ignore-value ${rule} ${valueArg} --shared --reason ${reason}`;
 }
 
 function quoteCommandArg(value) {
@@ -738,7 +738,7 @@ export function resolveTargetFiles(event, projectCwd) {
 }
 
 export function resolveHarness(env = {}, event = null) {
-  const explicit = env?.IMPECCABLE_HOOK_HARNESS;
+  const explicit = env?.VS_HOOK_HARNESS;
   if (explicit === 'cursor') return 'cursor';
   if (explicit === 'claude' || explicit === 'codex') return 'claude';
   if (typeof event?.conversation_id === 'string' && event.conversation_id) return 'cursor';
@@ -907,7 +907,7 @@ export function writeAuditLog(env, entry, cwd = process.cwd()) {
   // process cwd can differ from the project being edited.
   const baseCwd = entry && typeof entry.cwd === 'string' && entry.cwd ? entry.cwd : cwd;
   // Env wins; otherwise fall back to the unified config's hook.auditLog path.
-  let target = env?.IMPECCABLE_HOOK_LOG;
+  let target = env?.VS_HOOK_LOG;
   if (!target || typeof target !== 'string') {
     try { target = readConfig(baseCwd).auditLog; } catch { target = null; }
   }
@@ -967,7 +967,7 @@ export function setDetectorForTesting(impl) {
 //
 // All three are short (≤ ~40 tokens each) so the cumulative cost stays
 // bounded across a long active editing session. Users who explicitly want
-// silence-on-clean can set `IMPECCABLE_HOOK_QUIET=1` — runHook checks that
+// silence-on-clean can set `VS_HOOK_QUIET=1` — runHook checks that
 // env before emitting #2 or #3.
 //
 // Why not stay silent on dedup-clean? Earlier versions did. The model
@@ -1013,16 +1013,16 @@ export function shouldEmitAckForFile(filePath) {
 //      raw envelope. Asking the model to surface the resolution in its
 //      reply is the cheapest way to make the feedback loop visible.
 function directiveFooter(display, opts = {}) {
-  const ignoreFileCommand = `/impeccable hooks ignore-file ${quoteCommandArg(display)}`;
+  const ignoreFileCommand = `/vs-roast-ui hooks ignore-file ${quoteCommandArg(display)}`;
   const fileIgnoreGuidance = opts.grouped
-    ? 'run `/impeccable hooks ignore-file <path>` for the specific file'
+    ? 'run `/vs-roast-ui hooks ignore-file <path>` for the specific file'
     : `run \`${ignoreFileCommand}\``;
   return [
     'Handle these before finalizing: fix findings that are real design problems, or explicitly classify contextually intentional findings as false positives. Acknowledge what you changed or why you are leaving a finding unchanged.',
     '',
     'Use context judgment before editing. A finding is not automatically a defect; literal or domain-appropriate motion, intentional demos or fixtures, documentation of bad design, and user-confirmed choices can be valid as-is.',
     '',
-    `Do not change intentional design just to satisfy the hook. Do not add source comments such as \`impeccable: ignore\`; those pollute the code and do not suppress hook findings. Persist hook ignores only after the user explicitly confirms the finding is intentional. Prefer the narrowest persisted exception: run the exact \`/impeccable hooks ignore-value ... --shared\` command shown next to a value-specific finding. For \`overused-font\`, use \`ignore-value\` for a specific font and use \`/impeccable hooks ignore-rule overused-font --all-values\` only when the user asks to ignore overused fonts generally. For file-specific findings without an ignore-value command, ${fileIgnoreGuidance}; use \`/impeccable hooks ignore-rule <id>\` only when the user asks to suppress the whole non-value-specific rule. Run /impeccable audit for the full pass.`,
+    `Do not change intentional design just to satisfy the hook. Do not add source comments such as \`vs: ignore\`; those pollute the code and do not suppress hook findings. Persist hook ignores only after the user explicitly confirms the finding is intentional. Prefer the narrowest persisted exception: run the exact \`/vs-roast-ui hooks ignore-value ... --shared\` command shown next to a value-specific finding. For \`overused-font\`, use \`ignore-value\` for a specific font and use \`/vs-roast-ui hooks ignore-rule overused-font --all-values\` only when the user asks to ignore overused fonts generally. For file-specific findings without an ignore-value command, ${fileIgnoreGuidance}; use \`/vs-roast-ui hooks ignore-rule <id>\` only when the user asks to suppress the whole non-value-specific rule. Run /vs-roast-ui audit for the full pass.`,
   ].join('\n');
 }
 
@@ -1038,11 +1038,11 @@ export async function runHook({ stdinJson, env = {}, cwd = process.cwd(), now = 
 
   try {
     // Re-entrancy guard.
-    if (depthIsSet(env.IMPECCABLE_HOOK_DEPTH) || depthIsSet(env.CLAUDE_HOOK_DEPTH)) {
+    if (depthIsSet(env.VS_HOOK_DEPTH) || depthIsSet(env.CLAUDE_HOOK_DEPTH)) {
       return result({ reentrant: true, durationMs: 0 });
     }
 
-    if (truthy(env.IMPECCABLE_HOOK_DISABLED)) {
+    if (truthy(env.VS_HOOK_DISABLED)) {
       return result({ skipped: 'env-disabled', durationMs: 0 });
     }
 
@@ -1203,7 +1203,7 @@ export async function runHook({ stdinJson, env = {}, cwd = process.cwd(), now = 
       return result({ emitted: false, error: 'detector-threw', durationMs: Date.now() - started });
     }
 
-    if (truthy(env.IMPECCABLE_HOOK_QUIET) || config.quiet === true) {
+    if (truthy(env.VS_HOOK_QUIET) || config.quiet === true) {
       return result({ emitted: false, quiet: true, durationMs: Date.now() - started });
     }
 

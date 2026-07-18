@@ -1,7 +1,7 @@
 /**
  * Shared helpers for the pending-manual-edits buffer on disk.
  *
- * Location: .impeccable/live/pending-manual-edits.json (project-local).
+ * Location: .vs/live/pending-manual-edits.json (project-local).
  * Schema:   { version: 1, entries: [{ id, pageUrl, element, ops, stagedAt }] }
  *
  * Each entry corresponds to one Save action from the browser. Ops merge by
@@ -12,7 +12,7 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
-import { getLiveDir } from '../lib/impeccable-paths.mjs';
+import { getLiveDir } from '../lib/vs-paths.mjs';
 
 const BUFFER_VERSION = 1;
 const BUFFER_FILENAME = 'pending-manual-edits.json';

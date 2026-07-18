@@ -2,7 +2,7 @@
  * CLI helper: insert/remove the live variant mode script tag in the project's
  * main HTML entry point.
  *
- * On first live run, the agent generates `.impeccable/live/config.json`
+ * On first live run, the agent generates `.vs/live/config.json`
  * with the project's insertion target (framework-specific). On
  * every subsequent run, this script handles insert/remove deterministically
  * with zero LLM involvement.
@@ -16,7 +16,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { resolveLiveConfigPath } from './lib/impeccable-paths.mjs';
+import { resolveLiveConfigPath } from './lib/vs-paths.mjs';
 import {
   applySvelteKitLiveAdapter,
   detectSvelteKitProject,
@@ -25,31 +25,31 @@ import {
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const CONFIG_PATH = resolveLiveConfigPath({ cwd: process.cwd(), scriptsDir: __dirname });
-const MARKER_OPEN_TEXT = 'impeccable-live-start';
-const MARKER_CLOSE_TEXT = 'impeccable-live-end';
-const IGNORE_MARKER_OPEN = '# impeccable-live-ignore-start';
-const IGNORE_MARKER_CLOSE = '# impeccable-live-ignore-end';
+const MARKER_OPEN_TEXT = 'vs-live-start';
+const MARKER_CLOSE_TEXT = 'vs-live-end';
+const IGNORE_MARKER_OPEN = '# vs-live-ignore-start';
+const IGNORE_MARKER_CLOSE = '# vs-live-ignore-end';
 
 export const LIVE_IGNORE_PATTERNS = Object.freeze([
-  '.impeccable/hook.cache.json',
-  '.impeccable/hook.pending.json',
-  '.impeccable/config.local.json',
-  '.impeccable/live/server.json',
-  '.impeccable/live/sessions/',
-  '.impeccable/live/previews/',
-  '.impeccable/live/annotations/',
-  '.impeccable/live/cache/',
-  '.impeccable/live/manual-edit-apply-transaction.json',
-  '.impeccable/live/manual-edit-events.jsonl',
-  '.impeccable/live/manual-edit-evidence/',
-  '.impeccable/live/pending-manual-edits.json',
-  '.impeccable/live/deferred-svelte-component-accepts.json',
-  '.impeccable-live.json',
-  '.impeccable-live/',
-  'node_modules/.impeccable-live/',
-  'src/lib/impeccable/ImpeccableLiveRoot.svelte',
-  'src/lib/impeccable/__runtime.js',
-  'src/lib/impeccable/[0-9a-f]*/',
+  '.vs/hook.cache.json',
+  '.vs/hook.pending.json',
+  '.vs/config.local.json',
+  '.vs/live/server.json',
+  '.vs/live/sessions/',
+  '.vs/live/previews/',
+  '.vs/live/annotations/',
+  '.vs/live/cache/',
+  '.vs/live/manual-edit-apply-transaction.json',
+  '.vs/live/manual-edit-events.jsonl',
+  '.vs/live/manual-edit-evidence/',
+  '.vs/live/pending-manual-edits.json',
+  '.vs/live/deferred-svelte-component-accepts.json',
+  '.vs-live.json',
+  '.vs-live/',
+  'node_modules/.vs-live/',
+  'src/lib/vs/VSLiveRoot.svelte',
+  'src/lib/vs/__runtime.js',
+  'src/lib/vs/[0-9a-f]*/',
 ]);
 
 /**
@@ -69,12 +69,12 @@ export async function injectCli() {
     console.log(`Usage: node live-inject.mjs [options]
 
 Insert or remove the live mode script tag in the project's HTML entry point.
-Reads configuration from .impeccable/live/config.json.
+Reads configuration from .vs/live/config.json.
 
 Modes:
   --port PORT   Insert script tag pointing at http://localhost:PORT/live.js
   --remove      Remove the script tag (if present)
-  --check       Print whether .impeccable/live/config.json exists and its content
+  --check       Print whether .vs/live/config.json exists and its content
 
 Output (JSON):
   { ok, file, inserted|removed, config? }`);
@@ -427,8 +427,8 @@ function insertTag(content, config, port, filePath) {
  */
 function removeTag(content, _syntax) {
   const patterns = [
-    /([ \t]*)<!--\s*impeccable-live-start\s*-->[\s\S]*?<!--\s*impeccable-live-end\s*-->([ \t]*(?:\r\n|\n|\r|$)?)/,
-    /([ \t]*)\{\/\*\s*impeccable-live-start\s*\*\/\}[\s\S]*?\{\/\*\s*impeccable-live-end\s*\*\/\}([ \t]*(?:\r\n|\n|\r|$)?)/,
+    /([ \t]*)<!--\s*vs-live-start\s*-->[\s\S]*?<!--\s*vs-live-end\s*-->([ \t]*(?:\r\n|\n|\r|$)?)/,
+    /([ \t]*)\{\/\*\s*vs-live-start\s*\*\/\}[\s\S]*?\{\/\*\s*vs-live-end\s*\*\/\}([ \t]*(?:\r\n|\n|\r|$)?)/,
   ];
   for (const pat of patterns) {
     let changed = false;
@@ -454,7 +454,7 @@ function removeTag(content, _syntax) {
 // localhost:PORT) is blocked unless the CSP explicitly allows that origin.
 //
 // On insert: append `http://localhost:PORT` to `script-src` and `connect-src`,
-// and stash the original `content` value in a `data-impeccable-csp-original`
+// and stash the original `content` value in a `data-vs-csp-original`
 // attribute (base64) so revert is exact.
 //
 // On remove: detect the marker attribute, decode it, restore the original
@@ -466,7 +466,7 @@ function removeTag(content, _syntax) {
 // Only the in-source meta-tag form gets the auto-patch.
 // ---------------------------------------------------------------------------
 
-const CSP_MARKER_ATTR = 'data-impeccable-csp-original';
+const CSP_MARKER_ATTR = 'data-vs-csp-original';
 
 function findCspMetaTags(content) {
   const out = [];

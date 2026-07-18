@@ -1,11 +1,11 @@
 import { randomUUID } from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
-import { getLiveDir } from '../lib/impeccable-paths.mjs';
+import { getLiveDir } from '../lib/vs-paths.mjs';
 import { readBuffer as readManualEditsBuffer } from './manual-edits-buffer.mjs';
 
-const APPLY_EVENT_HARD_TIMEOUT_MS = Number(process.env.IMPECCABLE_LIVE_APPLY_EVENT_HARD_TIMEOUT_MS || 150_000);
-const APPLY_EVENT_SOFT_DEADLINE_MS = Number(process.env.IMPECCABLE_LIVE_APPLY_EVENT_SOFT_DEADLINE_MS || 120_000);
+const APPLY_EVENT_HARD_TIMEOUT_MS = Number(process.env.VS_LIVE_APPLY_EVENT_HARD_TIMEOUT_MS || 150_000);
+const APPLY_EVENT_SOFT_DEADLINE_MS = Number(process.env.VS_LIVE_APPLY_EVENT_SOFT_DEADLINE_MS || 120_000);
 const DEFAULT_MANUAL_EDIT_APPLY_CHUNK_SIZE = 3;
 const MIN_MANUAL_EDIT_APPLY_CHUNK_SIZE = 1;
 const MAX_MANUAL_EDIT_APPLY_CHUNK_SIZE = 20;
@@ -307,7 +307,7 @@ export function createManualApplyController({
 }
 
 export function manualEditApplyChunkSize(env = process.env) {
-  const raw = Number(env.IMPECCABLE_LIVE_MANUAL_EDIT_CHUNK_SIZE);
+  const raw = Number(env.VS_LIVE_MANUAL_EDIT_CHUNK_SIZE);
   if (!Number.isFinite(raw)) return DEFAULT_MANUAL_EDIT_APPLY_CHUNK_SIZE;
   const size = Math.trunc(raw);
   return Math.max(MIN_MANUAL_EDIT_APPLY_CHUNK_SIZE, Math.min(MAX_MANUAL_EDIT_APPLY_CHUNK_SIZE, size));

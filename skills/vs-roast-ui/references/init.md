@@ -4,13 +4,13 @@ The setup command for a project. One codebase crawl feeds everything it writes:
 
 - **PRODUCT.md** (strategic): root project file for register, target users, product purpose, brand personality, anti-references, strategic design principles. Answers "who/what/why".
 - **DESIGN.md** (visual): root project file for visual theme, color palette, typography, components, layout. Follows the [Google Stitch DESIGN.md format](https://stitch.withgoogle.com/docs/design-md/format/). Answers "how it looks".
-- **`.impeccable/live/config.json`** (live mode): pre-configured so `/vs-roast-ui live` boots straight into variant mode with no first-time detour.
+- **`.vs/live/config.json`** (live mode): pre-configured so `/vs-roast-ui live` boots straight into variant mode with no first-time detour.
 
-It closes by pointing the user at the best command to run next. Every other impeccable command reads PRODUCT.md and DESIGN.md before doing any work.
+It closes by pointing the user at the best command to run next. Every other vs command reads PRODUCT.md and DESIGN.md before doing any work.
 
 ## Step 1: Load current state
 
-Check what already exists. PRODUCT.md and DESIGN.md live at the project root, or under `.agents/context/` or `docs/` (case-insensitive). Read whichever are present with your native file tool. Also note whether `.impeccable/live/config.json` already exists (Step 6 leaves it untouched if so).
+Check what already exists. PRODUCT.md and DESIGN.md live at the project root, or under `.agents/context/` or `docs/` (case-insensitive). Read whichever are present with your native file tool. Also note whether `.vs/live/config.json` already exists (Step 6 leaves it untouched if so).
 
 Decision tree:
 - **Neither file exists (empty project or no context yet)**: do Steps 2-4 (write PRODUCT.md), then decide on DESIGN.md based on whether there's code to analyze.
@@ -122,7 +122,7 @@ product
 
 Register is either `brand` or `product` as a bare value. No prose, no commentary.
 
-Write to `PROJECT_ROOT/PRODUCT.md`. If `.impeccable.md` existed, the loader already renamed it; merge into that content rather than starting from scratch.
+Write to `PROJECT_ROOT/PRODUCT.md`. If `.vs.md` existed, the loader already renamed it; merge into that content rather than starting from scratch.
 
 ## Step 5: Decide on DESIGN.md
 
@@ -141,11 +141,11 @@ If the project has code with HTML entries and a dev server (the same "code exist
 
 **Skip this step for empty / pre-implementation projects** (nothing to inject into yet). Tell the user live mode will configure itself the first time they run it once there's code.
 
-**If `.impeccable/live/config.json` already exists, leave it untouched** and note that live mode is already configured.
+**If `.vs/live/config.json` already exists, leave it untouched** and note that live mode is already configured.
 
 Otherwise:
 
-1. Write `.impeccable/live/config.json`. Choose `files` (the HTML entries the browser actually loads), `insertBefore`, and `commentSyntax` from the framework table in [live.md](live.md)'s **First-time setup** section, using the framework you found in Step 2. That table is canonical; do not restate it here. For multi-page static sites, prefer a glob (`["public/**/*.html"]`) over a literal list.
+1. Write `.vs/live/config.json`. Choose `files` (the HTML entries the browser actually loads), `insertBefore`, and `commentSyntax` from the framework table in [live.md](live.md)'s **First-time setup** section, using the framework you found in Step 2. That table is canonical; do not restate it here. For multi-page static sites, prefer a glob (`["public/**/*.html"]`) over a literal list.
 2. Run `node $ROAST_UI_SKILL_DIR/scripts/detect-csp.mjs`. If it reports a patchable shape (`append-arrays` / `append-string`), use the **consent prompt template** from live.md before editing any source file. On decline, skip the patch. For `middleware` / `meta-tag` shapes, surface the detected files and ask the user to add `http://localhost:8400` to `script-src` and `connect-src` manually. For `null`, there's nothing to do.
 3. Set `cspChecked: true` in the config once CSP is handled (patched, declined, manual, or not needed). The schema and per-shape patch details live in live.md's First-time setup; follow it rather than duplicating.
 
@@ -167,6 +167,6 @@ Then recommend the **best commands to run next**, drawn from what your Step 2 cr
 
 The full command menu is one bare `/vs-roast-ui` away; keep this list short and pointed.
 
-If init was invoked as a blocker by another impeccable command (e.g. the user ran `/vs-roast-ui polish` with no PRODUCT.md), resume that original task now. Your own writes are the freshest source; no reload needed.
+If init was invoked as a blocker by another vs command (e.g. the user ran `/vs-roast-ui polish` with no PRODUCT.md), resume that original task now. Your own writes are the freshest source; no reload needed.
 
 Optionally Ask the user. Ask whether they'd like a brief summary of PRODUCT.md appended to the agent config file for easier agent reference. If yes, append a short **Design Context** pointer section there.

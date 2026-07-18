@@ -35,7 +35,7 @@ const VALID_COMMANDS = [
 ];
 
 // Marker to identify pinned skills (so unpin doesn't delete user skills)
-const PIN_MARKER = '<!-- impeccable-pinned-skill -->';
+const PIN_MARKER = '<!-- vs-pinned-skill -->';
 
 /**
  * Walk up from startDir to find a project root.
@@ -58,15 +58,15 @@ function findProjectRoot(startDir = process.cwd()) {
 }
 
 /**
- * Find harness skill directories that have an impeccable skill installed.
+ * Find harness skill directories that have an vs skill installed.
  */
 function findHarnessDirs(projectRoot) {
   const dirs = [];
   for (const harness of HARNESS_DIRS) {
     const skillsDir = join(projectRoot, harness, 'skills');
-    // Only pin in harness dirs that already have impeccable installed
-    const impeccableDir = join(skillsDir, 'impeccable');
-    if (existsSync(impeccableDir) || existsSync(join(skillsDir, 'i-impeccable'))) {
+    // Only pin in harness dirs that already have vs installed
+    const vsDir = join(skillsDir, 'vs');
+    if (existsSync(vsDir) || existsSync(join(skillsDir, 'i-vs'))) {
       dirs.push(skillsDir);
     }
   }
@@ -114,7 +114,7 @@ function pin(command, projectRoot) {
   const harnessDirs = findHarnessDirs(projectRoot);
 
   if (harnessDirs.length === 0) {
-    console.log('No harness directories with impeccable installed found.');
+    console.log('No harness directories with vs installed found.');
     return false;
   }
 

@@ -1,16 +1,16 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-export const IMPECCABLE_DIR = '.impeccable';
+export const VS_DIR = '.vs';
 export const LIVE_DIR = 'live';
 export const CRITIQUE_DIR = 'critique';
 
-export function getImpeccableDir(cwd = process.cwd()) {
-  return path.join(cwd, IMPECCABLE_DIR);
+export function getVSDir(cwd = process.cwd()) {
+  return path.join(cwd, VS_DIR);
 }
 
 export function getDesignSidecarPath(cwd = process.cwd()) {
-  return path.join(getImpeccableDir(cwd), 'design.json');
+  return path.join(getVSDir(cwd), 'design.json');
 }
 
 export function getDesignSidecarCandidates(cwd = process.cwd(), contextDir = cwd) {
@@ -28,7 +28,7 @@ export function resolveDesignSidecarPath(cwd = process.cwd(), contextDir = cwd) 
 }
 
 export function getLiveDir(cwd = process.cwd()) {
-  return path.join(getImpeccableDir(cwd), LIVE_DIR);
+  return path.join(getVSDir(cwd), LIVE_DIR);
 }
 
 export function getLiveConfigPath(cwd = process.cwd()) {
@@ -40,8 +40,8 @@ export function getLegacyLiveConfigPath(scriptsDir) {
 }
 
 export function resolveLiveConfigPath({ cwd = process.cwd(), scriptsDir, env = process.env } = {}) {
-  if (env.IMPECCABLE_LIVE_CONFIG && env.IMPECCABLE_LIVE_CONFIG.trim()) {
-    const configured = env.IMPECCABLE_LIVE_CONFIG.trim();
+  if (env.VS_LIVE_CONFIG && env.VS_LIVE_CONFIG.trim()) {
+    const configured = env.VS_LIVE_CONFIG.trim();
     return path.isAbsolute(configured) ? configured : path.resolve(cwd, configured);
   }
   const primary = getLiveConfigPath(cwd);
@@ -58,7 +58,7 @@ export function getLiveServerPath(cwd = process.cwd()) {
 }
 
 export function getLegacyLiveServerPath(cwd = process.cwd()) {
-  return path.join(cwd, '.impeccable-live.json');
+  return path.join(cwd, '.vs-live.json');
 }
 
 export function readLiveServerInfo(cwd = process.cwd()) {
@@ -106,7 +106,7 @@ export function getLiveSessionsDir(cwd = process.cwd()) {
 }
 
 export function getLegacyLiveSessionsDir(cwd = process.cwd()) {
-  return path.join(cwd, '.impeccable-live', 'sessions');
+  return path.join(cwd, '.vs-live', 'sessions');
 }
 
 export function getLiveAnnotationsDir(cwd = process.cwd()) {
@@ -114,11 +114,11 @@ export function getLiveAnnotationsDir(cwd = process.cwd()) {
 }
 
 export function getCritiqueDir(cwd = process.cwd()) {
-  return path.join(getImpeccableDir(cwd), CRITIQUE_DIR);
+  return path.join(getVSDir(cwd), CRITIQUE_DIR);
 }
 
 export function getLegacyLiveAnnotationsDir(cwd = process.cwd()) {
-  return path.join(cwd, '.impeccable-live', 'annotations');
+  return path.join(cwd, '.vs-live', 'annotations');
 }
 
 function firstExisting(paths) {

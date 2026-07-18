@@ -2,18 +2,18 @@
  * CLI client for the live variant mode poll/reply protocol.
  *
  * Usage:
- *   npx impeccable poll                         # Block until browser event, print JSON
- *   npx impeccable poll --stream                # Experimental: keep polling; one JSON line per event
- *   npx impeccable poll --timeout=600000        # Custom timeout (ms); default is long-poll friendly
- *   npx impeccable poll --reply <id> done       # Reply "done" to event <id>
- *   npx impeccable poll --reply <id> error "msg" # Reply with error
+ *   npx vs poll                         # Block until browser event, print JSON
+ *   npx vs poll --stream                # Experimental: keep polling; one JSON line per event
+ *   npx vs poll --timeout=600000        # Custom timeout (ms); default is long-poll friendly
+ *   npx vs poll --reply <id> done       # Reply "done" to event <id>
+ *   npx vs poll --reply <id> error "msg" # Reply with error
  */
 
 import { execFileSync } from 'node:child_process';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { completionAckForAcceptResult, completionTypeForAcceptResult } from './live/completion.mjs';
-import { readLiveServerInfo } from './lib/impeccable-paths.mjs';
+import { readLiveServerInfo } from './lib/vs-paths.mjs';
 
 // Node's built-in fetch (undici under the hood) enforces a 300s headers
 // timeout that can't be lowered per-request. We cap each request below
@@ -27,7 +27,7 @@ const EVENT_TYPES_NEEDING_AGENT_REPLY = new Set(['generate', 'steer', 'manual_ed
 function readServerInfo() {
   const record = readLiveServerInfo(process.cwd());
   if (!record) {
-    console.error('No running live server found. Start one with: npx impeccable live');
+    console.error('No running live server found. Start one with: npx vs live');
     process.exit(1);
   }
   return record.info;
@@ -82,7 +82,7 @@ export function parseReplyArgs(args) {
 }
 
 function validateReplyArgs({ id, status }) {
-  const usage = "Usage: npx impeccable poll --reply <id> <status> [--file path] [--data '<json>'] [message]";
+  const usage = "Usage: npx vs poll --reply <id> <status> [--file path] [--data '<json>'] [message]";
   if (!id || id.startsWith('--')) {
     const err = new Error(`${usage}\nMissing event id after --reply.`);
     err.code = 'INVALID_REPLY_ARGS';
@@ -254,7 +254,7 @@ export async function runPollStream(base, token, {
   ackPollIntervalMs = 400,
   shouldContinue = () => true,
 } = {}) {
-  process.stderr.write('[impeccable-poll] stream mode: one JSON object per line on stdout; use --reply while this process stays running\n');
+  process.stderr.write('[vs-poll] stream mode: one JSON object per line on stdout; use --reply while this process stays running\n');
 
   while (shouldContinue()) {
     const event = await fetchNextEvent(base, token);
@@ -283,11 +283,11 @@ export async function runPollStream(base, token, {
 function handlePollError(err) {
   if (err.code === 'AUTH_FAILED') {
     console.error(err.message);
-    console.error('Try restarting: npx impeccable live stop && npx impeccable live');
+    console.error('Try restarting: npx vs live stop && npx vs live');
     process.exit(1);
   }
   if (err.cause?.code === 'ECONNREFUSED') {
-    console.error('Live server not running. Start one with: npx impeccable live');
+    console.error('Live server not running. Start one with: npx vs live');
     process.exit(1);
   }
   if (err.code === 'ACK_TIMEOUT') {
@@ -302,7 +302,7 @@ export async function pollCli() {
   const args = process.argv.slice(2);
 
   if (args.includes('--help') || args.includes('-h')) {
-    console.log(`Usage: impeccable poll [options]
+    console.log(`Usage: vs poll [options]
 
 Wait for a browser event from the live variant server, or reply to one.
 
@@ -331,7 +331,7 @@ Harness note:
   const info = readServerInfo();
   const base = `http://localhost:${info.port}`;
 
-  // Reply mode: npx impeccable poll --reply <id> <status> [--file path] [--data '<json>'] [message]
+  // Reply mode: npx vs poll --reply <id> <status> [--file path] [--data '<json>'] [message]
   if (args.includes('--reply')) {
     let reply;
     try {
@@ -345,7 +345,7 @@ Harness note:
       await postReply(base, info.token, reply);
     } catch (err) {
       if (err.cause?.code === 'ECONNREFUSED') {
-        console.error('Live server not running. Start one with: npx impeccable live');
+        console.error('Live server not running. Start one with: npx vs live');
       } else {
         console.error('Reply failed:', err.message);
       }

@@ -6,13 +6,13 @@
  *
  * It does NOT score or rank. The agent reasons over the raw signals using its
  * knowledge of the command catalog (see SKILL.md routing rule 1). Deliberately
- * light: no LLM calls, no detector run (`npx impeccable detect` is heavier and
+ * light: no LLM calls, no detector run (`npx vs detect` is heavier and
  * opt-in), no file writes. Every probe is best-effort and never throws; the
  * output is always valid JSON.
  *
  * Signals:
  *   - setup:     PRODUCT.md / DESIGN.md presence, register, whether code exists
- *   - critique:  the latest cached critique score (.impeccable/critique)
+ *   - critique:  the latest cached critique score (.vs/critique)
  *   - git:       branch + files changed vs the default branch (a scope hint)
  *   - devServer: whether a local dev server answers on a common port (gates live)
  */

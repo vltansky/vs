@@ -10,10 +10,10 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-export const SVELTE_LIVE_ROOT_COMPONENT = 'src/lib/impeccable/ImpeccableLiveRoot.svelte';
-export const SVELTE_LAYOUT_MARKER_OPEN = '<!-- impeccable-live-svelte-start -->';
-export const SVELTE_LAYOUT_MARKER_CLOSE = '<!-- impeccable-live-svelte-end -->';
-export const SVELTE_ROOT_IMPORT = "import ImpeccableLiveRoot from '$lib/impeccable/ImpeccableLiveRoot.svelte';";
+export const SVELTE_LIVE_ROOT_COMPONENT = 'src/lib/vs/VSLiveRoot.svelte';
+export const SVELTE_LAYOUT_MARKER_OPEN = '<!-- vs-live-svelte-start -->';
+export const SVELTE_LAYOUT_MARKER_CLOSE = '<!-- vs-live-svelte-end -->';
+export const SVELTE_ROOT_IMPORT = "import VSLiveRoot from '$lib/vs/VSLiveRoot.svelte';";
 
 export function detectSvelteKitProject(cwd = process.cwd(), config = null) {
   const appHtml = findSvelteKitAppHtml(cwd, config);
@@ -107,7 +107,7 @@ export function patchSvelteLayout(content) {
   }
 
   if (!out.includes(SVELTE_LAYOUT_MARKER_OPEN)) {
-    const block = `${SVELTE_LAYOUT_MARKER_OPEN}\n<ImpeccableLiveRoot />\n${SVELTE_LAYOUT_MARKER_CLOSE}\n`;
+    const block = `${SVELTE_LAYOUT_MARKER_OPEN}\n<VSLiveRoot />\n${SVELTE_LAYOUT_MARKER_CLOSE}\n`;
     const renderMatch = out.match(/\{@render\s+children(?:\?\.)?\(\)\s*\}/);
     const slotMatch = out.match(/<slot\s*\/?>/);
     const match = renderMatch || slotMatch;
@@ -125,7 +125,7 @@ export function unpatchSvelteLayout(content) {
   let out = String(content || '');
   const blockRe = new RegExp(
     '([ \\t]*)' + escapeRegExp(SVELTE_LAYOUT_MARKER_OPEN)
-    + '\\n<ImpeccableLiveRoot\\s*/>\\n'
+    + '\\n<VSLiveRoot\\s*/>\\n'
     + escapeRegExp(SVELTE_LAYOUT_MARKER_CLOSE)
     + '\\n?',
     'g',
@@ -148,17 +148,17 @@ export function buildSvelteLiveRootComponent(port) {
   import { onMount } from 'svelte';
 
   const LIVE_URL = 'http://localhost:${Number(port)}/live.js';
-  const HOST_ID = 'impeccable-live-root';
+  const HOST_ID = 'vs-live-root';
 
   onMount(() => {
-    let host = document.querySelector('impeccable-live-root#' + HOST_ID) || document.getElementById(HOST_ID);
+    let host = document.querySelector('vs-live-root#' + HOST_ID) || document.getElementById(HOST_ID);
     if (!host) {
-      host = document.createElement('impeccable-live-root');
+      host = document.createElement('vs-live-root');
       host.id = HOST_ID;
       document.body.appendChild(host);
     }
 
-    host.dataset.impeccableLiveAdapter = 'sveltekit';
+    host.dataset.vsLiveAdapter = 'sveltekit';
     host.style.setProperty('all', 'initial', 'important');
     host.style.setProperty('display', 'block', 'important');
     host.style.setProperty('position', 'fixed', 'important');
@@ -171,16 +171,16 @@ export function buildSvelteLiveRootComponent(port) {
     host.style.setProperty('pointer-events', 'none', 'important');
 
     const root = host.shadowRoot || host.attachShadow({ mode: 'open' });
-    if (!root.querySelector('style[data-impeccable-live-reset]')) {
+    if (!root.querySelector('style[data-vs-live-reset]')) {
       const reset = document.createElement('style');
-      reset.dataset.impeccableLiveReset = 'true';
+      reset.dataset.vsLiveReset = 'true';
       reset.textContent = ':host, :host *, * { box-sizing: border-box; }';
       root.appendChild(reset);
     }
 
-    window.__IMPECCABLE_LIVE_ADAPTER__ = 'sveltekit';
-    window.__IMPECCABLE_LIVE_UI_ROOT__ = root;
-    window.__IMPECCABLE_LIVE_CHROME_MOUNT__ = {
+    window.__VS_LIVE_ADAPTER__ = 'sveltekit';
+    window.__VS_LIVE_UI_ROOT__ = root;
+    window.__VS_LIVE_CHROME_MOUNT__ = {
       adapter: 'sveltekit',
       version: 1,
       host,
@@ -190,14 +190,14 @@ export function buildSvelteLiveRootComponent(port) {
     const script = document.createElement('script');
     script.src = LIVE_URL;
     script.async = true;
-    script.dataset.impeccableLiveScript = 'true';
+    script.dataset.vsLiveScript = 'true';
     document.head.appendChild(script);
 
     return () => {
       script.remove();
-      if (window.__IMPECCABLE_LIVE_UI_ROOT__ === root) delete window.__IMPECCABLE_LIVE_UI_ROOT__;
-      if (window.__IMPECCABLE_LIVE_CHROME_MOUNT__?.root === root) delete window.__IMPECCABLE_LIVE_CHROME_MOUNT__;
-      if (window.__IMPECCABLE_LIVE_ADAPTER__ === 'sveltekit') delete window.__IMPECCABLE_LIVE_ADAPTER__;
+      if (window.__VS_LIVE_UI_ROOT__ === root) delete window.__VS_LIVE_UI_ROOT__;
+      if (window.__VS_LIVE_CHROME_MOUNT__?.root === root) delete window.__VS_LIVE_CHROME_MOUNT__;
+      if (window.__VS_LIVE_ADAPTER__ === 'sveltekit') delete window.__VS_LIVE_ADAPTER__;
     };
   });
 </script>

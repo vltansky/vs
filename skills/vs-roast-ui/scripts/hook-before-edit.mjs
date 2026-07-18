@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Impeccable design hook — Cursor preToolUse write gate.
+ * VS design hook — Cursor preToolUse write gate.
  *
  * Cursor's stop hook is not consistently dispatched by the headless agent, so
  * this hook checks proposed Write/Edit content before it lands. It only denies
@@ -333,8 +333,8 @@ function isInsideProject(filePath, cwd) {
 function cursorBlockMessage(findings, filePath, config, cwd) {
   const rendered = renderTemplate(findings, filePath, config, { cwd });
   const blocked = rendered.replace(
-    '[impeccable@1] Design hook findings requiring review',
-    '[impeccable@1] Impeccable design hook blocked this write before it landed. Design hook findings requiring review',
+    '[vs@1] Design hook findings requiring review',
+    '[vs@1] VS design hook blocked this write before it landed. Design hook findings requiring review',
   );
   return blocked.length > 4000 ? `${blocked.slice(0, 3984)}\n...(truncated)` : blocked;
 }
@@ -361,7 +361,7 @@ function bumpCursorDenial(cache, sessionId, filePath, findings) {
 }
 
 async function main() {
-  if (truthy(process.env.IMPECCABLE_HOOK_DISABLED)) {
+  if (truthy(process.env.VS_HOOK_DISABLED)) {
     return allow({ skipped: 'env-disabled' });
   }
 
@@ -439,7 +439,7 @@ async function main() {
   const denial = bumpCursorDenial(cache, sessionId, filePath, filtered);
   persistCache(cwd, cache);
   if (denial.count > EDIT_COUNT_THRESHOLD) {
-    const warning = `${message}\n\nThis is the ${denial.count}th repeated denial for the same file and finding signature, so Impeccable is allowing this write to avoid a loop. Reconsider the issue immediately after the tool runs.`;
+    const warning = `${message}\n\nThis is the ${denial.count}th repeated denial for the same file and finding signature, so VS is allowing this write to avoid a loop. Reconsider the issue immediately after the tool runs.`;
     return allow({
       ...audit,
       findings: (findings || []).length,
@@ -466,8 +466,8 @@ async function main() {
 }
 
 main().catch((err) => {
-  if (process.env.IMPECCABLE_HOOK_DEBUG) {
-    process.stderr.write(`[impeccable-hook-before-edit] ${err}\n`);
+  if (process.env.VS_HOOK_DEBUG) {
+    process.stderr.write(`[vs-hook-before-edit] ${err}\n`);
   }
   done({ permission: 'allow' });
 });
