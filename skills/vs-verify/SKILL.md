@@ -34,6 +34,15 @@ enough; do not run the entire suite by reflex.
    demonstrates the behavior.
 5. **Manual/visual evidence** - for UI or integration behavior that automation
    cannot prove, capture the observable state and any remaining manual gap.
+6. **Independent reproduction** - for high-stakes or disputed claims (the user
+   doubts the fix, the bug already survived one "fixed" claim, production is
+   involved), dispatch one or more fresh-context agents to reproduce the
+   behavior without telling them the suspected cause or expected result. Their
+   observed behavior is the evidence; green unit tests alone stay `WARN`.
+7. **Artifact identity** - for deploy or publish claims, prove the served
+   artifact actually changed: compare bundle hash, version, or etag against
+   the built output. Reachability (HTTP 200) alone proves nothing about which
+   build is live.
 
 ## Rules
 
@@ -44,6 +53,8 @@ enough; do not run the entire suite by reflex.
   is missing.
 - If tests pass but the user-visible behavior was not exercised, report `WARN`,
   not `PASS`.
+- A deploy claim verified only by reachability is `WARN` until artifact
+  identity is confirmed.
 - Keep logs concise. The result should be a proof summary, not a transcript dump.
 
 ## Status inheritance
