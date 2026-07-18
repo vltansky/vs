@@ -106,6 +106,12 @@ Update GOALS.md with what the gate found, then activate the next milestone.
 
 Report only when state changes, using three short sections — what's done,
 what's next, blockers. Between changes, stay silent; do not narrate idle polls.
+On the initial roadmap report, and whenever dependencies or parallel lanes
+materially change, include a compact Mermaid flowchart derived from GOALS.md.
+Show the active milestone, parallel lanes, merge gates, and evidence gates; do
+not diagram a short linear roadmap merely to decorate the update. Follow the
+Mermaid guidance in
+[`../vs-internal-shared/references/rich-artifacts.md`](../vs-internal-shared/references/rich-artifacts.md).
 For a project with several milestones or parallel lanes, maintain the optional
 `progress-dashboard.html` described in the reference so an away user can orient
 without reading every worker.
@@ -133,6 +139,7 @@ Before finishing, check:
 - no milestone was marked done without its evidence
 - no implementation happened in this thread; each milestone went to build-it
 - reports were change-only; blockers are explicit
+- non-trivial roadmap topology was explained with Mermaid when first shown or changed
 
 ## Workflow
 

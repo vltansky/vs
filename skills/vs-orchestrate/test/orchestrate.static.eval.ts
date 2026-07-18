@@ -53,6 +53,13 @@ describe('orchestrate: invariants encoded in the skill', () => {
     expect(SKILL).toMatch(/without native goals|Claude Code/i);
   });
 
+  it('uses Mermaid to explain non-trivial roadmap topology', () => {
+    expect(SKILL).toMatch(/Mermaid flowchart/i);
+    expect(SKILL).toMatch(/initial roadmap report/i);
+    expect(SKILL).toMatch(/dependencies or parallel lanes/i);
+    expect(SKILL).toMatch(/do\s+not diagram a short linear roadmap/i);
+  });
+
   it('has a sharp use-when boundary against build-it, baby-sit, and shape-it', () => {
     expect(SKILL).toMatch(/multi-milestone|several milestones/i);
     expect(SKILL).toMatch(/single-session|single PR|does not need a coordinator/i);

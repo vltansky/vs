@@ -66,8 +66,11 @@ describe('framework routing', () => {
         ...linkedSkills(routeLine(skill, 'Next')[0]),
       ]);
 
-      expect(links.length, `${name} Relevant count`).toBeGreaterThan(0);
       expect(links.length, `${name} Relevant count`).toBeLessThanOrEqual(2);
+      expect(
+        links.length > 0 || /\bnone\b/i.test(relevant),
+        `${name} Relevant must name skills or none`,
+      ).toBe(true);
 
       for (const target of links) {
         expect(

@@ -12,8 +12,9 @@ Two-pass review. First pass cleans. Second pass roasts what's left.
 Roast-review is a building-block review tool. It consumes:
 
 - `vs-deslop` semantics during Pass 1: simplify working code while preserving behavior.
-- `vs-second-opinion` semantics during Pass 2: Codex or another advisor is an
-  independent signal, not the final judge.
+- [independent-advisors](../vs-internal-shared/references/independent-advisors.md)
+  during Pass 2: Codex or another model is an independent signal, not the final
+  judge.
 - `vs-verify` after fixes when the cleanup or review change could affect behavior.
 
 Before delegating, load and follow

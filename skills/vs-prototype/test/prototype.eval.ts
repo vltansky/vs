@@ -35,6 +35,6 @@ describe('prototype', () => {
     expect(SKILL).toMatch(/Status: READY_FOR_REVIEW/);
     expect(SKILL).toMatch(/~\/\.vs\/\$PROJECT_ID\/prototypes/);
     expect(SKILL).toMatch(/^\*\*Next:\*\* `\/vs-shape-it`$/m);
-    expect(SKILL).toMatch(/^\*\*Relevant:\*\* `\/vs-perf` \| `\/vs-second-opinion`$/m);
+    expect(SKILL).toMatch(/^\*\*Relevant:\*\* `\/vs-perf`$/m);
   });
 });

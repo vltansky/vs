@@ -286,9 +286,9 @@ After the subagent returns, verify each directive against the evidence and apply
 accepted edits in the parent. Reject cuts that remove decision-critical context.
 The edited draft becomes the final RFC.
 
-For high-risk RFCs or disputed tradeoffs, use a second opinion through
-`../vs-second-opinion/SKILL.md` only when child budget remains after research
-and the cold review. Otherwise
+For high-risk RFCs or disputed tradeoffs, use
+[independent-advisors](../vs-internal-shared/references/independent-advisors.md)
+only when child budget remains after research and the cold review. Otherwise
 test the central decision in the parent against the strongest contrary evidence;
 do not exceed the shared budget. If the RFC contains a performance claim, load
 `../vs-perf/SKILL.md` when available and include the evaluator or

@@ -179,4 +179,4 @@ Direct: emit **Next** only. Composed: return to caller.
 
 **Prev:** `/vs-shape-it` or a concrete implementation uncertainty
 **Next:** `/vs-shape-it`
-**Relevant:** `/vs-perf` | `/vs-second-opinion`
+**Relevant:** `/vs-perf`

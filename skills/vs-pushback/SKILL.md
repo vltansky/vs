@@ -1,6 +1,6 @@
 ---
 name: vs-pushback
-description: "Use when a formed idea, plan, spec, or RFC needs adversarial review. Stress-tests assumptions, scores readiness, and returns a verdict."
+description: "Use when a formed idea, plan, spec, or RFC needs adversarial review. Stress-tests assumptions, adds risk-gated independent model challenge, scores readiness, and returns a verdict."
 disable-model-invocation: true
 ---
 
@@ -60,6 +60,9 @@ Return to the full flow only when the plan changed materially.
 - Do not accept "we'll handle it later" without owner, date, ticket, or explicit
   unresolved risk.
 - Score the defense, not the vibes. Hand-waving loses points.
+- Use independent advisors only through the risk gate in
+  [independent-advisors](../vs-internal-shared/references/independent-advisors.md).
+  Model diversity matters more than repeated same-model opinions.
 
 ## Flow
 
@@ -72,6 +75,11 @@ Read the proposal and relevant nearby context first:
 - overlapping code, existing patterns, tests, deployments, data stores, owners
 - simpler built-in or repo-native alternatives
 - external prior art only when it would materially change the critique
+
+Classify the decision as routine, substantial, or high-risk/disputed using
+[independent-advisors](../vs-internal-shared/references/independent-advisors.md).
+For substantial or high-risk/disputed work, dispatch the selected advisor batch
+during pre-scan and continue immediately. Never delay Round 1 for advisor output.
 
 Do not depend on, create, or update an in-repo `CONTEXT.md`.
 
@@ -170,9 +178,10 @@ report — the ranked alternatives and the deciding factor in plain terms (e.g.
 latency vs ownership coupling). The user's real decision usually happens here,
 not at the per-question options.
 
-If high risk or disputed architecture remains and a second opinion skill is
-available, use it briefly before the verdict. Treat it as evidence, not an
-override.
+Collect completed advisor results immediately before the verdict when they
+arrived within the shared 45-second deadline. Verify their claims, preserve
+material dissent, and treat them as evidence rather than votes. Discard late
+results and disclose skipped advisors without delaying the verdict.
 
 ## Dimensions
 

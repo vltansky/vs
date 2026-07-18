@@ -240,4 +240,4 @@ Direct: emit **Next** only. Composed: return to caller.
 
 **Prev:** failure | user report | `/vs-build-it`
 **Next:** `/vs-tdd`
-**Relevant:** `/vs-second-opinion`
+**Relevant:** none

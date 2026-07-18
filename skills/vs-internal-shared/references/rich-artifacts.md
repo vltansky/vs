@@ -1,5 +1,8 @@
 # Rich human-facing artifacts
 
+Decision rationale:
+[Use HTMDX for rich human-facing artifacts](../../../adr/use-htmdx-for-rich-human-facing-artifacts.md).
+
 Markdown is the default. Choose HTMDX only when visual structure materially
 changes how a person reviews the result or makes a decision, such as:
 
@@ -11,6 +14,20 @@ Length or complexity alone is not a reason to use HTMDX. Keep routine prose,
 short reports, implementation plans, and machine-consumed state in Markdown.
 Use bespoke HTML/JavaScript instead when the artifact needs custom behavior that
 the HTMDX component catalog cannot express.
+
+## Mermaid in Markdown
+
+Use a small Mermaid diagram inside ordinary Markdown when relationships are the
+main thing the user needs to understand: three or more interacting components,
+parallel workstreams, a multi-step handoff, or meaningful state transitions.
+Prefer a flowchart for ownership and dependencies, a sequence diagram for
+runtime interactions, and a state diagram for lifecycle changes.
+
+Keep the diagram evidence-backed and easy to scan: normally no more than eight
+nodes, one idea per node, quoted labels when they contain punctuation, and prose
+immediately before it stating the conclusion. Skip Mermaid for a single fact, a
+simple file list, or a linear two-step change. Mermaid complements the Markdown
+explanation; it does not trigger HTMDX or replace the source-of-truth artifact.
 
 ## Artifact contract
 
