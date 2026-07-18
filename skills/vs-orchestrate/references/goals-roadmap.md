@@ -58,7 +58,17 @@ Between changes, stay silent. This mirrors the silent-polling discipline in
 ## progress-dashboard.html (optional)
 
 Maintain only when the project spans several milestones or parallel lanes and a
-running list is not enough to orient an away user. It is a custom artifact, not
-host UI. Keep it a single static file that shows: the active objective,
-completed milestones with evidence, blockers, decisions, and recent updates.
-Skip it for a short linear roadmap.
+running list is not enough to orient an away user. Choose it only when visual
+structure materially improves orientation; skip it for a short linear roadmap.
+
+When selected, make `progress-dashboard.html` a single HTMDX `.html` artifact
+using the contract in
+[rich-artifacts.md](../../vs-internal-shared/references/rich-artifacts.md). Use
+an `ExecutiveSummary` for the active objective, a `MetricStrip` for milestone
+counts, a `DataTable` for status and evidence, and a `Timeline` for recent
+updates. Use plain Markdown inside the source block when a component adds no
+meaning.
+
+`GOALS.md` remains the source of truth. The dashboard is a derived human view:
+refresh it only when `GOALS.md` changes, and do not create a Markdown dashboard
+twin.

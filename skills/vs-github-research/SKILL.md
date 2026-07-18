@@ -18,7 +18,7 @@ Choose one output mode from the user's wording:
 
 Do not turn the result into an RFC unless the user asks for one. Hand off to `/vs-rfc-research` when they want a decision document.
 
-For a prior-art answer, give the user:
+For a prior-art answer, stay in compact Markdown and give the user:
 
 1. What patterns exist across external projects
 2. Which examples are most relevant
@@ -175,10 +175,27 @@ Aim for 5-10 projects, not 30. Prefer projects that are active, show real usage,
 
 For each project, fill in each axis in one sentence. Cite a file/line when a sentence describes a concrete mechanism. Uncited axis values get flagged as `[inference]`.
 
-Resolve `$PROJECT_ID` (see [../vs-internal-shared/SKILL.md](../vs-internal-shared/SKILL.md)) and write to `~/.vs/$PROJECT_ID/vs-github-research/YYYY-MM-DD-landscape.md`:
+The multi-project matrix and cross-linked evidence justify a visual artifact.
+Resolve `$PROJECT_ID` (see
+[../vs-internal-shared/SKILL.md](../vs-internal-shared/SKILL.md)) and write one
+HTMDX artifact to
+`~/.vs/$PROJECT_ID/vs-github-research/YYYY-MM-DD-landscape.html`. Follow the
+[shared rich-artifact contract](../vs-internal-shared/references/rich-artifacts.md):
+pin its exact runtime, keep all editable content in the HTMDX source block, and
+create no Markdown twin.
 
-```markdown
+```mdx
+---
+title: GitHub landscape
+updated: YYYY-MM-DD
+---
+
 # GitHub landscape — YYYY-MM-DD
+
+<ExecutiveSummary>
+TODO: Write two to four sentences describing the main clusters and where this
+project sits.
+</ExecutiveSummary>
 
 ## Axes
 - **Runtime / host** — ...
@@ -200,10 +217,12 @@ Resolve `$PROJECT_ID` (see [../vs-internal-shared/SKILL.md](../vs-internal-share
 
 ## Matrix
 
+<DataTable>
 | Project | Runtime | Invocation | Taxonomy | Artifacts | Evaluation | Distribution | Composition |
 |---------|---------|------------|----------|-----------|------------|--------------|-------------|
 | owner/repo | ... | ... | ... | ... | ... | ... | ... |
 | **this project: vs** | ... | ... | ... | ... | ... | ... | ... |
+</DataTable>
 
 ## Clusters and outliers
 - Cluster 1: projects that chose X for axis Y (list)

@@ -34,4 +34,11 @@ describe('github-research', () => {
     expect(SKILL).toMatch(/\/vs-rfc-research/);
     expect(SKILL).toMatch(/\/vs-shape-it/);
   });
+
+  it('keeps compact prior art in Markdown and renders dense landscapes as one HTMDX artifact', () => {
+    expect(SKILL).toMatch(/prior-art answer[\s\S]{0,180}Markdown/i);
+    expect(SKILL).toMatch(/YYYY-MM-DD-landscape\.html/);
+    expect(SKILL).toMatch(/HTMDX/);
+    expect(SKILL).toMatch(/no Markdown twin/i);
+  });
 });

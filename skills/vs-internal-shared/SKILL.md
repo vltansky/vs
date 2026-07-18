@@ -58,6 +58,12 @@ Paste this inline — skills must stay self-contained in case they're installed 
 └── steals/       # steal reports
 ```
 
+## Rich human-facing artifacts
+
+Use [`references/rich-artifacts.md`](./references/rich-artifacts.md) when a
+skill may produce an HTMDX report or dashboard. It defines the selection gate,
+single-file source contract, pinned runtime, and sensitive-data fallback.
+
 ## What does NOT go here
 
 Never write into the project tree (`docs/`, `.context/`, `.octocode/`) for session artifacts. Those are reserved for committed source-of-truth files: skill definitions (`skills/`), evals (`evals/`), and any RFC/spec the user explicitly asked to keep in the repo.

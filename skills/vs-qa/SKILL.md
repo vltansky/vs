@@ -77,7 +77,22 @@ REPORT_DIR="$HOME/.vs/$PROJECT_ID/qa-reports"
 mkdir -p "$REPORT_DIR/screenshots"
 ```
 
-Copy `references/qa-report-template.md` to `$REPORT_DIR/qa-report-{domain}-{YYYY-MM-DD}.md`.
+**Choose the report format after scoping the run:** Markdown is the default.
+Use HTMDX only for a regression or exhaustive run that will present multiple
+screenshots or multiple visual states where visual structure helps human
+review. Length alone is not a reason. Quick, standard, and small diff-aware
+runs stay in Markdown.
+
+- Markdown: copy `references/qa-report-template.md` to
+  `$REPORT_DIR/qa-report-{domain}-{YYYY-MM-DD}.md`.
+- HTMDX: copy `references/qa-report-template.html` to
+  `$REPORT_DIR/qa-report-{domain}-{YYYY-MM-DD}.html` and edit only its HTMDX
+  source block. Follow the
+  [shared rich-artifact contract](../vs-internal-shared/references/rich-artifacts.md).
+
+The remote runtime executes with DOM access. If a report could contain
+credentials, secrets, PII, or other sensitive internal data, use a trusted
+local runtime mirror or remain in Markdown.
 
 ---
 
@@ -134,7 +149,9 @@ Full mode + diff against `baseline.json`. Score delta, fixed vs. new issues.
 START_TIME=$(date +%s)
 ```
 
-Start timer. Create report file from template. Page name convention: use `"qa-main"` for the primary test page.
+Start timer. Create the report from the selected template. Page name convention:
+use `"qa-main"` for the primary test page. For HTMDX, write each issue
+incrementally inside the existing source block; do not append outside it.
 
 ---
 
@@ -380,7 +397,7 @@ Re-run QA on all affected pages. Compute final health score.
 ## Phase 10: Report
 
 Write report to:
-- **Local:** `~/.vs/$PROJECT_ID/qa-reports/qa-report-{domain}-{YYYY-MM-DD}.md`
+- **Local:** `~/.vs/$PROJECT_ID/qa-reports/qa-report-{domain}-{YYYY-MM-DD}.{md|html}`
 
 Per-issue additions beyond template:
 - Fix Status: verified / best-effort / reverted / deferred
@@ -426,7 +443,7 @@ If repo has `TODOS.md`:
 
 ```
 ~/.vs/$PROJECT_ID/qa-reports/
-├── qa-report-{domain}-{YYYY-MM-DD}.md
+├── qa-report-{domain}-{YYYY-MM-DD}.{md|html}
 ├── screenshots/
 │   ├── initial.png
 │   ├── issue-001-step-1.png

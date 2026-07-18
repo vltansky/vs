@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>QA Report: [[APP_NAME]]</title>
+    <script src="https://cdn.jsdelivr.net/npm/@wix/htmdx@2.2.1/dist/browser.js" defer></script>
+  </head>
+  <body>
+    <!-- prettier-ignore -->
+    <script type="text/htmdx" data-htmdx-edit-instruction="Edit only this script content. HTMDX format.">
+---
+title: QA Report: [[APP_NAME]]
+project: [[APP_NAME]]
+phase: [[TIER]]
+updated: [[DATE]]
+theme: teal
+---
+
+<ExecutiveSummary>
+Health score: **[[SCORE]]/100**. [[ONE_SENTENCE_CONCLUSION]]
+</ExecutiveSummary>
+
+<MetricStrip>
+- Health: **[[SCORE]]/100**
+- Issues: **[[ISSUE_COUNT]]**
+- Fixed: **[[FIX_COUNT]]**
+- Pages: **[[PAGE_COUNT]]**
+</MetricStrip>
+
+## Run metadata
+
+<DataTable>
+| Field | Value |
+| --- | --- |
+| URL | [[URL]] |
+| Branch | [[BRANCH]] |
+| Commit | [[COMMIT_SHA]] ([[COMMIT_DATE]]) |
+| PR | [[PR_NUMBER]] ([[PR_URL]]) or — |
+| Tier | Quick / Standard / Exhaustive |
+| Scope | [[SCOPE_OR_FULL_APP]] |
+| Duration | [[DURATION]] |
+| Screenshots | [[SCREENSHOT_COUNT]] |
+| Framework | [[DETECTED_OR_UNKNOWN]] |
+| Control surface | [[CONTROL_SURFACE]] |
+</DataTable>
+
+## Top things to fix
+
+1. **[[HIGHEST_SEVERITY_ISSUE]]**
+2. **[[SECOND_ISSUE_OR_NONE]]**
+3. **[[DEFERRED_ISSUE_OR_NONE]]**
+
+## Issues
+
+### ISSUE-001: [[SHORT_TITLE]]
+
+<Evidence>
+- **Severity:** critical / high / medium / low
+- **Category:** visual / functional / ux / content / performance / console / accessibility
+- **URL:** [[PAGE_URL]]
+- **Description:** [[EXPECTED_VS_ACTUAL]]
+- **Fix hint:** [[LIKELY_COMPONENT_OR_SEARCH_TERM]]
+</Evidence>
+
+1. Navigate to [[PAGE_URL]].
+   ![Step 1](screenshots/issue-001-step-1.png)
+2. [[ACTION]].
+   ![Result](screenshots/issue-001-result.png)
+
+## Fixes and verification
+
+<DataTable>
+| Issue | Status | Commit | Files changed |
+| --- | --- | --- | --- |
+| ISSUE-NNN | verified / best-effort / reverted / deferred | [[SHA]] | [[FILES]] |
+</DataTable>
+
+### Before and after
+
+<Compare>
+- **Before:** ![Before](screenshots/issue-NNN-before.png)
+- **After:** ![After](screenshots/issue-NNN-after.png)
+</Compare>
+
+## Regression
+
+<DataTable>
+| Metric | Baseline | Current | Delta |
+| --- | ---: | ---: | ---: |
+| Health score | [[N]] | [[N]] | [[DELTA]] |
+| Issues | [[N]] | [[N]] | [[DELTA]] |
+</DataTable>
+
+## Ship readiness
+
+**PR summary:** QA found [[N]] issues, fixed [[M]], health score [[BEFORE]] → [[AFTER]].
+    </script>
+  </body>
+</html>

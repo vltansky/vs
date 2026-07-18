@@ -82,4 +82,11 @@ describe('orchestrate: GOALS.md roadmap reference', () => {
     expect(ROADMAP).toMatch(/optional/i);
     expect(ROADMAP).toMatch(/Skip it/i);
   });
+
+  it('uses HTMDX only for a dashboard whose visual structure helps orientation', () => {
+    expect(ROADMAP).toMatch(/HTMDX/);
+    expect(ROADMAP).toMatch(/visual\s+structure/i);
+    expect(ROADMAP).toMatch(/GOALS\.md.*source of truth/is);
+    expect(ROADMAP).toMatch(/single.*\.html/is);
+  });
 });
