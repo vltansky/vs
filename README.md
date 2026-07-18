@@ -107,7 +107,7 @@ Before shipping:      /vs-improve branch -> /vs-ship-it
 
 | Skill | Use it to |
 |---|---|
-| `/vs-pushback` | Stress-test an idea, spec, or plan |
+| `/vs-pushback` | Stress-test an idea, spec, or plan, with risk-gated independent model challenge |
 | `/vs-prototype` | Answer one UI or logic question with throwaway code |
 | `/vs-github-research` | Find external GitHub examples, patterns, and prior art |
 | `/vs-rfc-research` | Turn code and research evidence into an RFC, ADR, or proposal |
@@ -120,7 +120,6 @@ Before shipping:      /vs-improve branch -> /vs-ship-it
 | `/vs-deslop` | Simplify bloated or repetitive code without changing behavior |
 | `/vs-write` | Write or reshape clear prose without losing substance |
 | `/vs-brief` | Turn a git diff into a concise review brief |
-| `/vs-second-opinion` | Get and synthesize an independent advisor perspective |
 | `/vs-perf` | Optimize performance against an explicit evaluator |
 | `/vs-to-issues` | Turn a plan, spec, or RFC into vertical-slice GitHub issues |
 | `/vs-steal` | Find ideas worth porting from another repository |

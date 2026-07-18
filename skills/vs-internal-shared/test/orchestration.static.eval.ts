@@ -11,6 +11,14 @@ const SUBAGENTS = fs.readFileSync(
   path.join(SHARED_DIR, 'references', 'subagents.md'),
   'utf8',
 );
+const INDEPENDENT_ADVISORS = fs.readFileSync(
+  path.join(SHARED_DIR, 'references', 'independent-advisors.md'),
+  'utf8',
+);
+const PUSHBACK = fs.readFileSync(
+  path.resolve(SHARED_DIR, '..', 'vs-pushback', 'SKILL.md'),
+  'utf8',
+);
 const BUILD_IT = fs.readFileSync(
   path.resolve(SHARED_DIR, '..', 'vs-build-it', 'SKILL.md'),
   'utf8',
@@ -33,6 +41,14 @@ const RFC_RESEARCH = fs.readFileSync(
 );
 const IMPROVE = fs.readFileSync(
   path.resolve(SHARED_DIR, '..', 'vs-improve', 'SKILL.md'),
+  'utf8',
+);
+const README = fs.readFileSync(
+  path.resolve(SHARED_DIR, '..', '..', 'README.md'),
+  'utf8',
+);
+const PLUGIN = fs.readFileSync(
+  path.resolve(SHARED_DIR, '..', '..', '.claude-plugin', 'plugin.json'),
   'utf8',
 );
 
@@ -105,12 +121,54 @@ describe('subagent budget', () => {
     expect(RFC_RESEARCH).toMatch(/one Explore child per evidence domain/is);
     expect(RFC_RESEARCH).toMatch(/reserve one child slot for Phase 5/is);
     expect(RFC_RESEARCH).toMatch(/draft\s+file path.*do not paste/is);
-    expect(RFC_RESEARCH).toMatch(/second opinion.*budget remains/is);
+    expect(RFC_RESEARCH).toMatch(/independent-advisors.*budget remains/is);
   });
 
   it('gates cross-model review instead of running it unconditionally', () => {
     expect(ROAST_REVIEW).toMatch(/Run Codex review only when/is);
     expect(ROAST_REVIEW).toMatch(/Parent Roast \+ Gated Codex Review/);
     expect(ROAST_REVIEW).not.toMatch(/Always try to run Codex review/);
+  });
+});
+
+describe('independent advisor fanout', () => {
+  it('keeps one public pushback intent and an internal reusable contract', () => {
+    expect(
+      fs.existsSync(path.resolve(SHARED_DIR, '..', 'vs-second-opinion')),
+    ).toBe(false);
+    expect(PUSHBACK).toContain(
+      '../vs-internal-shared/references/independent-advisors.md',
+    );
+    expect(ROAST_REVIEW).toContain(
+      '../vs-internal-shared/references/independent-advisors.md',
+    );
+    expect(RFC_RESEARCH).toContain(
+      '../vs-internal-shared/references/independent-advisors.md',
+    );
+    expect(README).not.toContain('/vs-second-opinion');
+    expect(PLUGIN).not.toContain('./skills/vs-second-opinion');
+  });
+
+  it('risk-gates model diversity without delaying the first round', () => {
+    expect(INDEPENDENT_ADVISORS).toMatch(/substantial.*one advisor/is);
+    expect(INDEPENDENT_ADVISORS).toMatch(
+      /high-risk or disputed.*two advisors/is,
+    );
+    expect(INDEPENDENT_ADVISORS).toMatch(/different model family/is);
+    expect(INDEPENDENT_ADVISORS).toMatch(/45-second deadline/i);
+    expect(INDEPENDENT_ADVISORS).toMatch(/never delay Round 1/i);
+    expect(INDEPENDENT_ADVISORS).toMatch(/discard.*late/is);
+  });
+
+  it('treats advisor output as bounded evidence instead of votes', () => {
+    expect(INDEPENDENT_ADVISORS).toMatch(/top three falsifiable objections/i);
+    expect(INDEPENDENT_ADVISORS).toMatch(/minimal redacted context/i);
+    expect(INDEPENDENT_ADVISORS).toMatch(/skip and disclose/i);
+    expect(INDEPENDENT_ADVISORS).toMatch(/do not majority-vote/i);
+  });
+
+  it('dispatches during pushback pre-scan and collects before the verdict', () => {
+    expect(PUSHBACK).toMatch(/dispatch.*during pre-scan/is);
+    expect(PUSHBACK).toMatch(/collect.*before the verdict/is);
   });
 });
