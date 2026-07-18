@@ -85,6 +85,19 @@ contract in their always-loaded body.
 Use [`references/subagents.md`](./references/subagents.md) for shared fanout,
 context, ownership, and collection limits.
 
+## Chaining and invocation gates
+
+Skills chain by loading a sibling's SKILL.md directly (`../vs-x/SKILL.md`), not
+by invoking it through the host's skill command. A `disable-model-invocation`
+flag blocks the host command only — it must never silently degrade a workflow:
+
+- When a workflow's next step is another vs skill, load and follow that skill's
+  SKILL.md file.
+- If the host cannot resolve the file and the skill command is gated, tell the
+  user the exact slash command to type and stop. Do not improvise a manual
+  replacement for the gated workflow — a hand-rolled `gh pr create` is not
+  ship-it, and the user cannot tell the difference from the output alone.
+
 ## Flow contracts
 
 Public building blocks should include a short Flow Contract section so workflows

@@ -516,7 +516,9 @@ comparison evidence to `vs-brief`; if a required capture was blocked, pass the
 blocker instead of inventing evidence.
 
 Use the required shell in [references/handoff.md](./references/handoff.md) and
-include a minimal diff stat. Load `../vs-brief/SKILL.md` only when the change is
+include a minimal diff stat. If the user asked build-it to also ship, load and
+follow `../vs-ship-it/SKILL.md`; if the host cannot resolve it, say to type
+`/vs-ship-it` and stop — do not hand-roll a PR flow in its place. Load `../vs-brief/SKILL.md` only when the change is
 non-trivial (more than 3 files, a durable design decision, user-requested PR
 orientation, or meaningful before-and-after evidence). Load
 `../vs-walkthrough/SKILL.md` only when the user asks for a
