@@ -204,3 +204,11 @@ Valid `<command>` is any command from the table above. Report the script's resul
 ## Hooks
 
 `/vs-roast-ui hooks <on|off|status|ignore-rule|ignore-file|ignore-value|reset>` manages the design detector hook for this project. The hook auto-runs the detector after direct UI file edits and surfaces findings as system reminders. Full flow is in [references/hooks.md](references/hooks.md); load it when the user invokes `/vs-roast-ui hooks` with any argument.
+
+## Workflow
+
+Direct: emit **Next** only. Composed: return to caller.
+
+**Prev:** frontend implementation | design request
+**Next:** `/vs-verify`
+**Relevant:** `/vs-deslop` | `/vs-qa`

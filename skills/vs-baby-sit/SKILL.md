@@ -356,5 +356,8 @@ Update `PREV_HEAD_SHA`, `PREV_THREADS`, and `PREV_CI` after each iteration.
 
 ## Workflow
 
-**Prev:** `/vs-ship-it` (PR just created) | standalone
-**Next:** PR merged | `/vs-fix-pr` (if human wants to handle ambiguous threads)
+Direct: emit **Next** only. Composed: return to caller.
+
+**Prev:** `/vs-ship-it` | standalone PR
+**Next:** done
+**Relevant:** `/vs-fix-pr` | `/vs-orchestrate`

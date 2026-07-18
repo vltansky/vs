@@ -273,5 +273,8 @@ Cite the specific positive assertions that earned the clean bill.
 
 ## Workflow
 
-**Prev:** `/vs-build-it` (runs review internally) | `/vs-tdd` | `/vs-qa` | any implementation work
-**Next:** `/vs-ship-it` (create PR — runs review automatically if skipped)
+Direct: emit **Next** only. Composed: return to caller.
+
+**Prev:** `/vs-build-it` | `/vs-tdd` | `/vs-qa`
+**Next:** `/vs-ship-it`
+**Relevant:** `/vs-pushback`

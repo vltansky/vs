@@ -46,3 +46,11 @@ We added the `vs-recap` skill as a standalone marketplace skill and wired the VS
 
 Possible actions: create PR, add eval, adjust wording, stop here.
 ```
+
+## Workflow
+
+Direct: emit **Next** only. Composed: return to caller.
+
+**Prev:** context switch | interrupted task
+**Next:** done
+**Relevant:** `/vs-ship-it` | `/vs-brief`

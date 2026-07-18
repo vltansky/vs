@@ -162,7 +162,10 @@ Return the copy directly in the format the user requested. Do not preface it
 with process commentary. When notes are necessary, place them after the copy
 under `Notes` and keep them brief.
 
-## Workflow position
+## Workflow
+
+Direct: emit **Next** only. Composed: return to caller.
 
 **Prev:** source material, research, draft, or direct writing request
-**Next:** human review, publication, or the workflow that requested the copy
+**Next:** done
+**Relevant:** `/vs-brief` | `/vs-github-research`

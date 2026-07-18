@@ -236,5 +236,8 @@ export default {
 
 ## Workflow
 
-**Prev:** test failure | user report | `/vs-build-it` (guardrail failures)
-**Next:** `/vs-tdd` (write regression test for the fix) | `/vs-roast-review` (review the fix)
+Direct: emit **Next** only. Composed: return to caller.
+
+**Prev:** failure | user report | `/vs-build-it`
+**Next:** `/vs-tdd`
+**Relevant:** `/vs-second-opinion`

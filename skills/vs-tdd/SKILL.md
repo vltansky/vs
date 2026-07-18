@@ -155,5 +155,8 @@ TDD returns: test file path, implementation file paths, guardrail results.
 
 ## Workflow
 
-**Prev:** `/vs-debug-mode` (found root cause, need a regression test) | `/vs-build-it` (uses TDD internally)
-**Next:** `/vs-roast-review` (review the implementation) | `/vs-ship-it` (ship it)
+Direct: emit **Next** only. Composed: return to caller.
+
+**Prev:** `/vs-debug-mode` | `/vs-build-it`
+**Next:** `/vs-roast-review`
+**Relevant:** `/vs-verify`

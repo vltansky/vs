@@ -551,4 +551,10 @@ orientation, or meaningful before-and-after evidence).
   do not implement it. [EASY TO MISS: "cleaning up" adjacent code or adding
   "helpful" extras IS scope expansion, even when it feels like good practice.]
 
-**Prev:** `/vs-shape-it`, `/vs-pushback`, `/vs-rfc-research`, `/vs-orchestrate` (one milestone), or none. **Next:** `/vs-ship-it` or `/vs-roast-review`.
+## Workflow
+
+Direct: emit **Next** only. Composed: return to caller.
+
+**Prev:** `/vs-shape-it` | `/vs-pushback` | `/vs-rfc-research` | `/vs-orchestrate`
+**Next:** `/vs-ship-it`
+**Relevant:** `/vs-bugfix` | `/vs-decide-for-me`

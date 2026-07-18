@@ -172,5 +172,8 @@ Call the LLM with a constrained JSON schema:
 
 ## Workflow
 
-**Prev:** `/vs-build-it` (loads this skill for Phase 7) | standalone on any branch
-**Next:** `/vs-ship-it` | done
+Direct: emit **Next** only. Composed: return to caller.
+
+**Prev:** `/vs-build-it` | standalone branch
+**Next:** `/vs-ship-it`
+**Relevant:** `/vs-write` | `/vs-recap`

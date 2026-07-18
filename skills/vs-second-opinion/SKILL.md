@@ -60,5 +60,8 @@ credentials and send only the minimum context needed.
 
 ## Workflow
 
+Direct: emit **Next** only. Composed: return to caller.
+
 **Prev:** `/vs-pushback`, `/vs-rfc-research`, `/vs-roast-review`, risky implementation
-**Next:** revise plan, `/vs-verify`, `/vs-build-it`, or `/vs-ship-it`
+**Next:** `/vs-build-it`
+**Relevant:** `/vs-debug-mode` | `/vs-prototype`

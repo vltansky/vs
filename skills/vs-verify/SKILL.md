@@ -87,5 +87,8 @@ Consumers repeat the verify status; they do not soften it:
 
 ## Workflow
 
-**Prev:** `/vs-build-it`, `/vs-bugfix`, `/vs-fix-pr`, `/vs-qa`, direct implementation
-**Next:** `/vs-brief`, `/vs-ship-it`, or fix the failing evidence
+Direct: emit **Next** only. Composed: return to caller.
+
+**Prev:** `/vs-build-it` | `/vs-bugfix` | `/vs-fix-pr` | `/vs-qa`
+**Next:** `/vs-ship-it`
+**Relevant:** `/vs-perf` | `/vs-tdd`

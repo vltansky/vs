@@ -68,5 +68,8 @@ and frame the work as cleanup or architecture, not proven performance.
 
 ## Workflow
 
-**Prev:** `/vs-shape-it`, `/vs-rfc-research`, direct optimization request
-**Next:** `/vs-build-it`, `/vs-verify`, `/vs-ship-it`
+Direct: emit **Next** only. Composed: return to caller.
+
+**Prev:** `/vs-shape-it` | `/vs-rfc-research` | optimization request
+**Next:** `/vs-build-it`
+**Relevant:** `/vs-verify` | `/vs-prototype`

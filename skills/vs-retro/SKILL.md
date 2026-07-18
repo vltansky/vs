@@ -151,3 +151,11 @@ Format for per-skill references:
 - Does not run automatically — explicit invocation only
 - Does not extract code patterns (derivable from the code itself)
 - Does not duplicate what's already in CLAUDE.md or memory files — check before proposing
+
+## Workflow
+
+Direct: emit **Next** only. Composed: return to caller.
+
+**Prev:** completed session | project milestone
+**Next:** done
+**Relevant:** `/vs-try-skill`

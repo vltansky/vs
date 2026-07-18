@@ -456,5 +456,8 @@ If repo has `TODOS.md`:
 
 ## Workflow
 
-**Prev:** `/vs-build-it` (uses QA internally for web apps) | manual implementation
-**Next:** `/vs-roast-review` (code review after QA fixes) | `/vs-ship-it` (ship if healthy)
+Direct: emit **Next** only. Composed: return to caller.
+
+**Prev:** `/vs-build-it` | manual implementation
+**Next:** `/vs-roast-review`
+**Relevant:** `/vs-bugfix` | `/vs-roast-ui`

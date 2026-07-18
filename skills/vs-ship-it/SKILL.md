@@ -519,5 +519,8 @@ each item below.
 
 ## Workflow
 
-**Prev:** `/vs-roast-review` (review passed) | `/vs-build-it` (handoff suggests ship-it)
-**Next:** requested `/vs-baby-sit` continuation | done
+Direct: emit **Next** only. Composed: return to caller.
+
+**Prev:** `/vs-roast-review` | `/vs-build-it`
+**Next:** done
+**Relevant:** `/vs-recap`

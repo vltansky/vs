@@ -258,5 +258,8 @@ Print the report path plus a short clusters summary.
 
 ## Workflow
 
-**Prev:** user question, `/vs-shape-it` needing prior art, or `/vs-pushback` needing external evidence.
-**Next:** `/vs-rfc-research` (formalize decision), `/vs-steal` (deep dive one repo), `/vs-github-research` in landscape mode (broaden the scan), or `/vs-shape-it` (turn findings into design).
+Direct: emit **Next** only. Composed: return to caller.
+
+**Prev:** research question | `/vs-shape-it` | `/vs-pushback`
+**Next:** `/vs-rfc-research`
+**Relevant:** `/vs-steal` | `/vs-write`

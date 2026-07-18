@@ -478,5 +478,8 @@ List every auto-resolved decision here.
 
 ## Workflow
 
-**Prev:** user bug report | GitHub issue | test failure | `/vs-debug-mode` (wants autonomous fix after investigation)
-**Next:** `/vs-ship-it` (create PR) | `/vs-roast-review` (manual review if not satisfied)
+Direct: emit **Next** only. Composed: return to caller.
+
+**Prev:** bug report | issue | test failure | `/vs-debug-mode`
+**Next:** `/vs-ship-it`
+**Relevant:** `/vs-build-it` | `/vs-qa`

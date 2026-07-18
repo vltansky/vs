@@ -175,5 +175,8 @@ Before finishing, check:
 
 ## Workflow
 
+Direct: emit **Next** only. Composed: return to caller.
+
 **Prev:** `/vs-shape-it` or a concrete implementation uncertainty
-**Next:** human review, then `/vs-shape-it` or `/vs-build-it`
+**Next:** `/vs-shape-it`
+**Relevant:** `/vs-perf` | `/vs-second-opinion`

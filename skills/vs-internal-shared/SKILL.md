@@ -119,6 +119,13 @@ flag blocks the host command only — it must never silently degrade a workflow:
   replacement for the gated workflow — a hand-rolled `gh pr create` is not
   ship-it, and the user cannot tell the difference from the output alone.
 
+## Framework routing
+
+Every user-facing skill ends with compact `Prev`, `Next`, and `Relevant` lines.
+On standalone completion, emit only the `Next` line. When composed by another
+workflow, return to the caller without emitting it. `Relevant` is lateral,
+reciprocal, and limited to two skills; it is map metadata, not runtime output.
+
 ## Flow contracts
 
 Public building blocks should include a short Flow Contract section so workflows

@@ -101,3 +101,11 @@ If the user applies a fix, offer to re-run Step 3-5 with the same blind prompt t
 - If the subagent's report mentions your expected behavior verbatim, you leaked context — rewrite the prompt.
 - This is complementary to `skill-test` (offline `claude -p` canary runs) — use `vs-try-skill` mid-iteration, `skill-test` for scripted regression.
 - Does not produce session artifacts. Comparison is inline.
+
+## Workflow
+
+Direct: emit **Next** only. Composed: return to caller.
+
+**Prev:** skill change | behavior hypothesis
+**Next:** done
+**Relevant:** `/vs-retro`

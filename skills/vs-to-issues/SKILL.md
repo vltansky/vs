@@ -230,5 +230,8 @@ Emit a handoff block:
 
 ## Workflow
 
-**Prev:** `/vs-shape-it` (plan formed) | `/vs-pushback` (plan stress-tested)
-**Next:** `/vs-build-it` (execute afk slices) | direct agent dispatch against issues | human review of `needs-review` drafts
+Direct: emit **Next** only. Composed: return to caller.
+
+**Prev:** `/vs-shape-it` | `/vs-pushback`
+**Next:** `/vs-build-it`
+**Relevant:** `/vs-improve` | `/vs-setup-adr`

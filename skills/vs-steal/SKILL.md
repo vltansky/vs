@@ -134,5 +134,8 @@ Blocked until all items pass:
 
 ## Workflow
 
+Direct: emit **Next** only. Composed: return to caller.
+
 **Prev:** (entry point — user points at an external repo)
-**Next:** `/vs-shape-it` (adapt a steal into a design) | `/vs-to-issues` (file the port) | `/vs-github-research` (broaden the scan)
+**Next:** `/vs-shape-it`
+**Relevant:** `/vs-github-research`

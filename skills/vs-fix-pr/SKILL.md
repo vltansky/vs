@@ -431,5 +431,8 @@ Blocked until all items pass — do not report "all addressed" without evidence 
 
 ## Workflow
 
-**Prev:** `/vs-ship-it` (PR created, reviewers left comments)
-**Next:** `/vs-ship-it` (re-push after fixes) | `/vs-roast-review` (self-review before re-push) | done
+Direct: emit **Next** only. Composed: return to caller.
+
+**Prev:** `/vs-ship-it` | PR feedback
+**Next:** `/vs-ship-it`
+**Relevant:** `/vs-baby-sit`

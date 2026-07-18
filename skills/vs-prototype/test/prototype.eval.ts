@@ -34,6 +34,7 @@ describe('prototype', () => {
     expect(SKILL).toMatch(/Do not start a dev server unless the user explicitly\s+asks/i);
     expect(SKILL).toMatch(/Status: READY_FOR_REVIEW/);
     expect(SKILL).toMatch(/~\/\.vs\/\$PROJECT_ID\/prototypes/);
-    expect(SKILL).toMatch(/human review, then `\/vs-shape-it` or `\/vs-build-it`/i);
+    expect(SKILL).toMatch(/^\*\*Next:\*\* `\/vs-shape-it`$/m);
+    expect(SKILL).toMatch(/^\*\*Relevant:\*\* `\/vs-perf` \| `\/vs-second-opinion`$/m);
   });
 });

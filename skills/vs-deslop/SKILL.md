@@ -68,5 +68,8 @@ Inspect the requested scope for:
 
 ## Workflow
 
-**Prev:** `/vs-build-it`, `/vs-roast-review`, `/vs-qa`, direct implementation
-**Next:** `/vs-verify`, `/vs-brief`, `/vs-ship-it`
+Direct: emit **Next** only. Composed: return to caller.
+
+**Prev:** `/vs-build-it` | `/vs-roast-review` | `/vs-qa`
+**Next:** `/vs-verify`
+**Relevant:** `/vs-roast-ui`

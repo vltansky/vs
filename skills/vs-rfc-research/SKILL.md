@@ -344,5 +344,8 @@ Before completing the RFC, verify:
 
 ## Workflow
 
-**Prev:** `/vs-github-research` (deep-dive GitHub research that feeds the RFC)
-**Next:** `/vs-pushback` (stress-test the RFC) | `/vs-build-it` (implement the approved RFC)
+Direct: emit **Next** only. Composed: return to caller.
+
+**Prev:** `/vs-github-research` | technical decision
+**Next:** `/vs-pushback`
+**Relevant:** `/vs-setup-adr`

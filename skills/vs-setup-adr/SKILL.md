@@ -117,3 +117,11 @@ Report:
 - which files were added or updated
 - whether the repo already had ADR-related conventions
 - any legacy docs you intentionally left untouched
+
+## Workflow
+
+Direct: emit **Next** only. Composed: return to caller.
+
+**Prev:** architecture decision | `/vs-shape-it`
+**Next:** `/vs-shape-it`
+**Relevant:** `/vs-rfc-research` | `/vs-to-issues`

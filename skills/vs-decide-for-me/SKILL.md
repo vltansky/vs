@@ -275,5 +275,8 @@ Why I'm asking:
 
 ## Workflow
 
+Direct: emit **Next** only. Composed: return to caller.
+
 **Prev:** any task where the user wants less interruption
-**Next:** continue the active domain skill with a higher self-answer threshold
+**Next:** done
+**Relevant:** `/vs-build-it` | `/vs-orchestrate`

@@ -222,5 +222,8 @@ report first if needed, then use these anchors:
 
 ## Workflow
 
-**Prev:** `/vs-shape-it`, `/vs-rfc-research`, or a formed user idea/spec/plan
-**Next:** `/vs-build-it`, `/vs-to-issues`, `/vs-rfc-research`, or rework and run `/vs-pushback` again
+Direct: emit **Next** only. Composed: return to caller.
+
+**Prev:** `/vs-shape-it` | `/vs-rfc-research` | formed proposal
+**Next:** `/vs-build-it`
+**Relevant:** `/vs-roast-review`

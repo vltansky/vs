@@ -136,6 +136,8 @@ Before finishing, check:
 
 ## Workflow
 
-**Prev:** `/vs-shape-it` (approved multi-milestone spec)
-**Next:** `/vs-build-it` per milestone; `/vs-ship-it`, `/vs-baby-sit` to ship a
-milestone; `/vs-shape-it` again if discovery invalidates the premise
+Direct: emit **Next** only. Composed: return to caller.
+
+**Prev:** `/vs-shape-it` | multi-milestone spec
+**Next:** `/vs-build-it`
+**Relevant:** `/vs-baby-sit` | `/vs-decide-for-me`

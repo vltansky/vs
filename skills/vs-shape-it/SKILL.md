@@ -242,7 +242,8 @@ Before finishing, check:
 
 ## Workflow
 
+Direct: emit **Next** only. Composed: return to caller.
+
 **Prev:** idea, rough plan, or question
-**Next:** `/vs-build-it` by default; `/vs-orchestrate` for a multi-milestone
-spec; `/vs-pushback`, `/vs-prototype`, or `/vs-to-issues` when the shaped work
-warrants it
+**Next:** `/vs-build-it`
+**Relevant:** `/vs-improve`
