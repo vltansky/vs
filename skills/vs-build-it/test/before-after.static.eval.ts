@@ -44,4 +44,11 @@ describe('build-it before and after evidence', () => {
       /comparison evidence overrides the trivial-diff skip/is,
     );
   });
+
+  it('uses Mermaid only when relationships materially improve orientation', () => {
+    expect(BRIEF).toMatch(/### How it fits together/);
+    expect(BRIEF).toMatch(/```mermaid/);
+    expect(BRIEF).toMatch(/three or more\s+interacting components/is);
+    expect(BRIEF).toMatch(/Omit it for a simple file list/i);
+  });
 });

@@ -88,6 +88,10 @@ Call the LLM with a constrained JSON schema:
   "review_focus": [
     { "location": "path/to/file.ts:line", "trigger": "<concrete condition that would make this a problem>" }
   ],
+  "diagram": {
+    "kind": "flowchart | sequence | state",
+    "code": "<Mermaid source without the code fence>"
+  },
   "comparison": {
     "kind": "ui | text",
     "subject": "<route, command, or output being compared>",
@@ -122,6 +126,15 @@ Call the LLM with a constrained JSON schema:
 
 {if lock/generated files changed:}
 **Dependencies** — lock files / generated files updated
+
+---
+
+{if diagram present:}
+### How it fits together
+
+```mermaid
+{diagram.code}
+```
 
 ---
 
@@ -161,6 +174,17 @@ Call the LLM with a constrained JSON schema:
 - `{location}` — {trigger}
 </details>
 ````
+
+## Diagram rules
+
+Include `diagram` when the change is best understood as three or more
+interacting components, a multi-step runtime sequence, or meaningful state
+transitions. Derive every node and edge from the diff or supplied evidence.
+Keep it to roughly eight nodes and explain the takeaway in the summary or the
+sentence before the diagram. Prefer behavior-oriented labels over a second file
+list. Omit it for a simple file list, a single fact, or a linear two-step change.
+Follow the shared Mermaid guidance in
+[`../vs-internal-shared/references/rich-artifacts.md`](../vs-internal-shared/references/rich-artifacts.md).
 
 ## Review focus rules
 
