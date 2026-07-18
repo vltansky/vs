@@ -37,6 +37,10 @@ Return to the full flow only when the plan changed materially.
   round; every question in a round must be answerable without the others'
   answers. When a question depends on an earlier answer, hold it for a later
   round or state the dependency inline ("if Q1 is B, skip this").
+- Render the round through the host's structured question tool when available
+  (`AskUserQuestion` in Claude Code); see [internal-shared](../vs-internal-shared/SKILL.md)
+  Structured questions. Keep the text `Round`/`Q` format for hosts without it
+  and for open-ended defend/modify prompts.
 - Every question must include a recommendation with a one-clause rationale —
   `Recommendation: A — <why>` — and concrete options. Users reliably ask "why
   is that better?" when the reason is withheld; answer it before it is asked.

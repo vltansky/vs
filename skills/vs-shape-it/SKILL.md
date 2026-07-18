@@ -57,6 +57,9 @@ If intent, constraints, success criteria, or an expensive-to-reverse choice is
 still unclear, ask up to 3 strategic questions in one round. Otherwise state
 the assumptions and continue without interviewing again.
 
+- Render the round through the host's structured question tool when available
+  (`AskUserQuestion` in Claude Code); see [internal-shared](../vs-internal-shared/SKILL.md)
+  Structured questions. Fall back to the text format below otherwise.
 - Batch only independent questions; every question in the round must be
   answerable without the others' answers. If a question depends on an earlier
   answer, state the dependency inline or save it for a rare second round.

@@ -85,6 +85,21 @@ contract in their always-loaded body.
 Use [`references/subagents.md`](./references/subagents.md) for shared fanout,
 context, ownership, and collection limits.
 
+## Structured questions
+
+When the host exposes a structured question tool — Claude Code's
+`AskUserQuestion`, or an equivalent multiple-choice prompt UI — present
+clarifying and grill questions through it instead of plain chat text. One tool
+call carries the batched round; each question lists its options with the
+recommended one first, labeled the default. This is the default rendering in
+Claude Code.
+
+Fall back to the plain-text `Question N` / `Recommendation` / `Options: A) ...`
+format only when no such tool is available (for example Codex today), or when a
+question is genuinely open-ended (defend/modify/counter) rather than a choice
+among known options. The batching limits and the recommendation-as-default rule
+are identical in both renderings — only the surface changes.
+
 ## Chaining and invocation gates
 
 Skills chain by loading a sibling's SKILL.md directly (`../vs-x/SKILL.md`), not
