@@ -28,6 +28,11 @@ Do not reach for this on a single-session change (use `/vs-build-it`) or a
 single PR to tend (use `/vs-baby-sit`). If the project fits one build-it run,
 it does not need a coordinator.
 
+A spec containing several desirable milestones is not enough. Orchestrate only
+when the smallest valuable deployable outcome itself needs durable coordination
+across milestones. If one build-it run can ship that slice, route there and
+leave later capabilities as follow-ups.
+
 ## Boundaries
 
 - `/vs-shape-it` produces the frozen spec (why, what, Goal Contract, Execution
@@ -70,11 +75,28 @@ already provides; carry its milestones and lanes forward.
 If no spec exists, route to `/vs-shape-it` first — orchestrate coordinates a
 shaped project, it does not shape one.
 
+Before writing GOALS.md, perform a proportionality check: name the smallest
+deployable vertical slice and determine whether it fits one `/vs-build-it` run.
+If it does, hand off to build-it and stop; do not create a roadmap merely because
+the spec lists later providers, reliability work, dashboards, or experiments.
+The slice must advance the approved outcome beyond the confirmed baseline; an
+audit of behavior already known to work is evidence, not a substitute delivery.
+
 ### 2. Activate one milestone
 
 Set the active objective to the current milestone's outcome and evidence.
 Exactly one milestone is active. Keep this thread focused on objective,
 constraints, decisions, and state — not implementation detail.
+
+Order milestones by delivery uncertainty:
+
+1. user help, external access, approval, or ownership needed for proof;
+2. the cheapest test of a plan-invalidating assumption;
+3. the smallest deployable vertical slice;
+4. deeper reliability, scale, and optional capabilities.
+
+An inventory or internal foundation is not automatically Milestone 0. Put it
+first only when it changes a decision or unblocks the vertical slice.
 
 ### 3. Delegate
 
@@ -86,19 +108,19 @@ lanes. Prefer a separate thread when the work should stay inspectable later; a
 subagent for bounded work that needs no visible history. Workers return
 conclusions, changes, and evidence, not transcripts.
 
-### 4. Gate the milestone
+### 4. Gate proportionally
 
-Before activating the next milestone, run the gate in a fresh context so it does
-not inherit worker assumptions:
+Before activating the next milestone, audit GOALS.md against reality: is the
+milestone actually done, is the next one still right, did evidence reorder the
+work, and does the definition of done still hold? This audit is lightweight and
+stays in the coordinator unless independence materially improves the evidence.
 
-- **Audit** GOALS.md against reality: is the milestone actually done, is the next
-  one still right, are any milestones missing, has new evidence reordered the
-  work, does the definition of done still hold?
-- **Review** the milestone's implementation with `/vs-roast-review`.
-- **Verify** the milestone's evidence with `/vs-verify`. A milestone is complete
-  only when its evidence-required exists; inherit the verify status verbatim and
-  never mark a milestone done on a `WARN`/`BLOCKED`. Use `/vs-verify`'s
-  independent-reproduction and artifact-identity rungs for high-stakes evidence.
+Use `/vs-roast-review` and `/vs-verify` at risky integration, irreversible data,
+security, external mutation, deployment, or final acceptance boundaries. Group
+several low-risk internal milestones behind one integration gate instead of
+paying the full review/verify ceremony after each artifact. A milestone still
+needs its stated evidence before completion; when `/vs-verify` runs, inherit the
+verify status verbatim and never call `WARN` or `BLOCKED` complete.
 
 Update GOALS.md with what the gate found, then activate the next milestone.
 
@@ -135,7 +157,11 @@ Before finishing, check:
 
 - GOALS.md exists, uses the milestone schema, and cross-links the spec
 - exactly one milestone was active at a time
-- every milestone passed the audit + review + verify gate before the next activated
+- the proportionality check did not turn a one-run vertical slice into a roadmap
+- milestones addressed user dependencies and plan-invalidating risks before
+  broad foundations
+- every milestone passed a lightweight reality audit; full review and verify ran
+  at the relevant risk, integration, deployment, or acceptance boundaries
 - no milestone was marked done without its evidence
 - no implementation happened in this thread; each milestone went to build-it
 - reports were change-only; blockers are explicit

@@ -51,7 +51,9 @@ use it as the run-level progress contract for build-it:
 
 These apply the shared `vs-decide-for-me` contract to every question that would normally go to the user:
 
-1. **Completeness** — ship the whole thing. Pick the approach that covers more edge cases.
+1. **Outcome completeness** — ship the smallest complete observable outcome.
+   Do not implement every capability in a plan when a narrower vertical slice
+   satisfies the stated goal; defer non-blocking depth explicitly.
 2. **Pragmatic** — if two options fix the same thing, pick the simpler one. 5 seconds choosing, not 5 minutes.
 3. **DRY** — duplicates existing functionality? Reject. Reuse what exists.
 4. **Explicit over clever** — 10-line obvious fix > 200-line abstraction.
@@ -159,6 +161,29 @@ Use existing render/test infrastructure. If the baseline cannot be captured
 without a forbidden dev server, missing credentials, or unavailable fixture,
 record the exact blocker; for UI work, do not downgrade to a text comparison.
 
+### Step 1d: Order delivery by risk and user dependency
+
+Before extracting implementation steps, classify the work in this order:
+
+1. **User or external dependency:** access, credentials, ownership,
+   authorization, or a strategic decision required to prove the outcome. Ask or
+   request it before broad edits; do not spend a milestone building around an
+   unresolved dependency.
+2. **Plan-invalidating assumption:** run the cheapest safe probe that can prove
+   the current approach wrong or reorder it.
+3. **Deployable vertical slice:** identify the smallest end-to-end behavior that
+   reaches the real integration boundary, produces observable evidence, and
+   advances the requested outcome beyond the confirmed baseline. Do not relabel
+   re-verification of existing working behavior as the new delivery.
+4. **Deepening work:** reliability, scale, abstractions, additional providers,
+   dashboards, and optional capabilities follow only when required by the goal
+   or after the first slice works.
+
+Risk-first sequencing retires uncertainty; it is not permission to start with
+the largest defensive backend. Record the chosen vertical slice and deferred
+work in the decision log. If the smallest new value requires user access,
+surface that dependency instead of substituting easier lower-value work.
+
 ### Step 2: Create branch
 
 If not already on a feature branch, create one:
@@ -182,9 +207,14 @@ If already on a feature branch (not main/master/develop), stay on it.
 Break the plan into discrete implementation steps. Each step should be:
 - A single logical change (one file or a few tightly coupled files)
 - Independently committable
-- Ordered by dependency (foundations first, features on top)
+- Ordered by Step 1d; resolve code dependencies within the chosen vertical slice
 
 List the steps and move on. Do not ask for confirmation.
+
+Order steps using Step 1d before ordinary code dependencies. A foundation comes
+first only when it is the cheapest proof or is necessary for the smallest
+vertical slice. Prefer one end-to-end slice over separate contract-only,
+backend-only, and frontend-only milestones that delay observable behavior.
 
 ---
 
@@ -202,7 +232,8 @@ is auto-resolved:
 - **Step 2 (Premise Challenge)**: Run it. Auto-decide: accept premises that are
   supported by evidence in the codebase or plan. Challenge premises that contradict
   what you found in pre-scan. For each challenged premise, apply decision principle
-  #1 (completeness) — pick the interpretation that covers more ground.
+  #1 (outcome completeness) — pick the smallest interpretation that still
+  delivers the observable outcome.
 - **Step 3 (Dimension Grilling)**: For each question pushback would ask the user:
   - Apply the 6 decision principles to pick an answer.
   - Log the question, your answer, and which principle drove it.
@@ -323,8 +354,9 @@ model, when the host supports choosing one) to the lane: low for mechanical
 inventory, higher for ambiguous integration; take assignments from the
 Execution Strategy when present.
 
-Every brief names a first milestone that produces evidence before broad edits —
-for a fix lane, reproduce and report before editing. A worker that returns
+Every brief names a first milestone that retires a delivery risk or advances the
+smallest vertical slice before broad edits — for a fix lane, reproduce and
+report before editing. A worker that returns
 without evidence or changes has failed; re-scope the brief before re-spawning.
 After spawning, confirm each thread or subagent actually started; do not wait
 on an ID the host cannot resolve.
@@ -525,8 +557,10 @@ orientation, or meaningful before-and-after evidence).
 
 ## Important Rules
 
-- **Avoid user questions during Phases 1-6.** The exception is the circuit breaker
-  (`NOT_READY` verdict in Phase 1).
+- **Avoid routine user questions during Phases 1-6.** Exceptions are the circuit
+  breaker (`NOT_READY` verdict in Phase 1) and user-provided access, approval,
+  ownership, or strategic input required to prove the requested outcome. Surface
+  those dependencies before broad implementation.
 - **Log every decision.** No silent auto-decisions. The decision log is how the user
   audits what happened while they were away. [EASY TO MISS: an empty decision log
   at handoff means decisions were made silently — go back and reconstruct them.]

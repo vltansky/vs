@@ -360,6 +360,65 @@ Score 0.0: three or more mid-design approval requests (section-by-section gating
     await agent.dispose();
   });
 
+  it('broad analytics request: shapes a risk-first deployable slice', async () => {
+    const agent = await createAgent({
+      agent: EVAL_AGENT,
+      timeout: 300,
+      skillDir: SKILL_DIR,
+      workspace: FIXTURE_DIR,
+      debug: true,
+    });
+
+    await agent.prompt(
+      'Shape the next build for a Wix Headless marketing page. It currently sends Meta PageView and lead events. We eventually want GA4 attribution, PostHog funnels, agent-readable analytics, A/B tests, and qualified CRM conversions. We are authorized to push and deploy code, but external analytics access may require the user. Keep the first delivery useful and buildable.',
+    );
+
+    const result = await evaluate(
+      agent,
+      [
+        check('names-a-small-deployable-slice', ({ transcript }) =>
+          /smallest|first slice|vertical slice|first delivery/i.test(transcript) &&
+          /deploy|production|live|network/i.test(transcript),
+        ),
+        check('advances-beyond-the-existing-meta-baseline', ({ transcript }) =>
+          /GA4|Wix Analytics|agent-readable/i.test(transcript) &&
+          !/first delivery[^.\n]*Meta(?:-only| only)/i.test(transcript),
+        ),
+        check('surfaces-external-user-dependencies-early', ({ transcript }) =>
+          /access|credential|property id|ownership|approval/i.test(transcript) &&
+          /before|first|early|prerequisite|block/i.test(transcript),
+        ),
+        check('defers-nonblocking-platform-depth', ({ transcript }) => {
+          const deferred = [
+            /defer[^.\n]*PostHog|PostHog[^.\n]*later/i,
+            /defer[^.\n]*A\/B|A\/B[^.\n]*later/i,
+            /defer[^.\n]*(?:outbox|Data Manager|offline conversion)|(?:outbox|Data Manager|offline conversion)[^.\n]*later/i,
+            /defer[^.\n]*MCP|MCP[^.\n]*later/i,
+          ].filter((pattern) => pattern.test(transcript));
+          return deferred.length >= 2;
+        }),
+        check('keeps-first-delivery-direct', ({ transcript }) =>
+          /execution:\s*direct|one \/vs-build-it run|single build-it/i.test(
+            transcript,
+          ) && !/next:\s*\/vs-orchestrate/i.test(transcript),
+        ),
+        judge('risk-first-scope-quality', {
+          rubric: `Evaluate whether the shaped plan avoids recreating a conversion platform before shipping useful analytics:
+- It asks for or surfaces required external analytics access before broad implementation. (0-0.25)
+- It makes the first delivery a production-observable end-to-end tracking slice. (0-0.3)
+- The slice adds decision-enabling value beyond the existing Meta events instead of merely re-proving them. (0-0.15)
+- It explicitly defers at least two non-blocking capabilities such as PostHog, experiments, MCP access, or durable offline conversions. (0-0.25)
+- It recommends direct build-it execution instead of a multi-milestone orchestrator for the first slice. (0-0.05)`,
+          weight: 0.5,
+        }),
+      ],
+      { failFast: false, onScorerError: 'skip' },
+    );
+
+    expect(result.score).toBeGreaterThan(0.7);
+    await agent.dispose();
+  });
+
   it('context-rich request: synthesizes a spec with a behavioral test seam', async () => {
     const agent = await createAgent({
       agent: EVAL_AGENT,

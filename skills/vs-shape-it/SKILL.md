@@ -84,11 +84,24 @@ Question 2 of N (independent of Q1): ...
 Lead with the recommended approach and why. Keep the core chat design under
 about 450 words, excluding a justified orchestration appendix, and include:
 
+- the smallest valuable, deployable end-to-end slice
 - scope and explicit non-goals
 - terminology and system boundaries
 - data/control flow and important interfaces
 - 1-2 alternatives with concrete tradeoffs
 - risks, success criteria, and verification
+
+Do not make the first delivery absorb every useful capability discovered during
+shaping. Separate what is required for the smallest complete outcome from later
+reliability, scale, analytics, automation, and platform work. A larger first
+slice needs evidence that the smaller slice cannot produce the approved outcome
+or would create unacceptable risk.
+
+The slice must advance the approved outcome beyond the confirmed baseline.
+Re-auditing or hardening behavior that already works is not the first delivery
+unless evidence shows that behavior is unreliable and correcting it is part of
+the user's goal. When new value depends on user access or external ownership,
+surface that dependency instead of silently substituting lower-value work.
 
 When a cheap prototype would answer a costly design question, recommend
 `/vs-prototype`. When a performance claim shapes the design, use `/vs-perf` to
@@ -139,6 +152,23 @@ or reuse its implementation goal from this section without reinterpreting the
 conversation.
 
 ### 6. Design the execution strategy
+
+Order work by what can invalidate or block delivery, not by architectural
+layering:
+
+1. Surface strategic decisions, user-provided access, credentials, approvals,
+   and external ownership needed for proof before broad internal work.
+2. Run the cheapest safe test of the assumption most likely to invalidate or
+   reorder the design.
+3. Deliver the smallest deployable vertical slice across the real integration
+   boundary.
+4. Deepen reliability, scale, and optional capabilities only after that slice
+   is observable.
+
+"Risk first" means retire delivery uncertainty early; it does not mean build
+the largest defensive subsystem first. An inventory or foundation is an early
+workstream only when its result changes a decision or unblocks the vertical
+slice.
 
 Every design names its execution class:
 
@@ -233,6 +263,11 @@ Before finishing, check:
 - no implementation, issues, tasks/threads, or implementation workers were created
 - evidence was read before asking answerable questions
 - the design has one approval gate and a behavioral verification seam
+- the first delivery is the smallest complete vertical slice, with later
+  capabilities explicitly deferred
+- the first delivery advances the approved outcome beyond the confirmed baseline
+- user-dependent blockers and plan-invalidating assumptions are tested before
+  broad internal foundations
 - the Goal Contract states an observable outcome, scope, success, and proof
 - unresolved strategic ambiguity is explicit
 - direct work has no coordination overhead

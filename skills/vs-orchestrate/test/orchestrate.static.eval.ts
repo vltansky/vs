@@ -30,16 +30,32 @@ describe('orchestrate: invariants encoded in the skill', () => {
     expect(SKILL).toMatch(/one milestone.*active|exactly one milestone/i);
   });
 
-  it('gates each milestone with audit + review + verify before the next activates', () => {
+  it('audits every milestone and reserves full review + verify for risk boundaries', () => {
     expect(SKILL).toMatch(/audit/i);
     expect(SKILL).toMatch(/\/vs-roast-review/);
     expect(SKILL).toMatch(/\/vs-verify/);
-    expect(SKILL).toMatch(/before activating the next milestone/i);
+    expect(SKILL).toMatch(/gate proportionally/i);
+    expect(SKILL).toMatch(/risky integration|risk.*integration/i);
+    expect(SKILL).toMatch(/group\s+several low-risk internal milestones/i);
+  });
+
+  it('routes one-run vertical slices back to build-it before creating a roadmap', () => {
+    expect(SKILL).toMatch(/proportionality check/i);
+    expect(SKILL).toMatch(/smallest deployable vertical slice/i);
+    expect(SKILL).toMatch(/hand off to build-it and stop/i);
+  });
+
+  it('orders user dependencies and plan-invalidating risks before foundations', () => {
+    expect(SKILL).toMatch(/user help, external access/i);
+    expect(SKILL).toMatch(/plan-invalidating assumption/i);
+    expect(SKILL).toMatch(/inventory or internal foundation is not automatically/i);
   });
 
   it('never marks a milestone done without its required evidence', () => {
     expect(SKILL).toMatch(/evidence.required|required evidence|its evidence/i);
-    expect(SKILL).toMatch(/inherit the verify status|never mark a milestone done/i);
+    expect(SKILL).toMatch(
+      /inherit\s+the\s+verify\s+status|never mark a milestone done/i,
+    );
   });
 
   it('distinguishes within-milestone lanes from across-milestone state', () => {
