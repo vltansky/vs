@@ -93,6 +93,10 @@ when the user asks build-it to use a Codex goal.
 
 - Read CLAUDE.md for project-specific commands (test, build, lint).
 - Read the plan file the user pointed to (or the most recent plan in conversation).
+- If the plan is a shape-it spec, read its Goal Contract and Execution Strategy
+  first. The Goal Contract defines done; the Execution Strategy's workstreams,
+  waves, write scopes, and effort assignments govern Step 3 and Phase 3
+  delegation. Do not re-derive an execution topology the spec already provides.
 - Run `git status` and `git diff` to understand the current state.
 - Note the project's test command, build command, and lint command from CLAUDE.md.
   If not found, search for them in package.json, Makefile, or equivalent.
@@ -307,6 +311,24 @@ Implement the assigned step using TDD:
 6. Report: list files changed, tests written, guardrail results (pass/fail),
    and any issues you could not resolve.
 ```
+
+Parallel workers require disjoint write scopes. Before spawning, list each
+worker's owned paths (from the Execution Strategy when present); if two lanes
+intersect, run them sequentially or keep the shared files in the parent. A
+worker commits only inside its owned paths.
+
+Brief each worker with curated context — objective, owned paths, evidence
+paths, guardrail commands, constraints, and expected return shape. Do not fork
+the full parent transcript for a scoped lane. Match reasoning effort (and
+model, when the host supports choosing one) to the lane: low for mechanical
+inventory, higher for ambiguous integration; take assignments from the
+Execution Strategy when present.
+
+Every brief names a first milestone that produces evidence before broad edits —
+for a fix lane, reproduce and report before editing. A worker that returns
+without evidence or changes has failed; re-scope the brief before re-spawning.
+After spawning, confirm each thread or subagent actually started; do not wait
+on an ID the host cannot resolve.
 
 If delegation adds coordination cost, the host does not support subagents, or
 steps share files or dependencies, execute sequentially in the parent with the

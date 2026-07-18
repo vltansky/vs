@@ -39,6 +39,11 @@ exact scope, relevant file or reference paths, constraints, and expected return
 shape. Do not fork the full parent transcript merely for convenience, and do not
 paste broad logs or entire plans when a short summary plus paths is sufficient.
 
+In Codex, spawn children with a scoped brief rather than `fork_turns: "all"`;
+full-history forks are for genuine continuation threads, not scoped workers. A
+long-running parent that forks its whole transcript into every worker multiplies
+its own context cost by the worker count.
+
 ## Ownership
 
 The parent owns user communication, goal state, integration, and final
@@ -47,7 +52,13 @@ return bounded evidence or edits for the parent to inspect.
 
 ## Collection
 
+After dispatching, confirm each spawned thread or task ID resolves to a live
+child before waiting on it; if the host reports it missing ("No thread found"),
+recreate it instead of babysitting a placeholder.
+
 Wait once for the expected completion event after dispatching a batch. Do not
 poll `wait_agent` repeatedly while nothing can change; continue useful local
 work or use the host's long-wait/notification mechanism. After collection,
 verify child claims against the real diff, files, commands, or external state.
+A child that completes without evidence or edits counts as failed — re-scope
+its brief before re-spawning; do not re-run the same brief.
