@@ -13,10 +13,17 @@ Reproduce → Hypothesize → Investigate → Isolate → Fix → Verify → Pre
 
 ## Phase 1: Reproduce
 
-1. **Get the exact error.** Full stack trace, exit code, failing assertion. Not a summary.
-2. **Reproduce it.** If it passes now, it's intermittent — note that.
-3. **Minimize the reproduction.** Smaller repro = faster investigation.
-4. **Build the feedback loop.** Before deep analysis, create the fastest command, script, browser flow, curl call, fixture replay, bisect, or temporary harness that flips from fail to pass when the bug is fixed. Static inspection alone is not a reproduction.
+1. **Confirm the surface.** In a multi-app repo or multi-service system, pin
+   which app, package, or deployment produced the failure before anything
+   else. Match evidence identity — telemetry project, release string, URL,
+   stack-frame paths — to one surface. Zero events or logs for the failure on
+   the suspected surface is disconfirming evidence, not neutral: pick the
+   surface the evidence actually points to, and only fix a surface the
+   evidence places the failure on.
+2. **Get the exact error.** Full stack trace, exit code, failing assertion. Not a summary.
+3. **Reproduce it.** If it passes now, it's intermittent — note that.
+4. **Minimize the reproduction.** Smaller repro = faster investigation.
+5. **Build the feedback loop.** Before deep analysis, create the fastest command, script, browser flow, curl call, fixture replay, bisect, or temporary harness that flips from fail to pass when the bug is fixed. Static inspection alone is not a reproduction. For memory, performance, or crash-under-load bugs, that harness measures the resource (heap/RSS sampling, constrained limits that simulate the target device) — a console-log server is the wrong instrument for resource pressure.
 
 If the bug is intermittent, raise the reproduction rate before fixing: run the loop repeatedly, add stress/parallelism, narrow timing windows, or report the observed pass/fail rate. A single lucky pass is not evidence.
 
