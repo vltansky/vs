@@ -92,7 +92,6 @@ verification—you can invoke `/vs-debug-mode` or `/vs-verify` directly.
 | `/vs-improve` | Audit a repo and write prioritized implementation plans without editing source |
 | `/vs-bugfix` | Reproduce, fix, verify, and review a bug end to end |
 | `/vs-fix-pr` | Evaluate and address PR feedback with approval before replies or resolution |
-| `/vs-afk` | Run a scoped autonomous work session while you are away |
 | `/vs-baby-sit` | Keep a PR merge-ready as CI and review state changes |
 
 `/vs-improve` can also find or specify work before the main flow:

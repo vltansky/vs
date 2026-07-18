@@ -26,7 +26,7 @@ Improve may own the audit/planning goal: "produce prioritized, executable
 improvement plans for <scope>." Complete it after the findings table, selected
 plans, and index are written or reported. Each plan should include a goal-ready
 implementation objective, scope, success criteria, and verification plan so
-`/vs-build-it`, `/vs-afk`, or an executor subagent can create its own execution goal.
+`/vs-build-it` or an executor subagent can create its own execution goal.
 
 For `execute <plan>`, create or reuse a separate execution goal only after the
 plan is concrete enough to run, and complete it after the executor diff is
