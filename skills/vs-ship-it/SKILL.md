@@ -133,12 +133,21 @@ If uncommitted changes exist:
 git commit -m "<msg>" && git push -u origin HEAD
 ```
 
-**If no staged files** (stage everything):
+**If no staged files**, stage the files that belong to the intended diff by
+path — not `git add .` or `-A`, which sweep foreign work from parallel
+sessions and worktree directories:
+
 ```bash
-git add . && git commit -m "<msg>" && git push -u origin HEAD
+git add <paths-in-scope> && git commit -m "<msg>" && git push -u origin HEAD
 ```
 
 Commit message: conventional format (`feat:`, `fix:`, `refactor:`, etc.), concise.
+
+If the push fails on authentication (SAML/SSO authorization, missing token
+scope), stop after the first failure. Diagnose which credential was used and
+give the user the exact re-auth step (e.g. authorize the org for the token in
+the browser, or `gh auth refresh -s workflow`). Do not retry the same push
+hoping the wall clears.
 
 ### Start PR feedback before broad local validation
 
@@ -319,8 +328,14 @@ for trivial changes.>
 </details>
 ```
 
+Write the body to a file and pass it with `--body-file`. Inline `--body`
+strings with Markdown backticks get shell-expanded and have corrupted PR
+bodies in practice; the same applies to `gh pr edit`.
+
 ```bash
-gh pr create --title "<title>" --body "<body>"
+BODY_FILE=$(mktemp)
+# write the PR body markdown to "$BODY_FILE"
+gh pr create --title "<title>" --body-file "$BODY_FILE"
 ```
 
 If the PR was created before Step 4 or Step 4b completed, update its body with
@@ -448,6 +463,14 @@ Flag outdated threads (`isOutdated: true`) separately in the summary — the con
 threads for the babysitting loop.
 **Otherwise:** report an initial ready-for-review snapshot with the PR URL and
 suggested reviewers.
+
+### Auto-merge repos
+
+Check whether the PR has auto-merge enabled or the repo merges quickly. If the
+PR may merge before follow-up work lands, do not push fixes to the same branch
+on faith: re-check the PR state first, and when it merged out from under a
+pending fix, branch off the fresh default branch and open a follow-up PR
+instead of leaving commits stranded on a merged branch.
 
 ### If build checks fail
 

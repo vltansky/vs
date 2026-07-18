@@ -5,8 +5,23 @@ after applying the priority in `../SKILL.md`. Harness-native browser or extensio
 control and Playwright take precedence. Translate these operations to the selected
 control surface when a higher-priority tool is available.
 
-Scripts run in a sandboxed QuickJS runtime — no `require`, no `fetch`, no
-`process`. Use the `browser` global.
+## Detect the installed variant first
+
+Two incompatible `agent-browser` builds exist. Run `agent-browser --help`
+before writing any script:
+
+- **Subcommand CLI** (common in current installs): drive it with subcommands —
+  `agent-browser open <url>`, `agent-browser eval '<js>'`,
+  `agent-browser find text "<t>" click`, `agent-browser errors`,
+  `agent-browser screenshot <path>`. The heredoc examples below do not work on
+  this variant; translate each operation to its subcommand equivalent.
+- **QuickJS heredoc runtime**: the examples below apply as written. Scripts run
+  sandboxed — no `require`, no `fetch`, no `process`; use the `browser` global.
+
+On either variant, start QA in a fresh named session per run. Reusing a
+session shared with another agent or app bleeds console errors and state into
+QA results, and `--clear`-style flags are not reliable across builds — a fresh
+session is.
 
 ## Page Names
 

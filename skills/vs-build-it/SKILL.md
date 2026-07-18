@@ -539,6 +539,13 @@ walkthrough or the changed behavior needs a scenario to explain how to prove it.
 - **Run known guardrails.** If a project has no test/lint/build commands, note it
   and continue; if a guardrail exists, run it.
 - **Atomic commits.** Prefer one commit per logical step.
+- **Recover non-destructively.** When git state goes wrong (failed merge,
+  mis-staged files), prefer `git stash --include-untracked` and scoped
+  `git restore` over `git reset --hard` or `git clean` — stashes are
+  recoverable and destructive commands trip harness guards mid-recovery.
+- **Respect foreign work.** If the tree contains uncommitted changes you did
+  not make (a parallel session, another agent), stage only your own paths and
+  say so in the log; never sweep them with broad staging.
 - **Match the codebase.** Build-it follows existing patterns, not its own preferences.
   If the codebase uses callbacks, don't switch to async/await. If it uses classes,
   don't switch to functions. Read before writing.

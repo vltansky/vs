@@ -321,7 +321,10 @@ Update `PREV_HEAD_SHA`, `PREV_THREADS`, and `PREV_CI` after each iteration.
 ## Stop conditions
 
 - Merge-ready reached → print summary, stop
-- PR is merged: `gh pr view --json state --jq .state` returns `MERGED` → stop
+- PR is merged: `gh pr view --json state --jq .state` returns `MERGED` → stop.
+  If local fix commits had not been pushed when it merged (auto-merge repos),
+  do not leave them stranded: branch off the fresh default branch, cherry-pick
+  them, and report the follow-up PR as the next step.
 - Unrecoverable CI failure (same failure after 2 fix attempts) → report to user, stop
 - User interrupt (Ctrl+C)
 

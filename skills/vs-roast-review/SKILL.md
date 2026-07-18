@@ -149,17 +149,22 @@ do not replace it with a mental review or a slash-command reference.
 ```bash
 node "${CLAUDE_PLUGIN_ROOT}/scripts/codex-companion.mjs" review --wait
 ```
-If `CLAUDE_PLUGIN_ROOT` is not set or the script doesn't exist, fall back to:
-```bash
-codex review --uncommitted 2>/dev/null
-```
-**In Codex:** run the shell command directly:
+If `CLAUDE_PLUGIN_ROOT` is not set or the script doesn't exist, fall back to
+the direct CLI below.
+
+**In Codex:** run the shell command directly.
+
+Match the flag to where the diff lives — `--uncommitted` reviews only the
+dirty working tree and returns nothing on an already-committed branch:
 
 ```bash
+# uncommitted changes in the working tree
 codex review --uncommitted 2>/dev/null
+# committed branch diff
+codex review --base <base-branch> 2>/dev/null
 ```
 
-If neither executable path works, or if `codex review --uncommitted` produces no useful output after about 2 minutes, interrupt it, log "Codex review unavailable", and continue with roast only.
+If neither executable path works, or if the review produces no useful output after about 2 minutes with the correct flag for the diff's location, interrupt it, log "Codex review unavailable", and continue with roast only.
 
 Parse Codex review output for finding titles, bodies, priorities, and locations when present. Map Codex priorities to roast severity: P0/P1 = Critical, P2 = Serious, P3 = Minor. If Codex returns unstructured text, summarize the findings manually and note that structured output was unavailable.
 
