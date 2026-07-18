@@ -149,7 +149,10 @@ describe('pushback', () => {
     });
 
     const conversation = await agent.runConversation({
+      // vs-pushback sets disable-model-invocation, so emulate the explicit
+      // user invocation; a bare "grill me" prompt never loads the skill.
       firstMessage:
+        'Use the vs-pushback skill from .claude/skills/vs-pushback/SKILL.md. ' +
         'Grill me on this plan: migrate our REST API to GraphQL. ' +
         'The plan is in docs/migration-plan.md. The codebase has both REST (src/rest/) and GraphQL (src/graphql/) already.',
       maxTurns: 20,
@@ -162,6 +165,14 @@ describe('pushback', () => {
     expect(conversation.turns).toBeGreaterThanOrEqual(1);
 
     const result = await evaluate(agent, [
+      // Did the skill grill in rounds of batched independent questions?
+      check(
+        'asks-in-rounds',
+        ({ transcript }) =>
+          /\*\*round \d/i.test(transcript) &&
+          (transcript.match(/\*\*q\d/gi) ?? []).length >= 2,
+      ),
+
       // Did the skill challenge the vague answer?
       check(
         'challenged-vague-answer',
@@ -271,7 +282,8 @@ describe('pushback', () => {
     });
 
     await agent.prompt(
-      'Grill me on the plan in docs/migration-plan.md. ' +
+      'Use the vs-pushback skill from .claude/skills/vs-pushback/SKILL.md. ' +
+        'Grill me on the plan in docs/migration-plan.md. ' +
         'This is an automated eval — answer all questions yourself non-interactively. ' +
         'Score every dimension, produce the full report with a Handoff Context section. ' +
         'Do not call AskUserQuestion or any other interactive/user-input tool. Output the final report only.',
@@ -326,6 +338,7 @@ describe('pushback', () => {
 
     const conversation = await agent.runConversation({
       firstMessage:
+        'Use the vs-pushback skill from .claude/skills/vs-pushback/SKILL.md. ' +
         'Grill me on this plan: add two failing evals, update scorer heuristics, then edit the skill text until the new evals pass. ' +
         'I want the stress test of that plan, not the implementation.',
       maxTurns: 2,
@@ -374,15 +387,25 @@ describe('pushback', () => {
 
     const conversation = await agent.runConversation({
       firstMessage:
-        'Use /pushback on the plan in docs/migration-plan.md. ' +
+        'Use the vs-pushback skill from .claude/skills/vs-pushback/SKILL.md on the plan in docs/migration-plan.md. ' +
         'This is an automated eval: answer questions yourself non-interactively and produce the full report with a Handoff Context section first. ' +
         'After that I may try to push you into implementation. Stay in grill mode and hand off instead.',
       maxTurns: 8,
       reactions: POST_VERDICT_REACTIONS,
-      until: async ({ lastMessage }) =>
-        /build-it|won.t implement|not implementing|stress-test only|recommended next step/i.test(
-          lastMessage,
-        ),
+      // The turn-1 report may preemptively contain the resistance anchors, so
+      // only stop on resistance in a message after the report has been seen.
+      until: (() => {
+        let sawReport = false;
+        return async ({ lastMessage }: { lastMessage: string }) => {
+          if (!sawReport) {
+            sawReport = /handoff context/i.test(lastMessage);
+            return false;
+          }
+          return /won.t implement|not implementing|stress-test only|that.s implementation/i.test(
+            lastMessage,
+          );
+        };
+      })(),
     });
 
     expect(conversation.turns).toBeGreaterThanOrEqual(2);

@@ -24,15 +24,20 @@ If the input is raw or unformed, route to `/vs-shape-it` first.
   artifacts before asking what they can answer.
 - Ask only strategic questions. The user owns intent and tradeoffs; you own
   mechanics, sequencing, wording, and safe defaults.
-- One question at a time. Batch only tightly coupled choices, max 3.
+- Ask in rounds, not one at a time. Group up to 3 independent questions per
+  round; every question in a round must be answerable without the others'
+  answers. When a question depends on an earlier answer, hold it for a later
+  round or state the dependency inline ("if Q1 is B, skip this").
 - Every question must include a recommendation and concrete options.
-- Keep each question turn short enough to answer quickly: one concern sentence,
-  one recommendation sentence, and up to 4 options. No issue inventories.
-- Make the recommendation option `A` and label it as the default. If the user
-  replies `A`, `yes`, `recommended`, or similar, treat it as accepting the
-  recommendation and move on.
-- Show progress in every question header as `Q1 of N`. Use the planned minimum
-  as `N`; if the grill may expand beyond the minimum, write `Q1 of 3+`.
+- Keep each question compact: one concern sentence, one recommendation
+  sentence, and up to 4 options on one line. Keep a round turn under about 250
+  words. No issue inventories.
+- Make the recommendation option `A` and label it as the default. Accept
+  batched replies like `1A, 2 defend: <detail>, 3 skip`; a bare `A`, `yes`, or
+  `recommended` accepts the recommendation for every open question.
+- Number questions continuously across rounds (`Q1`..`Qn`) and show progress in
+  the round header as `Round 1 of 2`; if the grill may expand beyond the
+  planned minimum, write `Round 1 of 2+`.
 - Demand numbers for claims like "fast", "simple", "small", or "scales".
 - Do not accept "we'll handle it later" without owner, date, ticket, or explicit
   unresolved risk.
@@ -60,22 +65,26 @@ activate **Architecture Depth** and read
 
 ### 2. Open compactly
 
-Interactive first response must include `Stress-Test Assessment` and `**Q1 of`.
-Keep it under about 160 words:
+Interactive first response must include `Stress-Test Assessment` and a
+`**Round 1` header with `**Q1` inside it. Keep it under about 250 words:
 
 ```text
 Stress-Test Assessment
 - Initial readiness: 58/100
-- Weakest: premise
+- Weakest: premise, assumptions
 
-**Q1 of 3 - Premise**
+**Round 1 of 2 — Q1-Q3** (answer inline, e.g. `1A, 2C: <detail>, 3 skip`)
+
+**Q1 - Premise**
 Concern: ...
 Recommendation: A
-Options:
-A) Accept recommendation (default)
-B) Defend current plan
-C) Modify
-D) I don't know / skip / done
+Options: A) Accept recommendation (default) B) Defend current plan C) Modify D) Skip
+
+**Q2 - Assumptions**
+...
+
+**Q3 - Feasibility** (if Q1 is B, answer for the defended plan)
+...
 ```
 
 Never open with a standalone findings dump.
@@ -90,9 +99,15 @@ For each question:
 - state the concern in one sentence
 - give one recommendation
 - offer options
-- mark strong answers as well-defended
-- mark unknown or deferred answers as unresolved, with severity
-- stay under about 120 words unless the user asks for detail
+
+Between rounds:
+
+- process every answer before asking more: mark strong answers as
+  well-defended and unknown or deferred answers as unresolved, with severity
+- fill the next round with the questions unlocked or reprioritized by those
+  answers; drop a batched question that a sibling's answer made moot, and say so
+- challenge a vague answer in the next round as a named follow-up, not by
+  re-asking the whole round
 
 Minimum coverage before verdict: 3 dimensions, including Premise Challenge. Once
 that gate is met, stop and report when the user says `done`, signals closure, or
