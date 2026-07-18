@@ -249,6 +249,75 @@ Score 0.0: three or more mid-design approval requests (section-by-section gating
     await agent.dispose();
   });
 
+  it('large effort: produces a goal-ready orchestration blueprint for build-it', async () => {
+    const agent = await createAgent({
+      agent: EVAL_AGENT,
+      timeout: 420,
+      skillDir: SKILL_DIR,
+      workspace: FIXTURE_DIR,
+      debug: true,
+    });
+
+    await agent.runConversation({
+      firstMessage:
+        'Shape a build-ready plan for a migration audit across the legacy web app, replacement mobile app, and shared backend contracts. The audit needs static inventory, runtime proof, and an independent evidence review. Give build-it enough operational detail to run it safely, but do not create workers, issues, or implementation changes yet.',
+      maxTurns: 5,
+      reactions: [
+        {
+          when: /success|outcome|goal|done|approval/i,
+          reply:
+            'Success is an evidence-backed parity matrix with product gaps separated from harness failures; fixes require approval by gap ID.',
+          once: true,
+        },
+        {
+          when: /scope|constraint|runtime|platform/i,
+          reply:
+            'Cover all three surfaces. Runtime proof may stop when infrastructure is unhealthy; do not turn blockers into product defects.',
+          once: true,
+        },
+        { when: /\?/, reply: 'Use the safest practical default.' },
+      ],
+      until: async ({ lastMessage }) =>
+        /```mermaid[\s\S]*```/i.test(lastMessage) &&
+        /implementation goal|goal contract/i.test(lastMessage),
+    });
+
+    const result = await evaluate(
+      agent,
+      [
+        check('defines-implementation-goal', ({ transcript }) =>
+          /implementation goal|objective|goal contract/i.test(transcript) &&
+          /success criteria|done when|acceptance/i.test(transcript),
+        ),
+        check('defines-workstreams-and-waves', ({ transcript }) =>
+          /workstream|worker|lane/i.test(transcript) &&
+          /wave|merge gate|dependency|parallel|sequential/i.test(transcript),
+        ),
+        check('assigns-effort-and-verification', ({ transcript }) =>
+          /effort|reasoning/i.test(transcript) &&
+          /verification|evidence|test/i.test(transcript),
+        ),
+        check('renders-orchestration-diagram', ({ transcript }) =>
+          /```mermaid[\s\S]*```/i.test(transcript),
+        ),
+        judge('handoff-is-runnable-not-generic', {
+          rubric: `Evaluate whether the response gives build-it a runnable orchestration contract:
+- It states one implementation objective with observable success criteria. (0-0.2)
+- It assigns bounded workstreams to concrete host primitives with inputs, outputs, effort, dependencies, and verification. (0-0.3)
+- It distinguishes parallel waves from sequential merge/approval gates. (0-0.2)
+- It explains whether GitHub issues or durable tasks/threads are needed as source of truth. (0-0.1)
+- It includes copyable worker briefs or prompts and a Mermaid execution diagram. (0-0.15)
+- It plans only; it does not create workers/issues or implement. (0-0.05)`,
+          weight: 0.5,
+        }),
+      ],
+      { failFast: false, onScorerError: 'skip' },
+    );
+
+    expect(result.score).toBeGreaterThan(0.7);
+    await agent.dispose();
+  });
+
   it('small effort: keeps the handoff simple', async () => {
     const agent = await createAgent({
       agent: EVAL_AGENT,
@@ -354,7 +423,7 @@ Score 0.0: three or more mid-design approval requests (section-by-section gating
       agent,
       [
         check('recommends-claude-subagents', ({ transcript }) =>
-          /claude(?: code)?.{0,100}subagent|subagent.{0,100}claude(?: code)?/is.test(
+          /subagents?|agent tool|task tool|`?(?:plan|explore|general-purpose)`? agents?/i.test(
             transcript,
           ),
         ),
