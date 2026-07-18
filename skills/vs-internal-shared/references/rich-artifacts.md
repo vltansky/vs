@@ -1,5 +1,8 @@
 # Rich human-facing artifacts
 
+Decision rationale:
+[Use HTMDX for rich human-facing artifacts](../../../adr/use-htmdx-for-rich-human-facing-artifacts.md).
+
 Markdown is the default. Choose HTMDX only when visual structure materially
 changes how a person reviews the result or makes a decision, such as:
 
