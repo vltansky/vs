@@ -278,8 +278,9 @@ Use [`vs-write`](../vs-write/SKILL.md) in direct mode after gathering the facts
 above. Lead with the reviewer's need, use short sentences and concrete verbs,
 and remove repetition.
 Target about 250 words excluding code, evidence, and links. If more context is
-needed, keep the main path short and collapse only supporting implementation
-detail. Do not collapse evidence, verification gaps, or review focus.
+needed, keep the main path short. Keep Why, What changed, Evidence, Review map,
+Verification, and Review focus visible. Collapse only supporting implementation
+detail and optional raw test logs; keep each command, result, and gap visible.
 
 **Format:**
 ```
@@ -301,9 +302,12 @@ for trivial changes.>
 honest baseline, show Demo. For an internal refactor with no observable output,
 omit this section.>
 
-## How it works
+<details>
+<summary>How it works</summary>
 
 <3-5 steps or one small diagram; omit for a simple change.>
+
+</details>
 
 ## Review map
 

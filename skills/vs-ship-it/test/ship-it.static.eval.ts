@@ -111,7 +111,21 @@ describe('vs-ship-it reviewer guide', () => {
     expect(SKILL).toMatch(/Visible before\/after from the same state and input/);
     expect(SKILL).toMatch(/new feature with no\s+honest baseline, show Demo/);
     expect(SKILL).toMatch(/internal refactor with no observable output,\s+omit this section/);
-    expect(SKILL).toMatch(/Do not collapse evidence, verification gaps, or review focus/);
+    expect(SKILL).toMatch(
+      /Keep Why, What changed, Evidence, Review map,\s+Verification, and Review focus visible/,
+    );
+    expect(SKILL).not.toContain('<summary>Evidence</summary>');
+    expect(SKILL).not.toContain('<summary>Review map</summary>');
+    expect(SKILL).not.toContain('<summary>Verification</summary>');
+    expect(SKILL).not.toContain('<summary>Review focus</summary>');
+  });
+
+  it('collapses only secondary implementation detail and raw logs', () => {
+    expect(SKILL).toContain('<summary>How it works</summary>');
+    expect(SKILL).toMatch(
+      /Collapse only supporting implementation\s+detail and optional raw test logs/,
+    );
+    expect(SKILL).toMatch(/keep each command, result, and gap visible/);
   });
 
   it('maps the change by intent and risk instead of narrating the session', () => {
