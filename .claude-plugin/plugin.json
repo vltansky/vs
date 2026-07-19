@@ -8,6 +8,7 @@
   },
   "homepage": "https://github.com/vltansky/vs",
   "skills": [
+    "./skills/vs-analyze-thread",
     "./skills/vs-baby-sit",
     "./skills/vs-brief",
     "./skills/vs-orchestrate",
