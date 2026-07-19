@@ -1,6 +1,6 @@
 ---
 name: vs-ship-it
-description: "Use when the user wants to ship or publish local Git changes: commit and push, push to main/master or the current branch, create/open a PR, submit changes, or send to dev. Honors an explicit direct-push request; otherwise creates and verifies a GitHub PR, with ongoing babysitting only when requested."
+description: "Use when the user wants to create/open a pull request, submit changes for review, send changes to dev, or otherwise ship local Git changes. Also use for explicit commit and push or push to main/master or the current branch requests. Requires affirmative publish intent; do not use for review/readiness-only requests. Creates and verifies a GitHub PR by default; honors explicit direct pushes and babysits only when requested."
 ---
 
 # Ship Changes

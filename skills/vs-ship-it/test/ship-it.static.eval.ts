@@ -7,8 +7,25 @@ const OPENAI_CONFIG = fs.readFileSync(
   path.resolve(__dirname, '..', 'agents', 'openai.yaml'),
   'utf8',
 );
+const DESCRIPTION = SKILL.match(/^description: "([^"]+)"$/m)?.[1] ?? '';
 
 describe('vs-ship-it routing', () => {
+  it('prioritizes PR creation while retaining explicit direct-push routing', () => {
+    expect(DESCRIPTION).toMatch(/create\/open a (?:pull request|PR)/i);
+    expect(DESCRIPTION).toMatch(/push to main\/master/i);
+    expect(DESCRIPTION.indexOf('create/open')).toBeLessThan(
+      DESCRIPTION.indexOf('push to main/master'),
+    );
+    expect(OPENAI_CONFIG).toMatch(
+      /short_description: "Create a PR; commit and push when requested"/,
+    );
+  });
+
+  it('excludes review-only requests without publishing intent', () => {
+    expect(DESCRIPTION).toMatch(/affirmative publish intent/i);
+    expect(DESCRIPTION).toMatch(/review\/readiness-only requests/i);
+  });
+
   it('allows implicit invocation for commit, push, and PR requests', () => {
     expect(SKILL).not.toContain('disable-model-invocation: true');
     expect(SKILL).toMatch(/commit and push/);
