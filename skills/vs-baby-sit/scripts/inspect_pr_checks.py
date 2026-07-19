@@ -16,7 +16,15 @@ from shutil import which
 from typing import Any
 
 
-FAILURE_VALUES = {"action_required", "cancelled", "error", "failure", "timed_out"}
+FAILURE_VALUES = {
+    "action_required",
+    "cancelled",
+    "error",
+    "failure",
+    "stale",
+    "startup_failure",
+    "timed_out",
+}
 FAILURE_MARKERS = (
     "error",
     "fail",
