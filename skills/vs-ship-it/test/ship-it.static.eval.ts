@@ -88,9 +88,43 @@ describe('vs-ship-it mechanical PR fast path', () => {
   it('keeps the fast path focused and bounded', () => {
     expect(SKILL).toMatch(/repository-required checks/);
     expect(SKILL).toMatch(/requested PR modifiers/);
-    expect(SKILL).toMatch(/Skip the brief, AI session context, reviewer suggestions, and CI watch/);
+    expect(SKILL).toMatch(
+      /Skip the brief, review map, reviewer suggestions, and CI watch/,
+    );
     expect(SKILL).toMatch(/verify the PR association/);
     expect(SKILL).toMatch(/Verify\s+each requested modifier took effect/);
+  });
+});
+
+describe('vs-ship-it reviewer guide', () => {
+  it('uses vs-write to keep the PR body concise', () => {
+    expect(SKILL).toContain('[`vs-write`](../vs-write/SKILL.md)');
+    expect(SKILL).toMatch(/`vs-write`\]\([^)]*\) in direct mode/);
+    expect(SKILL).toMatch(/Target about 250 words/);
+    expect(SKILL).toMatch(/short sentences and concrete verbs/);
+  });
+
+  it('shows reviewer evidence and judgment in the main body', () => {
+    expect(SKILL).toContain('## Evidence');
+    expect(SKILL).toContain('## Verification');
+    expect(SKILL).toContain('## Review focus');
+    expect(SKILL).toMatch(/Visible before\/after from the same state and input/);
+    expect(SKILL).toMatch(/new feature with no\s+honest baseline, show Demo/);
+    expect(SKILL).toMatch(/internal refactor with no observable output,\s+omit this section/);
+    expect(SKILL).toMatch(/Do not collapse evidence, verification gaps, or review focus/);
+  });
+
+  it('maps the change by intent and risk instead of narrating the session', () => {
+    expect(SKILL).toContain('## Review map');
+    expect(SKILL).toContain('| Order | Area | Why it matters | Risk | Start here |');
+    expect(SKILL).toMatch(
+      /core behavior, public contracts, risky boundaries,\s+consumers, and tests/,
+    );
+    expect(SKILL).toMatch(/Never use\s+the map to hide executable code/);
+    expect(SKILL).toMatch(/no file inventory/);
+    expect(SKILL).toMatch(/Do not include AI session history/);
+    expect(SKILL).not.toContain('<summary>AI Session Context');
+    expect(SKILL).not.toContain('<summary>Change Brief');
   });
 });
 

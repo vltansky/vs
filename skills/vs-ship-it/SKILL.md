@@ -63,7 +63,7 @@ while inspecting the diff.
    each requested modifier took effect, report the URL and validation evidence,
    then stop.
 
-Skip the brief, AI session context, reviewer suggestions, and CI watch. Do not
+Skip the brief, review map, reviewer suggestions, and CI watch. Do not
 create a Codex goal for this path unless the user explicitly requested one.
 Fall back to the full PR workflow when the diff fails the conservative criteria,
 required validation fails, unrelated changes cannot be isolated, the remote has
@@ -78,6 +78,8 @@ reviewable:
 - `vs-verify` records the evidence that the branch is ready to present.
 - `vs-brief` provides the reusable human-readable change orientation for chat,
   PR body, and CI-watch context.
+- [`vs-write`](../vs-write/SKILL.md) turns the gathered facts into short,
+  direct reviewer-facing copy.
 - `vs-fix-pr` takes over if reviewer-bot findings or review threads need action.
 - `vs-baby-sit` keeps the created PR healthy after the initial shipping setup.
 
@@ -89,10 +91,11 @@ for goal ownership and completion rules.
 
 Ship-it owns a finite shipping goal only when the user explicitly requests a
 Codex goal. Complete it after changes are committed and pushed, the PR is
-created when requested, brief/session context is attached, and initial verify
-evidence is included. Complete the shipping goal before optional monitoring
-starts. Ongoing PR health belongs to a separate monitoring goal owned by
-`vs-baby-sit`, only when the user explicitly requested continued watching.
+created when requested, the concise review guide is attached, and initial
+verify evidence is included. Complete the shipping goal before optional
+monitoring starts. Ongoing PR health belongs to a separate monitoring goal
+owned by `vs-baby-sit`, only when the user explicitly requested continued
+watching.
 
 ## Full PR workflow
 
@@ -172,8 +175,9 @@ The default PR-mode execution order is:
 `Step 2 → Step 3/3b → Step 5/5b → Step 4/4b → update the PR body → Step 6/7`
 
 This execution order overrides the document order below. Create and verify the
-PR association before running `vs-brief` or `vs-verify`; use `Generating` for
-the brief and `Running locally and in CI` for verification in the initial body.
+PR association before running `vs-brief` or `vs-verify`. Mark unfinished
+evidence as `Gathering` and verification as `Running locally and in CI` in the
+initial body.
 Do not run Step 4 or Step 4b before Step 5 unless repository policy requires it.
 
 ## Step 3: Establish the WHY
@@ -217,55 +221,34 @@ first and the part a diff can't reconstruct on its own.
 Ground the WHY in what was actually said. Do not manufacture business
 justification the conversation never contained.
 
-## Step 3b: Generate AI Session Context
+## Step 3b: Build the reviewer mental model
 
-Generate a privacy-safe summary for reviewers from the same source (live context
-or transcript) captured above.
+Help the human review by intent instead of reading every file in tool order.
+For a non-trivial change, gather:
 
-### What to include vs exclude
+- **Outcome:** the observable behavior and acceptance criteria.
+- **Change story:** 3–5 steps connecting the goal to the implementation. Use
+  one small diagram only when a cross-component flow or state change needs it.
+- **Review map:** order the core behavior, public contracts, risky boundaries,
+  consumers, and tests. Point to paths and explain why each area matters.
+- **Human review focus:** the architectural, product, security, data, or
+  compatibility judgment automation cannot settle.
 
-| Include | Exclude |
-|---------|---------|
-| Problem being solved | Exact user prompts |
-| Solution approach chosen | Mistakes/failed attempts |
-| Key decisions + WHY | Debugging struggles |
-| Trade-offs considered | Personal info/credentials |
-| Technical rationale | Anything embarrassing |
+Mark generated, boilerplate, formatting, or lockfile changes as lower-signal
+only when their provenance and deterministic validation are named. Never use
+the map to hide executable code. It guides selective deep review; it does not
+claim the reviewer can approve without inspecting the important code.
 
-### Format as collapsible block
-
-The WHY already leads the PR body (Step 5), so this collapsed block carries the
-deeper detail — approach, decisions, and trade-offs — not a restated problem.
-
-```markdown
-<details>
-<summary>AI Session Context</summary>
-
-**Approach:** [1 sentence - solution strategy]
-
-**Key Decisions:**
-- [Decision]: [Rationale - the WHY]
-- [Decision]: [Rationale - the WHY]
-
-**Trade-offs Considered:**
-- [Option A vs B]: Chose A because [reason]
-
-</details>
-```
-
-### Skip Conditions
-
-Skip AI Session Context if:
-- Trivial change (typo, version bump, config)
-- No meaningful decisions were made
-- User says "no context" or "skip context"
+Do not include AI session history, prompts, debugging narration, or a file-by-file
+changelog. Decisions belong in the WHY or review focus only when they affect the
+reviewer's judgment.
 
 ## Step 4: Generate brief
 
 After the PR is created and Step 5b confirms its association, run `vs-brief`
-against the pushed branch while CI and automated review proceed. Capture the
-rendered markdown, update the PR body, and show it again while watching CI
-(Step 7).
+against the pushed branch while CI and automated review proceed. Use its
+summary, semantic groups, comparison evidence, diagram, and review focus as
+source material for Step 5. Do not paste the full file inventory into the PR.
 
 Store the brief output in a variable (or temp file) so it can be reused:
 
@@ -274,15 +257,13 @@ BRIEF_FILE=$(mktemp)
 # invoke brief and write its rendered markdown to $BRIEF_FILE
 ```
 
-Skip only if the diff is trivial (single-file typo, version bump) — same bar as
-the AI Session Context skip conditions.
+Skip only if the diff is trivial (single-file typo, version bump).
 
 ## Step 4b: Verify readiness
 
 Run `vs-verify` against the pushed branch after Step 5b when available, while CI
-and automated review proceed in parallel. Capture
-the rendered `## Verification Result` and update the PR body or handoff with a
-concise version.
+and automated review proceed in parallel. Capture its concrete evidence and
+gaps, then render a concise, visible Verification section.
 
 Skip only for trivial diffs. If verification returns `FAIL` or `BLOCKED`, stop
 and fix/unblock before describing the PR as ready. If it returns `WARN`, continue
@@ -293,39 +274,54 @@ verified while the gap is open.
 
 ## Step 5: Create PR
 
+Use [`vs-write`](../vs-write/SKILL.md) in direct mode after gathering the facts
+above. Lead with the reviewer's need, use short sentences and concrete verbs,
+and remove repetition.
+Target about 250 words excluding code, evidence, and links. If more context is
+needed, keep the main path short and collapse only supporting implementation
+detail. Do not collapse evidence, verification gaps, or review focus.
+
 **Format:**
 ```
 <feature_area>: <Title> (80 chars max)
 
 ## Why
 
-<2-4 sentences: the problem/motivation from Step 3 and why it matters now.
+<1-2 sentences: the problem/motivation from Step 3 and why it matters now.
 Sourced from chat context or transcript — not invented. Omit this section only
 for trivial changes.>
 
 ## What changed
 
-- bullet 1
-- bullet 2
+- <2-4 behavioral outcomes; no file inventory>
 
-<details>
-<summary>Change Brief</summary>
+## Evidence
 
-<brief output, or `Generating` until Step 4 completes>
+<Visible before/after from the same state and input. For a new feature with no
+honest baseline, show Demo. For an internal refactor with no observable output,
+omit this section.>
 
-</details>
+## How it works
 
-<details>
-<summary>Verification</summary>
+<3-5 steps or one small diagram; omit for a simple change.>
 
-<verify output, or `Running locally and in CI` until Step 4b completes>
+## Review map
 
-</details>
+| Order | Area | Why it matters | Risk | Start here |
+|---|---|---|---|---|
+| 1 | <core behavior> | <purpose> | High | `path` |
 
-<details>
-<summary>AI Session Context</summary>
-...
-</details>
+<Use for changes that span several meaningful areas. Otherwise fold the path
+into Review focus.>
+
+## Verification
+
+- `<command or observation>` — <result>
+- <unverified boundary, if any>
+
+## Review focus
+
+- <specific human judgment needed; omit when none>
 ```
 
 Write the body to a file and pass it with `--body-file`. Inline `--body`
@@ -339,7 +335,7 @@ gh pr create --title "<title>" --body-file "$BODY_FILE"
 ```
 
 If the PR was created before Step 4 or Step 4b completed, update its body with
-the final brief and verification evidence before declaring it ready.
+the final evidence, review map, and verification result before declaring it ready.
 
 ### Step 5b: Verify PR association before the turn ends
 
@@ -504,13 +500,15 @@ each item below.
 
 - [ ] Review ran (roast-review completed, fixes applied)
 - [ ] All changes committed and pushed to remote
-- [ ] `vs-brief` generated and captured (unless trivial diff)
+- [ ] `vs-brief` generated and used as source material (unless trivial diff)
 - [ ] `vs-verify` generated a PASS/WARN result or was skipped as trivial
-- [ ] PR created with conventional format title and body
+- [ ] `vs-write` tightened the final body without dropping evidence or risks
+- [ ] PR created with conventional format title and concise body
 - [ ] PR re-resolved from the current checkout before turn completion; state, branch, and HEAD verified
 - [ ] WHY established from chat context or transcript (not invented) and shown as the lead `## Why` section (unless trivial)
-- [ ] Change Brief included in PR body as collapsed `<details>` (unless trivial)
-- [ ] AI Session Context included (unless skip conditions met)
+- [ ] Observable evidence shown before/after or as a demo when available
+- [ ] Review map guides non-trivial review by intent, risk, and path
+- [ ] Human review focus states the judgment automation cannot settle, when applicable
 - [ ] Reviewer suggestions reported in chat only
 - [ ] Brief printed to chat before CI watch starts
 - [ ] CI checks pass (or failures investigated and fixed, max 2 attempts)
@@ -523,4 +521,4 @@ Direct: emit **Next** only. Composed: return to caller.
 
 **Prev:** `/vs-roast-review` | `/vs-build-it`
 **Next:** done
-**Relevant:** `/vs-recap`
+**Relevant:** `/vs-write` | `/vs-recap`
