@@ -27,6 +27,27 @@ describe('github-research', () => {
     expect(SKILL).toMatch(/3-5 candidate projects/i);
   });
 
+  it('plans research around falsifiable claims, evidence targets, and stop tests', () => {
+    expect(SKILL).toMatch(/hypotheses/i);
+    expect(SKILL).toMatch(/disconfirm/i);
+    expect(SKILL).toMatch(/claim[\s\S]{0,80}evidence[\s\S]{0,80}confidence[\s\S]{0,80}next check/i);
+    expect(SKILL).toMatch(/active \/ skipped surfaces/i);
+    expect(SKILL).toMatch(/budget/i);
+    expect(SKILL).toMatch(/stop test/i);
+  });
+
+  it('uses Octocode tools directly and never gates execution on plan approval', () => {
+    expect(SKILL).toMatch(/typed MCP tools directly/i);
+    expect(SKILL).toMatch(/Do not load or invoke Octocode[^\n]+orchestration/i);
+    expect(SKILL).toMatch(/host or repository policy requires a research subagent/i);
+    expect(SKILL).toMatch(/Never ask for approval of the research plan/i);
+  });
+
+  it('resolves repository-local identifiers before broad discovery', () => {
+    expect(SKILL).toMatch(/PR numbers are repository-local/i);
+    expect(SKILL).toMatch(/Keep every receipt line/i);
+  });
+
   it('keeps evidence GitHub-cited and separates nearby skills', () => {
     expect(SKILL).toMatch(/full GitHub URLs with line numbers/i);
     expect(SKILL).toMatch(/Separate direct evidence from inference/i);

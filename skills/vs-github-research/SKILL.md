@@ -29,7 +29,11 @@ For a landscape report, produce a matrix-centered map of projects in the same sp
 
 ## Tool Source
 
-The vs plugin includes `octocode` in its plugin `.mcp.json`. Use the MCP tools directly when available.
+The vs plugin includes `octocode` in its plugin `.mcp.json`. Use its typed MCP tools directly when available.
+
+Do not load or invoke Octocode's prompt, skill, or orchestration workflows (for example, `reviewPR`). This skill owns the research plan and execution loop; wrapping it in another workflow can add an approval gate or route the task into local code review.
+
+If host or repository policy requires a research subagent, delegate bounded probes to that subagent and have it call the typed tools directly. The policy changes who executes the probes, not who owns the plan; do not nest another research orchestration workflow.
 
 If octocode tools are not active in the current session, say that the plugin's octocode MCP server is not available and the host may need to reload/reinstall plugin MCP config. Stop rather than pretending web snippets or local files are equivalent evidence.
 
@@ -40,10 +44,13 @@ Translate the user's question into a broad search target.
 Identify:
 
 - **Problem:** what behavior, architecture, API, workflow, or convention are we researching?
+- **Use:** what decision, implementation, or review claim will this evidence inform?
 - **Search domain:** likely languages, ecosystems, repo types, or organizations
 - **Comparison axes:** 3-6 dimensions that will make examples comparable
 - **Exclusions:** things that would be irrelevant or misleading
 - **Mode:** prior-art answer or landscape report
+
+When composed inside a local or PR review, take the concrete design and claims from the caller. Research external comparators for those claims, then return the evidence to the caller; do not expand into a second full PR review or issue a standalone merge verdict.
 
 If the user gives a vague question, choose a reasonable starting frame and state it. Ask only when the missing detail changes the search domain or the output mode.
 
@@ -63,26 +70,40 @@ Not this skill:
 
 ## Phase 2: Search Plan
 
-Before calling research tools, write a short plan and proceed immediately:
+Before calling research tools, turn the question into a small falsifiable campaign. The plan exists to prevent broad searches from drifting, so it should name what evidence could change the answer rather than repeat generic workflow steps.
+
+Keep at least two hypotheses alive for each unsettled claim. Include the cheapest disconfirming check so the research can reject an attractive example instead of only collecting supporting snippets.
+
+Write a short plan and proceed immediately:
 
 ```markdown
 ## GitHub Research Plan
 **Question:** <user question>
 **Mode:** <prior-art answer | landscape report>
-**Search domain:** <ecosystem / repo family / language>
-**Axes:** <axis 1>, <axis 2>, <axis 3>
-**Steps:**
-1. Discover candidate projects.
-2. Inspect representative implementations.
-3. Compare patterns and tradeoffs.
-4. Summarize with citations.
+**Corpus:** <organizations, ecosystems, repo families, languages>
+**Active / skipped surfaces:** <code, tests, docs, PRs/history, packages; why skipped>
+**Axes:** <3-6 fixed comparison axes>
+**Budget:** <discovery queries, finalist count, deep-read or time limit>
+**Stop test:** <evidence that answers the question and rejects the main alternative>
+
+| Claim / hypotheses | Evidence needed | Cheapest first probe | Disconfirming signal |
+|---|---|---|---|
+| <claim; H1 vs H2> | <source/test/history anchor> | <query + tool route> | <what would weaken or reject H1> |
 ```
 
-Do not wait for approval. If the user interrupts, adapt.
+Keep every receipt line. Shorten values for a small question rather than silently dropping surfaces, budget, or the stop test.
+
+Default to 2-4 claims, 2-3 discovery queries, 3-5 finalists, and 3-5 decisive iterations. Landscape mode may expand to 5-8 finalists. Adjust the budget when the question is clearly smaller or larger.
+
+Never ask for approval of the research plan. Present it as a concise progress update and start the first probes in the same turn. Approval is only relevant for a separate side effect such as cloning many repositories, running untrusted code, or materially expanding the requested scope.
+
+During execution, keep a tiny private ledger: `claim → evidence → confidence → next check`. Update it after every decisive result. Stop when the answer is grounded and the main alternative is rejected, no cheap check can change the conclusion, the budget is reached, or two iterations change no claim or confidence.
 
 ## Phase 3: Discover Candidate Projects
 
-Use external search first. Prefer several smaller searches over one giant query.
+Use external search first. Derive literal, alias, adjacent-implementation, and package terms from the plan. Prefer several smaller searches over one giant query, and batch 1-3 independent probes when the tool supports it.
+
+Resolve named repositories, PRs, packages, and refs from supplied URLs, thread context, caller evidence, or current repository metadata before keyword discovery. PR numbers are repository-local; do not search an organization for a bare number when the owning repository can be resolved first.
 
 Typical octocode tool choices:
 
@@ -102,6 +123,18 @@ Every tool call should include:
 - `reasoning`: why this search/read is the right next step
 
 Follow hints in tool responses. If a tool suggests narrowing, pagination, related files, or a better next call, use that guidance unless you have a clear reason not to.
+
+Treat `empty` as evidence only for the searched scope and `error` as a failed call, not absence. Change one filter, synonym, or search surface; after two unproductive refinements, pivot or mark the gap instead of looping.
+
+Rank candidates cheaply before deep reads:
+
+- **Fit:** directly implements the capability, adjacent, or keyword-only
+- **Evidence:** exact code/tests, committed docs/examples, or search snippet only
+- **Activity:** current releases/commits/issues or visibly stale/archived
+- **Reuse:** clear API/license/dependencies or substantial integration drag
+- **Risk:** known caveats, important unknowns, or blockers
+
+Stars and downloads are tiebreakers, not proof of quality.
 
 ## Phase 4: Inspect Representative Examples
 
@@ -123,6 +156,14 @@ For each representative example, capture:
 - Full GitHub URL with line numbers when available
 
 Favor implementation files and committed docs over README claims. README-only evidence is allowed, but label it as documentation evidence.
+
+For every nontrivial claim, inspect at least two evidence dimensions:
+
+- **Structure:** repository layout and where the mechanism lives
+- **Stream:** exact source, test, config, or committed documentation
+- **Connections/history:** callers, integrations, PRs, issues, releases, or commit intent
+
+Use targeted `matchString` or line-range reads after discovery. If the same remote area needs three or more deep reads, or the conclusion needs semantic navigation or strong absence proof, materialize that bounded area when authorized instead of repeatedly reading it through the provider.
 
 ## Phase 5A: Synthesize Prior-Art Answers
 
