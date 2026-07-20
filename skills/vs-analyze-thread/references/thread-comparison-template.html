@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Thread comparison: [[PROJECT_NAME]]</title>
+    <script src="https://cdn.jsdelivr.net/npm/@wix/htmdx@2.2.1/dist/browser.js" defer></script>
+  </head>
+  <body>
+    <!-- prettier-ignore -->
+    <script type="text/htmdx" data-htmdx-edit-instruction="Edit only this script content. HTMDX format.">
+---
+title: Thread comparison: [[PROJECT_NAME]]
+project: [[PROJECT_NAME]]
+updated: [[DATE]]
+theme: teal
+---
+
+<ExecutiveSummary>
+[[BOTTOM_LINE]]
+</ExecutiveSummary>
+
+<MetricStrip>
+- Sessions: **[[SESSION_COUNT]]**
+- User corrections: **[[CORRECTION_COUNT]]**
+- Failed tool calls: **[[FAILURE_COUNT]]**
+- Evidence gaps: **[[GAP_COUNT]]**
+</MetricStrip>
+
+## Session comparison
+
+<DataTable>
+| Session | Outcome | Main cause | Corrections | Friction | Evidence status |
+| --- | --- | --- | ---: | --- | --- |
+| [[SESSION]] | [[OUTCOME]] | [[CAUSE]] | [[CORRECTIONS]] | [[FRICTION]] | verified / inferred / unknown |
+</DataTable>
+
+## Turning points
+
+<Timeline>
+- **[[TIMESTAMP_OR_TURN]]:** [[TURNING_POINT]] — [[SOURCE]] — verified / inferred
+</Timeline>
+
+## Decisions and corrections
+
+<Evidence>
+- **[[DECISION]]:** [[EVIDENCE]]
+</Evidence>
+
+## Friction and ownership
+
+<DataTable>
+| Symptom | Cause | Owner | Impact | Confidence |
+| --- | --- | --- | --- | --- |
+| [[SYMPTOM]] | [[CAUSE]] | agent / user / tool / external | [[IMPACT]] | verified / inferred / unknown |
+</DataTable>
+
+## Recommended changes
+
+1. **[[CHANGE]]** — owner: [[OWNER]] — [[WHY]]
+
+## Evidence gaps
+
+- [[EVIDENCE_GAP_OR_NONE]]
+    </script>
+  </body>
+</html>

@@ -11,7 +11,9 @@ This skill is a **reference library**, not an executable workflow. Other `skills
 
 ## Project ID convention
 
-Skills that write session artifacts (pushback reports, specs, RFCs, QA reports, GitHub research docs, briefs, steals, issue drafts) store them under `~/.vs/$PROJECT_ID/<kind>/...`.
+Skills that write session artifacts (pushback reports, specs, RFCs, QA reports,
+GitHub research docs, briefs, steals, thread analyses, issue drafts) store them
+under `~/.vs/$PROJECT_ID/<kind>/...`.
 
 `$PROJECT_ID` resolves, in order:
 
@@ -54,6 +56,7 @@ Paste this inline — skills must stay self-contained in case they're installed 
 ├── prototypes/   # prototype questions, decisions, and evidence
 ├── improve/      # improvement backlog plans and indexes
 ├── sessions/     # workflow session handoffs
+├── thread-analysis/ # cross-session thread comparison reports
 ├── issues/       # to-issues drafts / index
 └── steals/       # steal reports
 ```
