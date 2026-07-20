@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import argparse
+import html
 import json
 import re
 import subprocess
@@ -19,6 +20,18 @@ FAILURE_CONCLUSIONS = {
     "startup_failure",
     "timed_out",
 }
+PREVIEW_CONTEXT = re.compile(
+    r"\bpreview(?:s| url)?\b|\bdemo\b|\btest (?:this|the) change\b|\bsee it in action\b",
+    re.IGNORECASE,
+)
+PR_LINK_PATTERNS = (
+    re.compile(r'\[(?P<label>[^\]]+)\]\((?P<url>https?://[^)\s]+)\)'),
+    re.compile(
+        r'<a\s+[^>]*href=["\'](?P<url>https?://[^"\']+)["\'][^>]*>'
+        r"(?P<label>.*?)</a>",
+        re.IGNORECASE | re.DOTALL,
+    ),
+)
 
 
 def emit(event: str, snapshot: Snapshot, **details: Any) -> None:
@@ -188,6 +201,45 @@ def fetch_preview_urls(repo: str, head_sha: str) -> list[str]:
     return preview_urls
 
 
+def extract_preview_candidates(body: str) -> list[str]:
+    decoded = html.unescape(body)
+    matches: list[tuple[int, str]] = []
+    for pattern in PR_LINK_PATTERNS:
+        for match in pattern.finditer(decoded):
+            line_start = decoded.rfind("\n", 0, match.start()) + 1
+            context = f"{decoded[line_start:match.start()]} {match.group('label')}"
+            url = match.group("url")
+            if not PREVIEW_CONTEXT.search(context):
+                continue
+            matches.append((match.start(), url))
+    candidates: list[str] = []
+    seen: set[str] = set()
+    for _, url in sorted(matches):
+        if url in seen:
+            continue
+        seen.add(url)
+        candidates.append(url)
+    return candidates
+
+
+def fetch_preview_candidates(repo: str, pr: int) -> list[str]:
+    try:
+        comments = gh_json("api", f"repos/{repo}/issues/{pr}/comments?per_page=100")
+    except subprocess.CalledProcessError:
+        return []
+    candidates: list[str] = []
+    seen: set[str] = set()
+    for comment in comments:
+        if comment.get("user", {}).get("type") != "Bot":
+            continue
+        for url in extract_preview_candidates(str(comment.get("body") or "")):
+            if url in seen:
+                continue
+            seen.add(url)
+            candidates.append(url)
+    return candidates
+
+
 def fetch_snapshot(repo: str, pr: int, previous: Snapshot | None) -> Snapshot:
     pull_request = gh_json("api", f"repos/{repo}/pulls/{pr}")
     head_sha = pull_request["head"]["sha"]
@@ -195,6 +247,7 @@ def fetch_snapshot(repo: str, pr: int, previous: Snapshot | None) -> Snapshot:
     combined = gh_json("api", f"repos/{repo}/commits/{head_sha}/status")
     current_ci, failures = ci_state(checks, combined)
     preview_urls = fetch_preview_urls(repo, head_sha)
+    preview_candidates = [] if preview_urls else fetch_preview_candidates(repo, pr)
     should_fetch_review = (
         previous is None
         or previous.get("headSha") != head_sha
@@ -218,6 +271,8 @@ def fetch_snapshot(repo: str, pr: int, previous: Snapshot | None) -> Snapshot:
     }
     if preview_urls:
         snapshot["previewUrls"] = preview_urls
+    if preview_candidates:
+        snapshot["previewCandidates"] = preview_candidates
     return snapshot
 
 
