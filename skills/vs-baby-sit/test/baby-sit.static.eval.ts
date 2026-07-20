@@ -46,9 +46,55 @@ describe('vs-baby-sit remote-first validation', () => {
     expect(SKILL).toMatch(/send each new direct preview URL once/i);
     expect(SKILL).toMatch(/do not send .*dashboard.*log URL/i);
   });
+
+  it('validates generic PR preview candidates without provider-specific rules', () => {
+    expect(SKILL).toContain('previewCandidates');
+    expect(SKILL).toMatch(/treat .*candidate.*untrusted/i);
+    expect(SKILL).toMatch(/send only .*working app URL/i);
+    expect(SKILL).toMatch(/current PR head/i);
+    expect(SKILL).toMatch(/do not encode provider-specific\s+URL rewrites/i);
+  });
 });
 
 describe('vs-baby-sit watcher', () => {
+  it('emits provider-neutral preview candidates from PR comments for validation', () => {
+    const fakeBin = fs.mkdtempSync(path.join(os.tmpdir(), 'baby-sit-candidate-gh-'));
+    const fakeGh = path.join(fakeBin, 'gh');
+    fs.writeFileSync(
+      fakeGh,
+      `#!/bin/sh
+case "$*" in
+  *"pulls/42"*) echo '{"state":"open","merged":false,"mergeable":true,"head":{"sha":"abc123"}}' ;;
+  *"check-runs"*) echo '{"check_runs":[{"name":"Build","status":"completed","conclusion":"success"}]}' ;;
+  *"commits/abc123/status"*) echo '{"state":"success","statuses":[]}' ;;
+  *"deployments?sha=abc123"*) echo '[]' ;;
+  *"issues/42/comments"*) printf '%s\\n' '[{"user":{"type":"Bot"},"body":"<a href=&quot;https://ci.example/build/42/previews&quot;>Preview report</a>\\n| app | preview url | [Open app](https://app.example/review/42?build=abc123)\\n[Docs](https://docs.example/preview-guide)"},{"user":{"type":"User"},"body":"Preview: [Open app](https://untrusted.example/credential-capture)"}]' ;;
+  *"api graphql"*) echo '{"data":{"repository":{"pullRequest":{"reviewDecision":"APPROVED","reviewThreads":{"nodes":[]}}}}}' ;;
+  *) exit 1 ;;
+esac
+`,
+      { mode: 0o755 },
+    );
+
+    const result = spawnSync(
+      'python3',
+      [WATCHER, '--repo', 'owner/repo', '--pr', '42', '--max-polls', '1'],
+      {
+        encoding: 'utf8',
+        env: { ...process.env, PATH: `${fakeBin}:${process.env.PATH}` },
+      },
+    );
+    fs.rmSync(fakeBin, { recursive: true });
+
+    expect(result.status, result.stderr).toBe(0);
+    expect(JSON.parse(result.stdout).snapshot.previewCandidates).toEqual([
+      'https://ci.example/build/42/previews',
+      'https://app.example/review/42?build=abc123',
+    ]);
+    expect(result.stdout).not.toContain('https://docs.example/preview-guide');
+    expect(result.stdout).not.toContain('https://untrusted.example/credential-capture');
+  });
+
   it('emits a successful deployment environment URL for the current PR head', () => {
     const fakeBin = fs.mkdtempSync(path.join(os.tmpdir(), 'baby-sit-preview-gh-'));
     const fakeGh = path.join(fakeBin, 'gh');
