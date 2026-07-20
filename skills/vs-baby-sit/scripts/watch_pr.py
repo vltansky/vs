@@ -7,6 +7,7 @@ import time
 from collections.abc import Iterable
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlparse
 
 Snapshot = dict[str, Any]
 FAILURE_CONCLUSIONS = {
@@ -148,12 +149,44 @@ def fetch_review(repo: str, pr: int) -> tuple[str | None, int]:
     return pull_request.get("reviewDecision"), unresolved
 
 
+def fetch_preview_urls(repo: str, head_sha: str) -> list[str]:
+    try:
+        deployments = gh_json(
+            "api", f"repos/{repo}/deployments?sha={head_sha}&per_page=100"
+        )
+    except subprocess.CalledProcessError:
+        return []
+    preview_urls: list[str] = []
+    for deployment in deployments:
+        environment = str(deployment.get("environment") or "").casefold()
+        is_preview = deployment.get("transient_environment") is True or "preview" in environment
+        if deployment.get("production_environment") is True or not is_preview:
+            continue
+        statuses_url = str(deployment["statuses_url"])
+        statuses_endpoint = urlparse(statuses_url).path.lstrip("/")
+        try:
+            statuses = gh_json("api", statuses_endpoint)
+        except subprocess.CalledProcessError:
+            continue
+        if not statuses:
+            continue
+        latest_status = statuses[0]
+        url = latest_status.get("environment_url")
+        if latest_status.get("state") != "success" or not isinstance(url, str):
+            continue
+        if not url.startswith(("https://", "http://")) or url in preview_urls:
+            continue
+        preview_urls.append(url)
+    return preview_urls
+
+
 def fetch_snapshot(repo: str, pr: int, previous: Snapshot | None) -> Snapshot:
     pull_request = gh_json("api", f"repos/{repo}/pulls/{pr}")
     head_sha = pull_request["head"]["sha"]
     checks = gh_json("api", f"repos/{repo}/commits/{head_sha}/check-runs?per_page=100")
     combined = gh_json("api", f"repos/{repo}/commits/{head_sha}/status")
     current_ci, failures = ci_state(checks, combined)
+    preview_urls = fetch_preview_urls(repo, head_sha)
     should_fetch_review = (
         previous is None
         or previous.get("headSha") != head_sha
@@ -165,7 +198,7 @@ def fetch_snapshot(repo: str, pr: int, previous: Snapshot | None) -> Snapshot:
         review_decision = previous.get("reviewDecision")
         unresolved_threads = previous.get("unresolvedThreads")
 
-    return {
+    snapshot = {
         "state": pull_request["state"],
         "merged": pull_request["merged"],
         "headSha": head_sha,
@@ -175,6 +208,9 @@ def fetch_snapshot(repo: str, pr: int, previous: Snapshot | None) -> Snapshot:
         "ciState": current_ci,
         "failures": failures,
     }
+    if preview_urls:
+        snapshot["previewUrls"] = preview_urls
+    return snapshot
 
 
 def poll_github(

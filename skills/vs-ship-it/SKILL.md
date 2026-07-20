@@ -425,6 +425,14 @@ Then classify each check. A check is a **reviewer bot** when its name matches a 
 | Reviewer bot | any terminal conclusion | **Fetch findings** — the comments are the signal, not the conclusion |
 | Reviewer bot | still pending | Wait in background (Claude Code: `run_in_background: true` — harness wakes on exit; Codex: delegate to `awaiter` builtin sub-agent or unified-exec background terminal with `background_terminal_max_timeout` raised in `~/.codex/config.toml`) and re-classify when terminal |
 
+### Surface a preview deployment
+
+When GitHub exposes a successful preview deployment for the PR head, send the
+direct preview URL to the user with the PR status. Prefer a deployment
+`environment_url`; otherwise use a successful preview check's target URL only
+when it opens the deployed app. Do not send a provider dashboard or log URL as
+the preview. If no direct preview URL is available, continue without one.
+
 ### Fetch reviewer-bot findings
 
 Whenever a reviewer-bot check reached a terminal state — regardless of conclusion, regardless of whether it was still pending on first poll — fetch **unresolved** findings. The correct filter is `isResolved == false` on `reviewThreads`, not `commit_id == HEAD_SHA` — bots re-attach open threads to every new commit, so a HEAD filter both misses legitimately active threads and re-surfaces already-fixed ones. Carry `isOutdated` along to distinguish "still anchored to HEAD" from "line has since moved":
