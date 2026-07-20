@@ -55,13 +55,9 @@ When the host supports renaming the current thread, reflect the workflow state
 in its title. In Codex, use `set_thread_title` without a thread ID to target the
 calling thread.
 
-1. Capture the current base title. If it is unavailable, use
-   `PR #<N> — <PR title>`.
-2. Remove a leading `[babysit]` or `[ready]`; replace the existing workflow
-   prefix instead of stacking prefixes.
-3. At startup, rename it to `[babysit] <base title>`.
-4. After a verified `merge-ready` or `merged` terminal event, rename it to
-   `[ready] <base title>`.
+1. At startup, rename it to `[babysit]`.
+2. After a verified `merge-ready` or `merged` terminal event, rename it to
+   `[ready]`.
 
 Do not use `[ready]` for attention, blocked, closed-without-merge, failed, or
 interrupted outcomes. If thread renaming is unavailable, continue silently.
@@ -96,6 +92,12 @@ and emits compact JSONL only for:
 No output means no state change. Do not interrupt the watcher to perform a
 redundant manual check. If the watcher itself fails, report its exact stderr;
 missing evidence is not a passing state.
+
+When a snapshot includes a successful preview deployment for the current head,
+send each new direct preview URL once. Use the deployment `environment_url`.
+Do not send a provider dashboard or log URL as the preview. A new head may
+produce a new preview URL, so surface it on the next emitted state change
+without adding a separate polling loop.
 
 ## 3. Handle attention
 

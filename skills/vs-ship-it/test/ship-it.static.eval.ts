@@ -143,6 +143,12 @@ describe('vs-ship-it reviewer guide', () => {
 });
 
 describe('vs-ship-it remote-first validation', () => {
+  it('sends a PR preview deployment when GitHub exposes one', () => {
+    expect(SKILL).toMatch(/preview deployment/i);
+    expect(SKILL).toMatch(/send the\s+direct preview URL/i);
+    expect(SKILL).toMatch(/do not send a provider dashboard or log URL/i);
+  });
+
   it('starts PR feedback before broad local validation', () => {
     expect(SKILL).toMatch(/focused test or smallest relevant validation/);
     expect(SKILL).toMatch(/create the PR promptly/);
