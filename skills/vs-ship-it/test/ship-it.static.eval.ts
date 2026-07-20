@@ -149,6 +149,14 @@ describe('vs-ship-it remote-first validation', () => {
     expect(SKILL).toMatch(/do not send a provider dashboard or log URL/i);
   });
 
+  it('validates generic preview links exposed in PR comments', () => {
+    expect(SKILL).toMatch(/preview links?\s+in PR\s+comments/i);
+    expect(SKILL).toMatch(/authenticated browser.*network/i);
+    expect(SKILL).toMatch(/send only .*working app URL/i);
+    expect(SKILL).toMatch(/current PR head/i);
+    expect(SKILL).toMatch(/do not encode provider-specific\s+URL\s+rewrites/i);
+  });
+
   it('starts PR feedback before broad local validation', () => {
     expect(SKILL).toMatch(/focused test or smallest relevant validation/);
     expect(SKILL).toMatch(/create the PR promptly/);
