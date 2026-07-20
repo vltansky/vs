@@ -172,7 +172,7 @@ parallelism was not available.
 
 The default PR-mode execution order is:
 
-`Step 2 → Step 3/3b → Step 5/5b → Step 4/4b → update the PR body → Step 6/7`
+`Step 2 → Step 3/3b → Step 5/5b → Step 4/4b → Step 5c → update the PR body → Step 6/7`
 
 This execution order overrides the document order below. Create and verify the
 PR association before running `vs-brief` or `vs-verify`. Mark unfinished
@@ -403,6 +403,42 @@ current checkout and authenticated `gh` to refresh native PR context. On failure
 run `gh auth status`, report the mismatch, and stop. Use the verified `PR_NUM`,
 `PR_URL`, and `REPO` below. Print `PR_URL` and the brief to chat.
 
+### Step 5c: Optional GitHub-hosted image upload
+
+Run this step only for a PR workflow when local image evidence exists and is not
+already hosted. In the full workflow, run it after Step 4/4b and before the final
+PR-body update. If no upload is needed, skip this step without asking.
+
+Before any browser access or upload, use `request_user_input` (the
+ask-user-question tool) and require an explicit answer. Do not set an automatic
+resolution timeout. Name the exact local image paths and verified `PR_URL` in
+the question:
+
+- `Upload images (Recommended)` — use the authenticated browser only to upload
+  the named files to GitHub and insert their URLs into the PR description.
+- `Skip upload` — continue shipping without browser access or image upload.
+
+Proceed only after the user makes the affirmative `Upload images` selection. If
+the user declines or skips, continue shipping without browser access and omit
+the hosted images. A decline is not approval.
+
+After approval:
+
+1. Open the verified `PR_URL` in the authenticated browser.
+2. Use GitHub's comment editor only as an upload surface. Start the browser file
+   chooser wait, click `Attach files`, and set only the approved image paths by
+   absolute path.
+3. Wait for GitHub to insert the hosted Markdown into the comment textbox.
+   Capture that Markdown, then discard the draft; do not submit the comment.
+4. Insert the hosted Markdown into the PR body file and run `gh pr edit` with
+   `--body-file`.
+5. Re-open the PR description and verify that every approved image renders.
+
+Keep browser use limited to the approved files and verified PR. Do not inspect
+cookies, browser storage, or unrelated tabs. If direct file upload is blocked,
+do not fall back to the macOS file picker or Computer Use. Report the blocker
+and keep the PR body unchanged instead of claiming the images were attached.
+
 ## Step 6: Suggest reviewers
 
 Rank candidates by commits touching the changed files. Exclude the current user
@@ -566,6 +602,7 @@ each item below.
 - [ ] PR re-resolved from the current checkout before turn completion; state, branch, and HEAD verified
 - [ ] WHY explains the problem, diagnosis, impact, and important system boundary without inventing motivation
 - [ ] UI evidence uses matched before/after screenshots or a recording with captions; other observable changes use paired output or a demo
+- [ ] Optional browser image upload was skipped or explicitly approved through `request_user_input` before browser access; only approved files were uploaded and no comment was posted
 - [ ] Core data/control flow stays visible under How it works when the logic is not obvious
 - [ ] Behavior examples cover meaningful empty, legacy, compatibility, permission, or failure cases
 - [ ] How to verify includes the direct preview or exact entry point, manual steps, compact automated results, and open gaps

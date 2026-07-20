@@ -69,6 +69,30 @@ describe('vs-ship-it PR association handshake', () => {
   });
 });
 
+describe('vs-ship-it optional browser image upload', () => {
+  it('gets explicit approval through the ask-user-question tool', () => {
+    expect(SKILL).toContain('request_user_input');
+    expect(SKILL).toMatch(/ask-user-question tool/i);
+    expect(SKILL).toMatch(/exact local image paths/i);
+    expect(SKILL).toMatch(/verified `PR_URL`/);
+    expect(SKILL).toMatch(/affirmative/i);
+    expect(SKILL).not.toMatch(/autoResolutionMs/);
+  });
+
+  it('uses the browser only for approved GitHub uploads', () => {
+    expect(SKILL).toMatch(/authenticated browser/i);
+    expect(SKILL).toMatch(/approved image paths/i);
+    expect(SKILL).toMatch(/do not submit (?:the )?comment/i);
+    expect(SKILL).toMatch(/`gh pr edit` with\s+`--body-file`/);
+  });
+
+  it('keeps image hosting optional', () => {
+    expect(SKILL).toMatch(/Skip upload/);
+    expect(SKILL).toMatch(/declines? or skips?/i);
+    expect(SKILL).toMatch(/continue shipping without browser access/i);
+  });
+});
+
 describe('vs-ship-it mechanical PR fast path', () => {
   it('honors explicit requests to skip shipping ceremony', () => {
     expect(SKILL).toMatch(/just create (?:the\s+)?PR/);
@@ -166,7 +190,7 @@ describe('vs-ship-it remote-first validation', () => {
     expect(SKILL).toMatch(/create the PR promptly/);
     expect(SKILL).toContain('Running locally and in CI');
     expect(SKILL).toContain(
-      'Step 2 → Step 3/3b → Step 5/5b → Step 4/4b → update the PR body → Step 6/7',
+      'Step 2 → Step 3/3b → Step 5/5b → Step 4/4b → Step 5c → update the PR body → Step 6/7',
     );
     expect(SKILL).toMatch(
       /Run `vs-brief` and `vs-verify` after PR creation while CI and automated review\s+run/,
