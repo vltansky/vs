@@ -55,9 +55,21 @@ When the host supports renaming the current thread, reflect the workflow state
 in its title. In Codex, use `set_thread_title` without a thread ID to target the
 calling thread.
 
-1. At startup, rename it to `[babysit]`.
-2. After a verified `merge-ready` or `merged` terminal event, rename it to
-   `[ready]`.
+1. Re-read the live title immediately before every rename. If the current title
+   cannot be read or is empty, skip renaming; synthesizing or reusing an older
+   title can overwrite the user's title.
+2. Preserve the rest of the current title verbatim. Remove only a leading
+   `[babysit] ` or `[ready] `; replace the existing workflow prefix instead of
+   stacking prefixes.
+3. If removing the workflow prefix leaves an empty base title, skip renaming.
+   Never rename a thread to the prefix alone.
+4. At startup, rename `<base title>` to `[babysit] <base title>`.
+5. After a verified `merge-ready` or `merged` terminal event, rename it to
+   `[ready] <base title>`. Derive that base from the newly read title, not the
+   title captured at startup.
+
+For example, `Fix upload timeout` becomes `[babysit] Fix upload timeout`, then
+`[ready] Fix upload timeout`. No other part of the title changes.
 
 Do not use `[ready]` for attention, blocked, closed-without-merge, failed, or
 interrupted outcomes. If thread renaming is unavailable, continue silently.
