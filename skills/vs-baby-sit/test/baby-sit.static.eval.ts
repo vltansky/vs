@@ -59,7 +59,7 @@ case "$*" in
   *"pulls/42"*) echo '{"state":"open","merged":false,"mergeable":true,"head":{"sha":"abc123"}}' ;;
   *"check-runs"*) echo '{"check_runs":[{"name":"Deploy Preview","status":"completed","conclusion":"success","details_url":"https://provider.example/logs"}]}' ;;
   *"commits/abc123/status"*) echo '{"state":"success","statuses":[]}' ;;
-  *"deployments?sha=abc123"*) echo '[{"environment":"Production","production_environment":true,"statuses_url":"https://api.github.com/repos/owner/repo/deployments/8/statuses"},{"environment":"Preview","transient_environment":true,"statuses_url":"https://api.github.com/repos/owner/repo/deployments/7/statuses"}]' ;;
+  *"deployments?sha=abc123"*) echo '[{"environment":"Production","production_environment":true,"statuses_url":"https://api.github.com/repos/owner/repo/deployments/8/statuses"},{"environment":"pr-42","transient_environment":false,"production_environment":false,"statuses_url":"https://api.github.com/repos/owner/repo/deployments/7/statuses"}]' ;;
   "api repos/owner/repo/deployments/7/statuses") echo '[{"state":"success","environment_url":"https://preview.example/pr-42"}]' ;;
   "api repos/owner/repo/deployments/8/statuses") echo '[{"state":"success","environment_url":"https://production.example"}]' ;;
   *"api graphql"*) echo '{"data":{"repository":{"pullRequest":{"reviewDecision":"APPROVED","reviewThreads":{"nodes":[]}}}}}' ;;

@@ -2,6 +2,7 @@
 
 import argparse
 import json
+import re
 import subprocess
 import time
 from collections.abc import Iterable
@@ -159,7 +160,14 @@ def fetch_preview_urls(repo: str, head_sha: str) -> list[str]:
     preview_urls: list[str] = []
     for deployment in deployments:
         environment = str(deployment.get("environment") or "").casefold()
-        is_preview = deployment.get("transient_environment") is True or "preview" in environment
+        is_preview = (
+            deployment.get("transient_environment") is True
+            or "preview" in environment
+            or re.search(
+                r"(?:^|[^a-z0-9])pr[- _/]?\d+(?:$|[^a-z0-9])", environment
+            )
+            is not None
+        )
         if deployment.get("production_environment") is True or not is_preview:
             continue
         statuses_url = str(deployment["statuses_url"])
