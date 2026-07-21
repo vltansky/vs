@@ -74,7 +74,10 @@ PROJECT_ID=$(git config --get remote.origin.url 2>/dev/null \
   | sed -E 's#\.git$##; s#.*[:/]([^/]+/[^/]+)$#\1#; s#/#-#g')
 [ -z "$PROJECT_ID" ] && PROJECT_ID=$(basename "$PWD")
 REPORT_DIR="$HOME/.vs/$PROJECT_ID/qa-reports"
-mkdir -p "$REPORT_DIR/screenshots"
+RUN_SLUG="target-domain-or-app-name"
+RUN_ID="$RUN_SLUG-$(date +%Y-%m-%d-%H%M%S)"
+RUN_DIR="$REPORT_DIR/$RUN_ID"
+mkdir -p "$RUN_DIR/screenshots"
 ```
 
 **Choose the report format after scoping the run:** Markdown is the default.
@@ -83,16 +86,43 @@ screenshots or multiple visual states where visual structure helps human
 review. Length alone is not a reason. Quick, standard, and small diff-aware
 runs stay in Markdown.
 
-- Markdown: copy `references/qa-report-template.md` to
-  `$REPORT_DIR/qa-report-{domain}-{YYYY-MM-DD}.md`.
-- HTMDX: copy `references/qa-report-template.html` to
-  `$REPORT_DIR/qa-report-{domain}-{YYYY-MM-DD}.html` and edit only its HTMDX
+- Markdown: set `REPORT_PATH="$RUN_DIR/report.md"` and copy
+  `references/qa-report-template.md` there.
+- HTMDX: set `REPORT_PATH="$RUN_DIR/report.html"`, copy
+  `references/qa-report-template.html` there, and edit only its HTMDX
   source block. Follow the
   [shared rich-artifact contract](../vs-internal-shared/references/rich-artifacts.md).
 
 The remote runtime executes with DOM access. If a report could contain
 credentials, secrets, PII, or other sensitive internal data, use a trusted
 local runtime mirror or remain in Markdown.
+
+### Screenshot evidence contract
+
+Every run has its own `$RUN_DIR`, so evidence from separate runs never collides.
+Every completed run captures `screenshots/initial.png` and references it in the
+report, even when no issues are found. Every issue has at least one retained
+screenshot; every verified fix has before/after screenshots. Use relative
+Markdown image references so both Markdown and HTMDX reports render the files.
+
+Keep screenshot bytes tool-side or on disk. Prefer a screenshot API that writes
+directly to a filename. If an API returns a buffer, write it to the report's
+`screenshots/` directory inside the persistent browser/tool process and return
+metadata only: path, byte count, width, and height. Do not return base64, image
+bytes, or image tool content to the model, and do not read saved screenshots
+back into the context by default.
+
+Use DOM/accessibility snapshots, computed styles, element bounds, natural image
+dimensions, console output, and network responses for inspection. Only inspect
+a smallest-useful crop when a visual judgment cannot be established from
+structured signals. If the user requires zero screenshot context, treat that as
+no exception.
+
+Redact or replace credentials and PII in the DOM before capture; never capture a
+secret and redact it afterward. Store exploratory or discarded captures outside
+the final `screenshots/` directory. The final directory has a one-to-one
+invariant: every retained screenshot is referenced by the report, and every
+report screenshot reference resolves to a valid retained PNG.
 
 ---
 
@@ -145,7 +175,7 @@ Full mode + diff against `baseline.json`. Score delta, fixed vs. new issues.
 ## Phase 1: Initialize
 
 ```bash
-# $PROJECT_ID and $REPORT_DIR were set in Phase 0
+# $PROJECT_ID, $REPORT_DIR, and $RUN_DIR were set in Phase 0
 START_TIME=$(date +%s)
 ```
 
@@ -216,7 +246,8 @@ console.log(snap.full);
 EOF
 ```
 
-Read the screenshot file so the user can see it.
+Add `![Initial state](screenshots/initial.png)` to the report. Keep the image on
+disk and use the returned metadata only.
 
 **Detect framework:** Look for `__next` / `_next/data` (Next.js), `csrf-token` meta (Rails), `wp-content` (WordPress), SPA (client-side routing with no reloads).
 
@@ -239,7 +270,9 @@ console.log(snap.full);
 EOF
 ```
 
-After each page, read the screenshot inline. Per-page checklist (see `references/issue-taxonomy.md`):
+After each page, add retained evidence to the report and continue from structured
+page data without reading the screenshot into model context. Per-page checklist
+(see `references/issue-taxonomy.md`):
 
 1. Visual scan — layout, broken images, alignment
 2. Interactive elements — click every button/link/control
@@ -290,7 +323,11 @@ EOF
 
 **Static bugs** (typos, layout, missing images): single annotated snapshot, describe what's wrong.
 
-Read every screenshot inline. Write each issue to the report using the template format. Include a **Fix hint** — one line written while browser context is fresh: what to grep for, which component is likely responsible, what the root cause looks like. Phase 8 reads this directly instead of re-investigating.
+Reference every retained screenshot in the report without reading it into model
+context. Write each issue using the template format. Include a **Fix hint** — one
+line written while browser context is fresh: what to grep for, which component
+is likely responsible, what the root cause looks like. Phase 8 reads this
+directly instead of re-investigating.
 
 ---
 
@@ -363,7 +400,8 @@ console.log(snap.incremental || snap.full);
 EOF
 ```
 
-Read before/after screenshots inline.
+Reference the before/after screenshots in the report and verify from structured
+page state without loading their bytes into model context.
 
 ### 8e. Classify
 - **verified** — re-test confirms fix, no new errors
@@ -397,7 +435,7 @@ Re-run QA on all affected pages. Compute final health score.
 ## Phase 10: Report
 
 Write report to:
-- **Local:** `~/.vs/$PROJECT_ID/qa-reports/qa-report-{domain}-{YYYY-MM-DD}.{md|html}`
+- **Local:** `~/.vs/$PROJECT_ID/qa-reports/{domain}-{YYYY-MM-DD}-{HHmmss}/report.{md|html}`
 
 Per-issue additions beyond template:
 - Fix Status: verified / best-effort / reverted / deferred
@@ -406,6 +444,17 @@ Per-issue additions beyond template:
 - Before/After screenshots
 
 Summary: total found, fixes applied (verified/best-effort/reverted), deferred, health score delta.
+
+Before declaring the report complete, validate its screenshot evidence without
+loading image bytes into model context:
+
+```bash
+node "<resolved-vs-qa-skill-directory>/scripts/validate-screenshot-evidence.mjs" "$REPORT_PATH"
+```
+
+The command must report `"valid":true`. Remove unused template examples, then
+fix missing, orphaned, empty, or invalid PNG evidence before completion. Report
+only its JSON metadata, never image data.
 
 **PR Summary line:** "QA found N issues, fixed M, health score X → Y."
 
@@ -429,7 +478,8 @@ If repo has `TODOS.md`:
 6. **Check console after every interaction.**
 7. **Depth over breadth.** 5-10 well-documented issues > 20 vague descriptions.
 8. **Never delete output files.** Screenshots and reports accumulate.
-9. **Show screenshots inline.** After every screenshot, Read the file to display it.
+9. **Keep screenshot bytes out of context.** Save them tool-side, reference them
+   in the report, and return metadata only.
 10. **Use the real surface.** Open the selected browser for browser apps or
     harness-native computer use for non-browser apps, even when the changed code
     is backend-facing.
@@ -443,15 +493,16 @@ If repo has `TODOS.md`:
 
 ```
 ~/.vs/$PROJECT_ID/qa-reports/
-├── qa-report-{domain}-{YYYY-MM-DD}.{md|html}
-├── screenshots/
-│   ├── initial.png
-│   ├── issue-001-step-1.png
-│   ├── issue-001-result.png
-│   ├── issue-001-before.png    # after fix
-│   ├── issue-001-after.png
-│   └── ...
-└── baseline.json
+└── {domain}-{YYYY-MM-DD}-{HHmmss}/
+    ├── report.{md|html}
+    ├── screenshots/
+    │   ├── initial.png
+    │   ├── issue-001-step-1.png
+    │   ├── issue-001-result.png
+    │   ├── issue-001-before.png
+    │   ├── issue-001-after.png
+    │   └── ...
+    └── baseline.json
 ```
 
 ## Workflow

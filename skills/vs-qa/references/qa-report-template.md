@@ -17,6 +17,10 @@
 
 ## Health Score: {SCORE}/100
 
+## Run Overview
+
+![Initial state](screenshots/initial.png)
+
 | Category | Score |
 |----------|-------|
 | Console | {0-100} |
