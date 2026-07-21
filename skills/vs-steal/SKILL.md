@@ -69,42 +69,31 @@ Prioritize **high value + low cost**. Flag interesting but expensive ideas separ
 
 ## Phase 4: Write the steals report
 
-Resolve `$PROJECT_ID` (see [../vs-internal-shared/SKILL.md](../vs-internal-shared/SKILL.md)) and write to `~/.vs/$PROJECT_ID/steals/YYYY-MM-DD-<target-slug>.md`:
+HTMDX is the default because every steals report compares candidates across
+value, cost, and citation evidence, so this report type satisfies the shared
+rich-artifact selection gate. Resolve `$PROJECT_ID` (see
+[../vs-internal-shared/SKILL.md](../vs-internal-shared/SKILL.md)), copy
+`references/steals-report-template.html` to
+`~/.vs/$PROJECT_ID/steals/YYYY-MM-DD-<target-slug>.html`, and edit only its
+HTMDX source block. Produce one canonical artifact with no Markdown twin.
+Follow the
+[shared rich-artifact contract](../vs-internal-shared/references/rich-artifacts.md).
 
-```markdown
-# Steals from <owner/repo> — YYYY-MM-DD
+Derive the target slug from the full `owner/repo` identifier: lowercase it and
+replace non-alphanumeric runs with hyphens, so repositories with the same name
+under different owners cannot collide. If the output path already exists,
+append a numeric suffix before the extension (`-2`, `-3`, and so on); never
+overwrite an earlier scan.
 
-Scope: <scope chosen in Phase 0>
-Tools used: octocode / gh fallback
-License: <target repo license — matters for porting>
-
-## TL;DR
-- 2-4 bullets, the single highest-leverage steals
-
-## Recommended ports (high value, low cost)
-
-### <Name>
-- Citation: `owner/repo path/to/file.ext#Lstart-Lend`
-- What it is: ...
-- How to adapt here: ...
-- Value: [why this helps this repo]
-- Cost: [adaptation notes — language, runtime, licensing]
-
-### <Name>
-...
-
-## Watchlist (high value, high cost)
-
-### <Name>
-- Citation: ...
-- Why it's deferred: ...
-
-## Considered and skipped
-- <Name> — one-line reason (e.g., already covered by our X, incompatible runtime, license mismatch)
-
-## Open questions
-- [ ] ...
-```
+Use Markdown only when the user explicitly requests Markdown or the report
+cannot safely use the HTMDX runtime. Apply the security boundary to the actual
+report content: redact credentials, secrets, PII, and sensitive values. A
+sanitized report still uses HTMDX. If sensitive data must remain, use a trusted
+local runtime mirror or remain in Markdown. The Markdown fallback keeps the
+same TL;DR, recommended ports, watchlist, considered-and-skipped, and open
+questions sections and uses
+`~/.vs/$PROJECT_ID/steals/YYYY-MM-DD-<target-slug>.md`, with the same collision
+suffix rule.
 
 ## Phase 5: Handoff
 
@@ -129,7 +118,7 @@ Blocked until all items pass:
 - [ ] Pre-scan done with octocode (or fallback noted)
 - [ ] Every candidate in the report carries a precise citation
 - [ ] Value and cost scored per candidate
-- [ ] Report written to `~/.vs/$PROJECT_ID/steals/YYYY-MM-DD-<slug>.md`
+- [ ] Report written to `~/.vs/$PROJECT_ID/steals/YYYY-MM-DD-<target-slug>.html`, or the Markdown fallback is justified
 - [ ] Target repo's license noted
 
 ## Workflow

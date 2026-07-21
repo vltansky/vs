@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Steals from [[TARGET_REPO]]</title>
+    <script src="https://cdn.jsdelivr.net/npm/@wix/htmdx@2.2.1/dist/browser.js" defer></script>
+  </head>
+  <body>
+    <!-- prettier-ignore -->
+    <script type="text/htmdx" data-htmdx-edit-instruction="Edit only this script content. HTMDX format.">
+---
+title: Steals from [[TARGET_REPO]]
+project: [[PROJECT_NAME]]
+updated: [[DATE]]
+theme: teal
+---
+
+<ExecutiveSummary>
+[[TOP_RECOMMENDATION_AND_WHY]]
+</ExecutiveSummary>
+
+<MetricStrip>
+- Candidates reviewed: **[[CANDIDATE_COUNT]]**
+- Recommended ports: **[[RECOMMENDED_COUNT]]**
+- Watchlist: **[[WATCHLIST_COUNT]]**
+- Skipped: **[[SKIPPED_COUNT]]**
+</MetricStrip>
+
+## Scan metadata
+
+<DataTable>
+| Field | Value |
+| --- | --- |
+| Target | [[TARGET_REPO]] |
+| Scope | [[SCOPE]] |
+| Tools | [[TOOLS_USED]] |
+| License | [[LICENSE]] |
+</DataTable>
+
+## Recommended ports
+
+<DataTable>
+| Idea | Citation | How to adapt here | Value | Cost |
+| --- | --- | --- | --- | --- |
+| [[IDEA]] | [[CITATION]] | [[ADAPTATION]] | [[VALUE]] | [[COST]] |
+</DataTable>
+
+## Watchlist
+
+<DataTable>
+| Idea | Citation | Value | Cost | Why deferred |
+| --- | --- | --- | --- | --- |
+| [[WATCHLIST_IDEA]] | [[WATCHLIST_CITATION]] | [[WATCHLIST_VALUE]] | [[WATCHLIST_COST]] | [[DEFER_REASON]] |
+</DataTable>
+
+## Considered and skipped
+
+- **[[SKIPPED_IDEA]]:** [[SKIP_REASON]]
+
+## Open questions
+
+- [ ] [[OPEN_QUESTION]]
+    </script>
+  </body>
+</html>

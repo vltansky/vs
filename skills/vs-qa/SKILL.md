@@ -80,21 +80,23 @@ RUN_DIR="$REPORT_DIR/$RUN_ID"
 mkdir -p "$RUN_DIR/screenshots"
 ```
 
-**Choose the report format after scoping the run:** Markdown is the default.
-Use HTMDX only for a regression or exhaustive run that will present multiple
-screenshots or multiple visual states where visual structure helps human
-review. Length alone is not a reason. Quick, standard, and small diff-aware
-runs stay in Markdown.
+**Choose the report format after scoping the run:** HTMDX is the default for QA
+reports because every issue requires a screenshot and the report is reviewed as
+visual evidence. Use Markdown only when the user explicitly requests it or the
+report cannot safely use the HTMDX runtime. Tier and run length do not change
+the default.
 
-- Markdown: set `REPORT_PATH="$RUN_DIR/report.md"` and copy
-  `references/qa-report-template.md` there.
 - HTMDX: set `REPORT_PATH="$RUN_DIR/report.html"`, copy
   `references/qa-report-template.html` there, and edit only its HTMDX
   source block. Follow the
   [shared rich-artifact contract](../vs-internal-shared/references/rich-artifacts.md).
+- Markdown fallback: set `REPORT_PATH="$RUN_DIR/report.md"` and copy
+  `references/qa-report-template.md` there.
 
-The remote runtime executes with DOM access. If a report could contain
-credentials, secrets, PII, or other sensitive internal data, use a trusted
+The remote runtime executes with DOM access. Apply this boundary to the actual
+report content, not merely to the subject being tested. Redact credentials,
+secrets, PII, and sensitive values from text and screenshots. A sanitized report
+still uses HTMDX. If sensitive data must remain in the artifact, use a trusted
 local runtime mirror or remain in Markdown.
 
 ### Screenshot evidence contract

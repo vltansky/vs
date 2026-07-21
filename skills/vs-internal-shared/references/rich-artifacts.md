@@ -70,6 +70,19 @@ Never use a floating runtime version such as `@latest`.
 ## Security boundary
 
 The HTMDX source cannot execute JavaScript, but the browser runtime is external
-code with DOM access. Do not put credentials, secrets, or PII in an artifact.
-For a sensitive or internal report, use a trusted local mirror of the pinned
-runtime; if none is available, remain in Markdown.
+code with DOM access. Apply the boundary to the actual artifact content, not
+merely to the subject or origin of the report. Redact credentials, secrets, PII,
+and sensitive values from text, tables, and images. A sanitized artifact may use
+the pinned remote runtime. If sensitive data must remain, use a trusted local
+mirror of the pinned runtime; if none is available, remain in Markdown.
+
+When a trusted local mirror is selected, replace the template's runtime `src`
+before inserting report content. Confirm the resolved runtime is local, then
+freeze the HTML shell; the edit-only-source-block rule applies after this setup.
+Never place sensitive content into a template that still loads the remote
+runtime.
+
+Treat a local mirror as available only when the user or repository provides an
+approved local URL or absolute path for the exact pinned runtime version. Do not
+guess a mirror location or install one during report generation. Without that
+configuration, use Markdown whenever sensitive data must remain.

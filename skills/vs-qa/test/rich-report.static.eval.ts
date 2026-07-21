@@ -10,12 +10,12 @@ const HTML_TEMPLATE = fs.readFileSync(
 );
 
 describe('vs-qa report format selection', () => {
-  it('defaults to Markdown and reserves HTMDX for visual regression or exhaustive evidence', () => {
-    expect(QA).toMatch(/Markdown.*default/is);
-    expect(QA).toMatch(/regression|exhaustive/i);
-    expect(QA).toMatch(/multiple.*screenshots|multiple.*visual states/is);
-    expect(QA).toMatch(/HTMDX/);
-    expect(QA).toMatch(/not.*length|length alone/is);
+  it('defaults QA reports to HTMDX and keeps Markdown as an explicit or sensitive fallback', () => {
+    expect(QA).toMatch(/HTMDX.*default/is);
+    expect(QA).toMatch(/every issue.*screenshot/is);
+    expect(QA).toMatch(/explicit.*Markdown|Markdown.*explicit/is);
+    expect(QA).toMatch(/sensitive|credentials|PII/i);
+    expect(QA).toMatch(/actual report content|report content.*not.*subject/is);
   });
 
   it('provides both report templates and protects sensitive reports from remote runtime code', () => {

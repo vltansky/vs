@@ -39,10 +39,132 @@ describe('vs-baby-sit remote-first validation', () => {
     expect(SKILL).toContain('[babysit]');
     expect(SKILL).toContain('[ready]');
     expect(SKILL).toMatch(/replace the existing workflow\s+prefix/);
+    expect(SKILL).toMatch(/preserve the rest of the current title verbatim/i);
+    expect(SKILL).toMatch(/Never rename a thread to the prefix alone/);
+    expect(SKILL).toMatch(/If the current title\s+cannot\s+be read.*skip renaming/s);
+    expect(SKILL).toMatch(/Re-read the live title immediately before every rename/);
+    expect(SKILL).not.toMatch(/`PR #<N> — <PR title>`/);
+  });
+
+  it('sends a newly available PR preview deployment', () => {
+    expect(SKILL).toMatch(/preview deployment/i);
+    expect(SKILL).toMatch(/send each new direct preview URL once/i);
+    expect(SKILL).toMatch(/do not send .*dashboard.*log URL/i);
+  });
+
+  it('validates generic PR preview candidates without provider-specific rules', () => {
+    expect(SKILL).toContain('previewCandidates');
+    expect(SKILL).toMatch(/treat .*candidate.*untrusted/i);
+    expect(SKILL).toMatch(/send only .*working app URL/i);
+    expect(SKILL).toMatch(/current PR head/i);
+    expect(SKILL).toMatch(/do not encode provider-specific\s+URL rewrites/i);
   });
 });
 
 describe('vs-baby-sit watcher', () => {
+  it('emits provider-neutral preview candidates from PR comments for validation', () => {
+    const fakeBin = fs.mkdtempSync(path.join(os.tmpdir(), 'baby-sit-candidate-gh-'));
+    const fakeGh = path.join(fakeBin, 'gh');
+    fs.writeFileSync(
+      fakeGh,
+      `#!/bin/sh
+case "$*" in
+  *"pulls/42"*) echo '{"state":"open","merged":false,"mergeable":true,"head":{"sha":"abc123"}}' ;;
+  *"check-runs"*) echo '{"check_runs":[{"name":"Build","status":"completed","conclusion":"success"}]}' ;;
+  *"commits/abc123/status"*) echo '{"state":"success","statuses":[]}' ;;
+  *"deployments?sha=abc123"*) echo '[]' ;;
+  *"issues/42/comments"*) printf '%s\\n' '[{"user":{"type":"Bot"},"body":"<a href=&quot;https://ci.example/build/42/previews&quot;>Preview report</a>\\n| app | preview url | [Open app](https://app.example/review/42?build=abc123)\\n[Docs](https://docs.example/preview-guide)"},{"user":{"type":"User"},"body":"Preview: [Open app](https://untrusted.example/credential-capture)"}]' ;;
+  *"api graphql"*) echo '{"data":{"repository":{"pullRequest":{"reviewDecision":"APPROVED","reviewThreads":{"nodes":[]}}}}}' ;;
+  *) exit 1 ;;
+esac
+`,
+      { mode: 0o755 },
+    );
+
+    const result = spawnSync(
+      'python3',
+      [WATCHER, '--repo', 'owner/repo', '--pr', '42', '--max-polls', '1'],
+      {
+        encoding: 'utf8',
+        env: { ...process.env, PATH: `${fakeBin}:${process.env.PATH}` },
+      },
+    );
+    fs.rmSync(fakeBin, { recursive: true });
+
+    expect(result.status, result.stderr).toBe(0);
+    expect(JSON.parse(result.stdout).snapshot.previewCandidates).toEqual([
+      'https://ci.example/build/42/previews',
+      'https://app.example/review/42?build=abc123',
+    ]);
+    expect(result.stdout).not.toContain('https://docs.example/preview-guide');
+    expect(result.stdout).not.toContain('https://untrusted.example/credential-capture');
+  });
+
+  it('emits a successful deployment environment URL for the current PR head', () => {
+    const fakeBin = fs.mkdtempSync(path.join(os.tmpdir(), 'baby-sit-preview-gh-'));
+    const fakeGh = path.join(fakeBin, 'gh');
+    fs.writeFileSync(
+      fakeGh,
+      `#!/bin/sh
+case "$*" in
+  *"pulls/42"*) echo '{"state":"open","merged":false,"mergeable":true,"head":{"sha":"abc123"}}' ;;
+  *"check-runs"*) echo '{"check_runs":[{"name":"Deploy Preview","status":"completed","conclusion":"success","details_url":"https://provider.example/logs"}]}' ;;
+  *"commits/abc123/status"*) echo '{"state":"success","statuses":[]}' ;;
+  *"deployments?sha=abc123"*) echo '[{"environment":"Production","production_environment":true,"statuses_url":"https://api.github.com/repos/owner/repo/deployments/8/statuses"},{"environment":"pr-42","transient_environment":false,"production_environment":false,"statuses_url":"https://api.github.com/repos/owner/repo/deployments/7/statuses"}]' ;;
+  "api repos/owner/repo/deployments/7/statuses") echo '[{"state":"success","environment_url":"https://preview.example/pr-42"}]' ;;
+  "api repos/owner/repo/deployments/8/statuses") echo '[{"state":"success","environment_url":"https://production.example"}]' ;;
+  *"api graphql"*) echo '{"data":{"repository":{"pullRequest":{"reviewDecision":"APPROVED","reviewThreads":{"nodes":[]}}}}}' ;;
+  *) exit 1 ;;
+esac
+`,
+      { mode: 0o755 },
+    );
+
+    const result = spawnSync(
+      'python3',
+      [WATCHER, '--repo', 'owner/repo', '--pr', '42', '--max-polls', '1'],
+      {
+        encoding: 'utf8',
+        env: { ...process.env, PATH: `${fakeBin}:${process.env.PATH}` },
+      },
+    );
+    fs.rmSync(fakeBin, { recursive: true });
+
+    expect(result.status).toBe(0);
+    expect(JSON.parse(result.stdout).snapshot.previewUrls).toEqual([
+      'https://preview.example/pr-42',
+    ]);
+    expect(result.stdout).not.toContain('https://provider.example/logs');
+    expect(result.stdout).not.toContain('https://production.example');
+  });
+
+  it('does not surface an older success when the latest preview status is pending', () => {
+    const code = `
+import importlib.util
+import subprocess
+import sys
+spec = importlib.util.spec_from_file_location("watch_pr", sys.argv[1])
+watcher = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(watcher)
+responses = iter([
+    [{"environment": "Preview", "statuses_url": "repos/owner/repo/deployments/7/statuses"}],
+    [
+        {"state": "pending", "environment_url": "https://preview.example/new"},
+        {"state": "success", "environment_url": "https://preview.example/old"},
+    ],
+])
+watcher.gh_json = lambda *args: next(responses)
+print(watcher.fetch_preview_urls("owner/repo", "abc123"))
+`;
+    const result = spawnSync('python3', ['-c', code, WATCHER], {
+      encoding: 'utf8',
+      env: { ...process.env, PYTHONDONTWRITEBYTECODE: '1' },
+    });
+
+    expect(result.status).toBe(0);
+    expect(result.stdout.trim()).toBe('[]');
+  });
+
   it('emits nothing when repeated polls observe no change', () => {
     const fixturePath = path.join(os.tmpdir(), `baby-sit-${process.pid}.jsonl`);
     const snapshot = {

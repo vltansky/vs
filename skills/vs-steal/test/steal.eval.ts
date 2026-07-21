@@ -13,7 +13,7 @@ describe('steal', () => {
   //   - Phase 0 scope locked to one owner/repo + focus
   //   - Phase 2 candidate list capped ~15 with citations (repo path + ref)
   //   - Phase 3 value x cost ranking
-  //   - Phase 4 writeout at ~/.vs/$PROJECT_ID/steals/YYYY-MM-DD-<slug>.md
+  //   - Phase 4 writeout at ~/.vs/$PROJECT_ID/steals/YYYY-MM-DD-<target-slug>.html
   // See plugins/vs/skills/steal/SKILL.md for the full flow.
   it('has a runnable behavior-eval scaffold when an offline repo fixture exists', async () => {
     if (!process.env.RUN_PENDING_REMOTE_EVALS) {
@@ -27,5 +27,5 @@ describe('steal', () => {
 
   it.todo('locks scope to one owner/repo before searching');
   it.todo('cites every candidate with a repo path + ref');
-  it.todo('writes the steal report to the $PROJECT_ID/steals path');
+  it.todo('writes the HTMDX steal report to the $PROJECT_ID/steals path');
 });

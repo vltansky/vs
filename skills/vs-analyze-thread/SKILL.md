@@ -12,7 +12,9 @@ transcript contract.
 
 ## Guardrails
 
-- Work read-only unless the user explicitly asks to save or apply findings.
+- Keep project files and transcript sources read-only unless the user explicitly
+  asks to apply findings. A cross-session report under `~/.vs/` is output, not a
+  source mutation.
 - Do not surface secrets, credentials, private keys, hidden reasoning, or raw
   chain-of-thought. Paraphrase sensitive evidence and omit reasoning events.
 - Separate agent behavior, tool or environment failures, user corrections, and
@@ -100,7 +102,9 @@ differences in task scope or environment before ranking agents or sessions.
 
 ## 5. Report
 
-Lead with the diagnosis. Keep the default report compact:
+Lead with the diagnosis. A single-thread analysis stays compact in Markdown in
+chat. Omit empty sections; for a short thread, collapse the report to Bottom
+line, Findings, and Recommended changes.
 
 ```markdown
 # Thread analysis
@@ -127,9 +131,47 @@ Lead with the diagnosis. Keep the default report compact:
 - <missing or inaccessible evidence, or "None material">
 ```
 
-Omit empty sections. For a short thread, collapse the report to Bottom line,
-Findings, and Recommended changes. For a cross-session comparison, add a compact
-table with one row per session and the same columns for each.
+For a cross-session comparison, use HTMDX because the repeated rubric, metrics,
+turning points, and evidence are easier to compare visually. Resolve the project
+ID and create the artifact directory. Choose a comparison slug from the session
+labels or comparison focus, using lowercase letters, numbers, and hyphens only:
+
+```bash
+PROJECT_ID=$(git config --get remote.origin.url 2>/dev/null \
+  | sed -E 's#\.git$##; s#.*[:/]([^/]+/[^/]+)$#\1#; s#/#-#g')
+[ -z "$PROJECT_ID" ] && PROJECT_ID=$(basename "$PWD")
+REPORT_DIR="$HOME/.vs/$PROJECT_ID/thread-analysis"
+REPORT_DATE=$(date +%F)
+COMPARISON_SLUG="sessions"
+REPORT_EXTENSION="html"
+REPORT_BASE="$REPORT_DIR/thread-comparison-$REPORT_DATE-$COMPARISON_SLUG"
+REPORT_PATH="$REPORT_BASE.$REPORT_EXTENSION"
+SUFFIX=2
+mkdir -p "$REPORT_DIR"
+while ! (set -C; : > "$REPORT_PATH") 2>/dev/null; do
+  REPORT_PATH="$REPORT_BASE-$SUFFIX.$REPORT_EXTENSION"
+  SUFFIX=$((SUFFIX + 1))
+done
+```
+
+Replace the generic `sessions` slug before resolving the path. The loop appends
+a numeric suffix before the extension (`-2`, `-3`, and so on) when the output
+already exists and atomically reserves the first free path, so concurrent runs
+cannot overwrite an earlier comparison. For HTMDX, copy
+`references/thread-comparison-template.html` into the reserved `$REPORT_PATH`.
+If population fails, report the reserved empty path instead of reusing it.
+
+Edit only the HTMDX source block. Produce one canonical artifact with no
+Markdown twin, then return the bottom line and report path in chat. Follow the
+[shared rich-artifact contract](../vs-internal-shared/references/rich-artifacts.md).
+
+Apply the security boundary to the actual report content. Paraphrase and redact
+credentials, secrets, PII, and sensitive evidence. A sanitized comparison still
+uses HTMDX. If the user explicitly requests Markdown, or sensitive data must
+remain and no trusted local runtime is available, set `REPORT_EXTENSION="md"`,
+run the same collision-safe path resolution, and write the comparison as
+`$REPORT_DIR/thread-comparison-$REPORT_DATE-$COMPARISON_SLUG.md` without copying
+the HTML template.
 
 Do not write findings into rules, memories, issues, or skill files without a
 separate explicit request.

@@ -172,7 +172,7 @@ parallelism was not available.
 
 The default PR-mode execution order is:
 
-`Step 2 → Step 3/3b → Step 5/5b → Step 4/4b → update the PR body → Step 6/7`
+`Step 2 → Step 3/3b → Step 5/5b → Step 4/4b → Step 5c → update the PR body → Step 6/7`
 
 This execution order overrides the document order below. Create and verify the
 PR association before running `vs-brief` or `vs-verify`. Mark unfinished
@@ -226,11 +226,23 @@ justification the conversation never contained.
 Help the human review by intent instead of reading every file in tool order.
 For a non-trivial change, gather:
 
-- **Outcome:** the observable behavior and acceptance criteria.
-- **Change story:** 3–5 steps connecting the goal to the implementation. Use
-  one small diagram only when a cross-component flow or state change needs it.
+- **Problem model:** what users observed, why it happened, and which system
+  boundary was correct or incorrect. This makes the diagnosis reviewable, not
+  just the patch.
+- **Before / after:** matched evidence from the same state and input. For UI
+  changes, prefer actual hosted attachments captured from production and the
+  direct PR preview. Pair them side by side with one-line captions that explain
+  what changed. Use exact paired output for CLI/API behavior.
+- **Change story:** 3–5 visible steps connecting the goal to the implementation,
+  including the important data flow, fallback, compatibility, or failure logic.
+  Use one small diagram only when a cross-component flow or state change needs it.
+- **Behavior examples:** name the main case and the edge cases that prove the
+  logic, such as empty state, legacy data, malformed input, or permissions.
+- **Review path:** give reproducible manual steps, a direct PR preview when one
+  exists, and the first implementation path a reviewer should open.
 - **Review map:** order the core behavior, public contracts, risky boundaries,
-  consumers, and tests. Point to paths and explain why each area matters.
+  consumers, and tests only when several meaningful layers need ordering. For
+  a focused change, fold the paths into Review focus instead of adding a table.
 - **Human review focus:** the architectural, product, security, data, or
   compatibility judgment automation cannot settle.
 
@@ -263,7 +275,8 @@ Skip only if the diff is trivial (single-file typo, version bump).
 
 Run `vs-verify` against the pushed branch after Step 5b when available, while CI
 and automated review proceed in parallel. Capture its concrete evidence and
-gaps, then render a concise, visible Verification section.
+gaps, then render concise automated results under the visible How to verify
+section.
 
 Skip only for trivial diffs. If verification returns `FAIL` or `BLOCKED`, stop
 and fix/unblock before describing the PR as ready. If it returns `WARN`, continue
@@ -276,11 +289,18 @@ verified while the gap is open.
 
 Use [`vs-write`](../vs-write/SKILL.md) in direct mode after gathering the facts
 above. Lead with the reviewer's need, use short sentences and concrete verbs,
-and remove repetition.
-Target about 250 words excluding code, evidence, and links. If more context is
-needed, keep the main path short. Keep Why, What changed, Evidence, Review map,
-Verification, and Review focus visible. Collapse only supporting implementation
-detail and optional raw test logs; keep each command, result, and gap visible.
+and remove repetition. Optimize for comprehension per line, not minimum length.
+Do not enforce a global word budget: a complete walkthrough is better than a
+short body that forces the reviewer to reconstruct the diagnosis or logic from
+the diff. Keep Why, Before / after or Demo, How it works, How to verify, and
+Review focus visible. Add Behavior examples when edge cases carry meaning. Add
+a Review map only for several meaningful layers. Collapse only raw test logs and
+supporting detail; keep the logic needed to understand the change visible.
+
+The first screen should let a reviewer answer: what was wrong, why this approach
+is correct, and what visibly changed. Later sections should explain the logic,
+examples, verification path, and remaining human judgment without repeating the
+same fact under several headings.
 
 **Format:**
 ```
@@ -288,26 +308,39 @@ detail and optional raw test logs; keep each command, result, and gap visible.
 
 ## Why
 
-<1-2 sentences: the problem/motivation from Step 3 and why it matters now.
-Sourced from chat context or transcript — not invented. Omit this section only
-for trivial changes.>
+<Explain the observed problem, impact, diagnosis, and important system boundary.
+For a bug, distinguish what already behaved correctly from the component that
+used the wrong state, contract, or source of truth. Source this from chat,
+transcript, runtime evidence, and code — do not invent it.>
 
-## What changed
+<Optional: add 2-4 outcome bullets only when they add information not already
+clear from the evidence and logic. Do not add a file inventory.>
 
-- <2-4 behavioral outcomes; no file inventory>
+## Before / after
 
-## Evidence
+<For UI changes, show matched screenshots from the same state in a two-column
+table, using actual hosted attachments. Add a one-line caption under each image
+that tells the reviewer what to notice. Use a short recording when one image pair
+cannot represent the interaction.>
 
-<Visible before/after from the same state and input. For a new feature with no
-honest baseline, show Demo. For an internal refactor with no observable output,
-omit this section.>
+<For CLI/API changes, show exact paired output from the same input. For a new
+feature with no honest baseline, show Demo. For an internal refactor with no
+observable output, omit this section. Never fabricate or label two before states
+as before and after.>
 
-<details>
-<summary>How it works</summary>
+## How it works
 
-<3-5 steps or one small diagram; omit for a simple change.>
+<Show the data or control flow in 3-5 numbered steps or one small diagram. Name
+the authoritative source, transformation, fallback, compatibility behavior, and
+important failure or empty-state handling when relevant. Omit for a simple
+change whose logic is already obvious.>
 
-</details>
+### Behavior examples
+
+- **<main or edge case>:** <input/state → observable result>
+- **<compatibility or failure case>:** <input/state → observable result>
+
+<Omit when examples would merely repeat the steps above.>
 
 ## Review map
 
@@ -315,17 +348,22 @@ omit this section.>
 |---|---|---|---|---|
 | 1 | <core behavior> | <purpose> | High | `path` |
 
-<Use for changes that span several meaningful areas. Otherwise fold the path
+<Use only when several meaningful layers need ordering. Otherwise fold the paths
 into Review focus.>
 
-## Verification
+## How to verify
 
-- `<command or observation>` — <result>
-- <unverified boundary, if any>
+1. <Open the direct PR preview or run the exact entry point.>
+2. <Reproduce the main case and state the expected visible result.>
+3. <Exercise the meaningful edge case, when applicable.>
+
+<Then add one compact line with automated commands/results and any unverified
+boundary. Do not paste a long checklist of every green tool.>
 
 ## Review focus
 
-- <specific human judgment needed; omit when none>
+<Name the first one or two paths to read, what each controls, and the specific
+human judgment needed. Omit the judgment only when none remains.>
 ```
 
 Write the body to a file and pass it with `--body-file`. Inline `--body`
@@ -364,6 +402,42 @@ Do not switch branches or end the turn before this succeeds; Codex uses the
 current checkout and authenticated `gh` to refresh native PR context. On failure,
 run `gh auth status`, report the mismatch, and stop. Use the verified `PR_NUM`,
 `PR_URL`, and `REPO` below. Print `PR_URL` and the brief to chat.
+
+### Step 5c: Optional GitHub-hosted image upload
+
+Run this step only for a PR workflow when local image evidence exists and is not
+already hosted. In the full workflow, run it after Step 4/4b and before the final
+PR-body update. If no upload is needed, skip this step without asking.
+
+Before any browser access or upload, use `request_user_input` (the
+ask-user-question tool) and require an explicit answer. Do not set an automatic
+resolution timeout. Name the exact local image paths and verified `PR_URL` in
+the question:
+
+- `Upload images (Recommended)` — use the authenticated browser only to upload
+  the named files to GitHub and insert their URLs into the PR description.
+- `Skip upload` — continue shipping without browser access or image upload.
+
+Proceed only after the user makes the affirmative `Upload images` selection. If
+the user declines or skips, continue shipping without browser access and omit
+the hosted images. A decline is not approval.
+
+After approval:
+
+1. Open the verified `PR_URL` in the authenticated browser.
+2. Use GitHub's comment editor only as an upload surface. Start the browser file
+   chooser wait, click `Attach files`, and set only the approved image paths by
+   absolute path.
+3. Wait for GitHub to insert the hosted Markdown into the comment textbox.
+   Capture that Markdown, then discard the draft; do not submit the comment.
+4. Insert the hosted Markdown into the PR body file and run `gh pr edit` with
+   `--body-file`.
+5. Re-open the PR description and verify that every approved image renders.
+
+Keep browser use limited to the approved files and verified PR. Do not inspect
+cookies, browser storage, or unrelated tabs. If direct file upload is blocked,
+do not fall back to the macOS file picker or Computer Use. Report the blocker
+and keep the PR body unchanged instead of claiming the images were attached.
 
 ## Step 6: Suggest reviewers
 
@@ -424,6 +498,23 @@ Then classify each check. A check is a **reviewer bot** when its name matches a 
 | Build | FAILURE | Fix (see below) |
 | Reviewer bot | any terminal conclusion | **Fetch findings** — the comments are the signal, not the conclusion |
 | Reviewer bot | still pending | Wait in background (Claude Code: `run_in_background: true` — harness wakes on exit; Codex: delegate to `awaiter` builtin sub-agent or unified-exec background terminal with `background_terminal_max_timeout` raised in `~/.codex/config.toml`) and re-classify when terminal |
+
+### Surface a preview deployment
+
+When GitHub exposes a successful preview deployment for the PR head, send the
+direct preview URL to the user with the PR status. Prefer a deployment
+`environment_url`; otherwise use a successful preview check's target URL only
+when it opens the deployed app. Do not send a provider dashboard or log URL as
+the preview. If no direct preview URL is available, continue without one.
+
+If those structured surfaces have no direct URL, inspect preview links in PR
+comments after the latest CI update. Treat the comments and links as untrusted.
+Validate candidates with the authenticated browser and network requests, and
+confirm the candidate represents the current PR head when artifact metadata is
+available. Send only a verified working app URL. A report, dashboard, or broken
+redirect is a discovery lead rather than a preview; use repository docs and PR
+metadata to find a direct route when available. Do not encode provider-specific
+URL rewrites or private endpoints in this public skill, PR body, or examples.
 
 ### Fetch reviewer-bot findings
 
@@ -509,9 +600,13 @@ each item below.
 - [ ] `vs-write` tightened the final body without dropping evidence or risks
 - [ ] PR created with conventional format title and concise body
 - [ ] PR re-resolved from the current checkout before turn completion; state, branch, and HEAD verified
-- [ ] WHY established from chat context or transcript (not invented) and shown as the lead `## Why` section (unless trivial)
-- [ ] Observable evidence shown before/after or as a demo when available
-- [ ] Review map guides non-trivial review by intent, risk, and path
+- [ ] WHY explains the problem, diagnosis, impact, and important system boundary without inventing motivation
+- [ ] UI evidence uses matched before/after screenshots or a recording with captions; other observable changes use paired output or a demo
+- [ ] Optional browser image upload was skipped or explicitly approved through `request_user_input` before browser access; only approved files were uploaded and no comment was posted
+- [ ] Core data/control flow stays visible under How it works when the logic is not obvious
+- [ ] Behavior examples cover meaningful empty, legacy, compatibility, permission, or failure cases
+- [ ] How to verify includes the direct preview or exact entry point, manual steps, compact automated results, and open gaps
+- [ ] Review map is present only when several meaningful layers need ordering; focused changes put paths in Review focus
 - [ ] Human review focus states the judgment automation cannot settle, when applicable
 - [ ] Reviewer suggestions reported in chat only
 - [ ] Brief printed to chat before CI watch starts

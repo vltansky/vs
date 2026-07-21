@@ -1,12 +1,15 @@
 #!/usr/bin/env python3
 
 import argparse
+import html
 import json
+import re
 import subprocess
 import time
 from collections.abc import Iterable
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlparse
 
 Snapshot = dict[str, Any]
 FAILURE_CONCLUSIONS = {
@@ -17,6 +20,18 @@ FAILURE_CONCLUSIONS = {
     "startup_failure",
     "timed_out",
 }
+PREVIEW_CONTEXT = re.compile(
+    r"\bpreview(?:s| url)?\b|\bdemo\b|\btest (?:this|the) change\b|\bsee it in action\b",
+    re.IGNORECASE,
+)
+PR_LINK_PATTERNS = (
+    re.compile(r'\[(?P<label>[^\]]+)\]\((?P<url>https?://[^)\s]+)\)'),
+    re.compile(
+        r'<a\s+[^>]*href=["\'](?P<url>https?://[^"\']+)["\'][^>]*>'
+        r"(?P<label>.*?)</a>",
+        re.IGNORECASE | re.DOTALL,
+    ),
+)
 
 
 def emit(event: str, snapshot: Snapshot, **details: Any) -> None:
@@ -148,12 +163,91 @@ def fetch_review(repo: str, pr: int) -> tuple[str | None, int]:
     return pull_request.get("reviewDecision"), unresolved
 
 
+def fetch_preview_urls(repo: str, head_sha: str) -> list[str]:
+    try:
+        deployments = gh_json(
+            "api", f"repos/{repo}/deployments?sha={head_sha}&per_page=100"
+        )
+    except subprocess.CalledProcessError:
+        return []
+    preview_urls: list[str] = []
+    for deployment in deployments:
+        environment = str(deployment.get("environment") or "").casefold()
+        is_preview = (
+            deployment.get("transient_environment") is True
+            or "preview" in environment
+            or re.search(
+                r"(?:^|[^a-z0-9])pr[- _/]?\d+(?:$|[^a-z0-9])", environment
+            )
+            is not None
+        )
+        if deployment.get("production_environment") is True or not is_preview:
+            continue
+        statuses_url = str(deployment["statuses_url"])
+        statuses_endpoint = urlparse(statuses_url).path.lstrip("/")
+        try:
+            statuses = gh_json("api", statuses_endpoint)
+        except subprocess.CalledProcessError:
+            continue
+        if not statuses:
+            continue
+        latest_status = statuses[0]
+        url = latest_status.get("environment_url")
+        if latest_status.get("state") != "success" or not isinstance(url, str):
+            continue
+        if not url.startswith(("https://", "http://")) or url in preview_urls:
+            continue
+        preview_urls.append(url)
+    return preview_urls
+
+
+def extract_preview_candidates(body: str) -> list[str]:
+    decoded = html.unescape(body)
+    matches: list[tuple[int, str]] = []
+    for pattern in PR_LINK_PATTERNS:
+        for match in pattern.finditer(decoded):
+            line_start = decoded.rfind("\n", 0, match.start()) + 1
+            context = f"{decoded[line_start:match.start()]} {match.group('label')}"
+            url = match.group("url")
+            if not PREVIEW_CONTEXT.search(context):
+                continue
+            matches.append((match.start(), url))
+    candidates: list[str] = []
+    seen: set[str] = set()
+    for _, url in sorted(matches):
+        if url in seen:
+            continue
+        seen.add(url)
+        candidates.append(url)
+    return candidates
+
+
+def fetch_preview_candidates(repo: str, pr: int) -> list[str]:
+    try:
+        comments = gh_json("api", f"repos/{repo}/issues/{pr}/comments?per_page=100")
+    except subprocess.CalledProcessError:
+        return []
+    candidates: list[str] = []
+    seen: set[str] = set()
+    for comment in comments:
+        if comment.get("user", {}).get("type") != "Bot":
+            continue
+        for url in extract_preview_candidates(str(comment.get("body") or "")):
+            if url in seen:
+                continue
+            seen.add(url)
+            candidates.append(url)
+    return candidates
+
+
 def fetch_snapshot(repo: str, pr: int, previous: Snapshot | None) -> Snapshot:
     pull_request = gh_json("api", f"repos/{repo}/pulls/{pr}")
     head_sha = pull_request["head"]["sha"]
     checks = gh_json("api", f"repos/{repo}/commits/{head_sha}/check-runs?per_page=100")
     combined = gh_json("api", f"repos/{repo}/commits/{head_sha}/status")
     current_ci, failures = ci_state(checks, combined)
+    preview_urls = fetch_preview_urls(repo, head_sha)
+    preview_candidates = [] if preview_urls else fetch_preview_candidates(repo, pr)
     should_fetch_review = (
         previous is None
         or previous.get("headSha") != head_sha
@@ -165,7 +259,7 @@ def fetch_snapshot(repo: str, pr: int, previous: Snapshot | None) -> Snapshot:
         review_decision = previous.get("reviewDecision")
         unresolved_threads = previous.get("unresolvedThreads")
 
-    return {
+    snapshot = {
         "state": pull_request["state"],
         "merged": pull_request["merged"],
         "headSha": head_sha,
@@ -175,6 +269,11 @@ def fetch_snapshot(repo: str, pr: int, previous: Snapshot | None) -> Snapshot:
         "ciState": current_ci,
         "failures": failures,
     }
+    if preview_urls:
+        snapshot["previewUrls"] = preview_urls
+    if preview_candidates:
+        snapshot["previewCandidates"] = preview_candidates
+    return snapshot
 
 
 def poll_github(

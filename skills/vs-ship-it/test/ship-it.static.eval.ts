@@ -69,6 +69,30 @@ describe('vs-ship-it PR association handshake', () => {
   });
 });
 
+describe('vs-ship-it optional browser image upload', () => {
+  it('gets explicit approval through the ask-user-question tool', () => {
+    expect(SKILL).toContain('request_user_input');
+    expect(SKILL).toMatch(/ask-user-question tool/i);
+    expect(SKILL).toMatch(/exact local image paths/i);
+    expect(SKILL).toMatch(/verified `PR_URL`/);
+    expect(SKILL).toMatch(/affirmative/i);
+    expect(SKILL).not.toMatch(/autoResolutionMs/);
+  });
+
+  it('uses the browser only for approved GitHub uploads', () => {
+    expect(SKILL).toMatch(/authenticated browser/i);
+    expect(SKILL).toMatch(/approved image paths/i);
+    expect(SKILL).toMatch(/do not submit (?:the )?comment/i);
+    expect(SKILL).toMatch(/`gh pr edit` with\s+`--body-file`/);
+  });
+
+  it('keeps image hosting optional', () => {
+    expect(SKILL).toMatch(/Skip upload/);
+    expect(SKILL).toMatch(/declines? or skips?/i);
+    expect(SKILL).toMatch(/continue shipping without browser access/i);
+  });
+});
+
 describe('vs-ship-it mechanical PR fast path', () => {
   it('honors explicit requests to skip shipping ceremony', () => {
     expect(SKILL).toMatch(/just create (?:the\s+)?PR/);
@@ -97,45 +121,49 @@ describe('vs-ship-it mechanical PR fast path', () => {
 });
 
 describe('vs-ship-it reviewer guide', () => {
-  it('uses vs-write to keep the PR body concise', () => {
+  it('uses vs-write for dense, complete reviewer-facing copy', () => {
     expect(SKILL).toContain('[`vs-write`](../vs-write/SKILL.md)');
     expect(SKILL).toMatch(/`vs-write`\]\([^)]*\) in direct mode/);
-    expect(SKILL).toMatch(/Target about 250 words/);
+    expect(SKILL).toMatch(/comprehension per line/i);
+    expect(SKILL).toMatch(/Do not enforce a global word budget/);
     expect(SKILL).toMatch(/short sentences and concrete verbs/);
   });
 
-  it('shows reviewer evidence and judgment in the main body', () => {
-    expect(SKILL).toContain('## Evidence');
-    expect(SKILL).toContain('## Verification');
+  it('shows matched visual evidence and verification in the main body', () => {
+    expect(SKILL).toContain('## Before / after');
+    expect(SKILL).toContain('## How to verify');
     expect(SKILL).toContain('## Review focus');
-    expect(SKILL).toMatch(/Visible before\/after from the same state and input/);
-    expect(SKILL).toMatch(/new feature with no\s+honest baseline, show Demo/);
-    expect(SKILL).toMatch(/internal refactor with no observable output,\s+omit this section/);
+    expect(SKILL).toMatch(/matched screenshots from the same state/i);
+    expect(SKILL).toMatch(/actual hosted attachments/i);
+    expect(SKILL).toMatch(/direct PR preview/i);
+    expect(SKILL).toMatch(/new\s+feature with no\s+honest baseline, show Demo/);
+    expect(SKILL).toMatch(/internal\s+refactor with no\s+observable output,\s+omit this section/);
     expect(SKILL).toMatch(
-      /Keep Why, What changed, Evidence, Review map,\s+Verification, and Review focus visible/,
+      /Keep Why, Before \/ after or Demo, How it works, How to verify, and\s+Review focus visible/,
     );
-    expect(SKILL).not.toContain('<summary>Evidence</summary>');
-    expect(SKILL).not.toContain('<summary>Review map</summary>');
-    expect(SKILL).not.toContain('<summary>Verification</summary>');
+    expect(SKILL).not.toContain('<summary>Before / after</summary>');
+    expect(SKILL).not.toContain('<summary>How to verify</summary>');
     expect(SKILL).not.toContain('<summary>Review focus</summary>');
   });
 
-  it('collapses only secondary implementation detail and raw logs', () => {
-    expect(SKILL).toContain('<summary>How it works</summary>');
+  it('keeps the change logic visible and collapses only secondary detail', () => {
+    expect(SKILL).toContain('## How it works');
+    expect(SKILL).toContain('### Behavior examples');
+    expect(SKILL).not.toContain('<summary>How it works</summary>');
     expect(SKILL).toMatch(
-      /Collapse only supporting implementation\s+detail and optional raw test logs/,
+      /Collapse only raw test logs and\s+supporting detail/,
     );
-    expect(SKILL).toMatch(/keep each command, result, and gap visible/);
+    expect(SKILL).toMatch(/logic needed to understand the change visible/);
   });
 
-  it('maps the change by intent and risk instead of narrating the session', () => {
-    expect(SKILL).toContain('## Review map');
+  it('uses a review map only when several meaningful layers need ordering', () => {
     expect(SKILL).toContain('| Order | Area | Why it matters | Risk | Start here |');
     expect(SKILL).toMatch(
       /core behavior, public contracts, risky boundaries,\s+consumers, and tests/,
     );
+    expect(SKILL).toMatch(/only when several meaningful layers/i);
+    expect(SKILL).toMatch(/fold the paths into Review focus/i);
     expect(SKILL).toMatch(/Never use\s+the map to hide executable code/);
-    expect(SKILL).toMatch(/no file inventory/);
     expect(SKILL).toMatch(/Do not include AI session history/);
     expect(SKILL).not.toContain('<summary>AI Session Context');
     expect(SKILL).not.toContain('<summary>Change Brief');
@@ -143,12 +171,26 @@ describe('vs-ship-it reviewer guide', () => {
 });
 
 describe('vs-ship-it remote-first validation', () => {
+  it('sends a PR preview deployment when GitHub exposes one', () => {
+    expect(SKILL).toMatch(/preview deployment/i);
+    expect(SKILL).toMatch(/send the\s+direct preview URL/i);
+    expect(SKILL).toMatch(/do not send a provider dashboard or log URL/i);
+  });
+
+  it('validates generic preview links exposed in PR comments', () => {
+    expect(SKILL).toMatch(/preview links?\s+in PR\s+comments/i);
+    expect(SKILL).toMatch(/authenticated browser.*network/i);
+    expect(SKILL).toMatch(/send only .*working app URL/i);
+    expect(SKILL).toMatch(/current PR head/i);
+    expect(SKILL).toMatch(/do not encode provider-specific\s+URL\s+rewrites/i);
+  });
+
   it('starts PR feedback before broad local validation', () => {
     expect(SKILL).toMatch(/focused test or smallest relevant validation/);
     expect(SKILL).toMatch(/create the PR promptly/);
     expect(SKILL).toContain('Running locally and in CI');
     expect(SKILL).toContain(
-      'Step 2 → Step 3/3b → Step 5/5b → Step 4/4b → update the PR body → Step 6/7',
+      'Step 2 → Step 3/3b → Step 5/5b → Step 4/4b → Step 5c → update the PR body → Step 6/7',
     );
     expect(SKILL).toMatch(
       /Run `vs-brief` and `vs-verify` after PR creation while CI and automated review\s+run/,
