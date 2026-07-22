@@ -1,2 +1,5 @@
 interface:
   display_name: "vs-try-skill"
+
+policy:
+  allow_implicit_invocation: true

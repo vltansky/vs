@@ -1,0 +1,6 @@
+interface:
+  display_name: "vs-deslop"
+  short_description: "Simplify bloated code without changing behavior"
+
+policy:
+  allow_implicit_invocation: true

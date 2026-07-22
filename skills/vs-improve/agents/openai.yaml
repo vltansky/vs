@@ -1,0 +1,6 @@
+interface:
+  display_name: "vs-improve"
+  short_description: "Audit a codebase and plan improvements"
+
+policy:
+  allow_implicit_invocation: true

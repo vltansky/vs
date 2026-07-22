@@ -6,7 +6,7 @@ disable-model-invocation: true
 
 # Fix
 
-Bug in, fixed branch out with scoped progress inside the reported bug.
+Bug in, evidence-backed branch out with scoped progress inside the reported bug.
 
 ```
 Classify → Understand → Hypothesize → Reproduce → Fix → Verify → Review → Handoff
@@ -92,15 +92,18 @@ If already on a feature branch (not main/master/develop), stay on it.
 
 ### Step 5: Load Skills
 
-Before each phase, load the relevant sibling skill from disk using `../<skill-name>/SKILL.md`. If sibling resolution fails, use the fallback listed below.
+Before each phase, load the relevant sibling skill from disk using
+`../<skill-name>/SKILL.md`. A gated skill cannot be replaced safely: if its file
+cannot be resolved, give the user the exact slash command below and stop.
+Ungated building blocks may use the listed inline fallback.
 
 Skills to load per phase:
 
 | Phase | Skill | Fallback if not found |
 |-------|-------|-----------------------|
 | Phase 2 (Hypothesize) | `../vs-debug-mode/SKILL.md` | Inline hypothesis methodology |
-| Phase 3 (Reproduce) | `../vs-tdd/SKILL.md` | Manual reproduction script |
-| Phase 3 (Web bugs) | `../vs-qa/SKILL.md` | Skip browser verification |
+| Phase 3 (Reproduce) | `../vs-tdd/SKILL.md` | Stop; tell the user to type `/vs-tdd` |
+| Phase 3 (Web bugs) | `../vs-qa/SKILL.md` | Stop; tell the user to type `/vs-qa` |
 | Phase 1 (Deep exploration) | Local repo search | Grep + read |
 | Phase 5 (Verify) | `../vs-verify/SKILL.md` | Manual evidence summary |
 | Phase 6 (Review) | `../vs-roast-review/SKILL.md` | Lightweight self-review |
@@ -411,10 +414,15 @@ After applying review fixes:
 
 ## Phase 7: Handoff
 
+The handoff verdict inherits the verification status. Head every result with
+`## Fix — <STATUS>`. Only `PASS` or `SKIPPED_TRIVIAL` may describe the bug as
+fixed or complete, and `PASS` additionally requires the original reproduction
+to pass. For `WARN`, `FAIL`, or `BLOCKED`, state what remains unproven.
+
 Present the result:
 
 ```
-## Fix Complete
+## Fix — <PASS | WARN | FAIL | BLOCKED | SKIPPED_TRIVIAL>
 
 ### Branch
 `{branch-name}` — [N] commits
@@ -434,7 +442,7 @@ Present the result:
 | Hypothesize | [N] hypotheses, [root cause] confirmed |
 | Reproduce | [test/browser/script] — verified failing |
 | Fix | [minimal fix applied] |
-| Verify | guardrails pass/fail |
+| Verify | PASS/WARN/FAIL/BLOCKED — [evidence or gap] |
 | Review | [N] found, [M] fixed |
 
 ### Codex Goal

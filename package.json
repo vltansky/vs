@@ -13,8 +13,10 @@
   "scripts": {
     "install-plugin": "bash install.sh",
     "eval": "vitest run",
+    "eval:static": "vitest run static.eval.ts",
     "eval:watch": "vitest",
-    "eval:preview": "pathgrade preview browser"
+    "eval:preview": "pathgrade preview browser",
+    "typecheck": "tsc --noEmit"
   },
   "repository": {
     "type": "git",

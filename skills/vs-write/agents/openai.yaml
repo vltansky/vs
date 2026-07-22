@@ -1,0 +1,6 @@
+interface:
+  display_name: "vs-write"
+  short_description: "Write or reshape clear, precise prose"
+
+policy:
+  allow_implicit_invocation: true

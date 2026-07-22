@@ -1,0 +1,6 @@
+interface:
+  display_name: "vs-perf"
+  short_description: "Optimize performance against measured evidence"
+
+policy:
+  allow_implicit_invocation: true

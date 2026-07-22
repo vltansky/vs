@@ -27,6 +27,20 @@ function linkedSkills(line: string) {
 }
 
 describe('framework routing', () => {
+  it('classifies every user-facing skill exactly once', () => {
+    const workflowKinds = SHARED.match(/^- \*\*Workflow\*\*.+$/m)?.[0] ?? '';
+    const buildingBlockKinds =
+      SHARED.match(/^- \*\*Building block\*\*.+$/m)?.[0] ?? '';
+
+    for (const name of SKILL_NAMES) {
+      const classifications = [workflowKinds, buildingBlockKinds].filter((line) =>
+        line.includes(`\`${name}\``),
+      );
+
+      expect(classifications, `${name} kind classification`).toHaveLength(1);
+    }
+  });
+
   it('routes standalone use without interrupting composed workflows', () => {
     expect(SHARED).toMatch(/standalone.*emit.*Next/is);
     expect(SHARED).toMatch(/composed.*return to the caller/is);

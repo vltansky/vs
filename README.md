@@ -217,14 +217,17 @@ use a key or proxy instead.
 
 ```bash
 npm install
+npm run typecheck
+npm run eval:static
 npm run eval
 npx vitest run skills/vs-shape-it/test
 PATHGRADE_AGENT=codex npm run eval
 npm run eval:preview
 ```
 
-Each behavior eval starts a live agent, so a full run takes minutes. Static evals
-run without an agent and finish much faster.
+Use `npm run eval:static` as the default edit loop. Each behavior eval starts a
+live agent, so the full `npm run eval` suite takes minutes and may require agent
+credentials.
 
 ## Acknowledgements
 
