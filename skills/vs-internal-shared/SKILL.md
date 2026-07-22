@@ -51,6 +51,7 @@ Paste this inline — skills must stay self-contained in case they're installed 
 ├── qa-reports/   # qa QA reports + screenshots
 ├── github-research/ # github-research prior-art docs and landscape maps
 ├── briefs/       # brief outputs
+├── reviews/      # code-review diffs, scans, and evidence
 ├── verification/ # verification result summaries
 ├── perf/         # performance baselines and evaluator checkpoints
 ├── prototypes/   # prototype questions, decisions, and evidence
@@ -66,6 +67,13 @@ Paste this inline — skills must stay self-contained in case they're installed 
 Use [`references/rich-artifacts.md`](./references/rich-artifacts.md) when a
 skill may produce an HTMDX report or dashboard. It defines the selection gate,
 single-file source contract, pinned runtime, and sensitive-data fallback.
+
+## Disk-backed evidence
+
+Use [`references/disk-backed-evidence.md`](./references/disk-backed-evidence.md)
+when screenshots, DOM snapshots, transcripts, diffs, logs, recordings, or other
+large evidence could consume model context. It defines the content-addressed
+manifest, bounded summaries, and targeted retrieval contract.
 
 ## What does NOT go here
 

@@ -77,8 +77,13 @@ REPORT_DIR="$HOME/.vs/$PROJECT_ID/qa-reports"
 RUN_SLUG="target-domain-or-app-name"
 RUN_ID="$RUN_SLUG-$(date +%Y-%m-%d-%H%M%S)"
 RUN_DIR="$REPORT_DIR/$RUN_ID"
-mkdir -p "$RUN_DIR/screenshots"
+EVIDENCE_TOOL="<resolved-vs-internal-shared-skill-directory>/scripts/evidence-manifest.mjs"
+mkdir -p "$RUN_DIR/screenshots" "$RUN_DIR/evidence"
 ```
+
+QuickJS examples use the harness global `saveScreenshot`. Replace every
+`<absolute-run-directory>` placeholder below with `$RUN_DIR`; on another control
+surface, use its native screenshot-to-path operation.
 
 **Choose the report format after scoping the run:** HTMDX is the default for QA
 reports because every issue requires a screenshot and the report is reviewed as
@@ -125,6 +130,16 @@ secret and redact it afterward. Store exploratory or discarded captures outside
 the final `screenshots/` directory. The final directory has a one-to-one
 invariant: every retained screenshot is referenced by the report, and every
 report screenshot reference resolves to a valid retained PNG.
+
+### Structured evidence contract
+
+DOM/accessibility snapshots, console output, network logs, and other bulky text
+follow the [disk-backed evidence contract](../vs-internal-shared/references/disk-backed-evidence.md).
+Pipe the raw output into `$EVIDENCE_TOOL capture`; return only its manifest and
+a bounded page inventory. Inspect a targeted line range only when the inventory
+does not contain enough information to act. Deduplicate repeated errors and cap
+inline link, control, console, and network samples at 20 items each; retain the
+complete source on disk.
 
 ---
 
@@ -190,11 +205,20 @@ incrementally inside the existing source block; do not append outside it.
 ## Phase 2: Authenticate (if needed)
 
 ```bash
-agent-browser <<'EOF'
+SNAPSHOT_PATH="$RUN_DIR/evidence/login.a11y.txt"
+agent-browser <<'EOF' \
+  | node "$EVIDENCE_TOOL" capture "$SNAPSHOT_PATH" --json-tail
 const page = await browser.getPage("qa-main");
 await page.goto("https://yourapp.com/login");
 const snap = await page.snapshotForAI();
+const controls = await page.$$eval('button, input, select, textarea, a[href]', els =>
+  els.slice(0, 20).map(el => ({
+    tag: el.tagName.toLowerCase(),
+    text: (el.textContent || el.getAttribute('aria-label') || '').trim().slice(0, 80),
+    type: el.getAttribute('type'),
+  })));
 console.log(snap.full);
+console.log(JSON.stringify({ url: page.url(), title: await page.title(), controls }));
 EOF
 ```
 
@@ -219,7 +243,9 @@ If CAPTCHA: tell user to complete it and tell you to continue.
 ## Phase 3: Orient
 
 ```bash
-agent-browser <<'EOF'
+SNAPSHOT_PATH="$RUN_DIR/evidence/initial.a11y.txt"
+agent-browser <<'EOF' \
+  | node "$EVIDENCE_TOOL" capture "$SNAPSHOT_PATH" --json-tail
 const page = await browser.getPage("qa-main");
 await page.goto("TARGET_URL");
 
@@ -234,17 +260,39 @@ await page.evaluate(() => {
 
 const snap = await page.snapshotForAI();
 const buf = await page.screenshot();
-const screenshotPath = await saveScreenshot(buf, "initial.png");
+const screenshotPath = await saveScreenshot(buf, "<absolute-run-directory>/screenshots/initial.png");
 
 // Map navigation
 const links = await page.$$eval('a[href]', els =>
   els.map(e => ({ text: e.textContent.trim().slice(0, 60), href: e.href }))
-     .filter(l => l.href && !l.href.startsWith('javascript:') && !l.href.startsWith('mailto:')));
+     .filter(l => l.href && !l.href.startsWith('javascript:') && !l.href.startsWith('mailto:'))
+     .slice(0, 20));
 
-const errors = await page.evaluate(() => window.__qaErrors || []);
+const allErrors = await page.evaluate(() => [...new Map(
+  (window.__qaErrors || []).map(error => [JSON.stringify(error), error]),
+).values()]);
+const errors = allErrors.slice(-10).map(error => ({
+  msg: String(error.msg || '').slice(0, 160),
+  src: String(error.src || '').slice(0, 120),
+  line: error.line,
+}));
+const resources = await page.evaluate(() => performance.getEntriesByType('resource').map(entry => {
+  const url = new URL(entry.name);
+  return {
+    url: `${url.origin}${url.pathname}`,
+    initiatorType: entry.initiatorType,
+    duration: Math.round(entry.duration),
+    transferSize: entry.transferSize,
+  };
+}));
 
-console.log(JSON.stringify({ url: page.url(), title: await page.title(), screenshotPath, links, errors }));
 console.log(snap.full);
+console.log(`\n--- console-errors.json ---\n${JSON.stringify(allErrors)}`);
+console.log(`\n--- network-resources.json ---\n${JSON.stringify(resources)}`);
+console.log(JSON.stringify({
+  url: page.url(), title: await page.title(), screenshotPath, links, errors,
+  resources: resources.slice(-10),
+}));
 EOF
 ```
 
@@ -260,15 +308,47 @@ disk and use the returned metadata only.
 For each page, visit and check:
 
 ```bash
-agent-browser <<'EOF'
+SNAPSHOT_PATH="$RUN_DIR/evidence/page-NAME.a11y.txt"
+agent-browser <<'EOF' \
+  | node "$EVIDENCE_TOOL" capture "$SNAPSHOT_PATH" --json-tail
 const page = await browser.getPage("qa-main");
 await page.goto("PAGE_URL");
+await page.evaluate(() => {
+  window.__qaErrors = [];
+  window.onerror = (msg, src, line) => window.__qaErrors.push({ msg, src, line });
+  window.addEventListener('unhandledrejection', event =>
+    window.__qaErrors.push({ msg: String(event.reason) }));
+});
 const snap = await page.snapshotForAI();
 const buf = await page.screenshot();
-const path = await saveScreenshot(buf, "page-NAME.png");
-const errors = await page.evaluate(() => window.__qaErrors || []);
-console.log(JSON.stringify({ url: page.url(), title: await page.title(), screenshotPath: path, errors }));
+const path = await saveScreenshot(buf, "<absolute-run-directory>/screenshots/page-NAME.png");
+const controls = await page.$$eval('button, input, select, textarea, a[href]', els =>
+  els.slice(0, 20).map(el => ({
+    tag: el.tagName.toLowerCase(),
+    text: (el.textContent || el.getAttribute('aria-label') || '').trim().slice(0, 80),
+  })));
+const allErrors = await page.evaluate(() => window.__qaErrors || []);
+const errors = allErrors.slice(-10).map(error => ({
+  msg: String(error.msg || '').slice(0, 160),
+  src: String(error.src || '').slice(0, 120),
+  line: error.line,
+}));
+const resources = await page.evaluate(() => performance.getEntriesByType('resource').map(entry => {
+  const url = new URL(entry.name);
+  return {
+    url: `${url.origin}${url.pathname}`,
+    initiatorType: entry.initiatorType,
+    duration: Math.round(entry.duration),
+    transferSize: entry.transferSize,
+  };
+}));
 console.log(snap.full);
+console.log(`\n--- console-errors.json ---\n${JSON.stringify(allErrors)}`);
+console.log(`\n--- network-resources.json ---\n${JSON.stringify(resources)}`);
+console.log(JSON.stringify({
+  url: page.url(), title: await page.title(), screenshotPath: path, controls, errors,
+  resources: resources.slice(-10),
+}));
 EOF
 ```
 
@@ -288,7 +368,7 @@ page data without reading the screenshot into model context. Per-page checklist
    const page = await browser.getPage("qa-mobile");
    await page.goto("PAGE_URL");
    const buf = await page.screenshot();
-   console.log(await saveScreenshot(buf, "page-NAME-mobile.png"));
+   console.log(await saveScreenshot(buf, "<absolute-run-directory>/screenshots/page-NAME-mobile.png"));
    EOF
    ```
 
@@ -308,18 +388,27 @@ Document each issue **immediately when found** — don't batch.
 agent-browser <<'EOF'
 const page = await browser.getPage("qa-main");
 const buf = await page.screenshot();
-console.log(await saveScreenshot(buf, "issue-001-before.png"));
+console.log(JSON.stringify({
+  screenshotPath: await saveScreenshot(buf, "<absolute-run-directory>/screenshots/issue-001-before.png"),
+}));
 EOF
 
 # Perform the action
-agent-browser <<'EOF'
+SNAPSHOT_PATH="$RUN_DIR/evidence/issue-001-result.a11y.txt"
+agent-browser <<'EOF' \
+  | node "$EVIDENCE_TOOL" capture "$SNAPSHOT_PATH" --json-tail
 const page = await browser.getPage("qa-main");
 await page.click('button#submit');
 const buf = await page.screenshot();
-const path = await saveScreenshot(buf, "issue-001-result.png");
+const path = await saveScreenshot(buf, "<absolute-run-directory>/screenshots/issue-001-result.png");
 const snap = await page.snapshotForAI({ track: "issue-001" });
-console.log(JSON.stringify({ screenshotPath: path, errors: await page.evaluate(() => window.__qaErrors || []) }));
+const allErrors = await page.evaluate(() => window.__qaErrors || []);
 console.log(snap.incremental || snap.full);
+console.log(`\n--- console-errors.json ---\n${JSON.stringify(allErrors)}`);
+console.log(JSON.stringify({
+  screenshotPath: path,
+  errors: allErrors.slice(-10).map(error => ({ msg: String(error.msg || '').slice(0, 160) })),
+}));
 EOF
 ```
 
@@ -390,15 +479,23 @@ One commit per fix. Never bundle multiple fixes.
 
 ### 8d. Re-test
 ```bash
-agent-browser <<'EOF'
+SNAPSHOT_PATH="$RUN_DIR/evidence/issue-NNN-after.a11y.txt"
+agent-browser <<'EOF' \
+  | node "$EVIDENCE_TOOL" capture "$SNAPSHOT_PATH" --json-tail
 const page = await browser.getPage("qa-main");
 await page.goto("AFFECTED_URL");
 const buf = await page.screenshot();
-const path = await saveScreenshot(buf, "issue-NNN-after.png");
+const path = await saveScreenshot(buf, "<absolute-run-directory>/screenshots/issue-NNN-after.png");
 const snap = await page.snapshotForAI({ track: "fix-NNN" });
-const errors = await page.evaluate(() => window.__qaErrors || []);
-console.log(JSON.stringify({ screenshotPath: path, errors }));
+const allErrors = await page.evaluate(() => window.__qaErrors || []);
+const errors = allErrors.slice(-10).map(error => ({
+  msg: String(error.msg || '').slice(0, 160),
+  src: String(error.src || '').slice(0, 120),
+  line: error.line,
+}));
 console.log(snap.incremental || snap.full);
+console.log(`\n--- console-errors.json ---\n${JSON.stringify(allErrors)}`);
+console.log(JSON.stringify({ screenshotPath: path, errors }));
 EOF
 ```
 
@@ -504,6 +601,10 @@ If repo has `TODOS.md`:
     │   ├── issue-001-before.png
     │   ├── issue-001-after.png
     │   └── ...
+    ├── evidence/
+    │   ├── initial.a11y.txt
+    │   ├── page-NAME.a11y.txt
+    │   └── issue-001-result.a11y.txt
     └── baseline.json
 ```
 

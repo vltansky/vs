@@ -52,13 +52,25 @@ Background or remote-agent chats may require the host's own history surface.
 For local JSONL or exported Markdown, normalize only the files in scope:
 
 ```bash
-node "<skill-dir>/scripts/normalize-transcript.mjs" <transcript-file> [more-files]
+PROJECT_ID=$(git config --get remote.origin.url 2>/dev/null \
+  | sed -E 's#\.git$##; s#.*[:/]([^/]+/[^/]+)$#\1#; s#/#-#g')
+[ -z "$PROJECT_ID" ] && PROJECT_ID=$(basename "$PWD")
+NORMALIZED_PATH="$HOME/.vs/$PROJECT_ID/thread-analysis/evidence/normalized-$(date +%Y%m%d-%H%M%S).md"
+node "<skill-dir>/scripts/normalize-transcript.mjs" \
+  --output "$NORMALIZED_PATH" <transcript-file> [more-files]
 ```
 
-The normalizer emits user and assistant turns with stable source and turn labels.
+The normalizer writes user and assistant turns to disk with stable source and
+turn labels and creates a sibling `.index.json` turn index. Stdout contains only
+path, turn count, byte count, and SHA-256 metadata. Inspect the index first, then
+retrieve only the targeted turn or short adjacent turn range needed for a claim.
+For an unfamiliar transcript, discover candidates with a bounded search such as
+`rg -n -i --max-columns 300 --max-columns-preview '<claim terms>' "$NORMALIZED_PATH" | head -50`,
+map matching lines to the index, then slice those turns. Do not print the whole
+normalized file.
 It excludes system, developer, tool, and reasoning records. Read raw records only
 when diagnosing a specific tool failure, and summarize them rather than dumping
-them.
+them. Follow the [disk-backed evidence contract](../vs-internal-shared/references/disk-backed-evidence.md).
 
 If a transcript cannot be accessed, say exactly which source is unavailable and
 continue with the evidence that is available.

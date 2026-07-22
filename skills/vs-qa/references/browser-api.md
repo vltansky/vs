@@ -5,6 +5,9 @@ after applying the priority in `../SKILL.md`. Harness-native browser or extensio
 control and Playwright take precedence. Translate these operations to the selected
 control surface when a higher-priority tool is available.
 
+When an example captures bulky output, first resolve
+`$EVIDENCE_TOOL` to the sibling `vs-internal-shared/scripts/evidence-manifest.mjs`.
+
 ## Detect the installed variant first
 
 Two incompatible `agent-browser` builds exist. Run `agent-browser --help`
@@ -22,6 +25,9 @@ On either variant, start QA in a fresh named session per run. Reusing a
 session shared with another agent or app bleeds console errors and state into
 QA results, and `--clear`-style flags are not reliable across builds — a fresh
 session is.
+
+The QuickJS examples use the harness global `saveScreenshot`. Replace
+`<absolute-run-directory>` with the current QA run directory.
 
 ## Page Names
 
@@ -44,16 +50,23 @@ Use `--connect` when the user is already authenticated in their browser. Skips l
 ## Navigate + Snapshot
 
 ```bash
-agent-browser <<'EOF'
+EVIDENCE_TOOL="<resolved-vs-internal-shared-skill-directory>/scripts/evidence-manifest.mjs"
+SNAPSHOT_PATH="<run-directory>/evidence/page-name.a11y.txt"
+agent-browser <<'EOF' \
+  | node "$EVIDENCE_TOOL" capture "$SNAPSHOT_PATH" --json-tail
 const page = await browser.getPage("qa-main");
 await page.goto("https://example.com");
 const snap = await page.snapshotForAI();
 const buf = await page.screenshot();
-const path = await saveScreenshot(buf, "page-name.png");
-console.log(JSON.stringify({ url: page.url(), title: await page.title(), screenshot: path }));
+const path = await saveScreenshot(buf, "<absolute-run-directory>/screenshots/page-name.png");
 console.log(snap.full);
+console.log(JSON.stringify({ url: page.url(), title: await page.title(), screenshot: path }));
 EOF
 ```
+
+The pipe stores the full accessibility snapshot and emits only its manifest plus
+the final JSON metadata line. Use the shared evidence tool's bounded `slice`
+command only when a targeted part of the snapshot is needed.
 
 ## Inject Error Capture (run once after first goto)
 
@@ -75,8 +88,9 @@ EOF
 ```bash
 agent-browser <<'EOF'
 const page = await browser.getPage("qa-main");
-const errors = await page.evaluate(() => window.__qaErrors || []);
-console.log(JSON.stringify({ errors, count: errors.length }));
+const allErrors = await page.evaluate(() => window.__qaErrors || []);
+const errors = [...new Map(allErrors.map(error => [JSON.stringify(error), error])).values()];
+console.log(JSON.stringify({ errors: errors.slice(-20), count: errors.length }));
 EOF
 ```
 
@@ -87,7 +101,8 @@ agent-browser <<'EOF'
 const page = await browser.getPage("qa-main");
 const links = await page.$$eval('a[href]', els =>
   els.map(e => ({ text: e.textContent.trim().slice(0, 60), href: e.href }))
-     .filter(l => l.href && !l.href.startsWith('javascript:') && !l.href.startsWith('mailto:')));
+     .filter(l => l.href && !l.href.startsWith('javascript:') && !l.href.startsWith('mailto:'))
+     .slice(0, 20));
 console.log(JSON.stringify(links));
 EOF
 ```
@@ -111,7 +126,7 @@ EOF
 agent-browser <<'EOF'
 const page = await browser.getPage("qa-main");
 const snap = await page.snapshotForAI();
-// Read snap.full to find roles and accessible names, then:
+// Query the needed role/name from the bounded inventory or a targeted snapshot slice, then:
 await page.getByRole('button', { name: 'Sign in' }).click();
 console.log(JSON.stringify({ url: page.url() }));
 EOF
@@ -120,15 +135,17 @@ EOF
 ## Track DOM Changes (diff mode)
 
 ```bash
-agent-browser <<'EOF'
+SNAPSHOT_PATH="<run-directory>/evidence/step-1.a11y.txt"
+agent-browser <<'EOF' \
+  | node "$EVIDENCE_TOOL" capture "$SNAPSHOT_PATH" --json-tail
 const page = await browser.getPage("qa-main");
 // First call with track ID establishes baseline
 const before = await page.snapshotForAI({ track: "step-1" });
 await page.click('button#submit');
 // Second call returns incremental diff
 const after = await page.snapshotForAI({ track: "step-1" });
-console.log("BEFORE:", before.full);
-console.log("AFTER:", after.incremental || after.full);
+console.log(`BEFORE:\n${before.full}\nAFTER:\n${after.incremental || after.full}`);
+console.log(JSON.stringify({ url: page.url(), changed: true }));
 EOF
 ```
 
@@ -142,7 +159,7 @@ const page = await browser.getPage("qa-mobile");
 await page.goto("https://example.com");
 // Browser starts headless at mobile dimensions
 const buf = await page.screenshot();
-console.log(await saveScreenshot(buf, "page-mobile.png"));
+console.log(await saveScreenshot(buf, "<absolute-run-directory>/screenshots/page-mobile.png"));
 EOF
 ```
 
@@ -192,7 +209,9 @@ EOF
 
 ## Tips
 
-- `snapshotForAI()` is better than screenshots for understanding UI structure. Use screenshots when layout/styling matters.
+- Persist `snapshotForAI()` output through the disk-backed evidence pipe. Use
+  bounded DOM inventories first and retrieve a targeted snapshot slice only when
+  needed. Use screenshots when layout/styling matters.
 - Keep page names stable across scripts — you can resume after failures.
 - `--connect` attaches to the user's running Chrome with all their sessions intact.
 - Use short timeouts (`{ timeout: 3000 }`) so scripts fail fast instead of hanging.

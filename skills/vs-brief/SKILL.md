@@ -38,9 +38,8 @@ Before-and-after evidence is presentation-specific:
 ## Step 1: Resolve diff range
 
 ```bash
-BASE=$(git merge-base HEAD \
-  "$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's|refs/remotes/origin/||')" \
-  2>/dev/null)
+UPSTREAM_REF=$(git symbolic-ref --quiet --short refs/remotes/origin/HEAD 2>/dev/null)
+BASE=$(git merge-base HEAD "$UPSTREAM_REF" 2>/dev/null)
 
 if [ -z "$BASE" ]; then
   echo "Warning: could not resolve upstream base. Falling back to repository root commit."
@@ -48,21 +47,31 @@ if [ -z "$BASE" ]; then
 fi
 ```
 
-## Step 2: Gather input (within ~20k token budget)
+## Step 2: Gather disk-backed input
 
 ```bash
-# File list with stats
-git diff "$BASE"..HEAD --stat --no-color
+PROJECT_ID=$(git config --get remote.origin.url 2>/dev/null \
+  | sed -E 's#\.git$##; s#.*[:/]([^/]+/[^/]+)$#\1#; s#/#-#g')
+[ -z "$PROJECT_ID" ] && PROJECT_ID=$(basename "$PWD")
+EVIDENCE_DIR="$HOME/.vs/$PROJECT_ID/briefs/evidence"
+DIFF_PATH="$EVIDENCE_DIR/diff-$(date +%Y%m%d-%H%M%S).patch"
+EVIDENCE_TOOL="<resolved-vs-internal-shared-skill-directory>/scripts/evidence-manifest.mjs"
+mkdir -p "$EVIDENCE_DIR"
 
-# Per file: first 100 lines of diff (up to 10 source files; skip generated)
-git diff "$BASE"..HEAD --name-only -z \
-  | awk 'BEGIN { RS="\0"; ORS="\0" }
-      !/(\.lock$|package-lock\.json|yarn\.lock|\.generated\.|^dist\/|^build\/)/ && ++n <= 10 { print }' \
-  | while IFS= read -r -d '' f; do
-      echo "=== $f ==="
-      git diff "$BASE"..HEAD -- "$f" | head -100
-    done
+# Keep the authoritative full diff out of model context.
+git diff "$BASE"..HEAD --no-color > "$DIFF_PATH"
+node "$EVIDENCE_TOOL" manifest "$DIFF_PATH"
+
+# Bounded structure for initial orientation.
+git diff "$BASE"..HEAD --stat --no-color
+rg -n '^(diff --git|@@)' "$DIFF_PATH" | head -200
 ```
+
+Use the hunk index to select relevant changes, then retrieve only the required
+bounded line ranges with `evidence-manifest.mjs slice`. Read the owning source
+function and tests when semantics are needed; do not substitute a truncated diff
+for source understanding. Follow the
+[disk-backed evidence contract](../vs-internal-shared/references/disk-backed-evidence.md).
 
 Collect lock/generated files separately — they become one "Dependencies updated" line regardless of change size.
 

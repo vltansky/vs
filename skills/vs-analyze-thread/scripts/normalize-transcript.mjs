@@ -1,10 +1,11 @@
 #!/usr/bin/env node
 
-import { readFile } from 'node:fs/promises';
-import { basename, extname } from 'node:path';
+import { createHash } from 'node:crypto';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { basename, dirname, extname, resolve } from 'node:path';
 
 const usage = () => {
-  console.error('Usage: node normalize-transcript.mjs <transcript-file> [more-files]');
+  console.error('Usage: node normalize-transcript.mjs --output <normalized.md> <transcript-file...> | --stdout <transcript-file...>');
   process.exitCode = 1;
 };
 
@@ -115,10 +116,23 @@ const parse = (path, raw) => {
   return parseMarkdown(raw);
 };
 
-const paths = process.argv.slice(2);
-if (paths.length === 0) {
+const args = process.argv.slice(2);
+const outputIndex = args.indexOf('--output');
+const stdout = args.includes('--stdout');
+const outputPath = outputIndex >= 0 ? resolve(args[outputIndex + 1]) : null;
+const paths = args.filter((arg, index) => (
+  arg !== '--stdout'
+  && arg !== '--output'
+  && index !== outputIndex + 1
+));
+
+if (paths.length === 0 || (!outputPath && !stdout)) {
   usage();
 } else {
+  const rendered = [];
+  const index = [];
+  const sourcePaths = new Map();
+
   for (const path of paths) {
     let raw;
     try {
@@ -130,11 +144,54 @@ if (paths.length === 0) {
     }
 
     const turns = dedupe(parse(path, raw));
-    console.log(`# Source: ${basename(path)} (${turns.length} turns)`);
+    const sourcePath = resolve(path);
+    const source = `${basename(path)}#${createHash('sha256').update(sourcePath).digest('hex').slice(0, 8)}`;
+    sourcePaths.set(source, sourcePath);
+    rendered.push(`# Source: ${source} (${turns.length} turns)`);
     for (const [index, turn] of turns.entries()) {
       const timestamp = turn.timestamp ? ` | ${turn.timestamp}` : '';
-      console.log(`\n## Turn ${index + 1} | ${turn.role}${timestamp}\n`);
-      console.log(turn.text);
+      rendered.push('', `## Turn ${index + 1} | ${turn.role}${timestamp}`, '', turn.text);
     }
+  }
+
+  if (process.exitCode) process.exit();
+  const normalized = `${rendered.join('\n')}\n`;
+
+  if (stdout) {
+    process.stdout.write(normalized);
+  } else {
+    let line = 1;
+    let source = '';
+    for (const entry of rendered) {
+      const sourceMatch = entry.match(/^# Source: (.+) \(\d+ turns\)$/);
+      if (sourceMatch) source = sourceMatch[1];
+      const turnMatch = entry.match(/^## Turn (\d+) \| (user|assistant)(?: \| (.+))?$/);
+      if (turnMatch) {
+        index.push({
+          source,
+          sourcePath: sourcePaths.get(source),
+          turn: Number(turnMatch[1]),
+          role: turnMatch[2],
+          timestamp: turnMatch[3],
+          startLine: line,
+        });
+      }
+      line += entry.split('\n').length;
+    }
+    for (const [entryIndex, entry] of index.entries()) {
+      entry.endLine = (index[entryIndex + 1]?.startLine ?? line + 1) - 1;
+    }
+
+    await mkdir(dirname(outputPath), { recursive: true });
+    await writeFile(outputPath, normalized);
+    const indexPath = `${outputPath}.index.json`;
+    await writeFile(indexPath, `${JSON.stringify(index, null, 2)}\n`);
+    console.log(JSON.stringify({
+      outputPath,
+      indexPath,
+      turns: index.length,
+      bytes: Buffer.byteLength(normalized),
+      sha256: createHash('sha256').update(normalized).digest('hex'),
+    }));
   }
 }

@@ -53,14 +53,28 @@ Before delegating, load and follow
 Before LLM passes, run a deterministic AI-slop scanner. Fast, reproducible, zero-hallucination.
 
 ```bash
+PROJECT_ID=$(git config --get remote.origin.url 2>/dev/null \
+  | sed -E 's#\.git$##; s#.*[:/]([^/]+/[^/]+)$#\1#; s#/#-#g')
+[ -z "$PROJECT_ID" ] && PROJECT_ID=$(basename "$PWD")
+REVIEW_EVIDENCE_DIR="$HOME/.vs/$PROJECT_ID/reviews/evidence"
+EVIDENCE_TOOL="<resolved-vs-internal-shared-skill-directory>/scripts/evidence-manifest.mjs"
+mkdir -p "$REVIEW_EVIDENCE_DIR"
+
 if command -v slop-scan >/dev/null 2>&1; then
-  slop-scan scan . --json 2>/dev/null
+  slop-scan scan . --json 2>/dev/null \
+    | node "$EVIDENCE_TOOL" capture "$REVIEW_EVIDENCE_DIR/slop-scan.json"
 elif [ -x node_modules/.bin/slop-scan ]; then
-  node_modules/.bin/slop-scan scan . --json 2>/dev/null
+  node_modules/.bin/slop-scan scan . --json 2>/dev/null \
+    | node "$EVIDENCE_TOOL" capture "$REVIEW_EVIDENCE_DIR/slop-scan.json"
 fi
 ```
 
-Parse the JSON, filter to files in scope. Show a one-line summary: `slop-scan: N findings (N strong, N medium, N weak)`. Feed the findings into the Code Quality lens and Parent Roast as pre-computed evidence — label them `[slop-scan]` so the source is visible. Do not re-report them without additional context.
+Persist scanner JSON when it is large, filter to files in scope tool-side, and
+return counts plus at most 20 strongest matching findings. Show a one-line
+summary: `slop-scan: N findings (N strong, N medium, N weak)`. Feed the findings
+into the Code Quality lens and Parent Roast as pre-computed evidence — label them
+`[slop-scan]` so the source is visible. Do not re-report them without additional
+context.
 
 **If it fails:** skip silently. Continue to Pass 1.
 
@@ -72,7 +86,26 @@ Clean the code first. The parent performs one integrated reuse, quality, and
 efficiency pass. Delegate separate review domains only when deep effort was
 selected and the shared budget permits it; verify findings before applying fixes.
 
-Get the full diff: `git diff` (or `git diff HEAD` for staged changes).
+Persist the authoritative diff instead of printing it into model context. Resolve
+the shared `evidence-manifest.mjs`, write `git diff` (or `git diff HEAD` for
+staged changes) to an evidence file under `~/.vs/$PROJECT_ID/reviews/evidence/`,
+then emit its manifest and a bounded `diff --git` / `@@` hunk index. Inspect only
+the relevant diff hunks, owning source functions, callers, and tests. This keeps
+the full review surface available without paying for it on every pass. Follow
+the [disk-backed evidence contract](../vs-internal-shared/references/disk-backed-evidence.md).
+
+```bash
+DIFF_PATH="$REVIEW_EVIDENCE_DIR/diff-$(date +%Y%m%d-%H%M%S).patch"
+HUNK_INDEX_PATH="$DIFF_PATH.index.txt"
+git diff --no-color <resolved-scope-arguments> > "$DIFF_PATH"
+rg -n '^(diff --git|@@)' "$DIFF_PATH" > "$HUNK_INDEX_PATH"
+node "$EVIDENCE_TOOL" manifest "$DIFF_PATH" "$HUNK_INDEX_PATH"
+head -200 "$HUNK_INDEX_PATH"
+```
+
+Replace `<resolved-scope-arguments>` from Phase 0 (`--cached`, `main...HEAD`, or
+the explicit user scope). Search the complete disk-backed hunk index by filename
+or symbol when a relevant hunk falls beyond the initial orientation sample.
 
 ### Lens 1: Code Reuse
 
@@ -160,10 +193,16 @@ dirty working tree and returns nothing on an already-committed branch:
 
 ```bash
 # uncommitted changes in the working tree
-codex review --uncommitted 2>/dev/null
+codex review --uncommitted 2>/dev/null \
+  | node "$EVIDENCE_TOOL" capture "$REVIEW_EVIDENCE_DIR/codex-review.txt"
 # committed branch diff
-codex review --base <base-branch> 2>/dev/null
+codex review --base <base-branch> 2>/dev/null \
+  | node "$EVIDENCE_TOOL" capture "$REVIEW_EVIDENCE_DIR/codex-review.txt"
 ```
+
+Resolve `$EVIDENCE_TOOL` and `$REVIEW_EVIDENCE_DIR` during diff capture. Inspect
+the advisor artifact with bounded `slice` ranges around concrete findings; do
+not stream the complete review into model context.
 
 If neither executable path works, or if the review produces no useful output after about 2 minutes with the correct flag for the diff's location, interrupt it, log "Codex review unavailable", and continue with roast only.
 

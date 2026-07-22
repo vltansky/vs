@@ -17,7 +17,10 @@ Execute in order. No step skipped, no step reordered.
 3. Poll loop with the default long timeout (600000 ms). After every event or `--reply`, run `live-poll.mjs` again immediately. Never pass a short `--timeout=`.
 
 The global bar **VS mark** dims and shows a pulsing amber dot when no agent is long-polling `/poll`. Hover the mark for the hint; restart `live-poll.mjs` to reconnect.
-4. On `generate`: read screenshot if present; load the action's reference; plan three distinct directions; write all variants in one edit; `--reply done`; poll again.
+4. On `generate`: use structured annotations first; inspect the smallest useful
+   screenshot crop only when pixels are needed to disambiguate intent; load the
+   action's reference; plan three distinct directions; write all variants in one
+   edit; `--reply done`; poll again.
 5. On `steer`: read the message and `pageUrl`; do the work (page edits, navigation help, or a short reply in the `--reply` message); `--reply steer_done`; poll again. No pickup ack. The Steer bar unlocks when `steer_done` arrives over SSE.
 6. On `accept` / `discard`: the poll script runs `live-accept.mjs`, acknowledges the delivered event, and prints `_completionAck`. Plain accepts/discards are terminal immediately; carbonize accepts remain recoverable until you finish cleanup, run `live-complete.mjs --id EVENT_ID`, and only then poll again.
 7. If interrupted, run `live-status.mjs` or `live-resume.mjs` before guessing. The durable journal replays unacknowledged work after helper restart.
@@ -102,7 +105,9 @@ Speed matters; the user is watching a spinner. Minimize tool calls by using the 
 
 When `event.mode === "insert"`:
 
-1. Read the screenshot if `event.screenshotPath` is present (annotations only).
+1. Read `comments`, `strokes`, element bounds, and computed styles first. If
+   intent remains ambiguous and `event.screenshotPath` is present, inspect only
+   the smallest useful annotated crop.
 2. Run the insert helper instead of wrap:
 
 ```bash
@@ -121,13 +126,32 @@ For non-Svelte targets, on accept/discard, `live-accept.mjs` removes the wrapper
 
 ### Replace mode (default)
 
-### 1. Read the screenshot (if present)
+### 1. Resolve annotations with bounded visual evidence
 
-`event.screenshotPath` is **only sent when the user placed at least one comment or stroke before Go.** When present, it's an absolute path to a PNG of the element as rendered with the annotations baked in. **Read it before planning**: annotations encode user intent not recoverable from `element.outerHTML` alone.
+`event.screenshotPath` is **only sent when the user placed at least one comment
+or stroke before Go.** When present, it is an absolute path to a PNG of the
+element as rendered with annotations baked in. Keep it disk-backed until the
+structured annotation data leaves a visual ambiguity that affects the plan.
+Describe it without loading pixels first:
+
+```bash
+EVIDENCE_TOOL="<resolved-vs-internal-shared-skill-directory>/scripts/evidence-manifest.mjs"
+SCREENSHOT_PATH="<event.screenshotPath>"
+node "$EVIDENCE_TOOL" manifest "$SCREENSHOT_PATH"
+```
 
 When `screenshotPath` is absent, don't ask for one and don't go looking for the current rendering. The omission is deliberate: without annotations, a screenshot would anchor the model on the existing design and fight the three-distinct-directions brief. Work from `element.outerHTML`, the computed styles in `event.element`, and the freeform prompt if present.
 
-`event.comments` and `event.strokes` carry structured metadata alongside the visual. Treat the screenshot as primary; use the structured data for specifics worth quoting (e.g. the exact text of a comment).
+`event.comments` and `event.strokes` carry structured metadata alongside the
+visual. Treat structured annotations, element bounds, outerHTML, and computed
+styles as primary. They usually identify the target and requested change without
+placing PNG bytes in model context. Structured coordinates identify an element
+region, not necessarily the exact child node. When child mapping or gesture
+intent affects the edit, use the live DOM/browser to resolve that region or save
+the smallest crop covering it as a separate disk artifact, emit its manifest,
+then load only that crop. If the harness cannot crop, load the full element
+screenshot as the explicit visual-judgment exception. Follow the
+[disk-backed evidence contract](../../vs-internal-shared/references/disk-backed-evidence.md).
 
 Reading annotations precisely:
 
@@ -521,7 +545,11 @@ Resolve `pageUrl` to the underlying file:
 - Root `/` → the `pageFile` returned by `live.mjs` (usually `public/index.html` or equivalent).
 - Sub-routes (e.g. `/docs`, `/docs/live`) → the generated or source file for that route. Use your knowledge of the project layout (multi-page static sites often resolve `/foo` → `public/foo/index.html`; SPAs may map all routes to a single entry).
 
-Read the file into context, then poll again. No `--reply`: this is speculative pre-work; Go will come later. If you can't confidently resolve the route to a file, skip and poll again.
+Read a file outline and only the likely component or route range into context,
+then poll again. Keep a large file disk-backed until the later generate event
+identifies the exact element. No `--reply`: this is speculative pre-work; Go will
+come later. If you can't confidently resolve the route to a file, skip and poll
+again.
 
 Dedupe is the browser's job (one prefetch per unique pathname per session); trust it. If the same file shows up twice from different routes mapping to the same file, the second Read is cached anyway.
 
