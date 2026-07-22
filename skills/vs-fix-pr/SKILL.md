@@ -429,6 +429,11 @@ Blocked until all items pass — do not report "all addressed" without evidence 
 - [ ] Review threads resolved (user approved each resolution)
 - [ ] Build still passes after fixes
 
+Before the final handoff, apply
+[Phase Boundaries](../vs-internal-shared/references/phase-boundaries.md). Keep
+`Next` below as the semantic route; report a session action only when required
+by that contract.
+
 ## Workflow
 
 Direct: emit **Next** only. Composed: return to caller.

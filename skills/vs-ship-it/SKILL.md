@@ -614,6 +614,11 @@ each item below.
 - [ ] Shipping goal reconciled before handoff or optional monitoring
 - [ ] `vs-baby-sit` started only when continued monitoring was requested
 
+Before the final handoff, apply
+[Phase Boundaries](../vs-internal-shared/references/phase-boundaries.md). Keep
+`Next` below as the semantic route; report a session action only when required
+by that contract.
+
 ## Workflow
 
 Direct: emit **Next** only. Composed: return to caller.

@@ -587,6 +587,11 @@ orientation, or meaningful before-and-after evidence).
   do not implement it. [EASY TO MISS: "cleaning up" adjacent code or adding
   "helpful" extras IS scope expansion, even when it feels like good practice.]
 
+Before the final handoff, apply
+[Phase Boundaries](../vs-internal-shared/references/phase-boundaries.md). Keep
+`Next` below as the semantic route; report a session action only when required
+by that contract.
+
 ## Workflow
 
 Direct: emit **Next** only. Composed: return to caller.

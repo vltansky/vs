@@ -33,6 +33,27 @@ Shape-it owns only the planning goal, never the later implementation goal.
 For work that may benefit from delegation, load and follow
 [Subagent Orchestration](../vs-internal-shared/references/subagents.md).
 
+## Long-horizon shaping
+
+Shape-it still owns work whose strategic decisions cannot be resolved reliably
+in one session. Treat this as long-horizon shaping, not a separate workflow.
+
+Use the existing design spec as the durable source of truth. Create it earlier
+than Phase 5 when necessary and mark it `Status: SHAPING`. Keep these sections
+current alongside the normal design:
+
+- **Open decisions** — unresolved strategic questions and their dependencies
+- **Evidence** — paths and URLs that constrain those decisions
+- **Next decision** — the single question the next shaping session should resolve
+
+At a clean boundary, apply
+[Phase Boundaries](../vs-internal-shared/references/phase-boundaries.md). Resume
+by loading the spec first, then only the evidence needed for its Next decision;
+do not reload the whole prior conversation. Keep open decisions out of
+implementation issues and do not route to orchestrate until the Goal Contract
+is approved. Once the open decisions are resolved, continue with the normal
+spec approval and handoff.
+
 ## Explore workflow
 
 ### 1. Gather evidence
@@ -274,6 +295,11 @@ Before finishing, check:
 - orchestrated work has bounded workstreams, effort, dependencies, merge gates,
   worker briefs, and a diagram when the topology is non-trivial
 - the handoff is runnable by build-it without relying on hidden chat context
+
+Before the final handoff, apply
+[Phase Boundaries](../vs-internal-shared/references/phase-boundaries.md). Keep
+`Next` below as the semantic route; report a session action only when required
+by that contract.
 
 ## Workflow
 

@@ -484,6 +484,11 @@ List every auto-resolved decision here.
 - **Do not expand scope.** Fix exactly the reported bug. If you notice other
   issues, log them in the handoff — do not fix them.
 
+Before the final handoff, apply
+[Phase Boundaries](../vs-internal-shared/references/phase-boundaries.md). Keep
+`Next` below as the semantic route; report a session action only when required
+by that contract.
+
 ## Workflow
 
 Direct: emit **Next** only. Composed: return to caller.

@@ -1,0 +1,6 @@
+interface:
+  display_name: "vs-next"
+  short_description: "Choose how work should continue across a phase boundary."
+
+policy:
+  allow_implicit_invocation: true

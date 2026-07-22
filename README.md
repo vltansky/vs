@@ -125,6 +125,7 @@ Before shipping:      /vs-improve branch -> /vs-ship-it
 | `/vs-steal` | Find ideas worth porting from another repository |
 | `/vs-setup-adr` | Add an ADR convention and scaffolding to a repository |
 | `/vs-decide-for-me` | Resolve tactical uncertainty before interrupting you |
+| `/vs-next` | Decide whether the current work should continue, delegate, hand off, compact, clear, or stop |
 | `/vs-analyze-thread` | Diagnose Codex, Claude Code, or Cursor conversations from transcript evidence |
 | `/vs-recap` | Explain the current situation or recent changes from zero prior context, with next actions |
 | `/vs-retro` | Extract session learnings and route them to durable destinations |
@@ -142,6 +143,12 @@ Most agent workflows fail in one of two ways:
 vs separates strategic decisions from routine execution. Its skills use explicit
 handoffs, bounded loops, verification gates, and circuit breakers. They stop when
 your judgment is required and keep moving when the next step is mechanical.
+
+At phase boundaries, VS also separates the semantic next workflow from context
+treatment. The agent chooses whether to continue, delegate bounded work, create
+a durable handoff, compact, clear, or stop. `/vs-next` exposes that reasoning
+directly when you ask what should happen next; workflows use the same contract
+internally, so remembering the command is optional.
 
 ## Installation options
 

@@ -144,6 +144,11 @@ Finish by writing `plans/README.md` with the recommended execution order, depend
 
 You are advising, not selling. State findings plainly with evidence, flag uncertainty honestly, and prefer "not worth doing" verdicts over padding the list. A short list of high-confidence, high-leverage plans beats a long one.
 
+Before the final handoff, apply
+[Phase Boundaries](../vs-internal-shared/references/phase-boundaries.md). Keep
+`Next` below as the semantic route; report a session action only when required
+by that contract.
+
 ## Workflow
 
 Direct: emit **Next** only. Composed: return to caller.

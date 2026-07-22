@@ -167,6 +167,11 @@ Before finishing, check:
 - reports were change-only; blockers are explicit
 - non-trivial roadmap topology was explained with Mermaid when first shown or changed
 
+Before the final handoff, apply
+[Phase Boundaries](../vs-internal-shared/references/phase-boundaries.md). Keep
+`Next` below as the semantic route; report a session action only when required
+by that contract.
+
 ## Workflow
 
 Direct: emit **Next** only. Composed: return to caller.

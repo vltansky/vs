@@ -84,7 +84,7 @@ Never write into the project tree (`docs/`, `.context/`, `.octocode/`) for sessi
 Each user-facing vs skill has a kind classification:
 
 - **Workflow** — takes a loose human goal and drives a full outcome (`vs-shape-it`, `vs-improve`, `vs-build-it`, `vs-ship-it`, `vs-bugfix`, `vs-fix-pr`, `vs-baby-sit`, `vs-orchestrate`)
-- **Building block** — owns one bounded job and can be used directly or composed by workflows (`vs-analyze-thread`, `vs-tdd`, `vs-qa`, `vs-brief`, `vs-verify`, `vs-deslop`, `vs-perf`, `vs-debug-mode`, `vs-roast-review`, `vs-roast-ui`, `vs-github-research`, `vs-rfc-research`, `vs-pushback`, `vs-prototype`, `vs-to-issues`, `vs-steal`, `vs-setup-adr`, `vs-decide-for-me`, `vs-recap`, `vs-retro`, `vs-try-skill`, `vs-write`)
+- **Building block** — owns one bounded job and can be used directly or composed by workflows (`vs-analyze-thread`, `vs-tdd`, `vs-qa`, `vs-brief`, `vs-verify`, `vs-deslop`, `vs-perf`, `vs-debug-mode`, `vs-roast-review`, `vs-roast-ui`, `vs-github-research`, `vs-rfc-research`, `vs-pushback`, `vs-prototype`, `vs-to-issues`, `vs-steal`, `vs-setup-adr`, `vs-decide-for-me`, `vs-next`, `vs-recap`, `vs-retro`, `vs-try-skill`, `vs-write`)
 
 `vs-internal-shared` is repo-local shared reference material, not a user-facing skill kind.
 
@@ -105,6 +105,12 @@ context, ownership, and collection limits.
 Use [`references/independent-advisors.md`](./references/independent-advisors.md)
 for risk-gated cross-model review. It is an internal reusable mechanism owned
 publicly by `vs-pushback`, not a separate user-facing skill.
+
+## Phase boundaries
+
+Use [`references/phase-boundaries.md`](./references/phase-boundaries.md) when a
+workflow finishes a phase or hands off. It separates the semantic next workflow
+from the session action: continue, subagent, handoff, compact, clear, or stop.
 
 ## Structured questions
 
