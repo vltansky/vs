@@ -7,6 +7,10 @@ const VERIFY = fs.readFileSync(path.join(SKILLS_DIR, 'vs-verify', 'SKILL.md'), '
 const BUILD_IT = fs.readFileSync(path.join(SKILLS_DIR, 'vs-build-it', 'SKILL.md'), 'utf8');
 const BUGFIX = fs.readFileSync(path.join(SKILLS_DIR, 'vs-bugfix', 'SKILL.md'), 'utf8');
 const SHIP_IT = fs.readFileSync(path.join(SKILLS_DIR, 'vs-ship-it', 'SKILL.md'), 'utf8');
+const VERIFY_BEHAVIOR_EVAL = fs.readFileSync(
+  path.join(SKILLS_DIR, 'vs-verify', 'test', 'verify.eval.ts'),
+  'utf8',
+);
 
 describe('verification status contract', () => {
   it('distinguishes proof, gaps, failures, and blocked environments', () => {
@@ -23,5 +27,11 @@ describe('verification status contract', () => {
     expect(BUGFIX).toMatch(/handoff verdict inherits the verification status/);
     expect(BUGFIX).toMatch(/Only `PASS` or `SKIPPED_TRIVIAL` may describe the bug as[\s\S]+fixed or complete/);
     expect(SHIP_IT).toMatch(/carry the WARN wording into[\s\S]+do not describe the change as fixed or\s+verified/);
+  });
+
+  it('scores behavior against the agent response without prompt leakage', () => {
+    expect(VERIFY_BEHAVIOR_EVAL).toMatch(/const response = await agent\.prompt/);
+    expect(VERIFY_BEHAVIOR_EVAL).toMatch(/return \{ agent, response \};/);
+    expect(VERIFY_BEHAVIOR_EVAL).not.toMatch(/\(\{\s*transcript\s*\}\)\s*=>/);
   });
 });
