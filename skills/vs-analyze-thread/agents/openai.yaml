@@ -1,0 +1,6 @@
+interface:
+  display_name: "vs-analyze-thread"
+  short_description: "Analyze agent threads from transcript evidence"
+
+policy:
+  allow_implicit_invocation: true

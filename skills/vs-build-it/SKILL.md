@@ -220,7 +220,9 @@ backend-only, and frontend-only milestones that delay observable behavior.
 
 ## Phase 1: Roast the Plan
 
-Load and follow the sibling skill at `../vs-pushback/SKILL.md`. If the host cannot resolve sibling skill paths, run a lightweight adversarial review yourself (premise challenge, assumptions, feasibility, edge cases — same dimensions, less ceremony).
+Load and follow the sibling skill at `../vs-pushback/SKILL.md`. If the host
+cannot resolve it, tell the user to type `/vs-pushback` and stop. Do not replace
+the gated workflow with an inline adversarial review.
 
 ### Auto-decision overrides for pushback
 

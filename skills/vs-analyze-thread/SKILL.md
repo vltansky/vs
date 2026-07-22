@@ -194,4 +194,4 @@ Direct: emit **Next** only. Composed: return to caller.
 
 **Prev:** thread selection | transcript export
 **Next:** done | `/vs-retro` for reviewed learnings
-**Relevant:** `/vs-recap` | `/vs-retro` | `/vs-try-skill`
+**Relevant:** `/vs-recap` | `/vs-try-skill`

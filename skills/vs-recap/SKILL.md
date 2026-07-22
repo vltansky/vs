@@ -53,4 +53,4 @@ Direct: emit **Next** only. Composed: return to caller.
 
 **Prev:** context switch | interrupted task
 **Next:** done
-**Relevant:** `/vs-ship-it` | `/vs-brief`
+**Relevant:** `/vs-analyze-thread` | `/vs-brief`

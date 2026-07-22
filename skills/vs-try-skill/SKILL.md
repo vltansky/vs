@@ -108,4 +108,4 @@ Direct: emit **Next** only. Composed: return to caller.
 
 **Prev:** skill change | behavior hypothesis
 **Next:** done
-**Relevant:** `/vs-retro`
+**Relevant:** `/vs-retro` | `/vs-analyze-thread`

@@ -1,0 +1,6 @@
+interface:
+  display_name: "vs-setup-adr"
+  short_description: "Set up repository ADR conventions"
+
+policy:
+  allow_implicit_invocation: false
