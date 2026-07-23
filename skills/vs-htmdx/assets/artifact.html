@@ -1,0 +1,38 @@
+<!doctype html>
+<!--
+  VS HTMDX artifact. Edit only the text inside the primary
+  script[type="text/htmdx"] block and the existing title text.
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="vs-artifact-format" content="htmdx@2" />
+    <meta name="vs-renderer" content="@wix/htmdx@4.5.1" />
+    <title>[[TITLE]]</title>
+    <script
+      src="https://cdn.jsdelivr.net/npm/@wix/htmdx@4.5.1/dist/browser.js"
+      defer
+    ></script>
+  </head>
+  <body>
+    <!-- prettier-ignore -->
+    <script
+      type="text/htmdx"
+      data-vs-source="primary"
+      data-vs-format="htmdx@2"
+    >
+---
+title: [[TITLE]]
+updated: [[YYYY-MM-DD]]
+layout: default
+---
+
+# [[TITLE]]
+
+<ExecutiveSummary>
+[[CONCLUSION]]
+</ExecutiveSummary>
+    </script>
+  </body>
+</html>

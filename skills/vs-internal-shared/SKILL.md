@@ -84,7 +84,7 @@ Never write into the project tree (`docs/`, `.context/`, `.octocode/`) for sessi
 Each user-facing vs skill has a kind classification:
 
 - **Workflow** — takes a loose human goal and drives a full outcome (`vs-shape-it`, `vs-improve`, `vs-build-it`, `vs-ship-it`, `vs-bugfix`, `vs-fix-pr`, `vs-baby-sit`, `vs-orchestrate`)
-- **Building block** — owns one bounded job and can be used directly or composed by workflows (`vs-analyze-thread`, `vs-tdd`, `vs-qa`, `vs-brief`, `vs-verify`, `vs-deslop`, `vs-perf`, `vs-debug-mode`, `vs-roast-review`, `vs-roast-ui`, `vs-github-research`, `vs-rfc-research`, `vs-pushback`, `vs-prototype`, `vs-to-issues`, `vs-steal`, `vs-setup-adr`, `vs-decide-for-me`, `vs-next`, `vs-recap`, `vs-retro`, `vs-try-skill`, `vs-write`)
+- **Building block** — owns one bounded job and can be used directly or composed by workflows (`vs-analyze-thread`, `vs-tdd`, `vs-qa`, `vs-brief`, `vs-verify`, `vs-deslop`, `vs-perf`, `vs-debug-mode`, `vs-roast-review`, `vs-roast-ui`, `vs-github-research`, `vs-htmdx`, `vs-rfc-research`, `vs-pushback`, `vs-prototype`, `vs-to-issues`, `vs-steal`, `vs-setup-adr`, `vs-decide-for-me`, `vs-next`, `vs-recap`, `vs-retro`, `vs-try-skill`, `vs-write`)
 
 `vs-internal-shared` is repo-local shared reference material, not a user-facing skill kind.
 

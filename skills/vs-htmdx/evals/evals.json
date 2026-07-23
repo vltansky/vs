@@ -1,0 +1,27 @@
+{
+  "skill_name": "vs-htmdx",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Turn docs/release-readiness.md into a single HTMDX decision brief. Save it to artifacts/release-readiness.html and make the release recommendation, blockers, and evidence easy to scan.",
+      "expected_output": "Creates one portable HTML artifact from the supplied source, uses the pinned template and valid components, preserves evidence, and separates structural checks from rendered proof.",
+      "files": [
+        "docs/release-readiness.md"
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Update the metrics and Q4 milestone in artifacts/platform-health.html. Keep the existing HTMDX shell and runtime version unchanged.",
+      "expected_output": "Edits only the canonical HTMDX source and browser title if needed, preserves the existing shell and runtime, and verifies the saved artifact.",
+      "files": [
+        "artifacts/platform-health.html"
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "Visualize how auth, billing, and notifications depend on the user service.",
+      "expected_output": "Does not force HTMDX for an unqualified visualization request and routes to the host's native visualization capability.",
+      "files": []
+    }
+  ]
+}
