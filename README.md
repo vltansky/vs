@@ -34,9 +34,10 @@ Open your project in the agent and describe what you want:
 /vs-shape-it Add saved filters to search
 ```
 
-`/vs-shape-it` explores the repository, asks about decisions that need your
-judgment, and turns the idea into an approved design. Stay in the conversation
-until the direction is clear.
+`/vs-shape-it` starts with a short alignment round, then researches and
+stress-tests the direction independently before returning with a complete
+design for approval. Stay for the opening decisions; come back for the final
+review.
 
 ### 3. Build it
 
