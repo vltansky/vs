@@ -115,7 +115,7 @@ Before shipping:      /vs-improve branch -> /vs-ship-it
 | `/vs-rfc-research` | Turn code and research evidence into an RFC, ADR, or proposal |
 | `/vs-tdd` | Run a red-green-refactor loop |
 | `/vs-debug-mode` | Find a root cause before proposing a fix |
-| `/vs-roast-review` | Review a diff in two passes, with a second opinion for substantial changes |
+| `/vs-roast-code` | Review a diff in two passes, with a second opinion for substantial changes |
 | `/vs-roast-ui` | Review a UI for hierarchy, accessibility, responsiveness, and generic design |
 | `/vs-qa` | Test a web interface in a browser, fix issues, and verify again |
 | `/vs-verify` | Prove a change works with concrete evidence |

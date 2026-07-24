@@ -158,5 +158,5 @@ TDD returns: test file path, implementation file paths, guardrail results.
 Direct: emit **Next** only. Composed: return to caller.
 
 **Prev:** `/vs-debug-mode` | `/vs-build-it`
-**Next:** `/vs-roast-review`
+**Next:** `/vs-roast-code`
 **Relevant:** `/vs-verify`

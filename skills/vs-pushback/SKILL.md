@@ -235,4 +235,4 @@ Direct: emit **Next** only. Composed: return to caller.
 
 **Prev:** `/vs-shape-it` | `/vs-rfc-research` | formed proposal
 **Next:** `/vs-build-it`
-**Relevant:** `/vs-roast-review`
+**Relevant:** `/vs-roast-code`

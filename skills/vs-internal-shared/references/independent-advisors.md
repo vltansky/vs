@@ -10,7 +10,7 @@ skills may reuse this mechanism without exposing another user-facing skill.
   advisor runtimes, and remaining child budget.
 - **Outputs:** `ADVISORS_READY`, `PARTIAL`, or `SKIPPED`, plus bounded objections,
   material dissent, and skipped-advisor reasons.
-- **Consumers:** `vs-pushback`, `vs-rfc-research`, `vs-roast-review`, and other
+- **Consumers:** `vs-pushback`, `vs-rfc-research`, `vs-roast-code`, and other
   risk-gated reviews.
 
 ## Risk gate

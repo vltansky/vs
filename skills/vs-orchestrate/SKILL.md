@@ -115,7 +115,7 @@ milestone actually done, is the next one still right, did evidence reorder the
 work, and does the definition of done still hold? This audit is lightweight and
 stays in the coordinator unless independence materially improves the evidence.
 
-Use `/vs-roast-review` and `/vs-verify` at risky integration, irreversible data,
+Use `/vs-roast-code` and `/vs-verify` at risky integration, irreversible data,
 security, external mutation, deployment, or final acceptance boundaries. Group
 several low-risk internal milestones behind one integration gate instead of
 paying the full review/verify ceremony after each artifact. A milestone still

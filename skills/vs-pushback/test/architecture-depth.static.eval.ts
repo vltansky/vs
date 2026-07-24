@@ -10,7 +10,7 @@ const ARCH_REF = fs.readFileSync(
   'utf8',
 );
 const ROAST_SKILL = fs.readFileSync(
-  path.resolve(SKILL_DIR, '..', 'vs-roast-review', 'SKILL.md'),
+  path.resolve(SKILL_DIR, '..', 'vs-roast-code', 'SKILL.md'),
   'utf8',
 );
 

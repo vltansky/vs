@@ -28,7 +28,7 @@ const BUILD_HANDOFF = fs.readFileSync(
   'utf8',
 );
 const ROAST_REVIEW = fs.readFileSync(
-  path.resolve(SHARED_DIR, '..', 'vs-roast-review', 'SKILL.md'),
+  path.resolve(SHARED_DIR, '..', 'vs-roast-code', 'SKILL.md'),
   'utf8',
 );
 const BUGFIX = fs.readFileSync(

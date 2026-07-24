@@ -106,7 +106,7 @@ Skills to load per phase:
 | Phase 3 (Web bugs) | `../vs-qa/SKILL.md` | Stop; tell the user to type `/vs-qa` |
 | Phase 1 (Deep exploration) | Local repo search | Grep + read |
 | Phase 5 (Verify) | `../vs-verify/SKILL.md` | Manual evidence summary |
-| Phase 6 (Review) | `../vs-roast-review/SKILL.md` | Lightweight self-review |
+| Phase 6 (Review) | `../vs-roast-code/SKILL.md` | Lightweight self-review |
 
 ---
 
@@ -391,7 +391,7 @@ For a small, low-risk fix, review the complete changed files in the parent:
 search for existing helpers, inspect callers, and run the focused regression
 test plus deterministic guardrails. Do not add a second model by default.
 
-Load roast-review only when the Phase 6a risk gate applies or the diff exceeds
+Load roast-code only when the Phase 6a risk gate applies or the diff exceeds
 5 files or 300 changed lines. If found, follow its methodology within the shared
 child budget; any cross-model review counts toward that same budget.
 

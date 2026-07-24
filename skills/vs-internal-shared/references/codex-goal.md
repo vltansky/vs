@@ -19,7 +19,7 @@ evidence needed for terminal updates.
   `vs-ship-it`, `vs-bugfix`, `vs-fix-pr`, `vs-baby-sit`; `vs-orchestrate` owns one
   milestone goal at a time
 - **Usually contributes evidence:** `vs-tdd`, `vs-debug-mode`, `vs-qa`, `vs-verify`,
-  `vs-roast-review`, `vs-deslop`, `vs-brief`, `vs-pushback`, `vs-github-research`, `vs-rfc-research`,
+  `vs-roast-code`, `vs-deslop`, `vs-brief`, `vs-pushback`, `vs-github-research`, `vs-rfc-research`,
   `vs-to-issues`, `vs-steal`, `vs-perf`
 - **Standalone exception:** a building block may own a goal when the user invokes
   it directly as the whole task, for example "optimize this endpoint with perf"

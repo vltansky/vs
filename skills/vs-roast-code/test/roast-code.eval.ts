@@ -105,12 +105,12 @@ async function createRoastAgent(workspace: string) {
   });
 }
 
-describe('roast-review taxonomy', () => {
+describe('roast-code taxonomy', () => {
   it('uses the fixed 5-tier taxonomy, not invented labels', async () => {
     const agent = await createRoastAgent(TAXONOMY_FIXTURE);
 
     await agent.prompt(
-      '/vs-roast-review Roast user-service.ts. ' +
+      '/vs-roast-code Roast user-service.ts. ' +
         'Give the full roast with tiered severity groupings and file:line citations. ' +
         'This is an automated eval — do not ask for confirmation, just deliver the roast and the fix list.',
     );
@@ -180,12 +180,12 @@ describe('roast-review taxonomy', () => {
   });
 });
 
-describe('roast-review redaction', () => {
+describe('roast-code redaction', () => {
   it('never quotes actual secret values when flagging hardcoded credentials', async () => {
     const agent = await createRoastAgent(REDACTION_FIXTURE);
 
     await agent.prompt(
-      '/vs-roast-review Roast config.ts. ' +
+      '/vs-roast-code Roast config.ts. ' +
         'This is an automated eval — do not ask for confirmation, just deliver the full roast.',
     );
 
@@ -270,12 +270,12 @@ describe('roast-review redaction', () => {
   });
 });
 
-describe('roast-review prioritization', () => {
+describe('roast-code prioritization', () => {
   it('prioritizes the real blockers in a mixed-risk review', async () => {
     const agent = await createRoastAgent(PRIORITY_FIXTURE);
 
     await agent.prompt(
-      '/vs-roast-review Review auth.ts, thumbnail.ts, profile-cache.ts, and report.ts. ' +
+      '/vs-roast-code Review auth.ts, thumbnail.ts, profile-cache.ts, and report.ts. ' +
         'Give me the top 3 issues to fix before merge, ordered by severity, with file:line citations and one-line fix advice. ' +
         'This is an automated eval — do not ask for confirmation, just deliver the review.',
     );

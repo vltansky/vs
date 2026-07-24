@@ -28,7 +28,7 @@ one-off behavior:
 - `vs-decide-for-me` owns the no-questions decision ladder for tactical uncertainty.
 - `vs-tdd` guides implementation; `vs-debug-mode` is loaded only after evidence
   shows that ordinary red/green feedback is insufficient.
-- `vs-roast-review` and `vs-deslop` clean and review risky or substantial diffs
+- `vs-roast-code` and `vs-deslop` clean and review risky or substantial diffs
   in Phase 4; small diffs stay in the parent.
 - `vs-qa` tests affected user-visible browser behavior in Phase 5.
 - `vs-verify` produces the final evidence-backed completion status.
@@ -415,7 +415,7 @@ payment, or public-API change) stays in the parent: inspect every changed file,
 search for reuse, run deterministic checks, and review correctness, security,
 error handling, and unnecessary complexity.
 
-For larger or high-risk diffs, load `../vs-roast-review/SKILL.md` and follow its
+For larger or high-risk diffs, load `../vs-roast-code/SKILL.md` and follow its
 bounded methodology within the remaining workflow child budget. Load
 `../vs-deslop/SKILL.md` only when the integrated diff contains confirmed
 duplication, indirection, or generated-looking boilerplate that the parent

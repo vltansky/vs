@@ -15,7 +15,7 @@ review-hostile clutter while preserving the product contract.
 - **Inputs:** Changed files or explicit scope, behavior that must stay unchanged, and available verification commands
 - **Outputs:** Cleanup summary, changed files, behavior-preservation evidence, and deferred findings
 - **Status:** `CLEAN`, `CLEANED`, `WARN`, `FAIL`, or `BLOCKED`
-- **Consumers:** `vs:roast-review` Pass 1, `vs:build-it` Phase 4, `vs:ship-it` pre-PR review, standalone cleanup requests
+- **Consumers:** `vs:roast-code` Pass 1, `vs:build-it` Phase 4, `vs:ship-it` pre-PR review, standalone cleanup requests
 - **Skip conditions:** Skip when the diff is trivial, generated-only, or the user explicitly asks for review-only/no edits
 
 ## Cleanup Targets
@@ -70,6 +70,6 @@ Inspect the requested scope for:
 
 Direct: emit **Next** only. Composed: return to caller.
 
-**Prev:** `/vs-build-it` | `/vs-roast-review` | `/vs-qa`
+**Prev:** `/vs-build-it` | `/vs-roast-code` | `/vs-qa`
 **Next:** `/vs-verify`
 **Relevant:** `/vs-roast-ui`

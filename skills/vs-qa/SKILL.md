@@ -613,5 +613,5 @@ If repo has `TODOS.md`:
 Direct: emit **Next** only. Composed: return to caller.
 
 **Prev:** `/vs-build-it` | manual implementation
-**Next:** `/vs-roast-review`
+**Next:** `/vs-roast-code`
 **Relevant:** `/vs-bugfix` | `/vs-roast-ui`

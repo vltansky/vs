@@ -48,7 +48,7 @@ Use this path when either condition holds:
 
 This path exists because creating a small PR is a mechanical Git operation, not
 a reason to launch a review program. An explicit request to skip review also
-overrides Step 0: do not run `vs-roast-review`, do not spawn review agents, and
+overrides Step 0: do not run `vs-roast-code`, do not spawn review agents, and
 do not invoke another model reviewer unless a concrete high-risk issue is found
 while inspecting the diff.
 
@@ -74,7 +74,7 @@ diverged, or a high-risk concern appears.
 Ship-it is a workflow. It composes building blocks to keep the PR surface
 reviewable:
 
-- `vs-roast-review` ensures the branch has had a review pass before shipping.
+- `vs-roast-code` ensures the branch has had a review pass before shipping.
 - `vs-verify` records the evidence that the branch is ready to present.
 - `vs-brief` provides the reusable human-readable change orientation for chat,
   PR body, and CI-watch context.
@@ -104,7 +104,7 @@ been ruled out.
 
 ### Step 0: Ensure review ran
 
-Before shipping, check if `vs-roast-review` was already run in this session.
+Before shipping, check if `vs-roast-code` was already run in this session.
 
 If **not run yet**: run it now. Wait for both passes to complete (Pass 1 auto-fixes,
 Pass 2 presents sins — auto-select option b for critical + serious). Apply fixes
@@ -593,7 +593,7 @@ validation, commit/push success, requested modifiers, and Step 5b association
 evidence. For the full PR workflow, do not report "shipped" without evidence for
 each item below.
 
-- [ ] Review ran (roast-review completed, fixes applied)
+- [ ] Review ran (roast-code completed, fixes applied)
 - [ ] All changes committed and pushed to remote
 - [ ] `vs-brief` generated and used as source material (unless trivial diff)
 - [ ] `vs-verify` generated a PASS/WARN result or was skipped as trivial
@@ -623,6 +623,6 @@ by that contract.
 
 Direct: emit **Next** only. Composed: return to caller.
 
-**Prev:** `/vs-roast-review` | `/vs-build-it`
+**Prev:** `/vs-roast-code` | `/vs-build-it`
 **Next:** done
 **Relevant:** none

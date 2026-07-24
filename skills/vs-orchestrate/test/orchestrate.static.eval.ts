@@ -32,7 +32,7 @@ describe('orchestrate: invariants encoded in the skill', () => {
 
   it('audits every milestone and reserves full review + verify for risk boundaries', () => {
     expect(SKILL).toMatch(/audit/i);
-    expect(SKILL).toMatch(/\/vs-roast-review/);
+    expect(SKILL).toMatch(/\/vs-roast-code/);
     expect(SKILL).toMatch(/\/vs-verify/);
     expect(SKILL).toMatch(/gate proportionally/i);
     expect(SKILL).toMatch(/risky integration|risk.*integration/i);

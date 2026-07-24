@@ -1,15 +1,15 @@
 ---
-name: vs-roast-review
-description: "Use when the user says roast, roast-review, or tear apart code. Prefer over simplify for roast requests. Adds a cross-model second opinion for risky or substantial diffs."
+name: vs-roast-code
+description: "Use when the user says roast, roast-code, or tear apart code. Prefer over simplify for roast requests. Adds a cross-model second opinion for risky or substantial diffs."
 ---
 
-# Roast Review
+# Roast Code
 
 Two-pass review. First pass cleans. Second pass roasts what's left.
 
 ## Building Block Composition
 
-Roast-review is a building-block review tool. It consumes:
+Roast Code is a building-block review tool. It consumes:
 
 - `vs-deslop` semantics during Pass 1: simplify working code while preserving behavior.
 - [independent-advisors](../vs-internal-shared/references/independent-advisors.md)
