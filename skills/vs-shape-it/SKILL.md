@@ -274,6 +274,7 @@ trail of tactical questions the independent phase already resolved.
 Ask for approval once, after the whole design, Goal Contract, and any execution
 blueprint are visible. Approval means the artifact is ready for `/vs-build-it`;
 it does not itself start implementation.
+Routing metadata does not replace or suppress the closing design.
 
 If an unresolved strategic decision remains, combine it with this closing gate
 when each option's consequences are already fully shaped: ask the user to
@@ -345,9 +346,7 @@ by that contract.
 
 ## Workflow
 
-After the closing design and approval exchange, a direct invocation emits only
-the **Next** routing line as workflow metadata; this does not replace or
-suppress the closing design. A composed invocation returns to its caller.
+Direct: emit **Next** only. Composed: return to caller.
 
 **Prev:** idea, rough plan, or question
 **Next:** `/vs-build-it`
