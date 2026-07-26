@@ -5,7 +5,6 @@ import { describe, expect, it } from 'vitest';
 const SKILL_DIR = path.resolve(__dirname, '..');
 const SKILL = fs.readFileSync(path.join(SKILL_DIR, 'SKILL.md'), 'utf8');
 const TEMPLATE = fs.readFileSync(path.join(SKILL_DIR, 'assets/artifact.html'), 'utf8');
-const AUTHORING = fs.readFileSync(path.join(SKILL_DIR, 'references/authoring.md'), 'utf8');
 
 describe('vs-htmdx', () => {
   it('defines a focused HTMDX trigger and portable single-file output', () => {
@@ -27,19 +26,22 @@ describe('vs-htmdx', () => {
     expect(SKILL).toMatch(/ordinary HTML/i);
   });
 
-  it('pins the runtime and validates authored components against its manifest', () => {
-    expect(SKILL).toMatch(/@wix\/htmdx@4\.5\.1/);
-    expect(SKILL).toMatch(/exact-version component manifest/i);
-    expect(AUTHORING).toContain('@wix/htmdx@4.9.0');
-    expect(AUTHORING).toContain('/@wix/htmdx@4.9.0/dist/components.json');
-  });
-
-  it('does not misroute generic blockers into the four-tier RiskTable grammar', () => {
-    expect(SKILL).toMatch(/Blocker, warning, or general risk[\s\S]+`Callout`/i);
+  it('keeps every vs template on one pinned runtime', () => {
+    expect(SKILL).toMatch(/@wix\/htmdx@4\.9\.0/);
     expect(SKILL).toMatch(
-      /every row\s+starts\s+with exactly `Must-have`, `Differentiator`, `Not now`, or `Won't do`/i,
+      /Every `vs` template pins one version — do not diverge from it/,
     );
-    expect(AUTHORING).toMatch(/Do not use it for\s+generic risks, blockers/i);
+    for (const parts of [
+      ['..', '..', 'vs-qa', 'references', 'qa-report-template.html'],
+      ['..', '..', 'vs-steal', 'references', 'steals-report-template.html'],
+      ['..', '..', 'vs-analyze-thread', 'references', 'thread-comparison-template.html'],
+      ['..', '..', 'vs-internal-shared', 'references', 'rich-artifacts.md'],
+    ]) {
+      const file = path.resolve(__dirname, ...parts);
+      expect(fs.readFileSync(file, 'utf8'), path.basename(file)).not.toMatch(
+        /@wix\/htmdx@(?!4\.9\.0)[0-9]/,
+      );
+    }
   });
 
   it('ships a single-source template with no host element', () => {

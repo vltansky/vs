@@ -71,7 +71,7 @@ The copied MIT license notice is included at
 ## explain-diff-html skill
 
 - Author: Geoffrey Litt
-- Used in: `skills/vs-explain-diff`, `skills/vs-htmdx/references/authoring.md`
+- Used in: `skills/vs-explain-diff`
 - Source: https://gist.github.com/geoffreylitt/a29df1b5f9865506e8952488eac3d524
 
 The `vs-explain-diff` skill is an original rewrite inspired by the source

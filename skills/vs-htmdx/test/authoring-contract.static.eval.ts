@@ -2,111 +2,58 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { describe, expect, it } from 'vitest';
 
-const SKILL = fs.readFileSync(path.resolve(__dirname, '..', 'SKILL.md'), 'utf8');
-const AUTHORING = fs.readFileSync(
-  path.resolve(__dirname, '..', 'references', 'authoring.md'),
-  'utf8',
-);
+const SKILL_DIR = path.resolve(__dirname, '..');
+const SKILL = fs.readFileSync(path.join(SKILL_DIR, 'SKILL.md'), 'utf8');
 const RENDER_CHECK = fs.readFileSync(
-  path.resolve(__dirname, '..', 'assets', 'render-check.mjs'),
+  path.join(SKILL_DIR, 'assets', 'render-check.mjs'),
   'utf8',
 );
 
-describe('compound components are authored as a complete set', () => {
-  it('names the required props and children per parent', () => {
-    expect(AUTHORING).toMatch(/These are compound components/);
-    expect(AUTHORING).toMatch(
-      /\| `Tabs` \| `defaultValue`.*\| `TabsList` > `TabsTrigger`/,
-    );
-    expect(AUTHORING).toMatch(/\| `Accordion` \| `type` \|/);
-    expect(AUTHORING).toMatch(/each `value` to\s+appear exactly twice/);
-  });
-
-  it('states that an incomplete parent fails at compile time', () => {
-    expect(AUTHORING).toMatch(
-      /rejects an incomplete one at compile time rather than degrading/,
-    );
-    expect(AUTHORING).toMatch(/Author the whole set in one edit/);
-  });
-
-  it('verifies completeness before the artifact is presented', () => {
-    expect(SKILL).toMatch(/Check every compound component is complete/);
+describe('the component catalog is read from the runtime, not from the skill', () => {
+  it('loads the guidance with the skill command before authoring', () => {
+    expect(SKILL).toContain('## Load the guidance');
+    expect(SKILL).toContain('npx -y @wix/htmdx@4.9.0 skill');
     expect(SKILL).toMatch(
-      /A parent without its children is a compile error, not a\s+degraded render/,
-    );
-  });
-});
-
-describe('angle brackets inside an htmdx body are parsed as tags', () => {
-  it('warns that code fences do not protect their contents there', () => {
-    expect(AUTHORING).toContain('## Angle brackets are parsed as tags');
-    expect(AUTHORING).toMatch(/a code fence\s+does not protect its contents/);
-    expect(AUTHORING).toMatch(/unknown component <OBSERVABLE>/);
-  });
-
-  it('routes placeholder-heavy content to the top level', () => {
-    expect(AUTHORING).toMatch(
-      /belongs at the top level of the document, where fenced blocks are literal/,
-    );
-    expect(AUTHORING).toMatch(
-      /Do not wrap that section in `Card`, `Tabs`, `Accordion`/,
-    );
-    expect(AUTHORING).toMatch(/`PREVIEW_URL`, `\{\{port\}\}`/);
-  });
-
-  it('checks for the mistake before the artifact is presented', () => {
-    expect(SKILL).toMatch(
-      /Check no `<angle bracket>` placeholder sits inside an `htmdx` body/,
-    );
-    expect(SKILL).toMatch(/Code\s+fences do not protect their contents there/);
-  });
-});
-
-describe('composition is opt-in, not the default', () => {
-  it('defaults to plain sections and gives Tabs a negative test', () => {
-    expect(AUTHORING).toMatch(/Prefer plain `###` sections/);
-    expect(AUTHORING).toMatch(
-      /one panel \*instead of\* another/,
-    );
-    expect(AUTHORING).toMatch(
-      /are not alternate\s+views, and tabbing them hides content behind clicks/,
+      /versioned with the\s+runtime, so read them from the runtime rather than from memory/,
     );
     expect(SKILL).toMatch(
-      /\| Views the reader picks between, rather than reads in order \| `Tabs` \|/,
+      /Follow that output as the source of truth for the artifact contract, component\s+choice, body grammar/,
     );
-    expect(SKILL).toMatch(/Default to ordinary `###` sections/);
   });
-});
 
-describe('props and body grammar are checked against the runtime, not by analogy', () => {
-  it('states that the report components accept no props', () => {
-    expect(AUTHORING).toContain('## The report components take no props');
-    expect(AUTHORING).toMatch(/`<Callout type="warning">` fails with\s+`unknown prop "type" for <Callout>`/);
-    expect(AUTHORING).toMatch(/an absent `props` key means none are accepted/);
+  it('reads the guidance at the version an existing artifact pins', () => {
+    expect(SKILL).toContain('npx -y @wix/htmdx@<pinned-version> skill');
     expect(SKILL).toMatch(
-      /every attribute on it\*? ?against the\s+exact-version component manifest/,
+      /read the guidance from \*that\*\s+version instead, so it matches what the artifact actually loads/,
     );
   });
 
-  it('overrides the manifest body field with the enforced grammar', () => {
-    expect(AUTHORING).toContain('## Body grammar is stricter than the manifest states');
-    expect(AUTHORING).toMatch(
-      /the manifest under-specifies and the\s+mismatch surfaces at render rather than compile/,
+  it('names the too-old signature and refuses to guess when nothing loads', () => {
+    expect(SKILL).toMatch(
+      /exits `2` with `unknown command "skill"` predates the command/,
     );
-    expect(AUTHORING).toMatch(/\| `MetricStrip`, `Timeline` \| `- label: value` rows only \|/);
-    expect(AUTHORING).toMatch(/\| `DataTable`, `DecisionMatrix` \| a GFM table/);
-    expect(AUTHORING).toMatch(/Invalid body for <MetricStrip>/);
+    expect(SKILL).toMatch(
+      /say in the handoff that the guidance is newer than\s+the runtime the artifact pins/,
+    );
+    expect(SKILL).toMatch(/do not reconstruct the component catalog from memory/);
+  });
+
+  it('ships no vendored catalog that can drift from the runtime', () => {
+    expect(fs.existsSync(path.join(SKILL_DIR, 'references'))).toBe(false);
+    // A component-choice table here would be a second catalog to keep in sync.
+    expect(SKILL).not.toMatch(/^\| Information shape/m);
+    expect(SKILL).not.toMatch(/^\| `MetricStrip`/m);
+  });
+
+  it('routes the companion topics rather than restating them', () => {
+    for (const topic of ['skill --list', 'skill components', 'skill integration']) {
+      expect(SKILL).toContain(`npx -y @wix/htmdx@4.9.0 ${topic}`);
+    }
+    expect(SKILL).toMatch(/at the same version that answered the first call/);
   });
 });
 
 describe('ordered lists are not a usable construct', () => {
-  it('documents the collapse and gives the bulleted replacement', () => {
-    expect(AUTHORING).toContain('## Ordered lists do not render');
-    expect(AUTHORING).toMatch(/collapse\s+into one run-on paragraph/);
-    expect(AUTHORING).toContain('- **1.** Navigate to the checkout page');
-    expect(AUTHORING).toMatch(/`4\.5\.1` through `4\.9\.0` behave the same/);
-  });
-
   it('keeps ordered lists out of the shipped HTMDX templates', () => {
     const templates = [
       ['..', '..', 'vs-qa', 'references', 'qa-report-template.html'],
@@ -128,35 +75,62 @@ describe('ordered lists are not a usable construct', () => {
   });
 });
 
-describe('raw HTML is allowlisted rather than passed through', () => {
-  it('names the allowed media and layout elements and the video attributes', () => {
-    expect(AUTHORING).toContain('## Raw HTML is allowlisted, not passed through');
-    expect(AUTHORING).toMatch(/\| Media \| `video`, `audio`, `source`, `track`, `img` \|/);
-    expect(AUTHORING).toMatch(/`video` accepts `src`, `poster`, `controls`, `muted`/);
-    expect(AUTHORING).toMatch(/dropped silently/);
-  });
-
-  it('states the three rules that decide whether markup survives', () => {
-    expect(AUTHORING).toMatch(/\*\*`on\*` attributes fail the compile\*\* with `event-handler-attribute`/);
-    expect(AUTHORING).toMatch(/including `javascript:` and `data:`, is dropped/);
-    expect(AUTHORING).toMatch(/A relative path resolves against the document/);
-    expect(AUTHORING).toMatch(/\*\*A block element opening a line starts an HTML block\*\*/);
-  });
-
-  it('keeps raw tags out of markdown-body components', () => {
-    expect(AUTHORING).toContain(
-      'component <Evidence> with markdown body does not allow nested tags',
+describe('linting gates the artifact before it is rendered', () => {
+  it('runs the linter at the pinned version, strictly', () => {
+    expect(SKILL).toContain(
+      'npx -y @wix/htmdx@4.9.0 lint "$ARTIFACT_PATH" --strict',
     );
-    expect(AUTHORING).toMatch(/Put a recording at the top level/);
+    expect(SKILL).toMatch(
+      /Exit `0` is clean, `1` means problems were found, and `2` means the check never\s+ran/,
+    );
+    expect(SKILL).toMatch(/do not read a `2` as a pass/);
   });
 
-  it('treats iframe as the element to avoid in evidence artifacts', () => {
-    expect(AUTHORING).toMatch(/`iframe` is allowlisted without a forced `sandbox` attribute/);
-    expect(AUTHORING).toMatch(/should not also grant those values a frame/);
+  it('expects iteration rather than one clean pass', () => {
+    expect(SKILL).toMatch(/one\s+malformed body can mask the diagnostics after it/);
+    expect(SKILL).toMatch(
+      /a clean run is the only\s+evidence that the file is clean/,
+    );
+  });
+
+  it('treats a version mismatch as a wrong answer, not noise', () => {
+    expect(SKILL).toMatch(/`runtime-version-mismatch` finding/);
+    expect(SKILL).toMatch(
+      /the results describe a runtime the artifact does not load/,
+    );
+    expect(SKILL).toMatch(/rather than ignoring it/);
+  });
+
+  it('does not let linting stand in for rendering', () => {
+    expect(SKILL).toMatch(/Linting is not rendering/);
+    expect(SKILL).toMatch(/cannot see a CDN that\s+never responds/);
+  });
+});
+
+describe('verification ends at a rendered artifact', () => {
+  it('renders the file rather than stopping at structure', () => {
+    expect(SKILL).toMatch(/Render the saved file and confirm it compiled/);
+    expect(SKILL).toMatch(
+      /a structural check alone does not establish that it\s+renders/,
+    );
+    expect(SKILL).toMatch(/node assets\/render-check\.mjs "\$ARTIFACT_PATH"/);
+    expect(SKILL).toMatch(
+      /`Failed step: compile` or `Failed step: render`[\s\S]{0,120}names the exact\s+component and reason/,
+    );
+    expect(SKILL).toMatch(/each pass reveals one\s+error, so expect to iterate/);
+    expect(SKILL).toMatch(/open the\s+`file:\/\/` path — no server is needed/);
+  });
+
+  it('ships the render check as a runnable asset', () => {
+    expect(RENDER_CHECK).toMatch(/Failed step: \\w\+/);
+    expect(RENDER_CHECK).toMatch(/process\.exit\(failed \? 1 : 0\)/);
+    expect(RENDER_CHECK).toMatch(/ERR_FILE_NOT_FOUND/);
   });
 
   it('fails the render check when an old pin escapes raw tags to text', () => {
-    expect(RENDER_CHECK).toMatch(/video\|audio\|source\|iframe\|details\|summary\|div\|figure/);
+    expect(RENDER_CHECK).toMatch(
+      /video\|audio\|source\|iframe\|details\|summary\|div\|figure/,
+    );
     expect(RENDER_CHECK).toMatch(/Raw HTML rendered as literal text/);
     expect(RENDER_CHECK).toMatch(/predates the raw-HTML allowlist\. Bump the pin/);
   });
@@ -171,59 +145,6 @@ describe('raw HTML is allowlisted rather than passed through', () => {
     expect(RENDER_CHECK).toMatch(/pathToFileURL\(resolve\(file\)\)\.href/);
     expect(RENDER_CHECK).toMatch(/Treat this as not verified, not as a pass/);
     expect(RENDER_CHECK).not.toMatch(/goto\('file:\/\/' \+ file/);
-  });
-});
-
-describe('linting gates the artifact before it is rendered', () => {
-  it('runs the linter at the pinned version', () => {
-    expect(SKILL).toContain('npx @wix/htmdx@4.9.0 lint "$ARTIFACT_PATH"');
-    expect(SKILL).toMatch(/Exit `1` means at least one error/);
-    expect(SKILL).toMatch(/`--strict` also fails on warnings/);
-  });
-
-  it('names the rules so a diagnostic maps to a fix', () => {
-    for (const rule of [
-      'unknown-prop',
-      'body-contract',
-      'missing-required-prop',
-      'markdown-body-nested-tags',
-      'event-handler-attribute',
-    ]) {
-      expect(SKILL).toContain(rule);
-    }
-    expect(SKILL).toMatch(/the linter does not\s+stop at the first one/);
-  });
-
-  it('does not let linting stand in for rendering', () => {
-    expect(SKILL).toMatch(/Linting is not rendering/);
-    expect(SKILL).toMatch(/cannot see a CDN that\s+never responds/);
-    expect(SKILL).toMatch(/`runtime-version-mismatch` warning/);
-    expect(SKILL).toMatch(/before `4\.6\.0` ship no linter at all/);
-  });
-});
-
-describe('verification ends at a rendered artifact', () => {
-  it('renders the file rather than stopping at structure', () => {
-    expect(SKILL).toMatch(
-      /Render the saved file and confirm it compiled/,
-    );
-    expect(SKILL).toMatch(
-      /a structural check alone does not establish that it\s+renders/,
-    );
-    expect(SKILL).toMatch(/node assets\/render-check\.mjs "\$ARTIFACT_PATH"/);
-    expect(SKILL).toMatch(
-      /`Failed step: compile` or `Failed step: render`[\s\S]{0,120}names the exact\s+component and reason/,
-    );
-    expect(SKILL).toMatch(
-      /each pass reveals one\s+error, so expect to iterate/,
-    );
-    expect(SKILL).toMatch(/open the\s+`file:\/\/` path — no server is needed/);
-  });
-
-  it('ships the render check as a runnable asset', () => {
-    expect(RENDER_CHECK).toMatch(/Failed step: \\w\+/);
-    expect(RENDER_CHECK).toMatch(/process\.exit\(failed \? 1 : 0\)/);
-    expect(RENDER_CHECK).toMatch(/ERR_FILE_NOT_FOUND/);
   });
 
   it('distinguishes "could not check" from "passed"', () => {

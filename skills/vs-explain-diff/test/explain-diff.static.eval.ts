@@ -73,13 +73,12 @@ describe('vs-explain-diff rendering', () => {
   });
 
   it('has a self-check authoring pattern to render against', () => {
-    const authoring = fs.readFileSync(
-      path.join(ROOT, 'skills', 'vs-htmdx', 'references', 'authoring.md'),
-      'utf8',
+    expect(SKILL).toMatch(/## Step 5: Write self-check questions/);
+    expect(SKILL).toMatch(
+      /Render each as one `AccordionItem`: the question in `AccordionTrigger`, the\s+answer and reasoning in `AccordionContent`/,
     );
-
-    expect(authoring).toMatch(/## Reader self-check questions/);
-    expect(authoring).toMatch(/one `AccordionItem` per question/);
-    expect(authoring).toMatch(/distinct `value`/);
+    expect(SKILL).toMatch(
+      /no scored\s+quiz component, so this is reveal-on-click, not grading/,
+    );
   });
 });

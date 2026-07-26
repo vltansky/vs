@@ -67,12 +67,18 @@ Prefer `MetricStrip`, `DataTable`, `Compare`, `Timeline`, `Evidence`, and
 `RiskTable` for their named jobs. Do not add components merely for decoration.
 Never use a floating runtime version such as `@latest`.
 
-[`../../vs-htmdx/references/authoring.md`](../../vs-htmdx/references/authoring.md)
-owns component names, body modes, and the compound-component and angle-bracket
-rules, against the same pinned version this shell loads. Follow it before
-authoring rather than inferring a component from its name. The component set
-differs between runtime versions, so a tag that exists in one pin is a compile
-error in another; keep every pin in this repo on one version.
+The guidance ships with the runtime, so read it from the version this shell
+loads rather than inferring a component from its name:
+
+```bash
+npx -y @wix/htmdx@4.9.0 skill
+npx -y @wix/htmdx@4.9.0 skill components
+```
+
+It owns component names, body modes, and the compound-component and
+angle-bracket rules. The component set differs between runtime versions, so a
+tag that exists in one pin is a compile error in another; keep every pin in this
+repo on one version.
 
 ## Security boundary
 

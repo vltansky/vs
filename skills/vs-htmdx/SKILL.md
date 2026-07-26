@@ -26,8 +26,37 @@ An HTMDX deliverable is:
 - a pinned browser runtime;
 - no generated HTML body and no Markdown twin.
 
-The source is declarative. Do not add imports, exports, brace expressions,
-event handlers, function-valued props, or arbitrary JavaScript.
+## Load the guidance
+
+The component catalog, body grammar, and diagnostics are versioned with the
+runtime, so read them from the runtime rather than from memory. Run this before
+authoring, editing, or reviewing any HTMDX:
+
+```bash
+npx -y @wix/htmdx@4.9.0 skill
+```
+
+When editing a file that already pins a runtime, read the guidance from *that*
+version instead, so it matches what the artifact actually loads:
+
+```bash
+npx -y @wix/htmdx@<pinned-version> skill
+```
+
+Follow that output as the source of truth for the artifact contract, component
+choice, body grammar, attributes, and the CLI. Load a companion topic when the
+task calls for it, at the same version that answered the first call:
+
+```bash
+npx -y @wix/htmdx@4.9.0 skill --list          # available topics
+npx -y @wix/htmdx@4.9.0 skill components      # body grammar per component
+npx -y @wix/htmdx@4.9.0 skill integration     # React host, registration, testing
+```
+
+A pin that exits `2` with `unknown command "skill"` predates the command.
+Rerun with `@latest`, and say in the handoff that the guidance is newer than
+the runtime the artifact pins. If neither call loads, report the exact failure
+and stop — do not reconstruct the component catalog from memory.
 
 ## Start
 
@@ -46,40 +75,6 @@ Read every source the user identifies before choosing a layout. Separate
 verified facts from inference and preserve links, labels, units, dates, and
 uncertainty.
 
-## Choose the visual grammar
-
-Use ordinary Markdown for the narrative and add components only when they make
-the review question easier to answer.
-
-| Information shape | Prefer |
-|---|---|
-| Bottom line or recommendation | `ExecutiveSummary` |
-| 2-6 headline values | `MetricStrip` |
-| Comparable records | `DataTable` |
-| Alternatives or before/after | `Compare` or `DecisionMatrix` |
-| Ordered events or milestones | `Timeline` |
-| Quantitative distribution or trend | `ChartBar`, `ChartLine`, or `ChartPie` |
-| Supporting proof | `Evidence` |
-| Blocker, warning, or general risk | `Callout` or ordinary Markdown |
-| Scope classification by the runtime's four fixed tiers | `RiskTable` |
-| Secondary detail, or a question whose answer the reader should try first | `Accordion` |
-| Views the reader picks between, rather than reads in order | `Tabs` |
-
-Default to ordinary `###` sections. `Card`, `Tabs`, and `Accordion` are compound
-components with required children, and their bodies parse `<angle brackets>` as
-component tags even inside a code fence — so wrapping placeholder-heavy or
-sequential content in them adds compile failures without adding clarity.
-
-Read [references/authoring.md](references/authoring.md) before authoring. It
-contains the pinned manifest URL, body-shape rules, and component examples.
-Use the versioned manifest as the source of truth whenever network access is
-available.
-
-Choose `layout: default` for reports and decision briefs. Choose
-`layout: blank` only when source-order composition matters more than document
-chrome. Do not register custom layouts, components, or themes unless the user
-asks for a host integration rather than a portable artifact.
-
 ## Create
 
 1. Resolve the destination:
@@ -87,18 +82,18 @@ asks for a host integration rather than a portable artifact.
    - otherwise resolve `$PROJECT_ID` with
      [../vs-internal-shared/SKILL.md](../vs-internal-shared/SKILL.md) and write
      `~/.vs/$PROJECT_ID/vs-htmdx/YYYY-MM-DD-<slug>.html`.
-2. Start from [assets/artifact.html](assets/artifact.html). Copy the complete
+2. Start from [assets/artifact.html](assets/artifact.html), which carries the
+   `vs` artifact metadata the other `vs` report skills share. Copy the complete
    shell; replace the title, frontmatter, and primary source placeholders.
 3. Keep `@wix/htmdx@4.9.0` pinned in both the renderer metadata and script URL.
+   Every `vs` template pins one version — do not diverge from it for a single
+   artifact.
 4. Build a reading sequence:
    - conclusion first;
    - decisive metrics, comparison, or timeline second;
    - evidence and caveats next;
    - detailed reference material last.
 5. Remove every placeholder and unused section.
-
-Do not put a literal `</script>` sequence inside the source block, including in
-a code fence. Write it as `<\/script>` in an example.
 
 ## Edit
 
@@ -121,55 +116,33 @@ that converting it requires a new HTMDX artifact rather than an in-place edit.
 
 Before presenting the artifact:
 
-1. Read back the saved file.
-2. Confirm one doctype, one pinned runtime URL, and one editable source block.
-3. Confirm there are no placeholders, imports, exports, brace expressions,
-   event handlers, or literal `</script>` sequences inside the source.
-4. Check every capitalized tag *and every attribute on it* against the
-   exact-version component manifest. The report components accept no props; an
-   attribute that reads plausibly by analogy with another design system is a
-   compile error.
-5. Check every compound component is complete: `Tabs` has `defaultValue` and one
-   `TabsContent` per `TabsTrigger` with each `value` appearing exactly twice,
-   `Accordion` has `type` and `AccordionItem` > `AccordionTrigger` +
-   `AccordionContent`. A parent without its children is a compile error, not a
-   degraded render.
-6. Check no `<angle bracket>` placeholder sits inside an `htmdx` body. Code
-   fences do not protect their contents there. Placeholder-heavy blocks belong
-   at the top level, outside `Card`, `Tabs`, and `Accordion`.
-7. Check structured bodies against the grammar table in
-   [references/authoring.md](references/authoring.md), which is stricter than
-   the manifest's `body` field. A Markdown table only belongs in `DataTable` or
-   `DecisionMatrix`; `MetricStrip`, `Timeline`, `Compare`, `Evidence`, and
-   `RiskTable` take list rows. `RiskTable` is not a generic risk list: every row
-   starts with exactly `Must-have`, `Differentiator`, `Not now`, or `Won't do`.
-8. Confirm the artifact answers the review question without inventing facts.
-9. Lint the saved file. The linter reports every diagnostic in one pass with
-   line and column, so it resolves checks 3 through 7 faster than reading for
-   them. Run it at the version the artifact pins:
+1. Read back the saved file and confirm it answers the review question without
+   inventing facts, and that no placeholder survived.
+2. Lint the saved file at the version it pins. The linter reports every
+   diagnostic in one pass with line and column, so it catches unknown
+   components and props, invalid bodies, missing required props, disallowed
+   HTML, and an unpinned runtime faster than reading for them:
 
 ```bash
-npx @wix/htmdx@4.9.0 lint "$ARTIFACT_PATH"
+npx -y @wix/htmdx@4.9.0 lint "$ARTIFACT_PATH" --strict
 ```
 
-Exit `1` means at least one error. Each diagnostic names its rule —
-`unknown-prop`, `body-contract`, `missing-required-prop`,
-`markdown-body-nested-tags`, `event-handler-attribute` — and the component it
-came from. Fix them all and re-run; unlike the renderer, the linter does not
-stop at the first one. `--format json` adds `offset` and `length` for scripted
-use, and `--strict` also fails on warnings.
+Exit `0` is clean, `1` means problems were found, and `2` means the check never
+ran — do not read a `2` as a pass. Fix the first error and re-run; one
+malformed body can mask the diagnostics after it, so a clean run is the only
+evidence that the file is clean. The `skill` output explains the flags and each
+diagnostic code.
 
-A `runtime-version-mismatch` warning means the linted version and the pinned
-version disagree, and the results describe a runtime the artifact does not load.
-Change the `npx` version to match the pin rather than ignoring it. Versions
-before `4.6.0` ship no linter at all, so an older pin skips to the render check.
+A `runtime-version-mismatch` finding means the linted version and the pinned
+version disagree, so the results describe a runtime the artifact does not load.
+Change the `npx` version to match the pin rather than ignoring it.
 
-10. Render the saved file and confirm it compiled. An artifact is a thing the
-    user looks at, so a structural check alone does not establish that it
-    renders. Linting is not rendering either: it reads the source without
-    loading the runtime, so it cannot see a CDN that never responds, a pin whose
-    raw tags degrade to visible text, or a referenced screenshot that is not on
-    disk.
+3. Render the saved file and confirm it compiled. An artifact is a thing the
+   user looks at, so a structural check alone does not establish that it
+   renders. Linting is not rendering either: it reads the source without
+   loading the runtime, so it cannot see a CDN that never responds, a pin whose
+   raw tags degrade to visible text, or a referenced screenshot that is not on
+   disk.
 
 ```bash
 node assets/render-check.mjs "$ARTIFACT_PATH"
