@@ -89,7 +89,7 @@ asks for a host integration rather than a portable artifact.
      `~/.vs/$PROJECT_ID/vs-htmdx/YYYY-MM-DD-<slug>.html`.
 2. Start from [assets/artifact.html](assets/artifact.html). Copy the complete
    shell; replace the title, frontmatter, and primary source placeholders.
-3. Keep `@wix/htmdx@5.0.0` pinned in both the renderer metadata and script URL.
+3. Keep `@wix/htmdx@4.6.0` pinned in both the renderer metadata and script URL.
 4. Build a reading sequence:
    - conclusion first;
    - decisive metrics, comparison, or timeline second;

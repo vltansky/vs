@@ -30,8 +30,8 @@ describe('vs-htmdx', () => {
   it('pins the runtime and validates authored components against its manifest', () => {
     expect(SKILL).toMatch(/@wix\/htmdx@4\.5\.1/);
     expect(SKILL).toMatch(/exact-version component manifest/i);
-    expect(AUTHORING).toContain('@wix/htmdx@5.0.0');
-    expect(AUTHORING).toContain('/@wix/htmdx@5.0.0/dist/components.json');
+    expect(AUTHORING).toContain('@wix/htmdx@4.6.0');
+    expect(AUTHORING).toContain('/@wix/htmdx@4.6.0/dist/components.json');
   });
 
   it('does not misroute generic blockers into the four-tier RiskTable grammar', () => {
@@ -45,7 +45,7 @@ describe('vs-htmdx', () => {
   it('ships a single-source template with no host element', () => {
     expect(TEMPLATE.match(/<script\s[^>]*type="text\/htmdx"/g)).toHaveLength(1);
     expect(TEMPLATE).toContain('data-vs-source="primary"');
-    expect(TEMPLATE).toContain('@wix/htmdx@5.0.0/dist/browser.js');
+    expect(TEMPLATE).toContain('@wix/htmdx@4.6.0/dist/browser.js');
     expect(TEMPLATE).not.toContain('<htmdx-code');
   });
 

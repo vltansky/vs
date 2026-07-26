@@ -44,7 +44,7 @@ report with `<video controls muted playsinline poster=...>`.
   artifacts render values gathered from a system under test; those values do
   not also get a frame.
 
-Every HTMDX pin in this repo moves to `5.0.0` together. A pin older than the
+Every HTMDX pin in this repo moves to `4.6.0` together. A pin older than the
 markup degrades silently into visible tag text rather than failing, so the
 render check now fails on escaped raw tags and on a blank page from a runtime
 that never loaded.
