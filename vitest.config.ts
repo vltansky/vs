@@ -2,8 +2,10 @@ import { defineConfig } from 'vitest/config';
 import { pathgrade } from '@wix/pathgrade/plugin';
 
 // Pathgrade drives a real coding agent (Claude or Codex) per eval, so each test
-// can take minutes. Set ANTHROPIC_API_KEY (or OPENAI_API_KEY for --agent codex)
-// before running. Pick the agent with PATHGRADE_AGENT=claude|codex.
+// can take minutes. On macOS no API key is needed: pathgrade reuses the Claude
+// Code OAuth login from the Keychain for both the agent under test and the judge
+// scorers. Elsewhere set ANTHROPIC_API_KEY (or CLAUDE_CODE_OAUTH_TOKEN); Codex
+// needs OPENAI_API_KEY. Pick the agent with PATHGRADE_AGENT=claude|codex.
 export default defineConfig({
   test: {
     hookTimeout: 180_000,
