@@ -63,7 +63,12 @@ the review question easier to answer.
 | Blocker, warning, or general risk | `Callout` or ordinary Markdown |
 | Scope classification by the runtime's four fixed tiers | `RiskTable` |
 | Secondary detail | `Accordion` |
-| Alternate views of the same material | `Tabs` |
+| Views the reader picks between, rather than reads in order | `Tabs` |
+
+Default to ordinary `###` sections. `Card`, `Tabs`, and `Accordion` are compound
+components with required children, and their bodies parse `<angle brackets>` as
+component tags even inside a code fence — so wrapping placeholder-heavy or
+sequential content in them adds compile failures without adding clarity.
 
 Read [references/authoring.md](references/authoring.md) before authoring. It
 contains the pinned manifest URL, body-shape rules, and component examples.
@@ -121,13 +126,22 @@ Before presenting the artifact:
 3. Confirm there are no placeholders, imports, exports, brace expressions,
    event handlers, or literal `</script>` sequences inside the source.
 4. Check every capitalized tag against the exact-version component manifest.
-5. Check structured bodies against the manifest grammar: tables have aligned
+5. Check every compound component is complete: `Tabs` has `defaultValue` and one
+   `TabsContent` per `TabsTrigger` with each `value` appearing exactly twice,
+   `Accordion` has `type` and `AccordionItem` > `AccordionTrigger` +
+   `AccordionContent`. A parent without its children is a compile error, not a
+   degraded render.
+6. Check no `<angle bracket>` placeholder sits inside an `htmdx` body. Code
+   fences do not protect their contents there. Placeholder-heavy blocks belong
+   at the top level, outside `Card`, `Tabs`, and `Accordion`.
+7. Check structured bodies against the manifest grammar: tables have aligned
    columns, charts contain non-negative numbers, and label/value lists use the
    declared delimiter. `RiskTable` is not a generic risk list: every row starts
    with exactly `Must-have`, `Differentiator`, `Not now`, or `Won't do`.
-6. Confirm the artifact answers the review question without inventing facts.
-7. If a browser is already available, open the saved file and inspect the
-   rendered result. Do not start a dev server.
+8. Confirm the artifact answers the review question without inventing facts.
+9. Open the saved file in a browser and confirm it compiled. An artifact is a
+   thing the user looks at, so a structural check alone does not establish that
+   it renders. No server is needed — it is a `file://` path.
 
 When browser inspection is unavailable, report structural validation as such;
 do not claim rendered proof.

@@ -20,6 +20,31 @@ guessing a capitalized tag.
 Every component accepts `class`, `id`, `aria-*`, and `data-*`. Other attributes
 must be declared in the manifest. Values are data, not expressions.
 
+## Angle brackets are parsed as tags
+
+Inside an `htmdx` body the runtime scans for nested components, and a code fence
+does not protect its contents. `<observable outcome>` there compiles as a
+component and fails with `unknown component <OBSERVABLE>`.
+
+Placeholder-heavy content — contract templates, output shells, `<value>` slots —
+belongs at the top level of the document, where fenced blocks are literal:
+
+```mdx
+### The handback block
+
+```markdown
+**Try it:** <preview URL> — or — http://localhost:<port>
+```
+```
+
+Do not wrap that section in `Card`, `Tabs`, `Accordion`, or any other
+`htmdx`-body component. If placeholders must appear inside one, rewrite them
+without angle brackets — `PREVIEW_URL`, `{{port}}`, or *preview URL* in italics.
+
+The same applies to bare comparisons and generics in prose: write `a < b` as
+`` `a < b` `` at the top level, and avoid `Array<string>` inside an `htmdx`
+body.
+
 ## Report components
 
 ```mdx
@@ -85,7 +110,26 @@ their visual marks differ.
 ## Composable components
 
 Use `Card`, `Tabs`, and `Accordion` for genuine grouping or alternate views, not
-decoration. Their bodies are `htmdx`, so allowlisted components can nest inside.
+decoration. Their bodies are `htmdx`, so allowlisted components can nest inside —
+and so the angle-bracket rule above applies to everything they contain.
+
+These are compound components: the parent is invalid without its full child set,
+and the runtime rejects an incomplete one at compile time rather than degrading.
+
+| Parent | Required props | Required children |
+|---|---|---|
+| `Tabs` | `defaultValue`, matching one `TabsTrigger` value | `TabsList` > `TabsTrigger`, plus one `TabsContent` per trigger |
+| `Accordion` | `type` | `AccordionItem` > `AccordionTrigger` + `AccordionContent` |
+| `Card` | none | `CardContent`; `CardHeader` > `CardTitle` when titled |
+
+Every `value` pairs a trigger with its content — `Tabs` needs each `value` to
+appear exactly twice. Author the whole set in one edit; a parent alone fails with
+`required prop "defaultValue" is missing for <Tabs>` or the equivalent.
+
+Prefer plain `###` sections. Reach for `Tabs` only when the reader would look at
+one panel *instead of* another. Sequential sections that are all read in order —
+three phases of one workflow, three stages of a migration — are not alternate
+views, and tabbing them hides content behind clicks for no gain.
 
 ```mdx
 <Card>
