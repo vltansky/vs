@@ -73,6 +73,7 @@ describe('an agent that starts a process owns its lifetime', () => {
     expect(PREVIEW).toMatch(/the exact command/);
     expect(PREVIEW).toMatch(/the PID/);
     expect(PREVIEW).toMatch(/the port and URL/);
+    expect(PREVIEW).toMatch(/the worktree it serves/);
     expect(PREVIEW).toMatch(/the stop command/);
   });
 
@@ -85,9 +86,34 @@ describe('an agent that starts a process owns its lifetime', () => {
       cursor = next;
     }
     expect(PREVIEW).toMatch(
-      /Reclaim a surface left by an interrupted earlier\s+run/,
+      /reclaim a surface left by an\s+interrupted earlier run/,
     );
     expect(PREVIEW).toMatch(/Do not invent one/);
+  });
+
+  it('scopes a preview to its worktree instead of a fixed default port', () => {
+    expect(PREVIEW).toContain('## One preview per worktree');
+    expect(PREVIEW).toMatch(
+      /A fixed default\s+port binds the first worktree and collides with every other one/,
+    );
+    expect(PREVIEW).toMatch(
+      /\*\*Prefer the project's own per-worktree mechanism\.\*\*/,
+    );
+    expect(PREVIEW).toMatch(
+      /\*\*Otherwise derive the port from the worktree path\*\*/,
+    );
+    expect(PREVIEW).toMatch(/git rev-parse --show-toplevel \| cksum/);
+    expect(PREVIEW).not.toMatch(/PREVIEW_PORT:-4317/);
+  });
+
+  it('refuses to reclaim a listener owned by a different worktree', () => {
+    expect(PREVIEW).toMatch(
+      /serves different code; attaching to it\s+captures evidence for the wrong branch/,
+    );
+    expect(PREVIEW).toMatch(/-d cwd/);
+    expect(PREVIEW).toMatch(
+      /walk to the\s+next free port and start a fresh preview rather than assuming ownership/,
+    );
   });
 
   it('makes build-it stop what it started and ship-it the stated exception', () => {
