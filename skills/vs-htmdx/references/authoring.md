@@ -20,6 +20,64 @@ guessing a capitalized tag.
 Every component accepts `class`, `id`, `aria-*`, and `data-*`. Other attributes
 must be declared in the manifest. Values are data, not expressions.
 
+## The report components take no props
+
+Most components carry no props at all in 4.5.1, including every report
+component: `Callout`, `ExecutiveSummary`, `MetricStrip`, `DataTable`, `Compare`,
+`Evidence`, `RiskTable`, `Timeline`, `Finding`, `Stat`, and the charts. Severity,
+tone, and variant live in the body text, not in an attribute.
+
+An attribute that reads plausibly by analogy with another design system is still
+a compile error — `<Callout type="warning">` fails with
+`unknown prop "type" for <Callout>`. Only the interactive components
+(`Tabs`, `Accordion`, `Dialog`, `Popover`, `Tooltip`, `Badge`, `Button`,
+`Separator`, `Progress`, table cells) declare props. Check the manifest entry
+before writing any attribute; an absent `props` key means none are accepted.
+
+## Body grammar is stricter than the manifest states
+
+The 4.5.1 manifest reports `body: "markdown"` for components whose runtime
+still enforces a specific row grammar, so the manifest under-specifies and the
+mismatch surfaces at render rather than compile. Use this table, not the
+manifest's `body` field:
+
+| Component | Body grammar |
+|---|---|
+| `MetricStrip`, `Timeline` | `- label: value` rows only |
+| `DataTable`, `DecisionMatrix` | a GFM table with a header separator row |
+| `Compare`, `Evidence`, `RiskTable`, `Finding` | `- **Label:** text` list items |
+| `ChartBar`, `ChartLine`, `ChartPie` | `- label: non-negative number` |
+| `ExecutiveSummary`, `Callout`, `SourceQuote` | free Markdown |
+
+A Markdown table inside `MetricStrip` fails with `Invalid body for <MetricStrip>
+at body line 1: non-empty lines must be list items`. Tables belong in
+`DataTable`; everything else in this family wants a list.
+
+## Angle brackets are parsed as tags
+
+Inside an `htmdx` body the runtime scans for nested components, and a code fence
+does not protect its contents. `<observable outcome>` there compiles as a
+component and fails with `unknown component <OBSERVABLE>`.
+
+Placeholder-heavy content — contract templates, output shells, `<value>` slots —
+belongs at the top level of the document, where fenced blocks are literal:
+
+```mdx
+### The handback block
+
+```markdown
+**Try it:** <preview URL> — or — http://localhost:<port>
+```
+```
+
+Do not wrap that section in `Card`, `Tabs`, `Accordion`, or any other
+`htmdx`-body component. If placeholders must appear inside one, rewrite them
+without angle brackets — `PREVIEW_URL`, `{{port}}`, or *preview URL* in italics.
+
+The same applies to bare comparisons and generics in prose: write `a < b` as
+`` `a < b` `` at the top level, and avoid `Array<string>` inside an `htmdx`
+body.
+
 ## Report components
 
 ```mdx
@@ -85,7 +143,26 @@ their visual marks differ.
 ## Composable components
 
 Use `Card`, `Tabs`, and `Accordion` for genuine grouping or alternate views, not
-decoration. Their bodies are `htmdx`, so allowlisted components can nest inside.
+decoration. Their bodies are `htmdx`, so allowlisted components can nest inside —
+and so the angle-bracket rule above applies to everything they contain.
+
+These are compound components: the parent is invalid without its full child set,
+and the runtime rejects an incomplete one at compile time rather than degrading.
+
+| Parent | Required props | Required children |
+|---|---|---|
+| `Tabs` | `defaultValue`, matching one `TabsTrigger` value | `TabsList` > `TabsTrigger`, plus one `TabsContent` per trigger |
+| `Accordion` | `type` | `AccordionItem` > `AccordionTrigger` + `AccordionContent` |
+| `Card` | none | `CardContent`; `CardHeader` > `CardTitle` when titled |
+
+Every `value` pairs a trigger with its content — `Tabs` needs each `value` to
+appear exactly twice. Author the whole set in one edit; a parent alone fails with
+`required prop "defaultValue" is missing for <Tabs>` or the equivalent.
+
+Prefer plain `###` sections. Reach for `Tabs` only when the reader would look at
+one panel *instead of* another. Sequential sections that are all read in order —
+three phases of one workflow, three stages of a migration — are not alternate
+views, and tabbing them hides content behind clicks for no gain.
 
 ```mdx
 <Card>

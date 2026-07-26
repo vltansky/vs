@@ -45,7 +45,7 @@ Use this shell and pin the runtime to an exact version:
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>[[TITLE]]</title>
-    <script src="https://cdn.jsdelivr.net/npm/@wix/htmdx@2.2.1/dist/browser.js" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/@wix/htmdx@4.5.1/dist/browser.js" defer></script>
   </head>
   <body>
     <!-- prettier-ignore -->
@@ -66,6 +66,13 @@ updated: [[YYYY-MM-DD]]
 Prefer `MetricStrip`, `DataTable`, `Compare`, `Timeline`, `Evidence`, and
 `RiskTable` for their named jobs. Do not add components merely for decoration.
 Never use a floating runtime version such as `@latest`.
+
+[`../../vs-htmdx/references/authoring.md`](../../vs-htmdx/references/authoring.md)
+owns component names, body modes, and the compound-component and angle-bracket
+rules, against the same pinned version this shell loads. Follow it before
+authoring rather than inferring a component from its name. The component set
+differs between runtime versions, so a tag that exists in one pin is a compile
+error in another; keep every pin in this repo on one version.
 
 ## Security boundary
 
