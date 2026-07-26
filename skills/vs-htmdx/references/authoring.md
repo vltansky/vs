@@ -1,10 +1,10 @@
 # HTMDX authoring
 
-This reference is pinned to `@wix/htmdx@4.5.1`.
+This reference is pinned to `@wix/htmdx@5.0.0`.
 
 Before authoring, read the matching runtime manifest:
 
-`https://cdn.jsdelivr.net/npm/@wix/htmdx@4.5.1/dist/components.json`
+`https://cdn.jsdelivr.net/npm/@wix/htmdx@5.0.0/dist/components.json`
 
 The manifest owns component names, purposes, props, body modes, and examples.
 If it is unavailable, stay within the curated components below rather than
@@ -22,7 +22,7 @@ must be declared in the manifest. Values are data, not expressions.
 
 ## The report components take no props
 
-Most components carry no props at all in 4.5.1, including every report
+Most components carry no props at all in 5.0.0, including every report
 component: `Callout`, `ExecutiveSummary`, `MetricStrip`, `DataTable`, `Compare`,
 `Evidence`, `RiskTable`, `Timeline`, `Finding`, `Stat`, and the charts. Severity,
 tone, and variant live in the body text, not in an attribute.
@@ -36,7 +36,7 @@ before writing any attribute; an absent `props` key means none are accepted.
 
 ## Body grammar is stricter than the manifest states
 
-The 4.5.1 manifest reports `body: "markdown"` for components whose runtime
+The 5.0.0 manifest reports `body: "markdown"` for components whose runtime
 still enforces a specific row grammar, so the manifest under-specifies and the
 mismatch surfaces at render rather than compile. Use this table, not the
 manifest's `body` field:
@@ -77,6 +77,64 @@ without angle brackets — `PREVIEW_URL`, `{{port}}`, or *preview URL* in italic
 The same applies to bare comparisons and generics in prose: write `a < b` as
 `` `a < b` `` at the top level, and avoid `Array<string>` inside an `htmdx`
 body.
+
+## Raw HTML is allowlisted, not passed through
+
+Raw HTML renders as of `5.0.0`. On `4.5.1` and earlier every raw tag below
+escapes to literal text instead, so an artifact using this section must also
+carry the matching pin — an old pin degrades silently into visible markup
+rather than failing the render check.
+
+One allowlist governs both the top level and component bodies. Media and layout
+elements render; the attribute set is filtered per element.
+
+| Use | Tags |
+|---|---|
+| Media | `video`, `audio`, `source`, `track`, `img` |
+| Links | `a` |
+| Layout | `div`, `span`, `figure`, `figcaption`, `details`, `summary` |
+| Embeds | `iframe` |
+
+`video` accepts `src`, `poster`, `controls`, `muted`, `playsinline`, `loop`,
+`autoplay`, `preload`, `crossorigin`, `width`, and `height`. Anything outside an
+element's set is dropped silently — a typo in an attribute name produces a
+rendered element missing that behavior, not an error.
+
+Three rules decide whether markup survives:
+
+1. **`on*` attributes fail the compile** with `event-handler-attribute`. There
+   is no escape hatch; move behavior into a registered component.
+2. **URL attributes are scheme-checked** — `href`, `src`, `poster`, `cite`, and
+   `srcset` accept relative paths, `http`, `https`, and `mailto`. Everything
+   else, including `javascript:` and `data:`, is dropped and the attribute
+   disappears. A relative path resolves against the document, so a report opened
+   from `file://` reaches its own sibling directories.
+3. **A block element opening a line starts an HTML block** reaching to its close
+   tag. Markdown and nested components inside it keep working, so a `<div>` can
+   wrap a heading and a `<Badge>` together.
+
+### Markdown-body components still reject nested tags
+
+The allowlist does not relax body modes. A raw tag inside a `markdown`-body
+component fails the compile:
+
+```
+component <Evidence> with markdown body does not allow nested tags
+```
+
+`Evidence`, `Compare`, `MetricStrip`, `RiskTable`, and the rest of the
+list-grammar family take text rows only. Put a recording at the top level, or
+inside an `htmdx`-body component such as `Card`, `Tabs`, or `Accordion`. A
+Markdown link to the file works in any body and is the fallback when the
+component's grammar cannot hold an element.
+
+### Prefer the narrowest element that carries the evidence
+
+`iframe` is allowlisted without a forced `sandbox` attribute. An artifact that
+renders values gathered from a system under test — page titles, URLs, error
+strings — should not also grant those values a frame. Use `video` and `a` for
+evidence; reach for `iframe` only when the embed is the point and its source is
+one you control.
 
 ## Report components
 
@@ -136,7 +194,7 @@ generic risks, blockers, decisions, confidence, or severity levels. Use
 `Callout`, `Evidence`, a Markdown list, or a `DataTable` for those shapes.
 
 `ChartLine` and `ChartPie` use the same `- label: non-negative number` grammar
-as `ChartBar` in runtime 4.5.1. The current renderer uses the shared chart
+as `ChartBar` in runtime 5.0.0. The current renderer uses the shared chart
 visualization for all three, so choose by semantic intent rather than assuming
 their visual marks differ.
 
@@ -213,6 +271,6 @@ layout: default
 ---
 ```
 
-Built-in themes in 4.5.1 are `blue`, `purple`, `green`, `teal`, `amber`,
+Built-in themes in 5.0.0 are `blue`, `purple`, `green`, `teal`, `amber`,
 `magenta`, `fuchsia`, `rose`, `lime`, and `coral`. Unknown themes fall back to
 `blue`.

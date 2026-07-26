@@ -19,6 +19,7 @@ if (!files.length) {
 // module path.
 import { createRequire } from 'node:module';
 import { pathToFileURL } from 'node:url';
+import { resolve } from 'node:path';
 
 const fromCwd = createRequire(pathToFileURL(process.cwd() + '/'));
 
@@ -59,7 +60,16 @@ for (const file of files) {
   page.on('pageerror', (e) => errors.push(String(e)));
   page.on('console', (m) => m.type() === 'error' && errors.push(m.text()));
 
-  await page.goto('file://' + file, { waitUntil: 'networkidle' });
+  // A bare relative path becomes file://name and navigates to a host, so
+  // resolve before building the URL.
+  try {
+    await page.goto(pathToFileURL(resolve(file)).href, { waitUntil: 'networkidle' });
+  } catch (error) {
+    console.error(`Cannot render ${file}: ${error.message.split('\n')[0]}`);
+    console.error('Treat this as not verified, not as a pass.');
+    await browser.close();
+    process.exit(2);
+  }
   await page.waitForTimeout(2000);
 
   const details = page.locator('text=Error details').first();
@@ -70,10 +80,26 @@ for (const file of files) {
   const runtimeErrors = errors.filter((e) => !/ERR_FILE_NOT_FOUND/.test(e));
   const diagnostic = body.match(/Failed step: \w+[\s\S]{0,300}/);
 
-  if (diagnostic || runtimeErrors.length) {
+  // A runtime older than the artifact's markup escapes raw tags to visible text
+  // instead of failing, so the only symptom is a tag the reader can read.
+  const escaped = body.match(/<\/?(?:video|audio|source|iframe|details|summary|div|figure)\b/i);
+
+  // An unreachable runtime — unpublished pin, offline, blocked CDN — leaves the
+  // page blank with no error of its own. Empty is never a rendered artifact.
+  const blank = body.length < 40;
+
+  if (diagnostic || runtimeErrors.length || escaped || blank) {
     failed++;
     console.log(`FAIL  ${file}`);
     if (diagnostic) console.log('  ' + diagnostic[0].split('\n').filter(Boolean).slice(0, 3).join('\n  '));
+    if (escaped) {
+      console.log(`  Raw HTML rendered as literal text: ${escaped[0]}`);
+      console.log('  The pinned runtime predates the raw-HTML allowlist. Bump the pin.');
+    }
+    if (blank) {
+      console.log(`  Rendered ${body.length} chars — the runtime never loaded.`);
+      console.log('  Check the pinned version exists and the CDN is reachable.');
+    }
     for (const e of runtimeErrors.slice(0, 3)) console.log('  ' + e);
   } else {
     console.log(`PASS  ${file} — rendered ${body.length} chars`);
