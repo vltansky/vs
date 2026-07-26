@@ -62,6 +62,20 @@ Paste this inline — skills must stay self-contained in case they're installed 
 └── steals/       # steal reports
 ```
 
+## Communication contract
+
+Use [`references/communication.md`](./references/communication.md) in every
+workflow skill. It defines the chat budget, phase-boundary progress emissions,
+when a run owes the user an artifact, how to open one, and the install-freshness
+rule that makes skill changes take effect at all.
+
+## Agent-owned previews
+
+Use [`references/preview.md`](./references/preview.md) when a skill needs a
+running surface to capture evidence. It defines the resolution order, how to
+start and record an ephemeral preview, who stops it, and the one deliberate
+exception where `vs-ship-it` leaves one running for the user.
+
 ## Rich human-facing artifacts
 
 Use [`references/rich-artifacts.md`](./references/rich-artifacts.md) when a
