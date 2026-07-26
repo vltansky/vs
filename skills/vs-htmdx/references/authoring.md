@@ -78,6 +78,25 @@ The same applies to bare comparisons and generics in prose: write `a < b` as
 `` `a < b` `` at the top level, and avoid `Array<string>` inside an `htmdx`
 body.
 
+## Ordered lists do not render
+
+`1. First` / `2. Second` produces no `<ol>` and no list items. The lines collapse
+into one run-on paragraph reading `1. First 2. Second`. This is not version
+drift — `4.5.1` and `4.6.0` behave the same — and nothing reports it, so a
+numbered sequence looks fine in source and arrives as prose.
+
+Bulleted lists render normally. Carry the number in the text:
+
+```mdx
+- **1.** Navigate to the checkout page
+- **2.** Click Pay
+```
+
+Repro steps, ranked findings, and migration phases all hit this. When each step
+owns a screenshot, put the image on its own line between bullets rather than
+indenting it under one, since the indented continuation is part of what
+collapses.
+
 ## Raw HTML is allowlisted, not passed through
 
 Raw HTML renders as of `4.6.0`. On `4.5.1` and earlier every raw tag below

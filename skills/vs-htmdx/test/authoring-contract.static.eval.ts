@@ -99,6 +99,35 @@ describe('props and body grammar are checked against the runtime, not by analogy
   });
 });
 
+describe('ordered lists are not a usable construct', () => {
+  it('documents the collapse and gives the bulleted replacement', () => {
+    expect(AUTHORING).toContain('## Ordered lists do not render');
+    expect(AUTHORING).toMatch(/collapse\s+into one run-on paragraph/);
+    expect(AUTHORING).toContain('- **1.** Navigate to the checkout page');
+    expect(AUTHORING).toMatch(/`4\.5\.1` and `4\.6\.0` behave the same/);
+  });
+
+  it('keeps ordered lists out of the shipped HTMDX templates', () => {
+    const templates = [
+      ['..', '..', 'vs-qa', 'references', 'qa-report-template.html'],
+      ['..', '..', 'vs-steal', 'references', 'steals-report-template.html'],
+      ['..', '..', 'vs-analyze-thread', 'references', 'thread-comparison-template.html'],
+      ['..', 'assets', 'artifact.html'],
+    ];
+    for (const parts of templates) {
+      const file = path.resolve(__dirname, ...parts);
+      const source = fs.readFileSync(file, 'utf8');
+      const block = source.slice(
+        source.indexOf('text/htmdx'),
+        source.indexOf('</script>'),
+      );
+      expect(block, `${path.basename(file)} uses an ordered list`).not.toMatch(
+        /^\d+\. /m,
+      );
+    }
+  });
+});
+
 describe('raw HTML is allowlisted rather than passed through', () => {
   it('names the allowed media and layout elements and the video attributes', () => {
     expect(AUTHORING).toContain('## Raw HTML is allowlisted, not passed through');
