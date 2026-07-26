@@ -108,6 +108,17 @@ uncertainty with explicit, reversible defaults. Preserve genuinely strategic
 uncertainty as an open decision with a recommendation and consequences, then
 continue every safe part of the design.
 
+Autonomous is not silent. Per
+[`../vs-internal-shared/references/communication.md`](../vs-internal-shared/references/communication.md),
+emit one line when this beat starts and one when it ends, so the user knows the
+run is moving without being asked anything:
+
+```text
+[2/3] Shaping — reading <sources>; open decisions so far: <N>
+```
+
+Do not turn these into questions. They report state; they do not request input.
+
 #### Gather evidence
 
 Read relevant repository docs, nearby code, screenshots, and prior artifacts
@@ -190,8 +201,19 @@ The Goal Contract is the stable handoff from shaping to building:
 - Scope: <surfaces, workflows, files, or systems>
 - Success criteria: <observable completion conditions>
 - Verification: <tests, runtime evidence, CI, review, or acceptance checks>
+- Evidence plan: <surface + route or command + state or fixture that will prove
+  the outcome, or OPEN DECISION when no surface exists today>
 - Constraints and approvals: <hard boundaries and human gates>
 ```
+
+The Evidence plan is what the user is really deciding: how the result will be
+judged. Name the concrete thing build-it will point a browser or a command at.
+"Tests pass" is a guardrail, not evidence of the outcome.
+
+If nothing today can prove the outcome, that is a strategic open decision — the
+options are building a surface, accepting a weaker proof, or descoping. Carry it
+into the closing interaction with a recommendation. Do not defer it to build-it
+as a tactical detail; build-it will then head its handoff `UNPROVEN`.
 
 Do not describe activities such as "implement the plan" as the objective. State
 the achieved product or system outcome. A build agent should be able to create
@@ -333,6 +355,8 @@ Before finishing, check:
 - user-dependent blockers and plan-invalidating assumptions are tested before
   broad internal foundations
 - the Goal Contract states an observable outcome, scope, success, and proof
+- the Goal Contract names an Evidence plan, or marks it OPEN DECISION and
+  surfaces it in the closing interaction
 - unresolved strategic ambiguity is explicit
 - direct work has no coordination overhead
 - orchestrated work has bounded workstreams, effort, dependencies, merge gates,
