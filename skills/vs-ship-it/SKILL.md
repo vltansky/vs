@@ -516,6 +516,9 @@ redirect is a discovery lead rather than a preview; use repository docs and PR
 metadata to find a direct route when available. Do not encode provider-specific
 URL rewrites or private endpoints in this public skill, PR body, or examples.
 
+When no deployed preview is reachable, do not continue without a surface — fall
+back to a local one in Step 7b.
+
 ### Fetch reviewer-bot findings
 
 Whenever a reviewer-bot check reached a terminal state — regardless of conclusion, regardless of whether it was still pending on first poll — fetch **unresolved** findings. The correct filter is `isResolved == false` on `reviewThreads`, not `commit_id == HEAD_SHA` — bots re-attach open threads to every new commit, so a HEAD filter both misses legitimately active threads and re-surfaces already-fixed ones. Carry `isOutdated` along to distinguish "still anchored to HEAD" from "line has since moved":
@@ -575,6 +578,68 @@ instead of leaving commits stranded on a merged branch.
 start a separate `claude` session to keep working on something else in
 parallel.
 
+## Step 7b: Hand it back
+
+Shipping ends where the user takes over, so the last thing they receive is a
+surface they can try and an honest account of what was proven. Run this after
+PR creation regardless of whether monitoring continues.
+
+### Resolve a try-it surface
+
+Ship-it ends with exactly one of these, in priority order. Never with none of
+the three.
+
+1. **A deployed preview URL** — the PR preview, staging, or existing deployment
+   resolved above.
+2. **A local server ship-it starts and deliberately leaves running.** Follow
+   [`../vs-internal-shared/references/preview.md`](../vs-internal-shared/references/preview.md)
+   to start it, and report the URL, the route to the change, any fixture or
+   login needed, and the exact command to stop it. This is the one deliberate
+   exception to the lifecycle rule: build-it owns a preview for capture and
+   kills it; ship-it starts one for the human and leaves it up.
+3. **The precise blocker** — the exact missing prerequisite, when neither is
+   reachable. Not "no preview available".
+
+### Open the QA report
+
+When the run's build-it phase produced a QA artifact, open it with the
+platform-appropriate command from
+[`../vs-internal-shared/references/communication.md`](../vs-internal-shared/references/communication.md)
+and inline what was exercised, so "tested" is a list the user can read rather
+than a claim:
+
+```markdown
+| Route | Action | Result | Screenshot |
+|---|---|---|---|
+| /settings | toggle notifications | persisted after reload | `notifications-after.png` |
+```
+
+When QA did not run, replace that table with the blocker. The handback then
+cannot say the change works.
+
+Ship-it never re-runs QA. It reports what QA found.
+
+### The handback block
+
+```markdown
+## Handed back to you
+**Shipped:** <PR URL> · <N> commits · CI <status>
+**Try it:** <preview URL>  — or —  http://localhost:<port> (running, PID <pid>; stop: kill <pid>)
+   → <route to the change> · <fixture or login needed> · <the 3 steps that show the change>
+**Tested:** <N> routes, <N> interactions — report opened, see <artifact path>
+**You must check:** <numbered, specific, each with its route or command>
+**Not proven:** <claim → exact blocker>
+**If it's wrong:** <the one command or revert that undoes it>
+```
+
+`You must check` lists only what the agent genuinely could not verify itself.
+An empty list is a valid and good outcome — the point is that it is stated
+rather than left implicit.
+
+If the change altered skill or plugin content, `You must check` includes the
+re-install command; the user does not have the new behavior until their
+installed copy is verified.
+
 ## Step 8: Optional continued monitoring
 
 By default, stop after the verified initial readiness snapshot. When the user
@@ -595,6 +660,11 @@ each item below.
 
 - [ ] Review ran (roast-code completed, fixes applied)
 - [ ] All changes committed and pushed to remote
+- [ ] A try-it surface resolved: preview URL, a running local server with its
+      stop command, or the precise blocker
+- [ ] The QA report was opened and what was tested is listed, or its absence is
+      stated as a blocker
+- [ ] The `## Handed back to you` block was emitted with all seven fields
 - [ ] `vs-brief` generated and used as source material (unless trivial diff)
 - [ ] `vs-verify` generated a PASS/WARN result or was skipped as trivial
 - [ ] `vs-write` tightened the final body without dropping evidence or risks
