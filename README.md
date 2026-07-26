@@ -128,6 +128,7 @@ Before shipping:      /vs-improve branch -> /vs-ship-it
 | `/vs-deslop` | Simplify bloated or repetitive code without changing behavior |
 | `/vs-write` | Write or reshape clear prose without losing substance |
 | `/vs-brief` | Turn a git diff into a concise review brief |
+| `/vs-explain-diff` | Explain a code change in depth, with intuition, diagrams, and reader self-check questions |
 | `/vs-perf` | Optimize performance against an explicit evaluator |
 | `/vs-to-issues` | Turn a plan, spec, or RFC into vertical-slice GitHub issues |
 | `/vs-steal` | Find ideas worth porting from another repository |
