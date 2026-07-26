@@ -27,6 +27,9 @@ Infer the route; do not ask the user to choose a mode.
 
 If the initial route was wrong, pivot immediately.
 
+Both routes end in pushback. Explore runs it as the last step of independent
+shaping; Challenge hands the whole session to it.
+
 When Codex goal tools are available, follow
 [Codex Goal Integration](../vs-internal-shared/references/codex-goal.md).
 Shape-it owns only the planning goal, never the later implementation goal.
@@ -89,6 +92,9 @@ move directly into independent shaping.
 - Accept batched replies like `1A, 2B`; a bare `A` or `yes` accepts every
   recommendation.
 - Infer tactical details and state safe defaults briefly.
+- Spend one of the three questions on external research only when the design
+  could proceed without it and the lookup would cost real time. When the need is
+  clear, run it in the independent beat instead of asking.
 
 ```text
 Question 1 of N: ...
@@ -135,6 +141,36 @@ such as one bounded evidence inventory and one fresh adversarial critique. The
 parent keeps user alignment, decisions, synthesis, and goal ownership. Do not
 delegate the interview or ask several agents to design the same whole solution.
 
+#### Research prior art
+
+Repository evidence answers how this codebase works; it cannot tell you whether
+the approach is the one the ecosystem already settled. Decide once, early in the
+independent beat, whether an external research flow runs.
+
+Run one without asking when the answer would change the recommendation and you
+are confident which lookup produces it:
+
+- the design depends on an external system's real API, limits, or semantics
+- the user named an external project, tool, standard, or spec
+- the chosen approach has well-known prior art whose tradeoffs are already known
+- a build-vs-adopt call hinges on what an existing library actually does
+
+Pick the narrowest flow and follow its SKILL.md file:
+[`../vs-github-research/SKILL.md`](../vs-github-research/SKILL.md) for prior
+art, ecosystem patterns, and landscape comparison;
+[`../vs-rfc-research/SKILL.md`](../vs-rfc-research/SKILL.md) when the decision
+is RFC- or ADR-grade and needs code-cited evidence;
+[`../vs-steal/SKILL.md`](../vs-steal/SKILL.md) for one named external repo.
+Scope it to the specific design question, not the whole topic.
+
+Offer it as an opening-round choice when it would cost real time and the design
+can proceed without it. Skip it, and say so in one clause, when named sources
+and repository evidence already settle the decision — external reading is not a
+default tax on every session.
+
+Research is evidence, not authority. Cite what changed the design, and record a
+prior-art finding you deliberately rejected as a decision with its rationale.
+
 #### Design
 
 Lead with the recommended approach and why. Keep the core chat design under
@@ -166,19 +202,6 @@ define the metric and evaluator before calling it build-ready.
 For an expensive-to-reverse repo-level decision, recommend an ADR. Follow the
 repo convention, or suggest slug-only files under `adr/` and `/vs-setup-adr`.
 Name the decision, alternatives, and rationale so implementation can record it.
-
-#### Stress-test alignment
-
-For large, cross-domain, or expensive-to-reverse work, use a fresh planning
-critic before final approval. Give it the proposed design, evidence paths, and
-the exact uncertainties to attack; do not give it implementation ownership.
-Integrate supported findings into the design. Carry a finding that exposes a
-strategic contradiction or materially different outcome into the closing
-interaction with a recommendation; do not interrupt the independent middle
-when other useful shaping can continue.
-
-Use `/vs-pushback` for a formed proposal that needs the full interactive verdict
-workflow. Shape-it still owns synthesis of an explore-session design.
 
 #### Finalize the spec
 
@@ -285,6 +308,34 @@ Use this compact table in the spec:
 The blueprint is a plan, not authorization. Do not create the issues, tasks,
 threads, or implementation workers during shape-it.
 
+#### Stress-test with pushback
+
+Every explore session ends its independent beat by loading
+[`../vs-pushback/SKILL.md`](../vs-pushback/SKILL.md) and running its composed
+mode over the finished design, Goal Contract, and execution strategy. There is
+no size threshold: a design small enough to survive the grill costs one short
+pass, and the sessions that skip it are the ones that needed it.
+
+Run it last, once the design is whole. Grilling a half-formed design produces
+objections the remaining shaping would have answered anyway.
+
+Composed mode is non-interactive by contract — it must not open question rounds
+inside the independent beat. It answers its own dimensions from the design and
+the evidence already gathered, records what the evidence cannot settle as
+unresolved with severity, and returns `Verdict`, `Score`, and Top Pushback.
+
+Then integrate before returning:
+
+- fold supported findings into the design, spec, and Goal Contract rather than
+  appending a critique section the user has to reconcile
+- keep a finding you reject, with the reason it does not hold
+- carry an unresolved high-severity finding, or any finding that exposes a
+  strategic contradiction, into the closing interaction as a decision with a
+  recommendation
+
+Shape-it still owns synthesis, user communication, and the design. Pushback
+supplies the verdict, not the plan.
+
 ### 3. Closing interaction
 
 Return with the complete recommendation, evidence-driven changes from the
@@ -292,6 +343,15 @@ stress test, the Goal Contract, and any execution blueprint. Make unresolved
 strategic decisions conspicuous; for each, recommend one path and explain how
 the alternatives change the outcome. Do not restart the interview or expose a
 trail of tactical questions the independent phase already resolved.
+
+Show the pushback result as one compact line — `Pushback: READY_WITH_RISKS
+(72/100) — <weakest dimension>` — with the surviving high and medium findings.
+Report it as the state of the design, not as a separate review to read.
+
+A `NOT_READY` verdict does not block the approval gate, but it changes what is
+being approved. Lead with the blocking finding and recommend reworking it before
+`/vs-build-it`. Offer a full interactive `/vs-pushback` when the user wants to
+defend the design in rounds; composed mode scored it without their answers.
 
 Ask for approval once, after the whole design, Goal Contract, and any execution
 blueprint are visible. Approval means the artifact is ready for `/vs-build-it`;
@@ -347,6 +407,9 @@ Before finishing, check:
 
 - no implementation, issues, tasks/threads, or implementation workers were created
 - named sources and enough nearby evidence were read before asking answerable questions
+- external research either ran with its finding cited, or was skipped with a stated reason
+- pushback ran in composed mode over the finished design and returned a verdict
+  and score, and its supported findings were folded into the design
 - the cadence was opening interaction, uninterrupted independent shaping, then closing interaction
 - the design has one approval gate and a behavioral verification seam
 - the first delivery is the smallest complete vertical slice, with later
