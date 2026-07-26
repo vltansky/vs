@@ -2,19 +2,28 @@ import { open, readFile, readdir, stat } from 'node:fs/promises';
 import path from 'node:path';
 
 const PNG_SIGNATURE = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]);
+const WEBM_SIGNATURE = Buffer.from([0x1a, 0x45, 0xdf, 0xa3]);
 const IMAGE_PATTERN = /!\[[^\]]*\]\((?:<([^>]+)>|([^\s)]+))(?:\s+['"][^'"]*['"])?\)/g;
+const LINK_PATTERN = /(?<!!)\[[^\]]*\]\((?:<([^>]+)>|([^\s)]+))(?:\s+['"][^'"]*['"])?\)/g;
+// Raw HTML became renderable in HTMDX, so src/poster now reference evidence too.
+const ATTRIBUTE_PATTERN = /\b(?:src|poster)\s*=\s*["']([^"']+)["']/g;
 
-async function listPngFiles(directory, prefix = '') {
+const MEDIA = {
+  screenshots: { extension: '.png' },
+  clips: { extension: '.webm' },
+};
+
+async function listFiles(directory, extension, prefix = '') {
   const entries = await readdir(directory, { withFileTypes: true });
   const files = [];
 
   for (const entry of entries) {
     const relativePath = path.posix.join(prefix, entry.name);
     if (entry.isDirectory()) {
-      files.push(...await listPngFiles(path.join(directory, entry.name), relativePath));
+      files.push(...await listFiles(path.join(directory, entry.name), extension, relativePath));
       continue;
     }
-    if (entry.isFile() && entry.name.toLowerCase().endsWith('.png')) {
+    if (entry.isFile() && entry.name.toLowerCase().endsWith(extension)) {
       files.push(relativePath);
     }
   }
@@ -41,6 +50,25 @@ async function readPngMetadata(filePath) {
   }
 }
 
+// WebM duration lives behind a full EBML parse; the signature is enough to prove
+// the file is a real recording rather than a truncated or renamed placeholder.
+async function readWebmMetadata(filePath) {
+  const handle = await open(filePath, 'r');
+  try {
+    const header = Buffer.alloc(WEBM_SIGNATURE.length);
+    const { bytesRead } = await handle.read(header, 0, header.length, 0);
+    if (bytesRead !== header.length || !header.equals(WEBM_SIGNATURE)) return null;
+    return {};
+  } finally {
+    await handle.close();
+  }
+}
+
+const READERS = {
+  screenshots: readPngMetadata,
+  clips: readWebmMetadata,
+};
+
 const reportPath = process.argv[2] ? path.resolve(process.argv[2]) : null;
 if (!reportPath) {
   console.error('Usage: node validate-screenshot-evidence.mjs <report.md|report.html>');
@@ -49,53 +77,83 @@ if (!reportPath) {
 
 const report = await readFile(reportPath, 'utf8');
 const reportDirectory = path.dirname(reportPath);
-const screenshotsDirectory = path.join(reportDirectory, 'screenshots');
-const references = new Set();
 
-for (const match of report.matchAll(IMAGE_PATTERN)) {
-  const rawReference = decodeURIComponent(match[1] ?? match[2]);
-  const normalized = rawReference.replaceAll('\\', '/').replace(/^\.\//, '');
-  if (normalized.startsWith('screenshots/')) references.add(normalized);
-}
-
-let retainedFiles = [];
-try {
-  retainedFiles = await listPngFiles(screenshotsDirectory);
-} catch {
-  retainedFiles = [];
-}
-
-const retained = new Set(retainedFiles.map(file => `screenshots/${file}`));
-const missing = [...references].filter(reference => !retained.has(reference));
-const orphaned = [...retained].filter(file => !references.has(file));
-const invalid = [];
-const images = [];
-
-for (const reference of references) {
-  if (!retained.has(reference)) continue;
-  const filePath = path.join(reportDirectory, ...reference.split('/'));
-  const metadata = await readPngMetadata(filePath);
-  const fileStat = await stat(filePath);
-  if (!metadata || fileStat.size === 0 || metadata.width === 0 || metadata.height === 0) {
-    invalid.push(reference);
-    continue;
+function normalize(rawReference) {
+  let decoded = rawReference;
+  try {
+    decoded = decodeURIComponent(rawReference);
+  } catch {
+    // A reference that is not valid percent-encoding is still a path we must check.
   }
-  images.push({ path: reference, bytes: fileStat.size, ...metadata });
+  return decoded.replaceAll('\\', '/').replace(/^\.\//, '');
 }
 
-const valid = references.size > 0
-  && missing.length === 0
-  && orphaned.length === 0
-  && invalid.length === 0;
-const result = {
-  valid,
-  referenced: references.size,
-  retained: retained.size,
-  missing,
-  orphaned,
-  invalid,
-  images,
-};
+const references = { screenshots: new Set(), clips: new Set() };
+const patterns = [IMAGE_PATTERN, LINK_PATTERN, ATTRIBUTE_PATTERN];
+
+for (const pattern of patterns) {
+  for (const match of report.matchAll(pattern)) {
+    const normalized = normalize(match[1] ?? match[2]);
+    for (const [directory, { extension }] of Object.entries(MEDIA)) {
+      if (normalized.startsWith(`${directory}/`) && normalized.toLowerCase().endsWith(extension)) {
+        references[directory].add(normalized);
+      }
+    }
+  }
+}
+
+const result = { valid: true };
+
+for (const [directory, { extension }] of Object.entries(MEDIA)) {
+  let retainedFiles = [];
+  try {
+    retainedFiles = await listFiles(path.join(reportDirectory, directory), extension);
+  } catch {
+    retainedFiles = [];
+  }
+
+  const referenced = references[directory];
+  const retained = new Set(retainedFiles.map(file => `${directory}/${file}`));
+  const missing = [...referenced].filter(reference => !retained.has(reference));
+  const orphaned = [...retained].filter(file => !referenced.has(file));
+  const invalid = [];
+  const files = [];
+
+  for (const reference of referenced) {
+    if (!retained.has(reference)) continue;
+    const filePath = path.join(reportDirectory, ...reference.split('/'));
+    const metadata = await READERS[directory](filePath);
+    const fileStat = await stat(filePath);
+    if (!metadata || fileStat.size === 0 || metadata.width === 0 || metadata.height === 0) {
+      invalid.push(reference);
+      continue;
+    }
+    files.push({ path: reference, bytes: fileStat.size, ...metadata });
+  }
+
+  result[directory] = {
+    referenced: referenced.size,
+    retained: retained.size,
+    missing,
+    orphaned,
+    invalid,
+    files,
+  };
+
+  if (missing.length || orphaned.length || invalid.length) result.valid = false;
+}
+
+// Screenshots are mandatory for every completed run; clips never are.
+if (result.screenshots.referenced === 0) result.valid = false;
+
+// Retained at the top level so existing callers reading `referenced`/`images`
+// against the screenshot contract keep working.
+result.referenced = result.screenshots.referenced;
+result.retained = result.screenshots.retained;
+result.missing = result.screenshots.missing;
+result.orphaned = result.screenshots.orphaned;
+result.invalid = result.screenshots.invalid;
+result.images = result.screenshots.files;
 
 console.log(JSON.stringify(result));
-if (!valid) process.exitCode = 1;
+if (!result.valid) process.exitCode = 1;

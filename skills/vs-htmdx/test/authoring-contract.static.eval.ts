@@ -99,6 +99,109 @@ describe('props and body grammar are checked against the runtime, not by analogy
   });
 });
 
+describe('ordered lists are not a usable construct', () => {
+  it('documents the collapse and gives the bulleted replacement', () => {
+    expect(AUTHORING).toContain('## Ordered lists do not render');
+    expect(AUTHORING).toMatch(/collapse\s+into one run-on paragraph/);
+    expect(AUTHORING).toContain('- **1.** Navigate to the checkout page');
+    expect(AUTHORING).toMatch(/`4\.5\.1` and `4\.6\.0` behave the same/);
+  });
+
+  it('keeps ordered lists out of the shipped HTMDX templates', () => {
+    const templates = [
+      ['..', '..', 'vs-qa', 'references', 'qa-report-template.html'],
+      ['..', '..', 'vs-steal', 'references', 'steals-report-template.html'],
+      ['..', '..', 'vs-analyze-thread', 'references', 'thread-comparison-template.html'],
+      ['..', 'assets', 'artifact.html'],
+    ];
+    for (const parts of templates) {
+      const file = path.resolve(__dirname, ...parts);
+      const source = fs.readFileSync(file, 'utf8');
+      const block = source.slice(
+        source.indexOf('text/htmdx'),
+        source.indexOf('</script>'),
+      );
+      expect(block, `${path.basename(file)} uses an ordered list`).not.toMatch(
+        /^\d+\. /m,
+      );
+    }
+  });
+});
+
+describe('raw HTML is allowlisted rather than passed through', () => {
+  it('names the allowed media and layout elements and the video attributes', () => {
+    expect(AUTHORING).toContain('## Raw HTML is allowlisted, not passed through');
+    expect(AUTHORING).toMatch(/\| Media \| `video`, `audio`, `source`, `track`, `img` \|/);
+    expect(AUTHORING).toMatch(/`video` accepts `src`, `poster`, `controls`, `muted`/);
+    expect(AUTHORING).toMatch(/dropped silently/);
+  });
+
+  it('states the three rules that decide whether markup survives', () => {
+    expect(AUTHORING).toMatch(/\*\*`on\*` attributes fail the compile\*\* with `event-handler-attribute`/);
+    expect(AUTHORING).toMatch(/including `javascript:` and `data:`, is dropped/);
+    expect(AUTHORING).toMatch(/A relative path resolves against the document/);
+    expect(AUTHORING).toMatch(/\*\*A block element opening a line starts an HTML block\*\*/);
+  });
+
+  it('keeps raw tags out of markdown-body components', () => {
+    expect(AUTHORING).toContain(
+      'component <Evidence> with markdown body does not allow nested tags',
+    );
+    expect(AUTHORING).toMatch(/Put a recording at the top level/);
+  });
+
+  it('treats iframe as the element to avoid in evidence artifacts', () => {
+    expect(AUTHORING).toMatch(/`iframe` is allowlisted without a forced `sandbox` attribute/);
+    expect(AUTHORING).toMatch(/should not also grant those values a frame/);
+  });
+
+  it('fails the render check when an old pin escapes raw tags to text', () => {
+    expect(RENDER_CHECK).toMatch(/video\|audio\|source\|iframe\|details\|summary\|div\|figure/);
+    expect(RENDER_CHECK).toMatch(/Raw HTML rendered as literal text/);
+    expect(RENDER_CHECK).toMatch(/predates the raw-HTML allowlist\. Bump the pin/);
+  });
+
+  it('refuses to pass a blank page when the runtime never loaded', () => {
+    expect(RENDER_CHECK).toMatch(/const blank = body\.length < 40/);
+    expect(RENDER_CHECK).toMatch(/the runtime never loaded/);
+    expect(RENDER_CHECK).toMatch(/Check the pinned version exists/);
+  });
+
+  it('resolves a relative artifact path instead of crashing on it', () => {
+    expect(RENDER_CHECK).toMatch(/pathToFileURL\(resolve\(file\)\)\.href/);
+    expect(RENDER_CHECK).toMatch(/Treat this as not verified, not as a pass/);
+    expect(RENDER_CHECK).not.toMatch(/goto\('file:\/\/' \+ file/);
+  });
+});
+
+describe('linting gates the artifact before it is rendered', () => {
+  it('runs the linter at the pinned version', () => {
+    expect(SKILL).toContain('npx @wix/htmdx@4.6.0 lint "$ARTIFACT_PATH"');
+    expect(SKILL).toMatch(/Exit `1` means at least one error/);
+    expect(SKILL).toMatch(/`--strict` also fails on warnings/);
+  });
+
+  it('names the rules so a diagnostic maps to a fix', () => {
+    for (const rule of [
+      'unknown-prop',
+      'body-contract',
+      'missing-required-prop',
+      'markdown-body-nested-tags',
+      'event-handler-attribute',
+    ]) {
+      expect(SKILL).toContain(rule);
+    }
+    expect(SKILL).toMatch(/the linter does not\s+stop at the first one/);
+  });
+
+  it('does not let linting stand in for rendering', () => {
+    expect(SKILL).toMatch(/Linting is not rendering/);
+    expect(SKILL).toMatch(/cannot see a CDN that\s+never responds/);
+    expect(SKILL).toMatch(/`runtime-version-mismatch` warning/);
+    expect(SKILL).toMatch(/before `4\.6\.0` ship no linter at all/);
+  });
+});
+
 describe('verification ends at a rendered artifact', () => {
   it('renders the file rather than stopping at structure', () => {
     expect(SKILL).toMatch(

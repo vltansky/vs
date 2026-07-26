@@ -74,6 +74,9 @@
 3. **Observe:** {what goes wrong}
    ![Result](screenshots/issue-001-result.png)
 
+<!-- Only when the sequence is the evidence. Delete this line otherwise. -->
+**Recording:** [{what the clip proves}](clips/issue-001.webm)
+
 ---
 
 ## Fixes Applied (if applicable)
