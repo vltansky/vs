@@ -13,9 +13,9 @@
   "scripts": {
     "install-plugin": "bash install.sh",
     "install-plugin:windows": "powershell -NoProfile -ExecutionPolicy Bypass -File install.ps1",
-    "eval": "vitest run",
-    "eval:static": "vitest run static.eval.ts",
-    "eval:watch": "vitest",
+    "eval": "node scripts/eval-home.mjs run",
+    "eval:static": "node scripts/eval-home.mjs run static.eval.ts",
+    "eval:watch": "node scripts/eval-home.mjs",
     "eval:preview": "pathgrade preview browser",
     "typecheck": "tsc --noEmit"
   },

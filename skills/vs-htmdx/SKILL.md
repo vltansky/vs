@@ -62,7 +62,7 @@ the review question easier to answer.
 | Supporting proof | `Evidence` |
 | Blocker, warning, or general risk | `Callout` or ordinary Markdown |
 | Scope classification by the runtime's four fixed tiers | `RiskTable` |
-| Secondary detail | `Accordion` |
+| Secondary detail, or a question whose answer the reader should try first | `Accordion` |
 | Views the reader picks between, rather than reads in order | `Tabs` |
 
 Default to ordinary `###` sections. `Card`, `Tabs`, and `Accordion` are compound
@@ -214,4 +214,4 @@ Direct: emit **Next** only. Composed: return to caller.
 
 **Prev:** research, analysis, or supplied source material
 **Next:** done
-**Relevant:** none
+**Relevant:** `/vs-explain-diff`

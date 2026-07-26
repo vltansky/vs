@@ -18,6 +18,7 @@
     "./skills/vs-debug-mode",
     "./skills/vs-decide-for-me",
     "./skills/vs-deslop",
+    "./skills/vs-explain-diff",
     "./skills/vs-fix-pr",
     "./skills/vs-github-research",
     "./skills/vs-htmdx",

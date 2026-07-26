@@ -269,6 +269,36 @@ views, and tabbing them hides content behind clicks for no gain.
 </Accordion>
 ```
 
+## Reader self-check questions
+
+There is no quiz component. When an artifact should let the reader test their own
+understanding, use one `AccordionItem` per question: the question in
+`AccordionTrigger`, the answer and its reasoning in `AccordionContent`. Give each
+item a distinct `value`.
+
+```mdx
+<Accordion type="single" collapsible>
+  <AccordionItem value="q1">
+    <AccordionTrigger>Why does the retry keep the original deadline?</AccordionTrigger>
+    <AccordionContent>
+      Because the deadline belongs to the caller's request, not the attempt. A
+      per-attempt deadline would let three retries take three times as long as
+      the caller allowed.
+    </AccordionContent>
+  </AccordionItem>
+  <AccordionItem value="q2">
+    <AccordionTrigger>What happens on the first attempt after the deadline passes?</AccordionTrigger>
+    <AccordionContent>
+      It is not attempted. The check runs before the call, so an expired
+      deadline short-circuits to the timeout error.
+    </AccordionContent>
+  </AccordionItem>
+</Accordion>
+```
+
+This is reveal-on-click. Nothing records the reader's answer or scores it, so do
+not describe it as a graded quiz.
+
 ## Design restraint
 
 Prefer the default document hierarchy and theme. Tailwind classes are available,

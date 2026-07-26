@@ -67,3 +67,20 @@ Apache-2.0 license text is included at
 The `vs-roast-ui` `verdict` command adapts Yeachan Heo's `visual-verdict` skill.
 The copied MIT license notice is included at
 `skills/vs-roast-ui/LICENSE.oh-my-claudecode`.
+
+## explain-diff-html skill
+
+- Author: Geoffrey Litt
+- Used in: `skills/vs-explain-diff`, `skills/vs-htmdx/references/authoring.md`
+- Source: https://gist.github.com/geoffreylitt/a29df1b5f9865506e8952488eac3d524
+
+The `vs-explain-diff` skill is an original rewrite inspired by the source
+skill's approach to explaining a code change as a teaching artifact: a
+background layer deep enough for a newcomer and marked skippable, intuition
+carried by toy data and figures, a walkthrough grouped so the reader can follow
+it, and comprehension questions that let the reader confirm they understood. The
+reader self-check pattern documented in `vs-htmdx` exists to render those
+questions. The vs implementation adds its own boundary rules, evidence
+discipline, artifact destination, and delegation to `vs-htmdx`, and does not
+adopt the source skill's file-hygiene or HTML-authoring instructions. No source
+text is reproduced verbatim.
