@@ -20,6 +20,39 @@ guessing a capitalized tag.
 Every component accepts `class`, `id`, `aria-*`, and `data-*`. Other attributes
 must be declared in the manifest. Values are data, not expressions.
 
+## The report components take no props
+
+Most components carry no props at all in 4.5.1, including every report
+component: `Callout`, `ExecutiveSummary`, `MetricStrip`, `DataTable`, `Compare`,
+`Evidence`, `RiskTable`, `Timeline`, `Finding`, `Stat`, and the charts. Severity,
+tone, and variant live in the body text, not in an attribute.
+
+An attribute that reads plausibly by analogy with another design system is still
+a compile error — `<Callout type="warning">` fails with
+`unknown prop "type" for <Callout>`. Only the interactive components
+(`Tabs`, `Accordion`, `Dialog`, `Popover`, `Tooltip`, `Badge`, `Button`,
+`Separator`, `Progress`, table cells) declare props. Check the manifest entry
+before writing any attribute; an absent `props` key means none are accepted.
+
+## Body grammar is stricter than the manifest states
+
+The 4.5.1 manifest reports `body: "markdown"` for components whose runtime
+still enforces a specific row grammar, so the manifest under-specifies and the
+mismatch surfaces at render rather than compile. Use this table, not the
+manifest's `body` field:
+
+| Component | Body grammar |
+|---|---|
+| `MetricStrip`, `Timeline` | `- label: value` rows only |
+| `DataTable`, `DecisionMatrix` | a GFM table with a header separator row |
+| `Compare`, `Evidence`, `RiskTable`, `Finding` | `- **Label:** text` list items |
+| `ChartBar`, `ChartLine`, `ChartPie` | `- label: non-negative number` |
+| `ExecutiveSummary`, `Callout`, `SourceQuote` | free Markdown |
+
+A Markdown table inside `MetricStrip` fails with `Invalid body for <MetricStrip>
+at body line 1: non-empty lines must be list items`. Tables belong in
+`DataTable`; everything else in this family wants a list.
+
 ## Angle brackets are parsed as tags
 
 Inside an `htmdx` body the runtime scans for nested components, and a code fence

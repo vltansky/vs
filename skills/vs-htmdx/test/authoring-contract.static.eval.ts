@@ -7,6 +7,10 @@ const AUTHORING = fs.readFileSync(
   path.resolve(__dirname, '..', 'references', 'authoring.md'),
   'utf8',
 );
+const RENDER_CHECK = fs.readFileSync(
+  path.resolve(__dirname, '..', 'assets', 'render-check.mjs'),
+  'utf8',
+);
 
 describe('compound components are authored as a complete set', () => {
   it('names the required props and children per parent', () => {
@@ -74,15 +78,59 @@ describe('composition is opt-in, not the default', () => {
   });
 });
 
+describe('props and body grammar are checked against the runtime, not by analogy', () => {
+  it('states that the report components accept no props', () => {
+    expect(AUTHORING).toContain('## The report components take no props');
+    expect(AUTHORING).toMatch(/`<Callout type="warning">` fails with\s+`unknown prop "type" for <Callout>`/);
+    expect(AUTHORING).toMatch(/an absent `props` key means none are accepted/);
+    expect(SKILL).toMatch(
+      /every attribute on it\*? ?against the\s+exact-version component manifest/,
+    );
+  });
+
+  it('overrides the manifest body field with the enforced grammar', () => {
+    expect(AUTHORING).toContain('## Body grammar is stricter than the manifest states');
+    expect(AUTHORING).toMatch(
+      /the manifest under-specifies and the\s+mismatch surfaces at render rather than compile/,
+    );
+    expect(AUTHORING).toMatch(/\| `MetricStrip`, `Timeline` \| `- label: value` rows only \|/);
+    expect(AUTHORING).toMatch(/\| `DataTable`, `DecisionMatrix` \| a GFM table/);
+    expect(AUTHORING).toMatch(/Invalid body for <MetricStrip>/);
+  });
+});
+
 describe('verification ends at a rendered artifact', () => {
-  it('requires opening the file rather than stopping at structure', () => {
+  it('renders the file rather than stopping at structure', () => {
     expect(SKILL).toMatch(
-      /Open the saved file in a browser and confirm it compiled/,
+      /Render the saved file and confirm it compiled/,
     );
     expect(SKILL).toMatch(
-      /a structural check alone does not establish that\s+it renders/,
+      /a structural check alone does not establish that it\s+renders/,
     );
-    expect(SKILL).toMatch(/No server is needed — it is a `file:\/\/` path/);
+    expect(SKILL).toMatch(/node assets\/render-check\.mjs "\$ARTIFACT_PATH"/);
+    expect(SKILL).toMatch(
+      /`Failed step: compile` or `Failed step: render`[\s\S]{0,120}names the exact\s+component and reason/,
+    );
+    expect(SKILL).toMatch(
+      /each pass reveals one\s+error, so expect to iterate/,
+    );
+    expect(SKILL).toMatch(/open the\s+`file:\/\/` path — no server is needed/);
+  });
+
+  it('ships the render check as a runnable asset', () => {
+    expect(RENDER_CHECK).toMatch(/Failed step: \\w\+/);
+    expect(RENDER_CHECK).toMatch(/process\.exit\(failed \? 1 : 0\)/);
+    expect(RENDER_CHECK).toMatch(/ERR_FILE_NOT_FOUND/);
+  });
+
+  it('distinguishes "could not check" from "passed"', () => {
+    expect(RENDER_CHECK).toMatch(
+      /0 all rendered · 1 an artifact failed · 2 could not check/,
+    );
+    expect(RENDER_CHECK).toMatch(/Do not report rendered proof without one of these/);
+    expect(SKILL).toMatch(
+      /Exit `2` means the check could not run, not that the artifact is fine/,
+    );
   });
 
   it('keeps the numbered verify list sequential', () => {

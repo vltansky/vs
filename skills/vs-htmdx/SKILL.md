@@ -125,7 +125,10 @@ Before presenting the artifact:
 2. Confirm one doctype, one pinned runtime URL, and one editable source block.
 3. Confirm there are no placeholders, imports, exports, brace expressions,
    event handlers, or literal `</script>` sequences inside the source.
-4. Check every capitalized tag against the exact-version component manifest.
+4. Check every capitalized tag *and every attribute on it* against the
+   exact-version component manifest. The report components accept no props; an
+   attribute that reads plausibly by analogy with another design system is a
+   compile error.
 5. Check every compound component is complete: `Tabs` has `defaultValue` and one
    `TabsContent` per `TabsTrigger` with each `value` appearing exactly twice,
    `Accordion` has `type` and `AccordionItem` > `AccordionTrigger` +
@@ -134,17 +137,30 @@ Before presenting the artifact:
 6. Check no `<angle bracket>` placeholder sits inside an `htmdx` body. Code
    fences do not protect their contents there. Placeholder-heavy blocks belong
    at the top level, outside `Card`, `Tabs`, and `Accordion`.
-7. Check structured bodies against the manifest grammar: tables have aligned
-   columns, charts contain non-negative numbers, and label/value lists use the
-   declared delimiter. `RiskTable` is not a generic risk list: every row starts
-   with exactly `Must-have`, `Differentiator`, `Not now`, or `Won't do`.
+7. Check structured bodies against the grammar table in
+   [references/authoring.md](references/authoring.md), which is stricter than
+   the manifest's `body` field. A Markdown table only belongs in `DataTable` or
+   `DecisionMatrix`; `MetricStrip`, `Timeline`, `Compare`, `Evidence`, and
+   `RiskTable` take list rows. `RiskTable` is not a generic risk list: every row
+   starts with exactly `Must-have`, `Differentiator`, `Not now`, or `Won't do`.
 8. Confirm the artifact answers the review question without inventing facts.
-9. Open the saved file in a browser and confirm it compiled. An artifact is a
-   thing the user looks at, so a structural check alone does not establish that
-   it renders. No server is needed — it is a `file://` path.
+9. Render the saved file and confirm it compiled. An artifact is a thing the
+   user looks at, so a structural check alone does not establish that it
+   renders, and the grammar errors above surface only at render time.
 
-When browser inspection is unavailable, report structural validation as such;
-do not claim rendered proof.
+```bash
+node assets/render-check.mjs "$ARTIFACT_PATH"
+```
+
+The runtime replaces the document with its own diagnostic page on failure, so
+`Failed step: compile` or `Failed step: render` in the output names the exact
+component and reason. Fix and re-run until it passes; each pass reveals one
+error, so expect to iterate rather than assume the first fix was the last.
+
+Exit `2` means the check could not run, not that the artifact is fine. Fall back
+to the host's browser tooling, or open the `file://` path — no server is needed.
+When nothing can render it, report structural validation as such and do not
+claim rendered proof.
 
 ## Handoff
 
