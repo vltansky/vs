@@ -35,6 +35,32 @@ one-off behavior:
 - `vs-brief` produces the human-readable orientation layer and renders captured
   before-and-after evidence for the handoff.
 
+## Communication
+
+Build-it is autonomous, not silent. Follow
+[`../vs-internal-shared/references/communication.md`](../vs-internal-shared/references/communication.md).
+
+Emit one line at each phase boundary so the user can see the run moving:
+
+```text
+[3/7] Execute — 4 of 6 steps committed · guardrails green
+```
+
+Emit at phase start and phase end only — not per file edit or per tool call.
+Keep the detail out of chat; it belongs in the run report.
+
+Non-trivial runs write one portable HTMDX report to
+`~/.vs/$PROJECT_ID/build-it/YYYY-MM-DD-<slug>.html` via
+[`../vs-htmdx/SKILL.md`](../vs-htmdx/SKILL.md), and the handoff links it. The
+report carries `ExecutiveSummary` (what now works), `Compare` for each changed
+surface, QA results with screenshots, a `DataTable` of commits, the decision
+log, and a `RiskTable` of claims the run could not prove. Chat gets the summary
+and the path, not the wall of markdown.
+
+Skip the report only for trivial runs — a single documentation or comment
+change with no observable behavior, no captured evidence, and no durable
+decision.
+
 ## Codex Goal Integration
 
 When the user explicitly requests a Codex goal and goal tools are available,
@@ -157,9 +183,14 @@ paths with the comparison metadata.
   or changes without observable output, record `No meaningful comparison` and
   do not manufacture a before-and-after section.
 
-Use existing render/test infrastructure. If the baseline cannot be captured
-without a forbidden dev server, missing credentials, or unavailable fixture,
-record the exact blocker; for UI work, do not downgrade to a text comparison.
+Use existing render/test infrastructure. When no surface is already reachable,
+follow [`../vs-internal-shared/references/preview.md`](../vs-internal-shared/references/preview.md)
+and start one — an agent-owned preview is an available capture mechanism, not a
+forbidden dev server. Record its command, PID, and port; Phase 6 stops it.
+
+If the baseline still cannot be captured — missing credentials, unavailable
+fixture, or a preview that fails to start — record the exact blocker; for UI
+work, do not downgrade to a text comparison.
 
 ### Step 1d: Order delivery by risk and user dependency
 
@@ -489,10 +520,17 @@ use the same capture mechanism for the after image even when `vs-qa` is
 unavailable; this completes the comparison but is not a substitute for browser
 QA. Do not attempt exploratory browser testing without the QA skill.
 
-Use an existing reachable preview and available authentication context. If QA
-would require starting a forbidden dev server, obtaining new credentials, or
-asking for a routine URL that repository configuration cannot resolve, mark QA
-as not run with the exact missing prerequisite and continue to handoff.
+Resolve a surface through
+[`../vs-internal-shared/references/preview.md`](../vs-internal-shared/references/preview.md):
+prefer a deployed preview, then an already-running local surface, then an
+agent-owned ephemeral preview started from the project's own command. Starting
+one is expected, not a last resort.
+
+"No browser path" is not an acceptable QA outcome by itself. Mark QA as not run
+only with the exact missing prerequisite — a credential, an unavailable fixture,
+or a preview that failed to start — and carry that blocker into the Phase 7
+verdict. Never ask the user to eyeball, click through, or screenshot the result
+in order to establish that the change works; that is this phase's job.
 
 ### Auto-decision overrides for QA
 
@@ -508,6 +546,12 @@ as not run with the exact missing prerequisite and continue to handoff.
 ---
 
 ## Phase 6: Cleanup
+
+Stop every process this run started. For each preview recorded in Phase 0 or
+Phase 5, run its stop command and verify the port is free, per
+[`../vs-internal-shared/references/preview.md`](../vs-internal-shared/references/preview.md).
+Build-it leaves nothing running. If a process cannot be stopped, report the PID
+and the `kill` command in the handoff.
 
 If no temporary instrumentation or artifacts were added in Phase 3, skip to
 Phase 7. Otherwise remove everything marked `build-it-debug`.
@@ -541,6 +585,12 @@ Complete` only for `PASS` or `SKIPPED_TRIVIAL`. For `WARN`, `FAIL`, or
 not proven, and do not describe the outcome as fixed or working. When the work
 fixes a reported bug, completion additionally requires the original
 reproduction to pass — local guardrails alone do not earn "fixed".
+
+One further verdict applies independently of verification status: when the
+Goal Contract's Evidence plan named a surface and no evidence from that surface
+was captured, head the handoff `## Build It — UNPROVEN`, name the surface, name
+the exact blocker, and do not describe the outcome as working. Implemented and
+proven are different claims; UNPROVEN says the first without the second.
 
 For text output captured in Phase 0, rerun the same command and representative
 input after final validation and retain the exact after output. For UI output,

@@ -21,7 +21,20 @@ Present the result to the user:
 | Roast | [N]/100, [X] issues fixed |
 | Execute | [N] steps, guardrails pass/fail |
 | Review | [N] found, [M] fixed |
-| QA | skipped / [N]/100 health |
+| QA | [N]/100 health / blocked by `<exact prerequisite>` |
+
+### Evidence
+| Claim | Surface | Proof | Status |
+|---|---|---|---|
+| ... | route / command | screenshot, output, or test | proven / UNPROVEN |
+
+Report: `~/.vs/$PROJECT_ID/build-it/YYYY-MM-DD-<slug>.html`
+Previews started: `<command>` PID `<pid>` port `<port>` — stopped in Phase 6
+
+Every claim the handoff makes appears here with the thing that proves it. A
+claim with no proof is `UNPROVEN` and names its blocker. Omit the report line
+only for a trivial run that owed no artifact; omit the previews line only when
+the run started none.
 
 ### Codex Goal
 [created/reused/completed/unavailable/not created pending shape-it/left active because ...]
