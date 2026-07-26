@@ -45,7 +45,7 @@ Use this shell and pin the runtime to an exact version:
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>[[TITLE]]</title>
-    <script src="https://cdn.jsdelivr.net/npm/@wix/htmdx@4.6.0/dist/browser.js" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/@wix/htmdx@4.9.0/dist/browser.js" defer></script>
   </head>
   <body>
     <!-- prettier-ignore -->

@@ -104,7 +104,7 @@ describe('ordered lists are not a usable construct', () => {
     expect(AUTHORING).toContain('## Ordered lists do not render');
     expect(AUTHORING).toMatch(/collapse\s+into one run-on paragraph/);
     expect(AUTHORING).toContain('- **1.** Navigate to the checkout page');
-    expect(AUTHORING).toMatch(/`4\.5\.1` and `4\.6\.0` behave the same/);
+    expect(AUTHORING).toMatch(/`4\.5\.1` through `4\.9\.0` behave the same/);
   });
 
   it('keeps ordered lists out of the shipped HTMDX templates', () => {
@@ -176,7 +176,7 @@ describe('raw HTML is allowlisted rather than passed through', () => {
 
 describe('linting gates the artifact before it is rendered', () => {
   it('runs the linter at the pinned version', () => {
-    expect(SKILL).toContain('npx @wix/htmdx@4.6.0 lint "$ARTIFACT_PATH"');
+    expect(SKILL).toContain('npx @wix/htmdx@4.9.0 lint "$ARTIFACT_PATH"');
     expect(SKILL).toMatch(/Exit `1` means at least one error/);
     expect(SKILL).toMatch(/`--strict` also fails on warnings/);
   });

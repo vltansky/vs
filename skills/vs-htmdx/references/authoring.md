@@ -1,10 +1,10 @@
 # HTMDX authoring
 
-This reference is pinned to `@wix/htmdx@4.6.0`.
+This reference is pinned to `@wix/htmdx@4.9.0`.
 
 Before authoring, read the matching runtime manifest:
 
-`https://cdn.jsdelivr.net/npm/@wix/htmdx@4.6.0/dist/components.json`
+`https://cdn.jsdelivr.net/npm/@wix/htmdx@4.9.0/dist/components.json`
 
 The manifest owns component names, purposes, props, body modes, and examples.
 If it is unavailable, stay within the curated components below rather than
@@ -22,7 +22,7 @@ must be declared in the manifest. Values are data, not expressions.
 
 ## The report components take no props
 
-Most components carry no props at all in 4.6.0, including every report
+Most components carry no props at all in 4.9.0, including every report
 component: `Callout`, `ExecutiveSummary`, `MetricStrip`, `DataTable`, `Compare`,
 `Evidence`, `RiskTable`, `Timeline`, `Finding`, `Stat`, and the charts. Severity,
 tone, and variant live in the body text, not in an attribute.
@@ -36,7 +36,7 @@ before writing any attribute; an absent `props` key means none are accepted.
 
 ## Body grammar is stricter than the manifest states
 
-The 4.6.0 manifest reports `body: "markdown"` for components whose runtime
+The 4.9.0 manifest reports `body: "markdown"` for components whose runtime
 still enforces a specific row grammar, so the manifest under-specifies and the
 mismatch surfaces at render rather than compile. Use this table, not the
 manifest's `body` field:
@@ -82,7 +82,7 @@ body.
 
 `1. First` / `2. Second` produces no `<ol>` and no list items. The lines collapse
 into one run-on paragraph reading `1. First 2. Second`. This is not version
-drift — `4.5.1` and `4.6.0` behave the same — and nothing reports it, so a
+drift — `4.5.1` through `4.9.0` behave the same — and nothing reports it, so a
 numbered sequence looks fine in source and arrives as prose.
 
 Bulleted lists render normally. Carry the number in the text:
@@ -213,7 +213,7 @@ generic risks, blockers, decisions, confidence, or severity levels. Use
 `Callout`, `Evidence`, a Markdown list, or a `DataTable` for those shapes.
 
 `ChartLine` and `ChartPie` use the same `- label: non-negative number` grammar
-as `ChartBar` in runtime 4.6.0. The current renderer uses the shared chart
+as `ChartBar` in runtime 4.9.0. The current renderer uses the shared chart
 visualization for all three, so choose by semantic intent rather than assuming
 their visual marks differ.
 
@@ -320,6 +320,6 @@ layout: default
 ---
 ```
 
-Built-in themes in 4.6.0 are `blue`, `purple`, `green`, `teal`, `amber`,
+Built-in themes in 4.9.0 are `blue`, `purple`, `green`, `teal`, `amber`,
 `magenta`, `fuchsia`, `rose`, `lime`, and `coral`. Unknown themes fall back to
 `blue`.
