@@ -53,6 +53,72 @@ describe('vs-qa screenshot evidence', () => {
     expect(result.stdout).not.toContain('iVBOR');
   });
 
+  it('keeps recordings optional and tied to sequence evidence', () => {
+    expect(QA).toContain('### Recording evidence contract');
+    expect(QA).toMatch(/Screenshots prove state; a recording proves sequence/);
+    expect(QA).toMatch(/a run with none is complete/);
+    expect(QA).toMatch(/recording\s+unavailable on this control surface/);
+    expect(QA).toMatch(/Do not describe a sequence in prose and present it as proof/);
+    expect(QA).toContain('mkdir -p "$RUN_DIR/screenshots" "$RUN_DIR/evidence" "$RUN_DIR/clips"');
+  });
+
+  it('defaults recordings to controls without autoplay and refuses secret flows', () => {
+    expect(QA).toMatch(/`controls` and `muted` without `autoplay` is the default/);
+    expect(QA).toMatch(/redact in the DOM before capture, never after/);
+    expect(QA).toMatch(/do not record it/);
+    expect(QA).toMatch(/cannot live inside\s+`Evidence` or `Compare`/);
+  });
+
+  it('offers a recording slot in both report formats', () => {
+    expect(HTML_TEMPLATE).toContain('<video src="clips/issue-001.webm"');
+    expect(HTML_TEMPLATE).toContain('controls muted playsinline');
+    expect(HTML_TEMPLATE).not.toMatch(/<video[^>]*\bautoplay\b/);
+    expect(MARKDOWN_TEMPLATE).toContain('](clips/issue-001.webm)');
+    expect(MARKDOWN_TEMPLATE).not.toContain('<video');
+  });
+
+  it('holds clips to the same one-to-one invariant as screenshots', () => {
+    const fixtureDir = fs.mkdtempSync(path.join(os.tmpdir(), 'vs-qa-clips-'));
+    fs.mkdirSync(path.join(fixtureDir, 'screenshots'));
+    fs.mkdirSync(path.join(fixtureDir, 'clips'));
+    fs.writeFileSync(
+      path.join(fixtureDir, 'screenshots', 'initial.png'),
+      Buffer.from(
+        'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=',
+        'base64',
+      ),
+    );
+    // EBML magic — enough to prove the file is a recording, not a renamed stub.
+    fs.writeFileSync(
+      path.join(fixtureDir, 'clips', 'issue-001.webm'),
+      Buffer.from([0x1a, 0x45, 0xdf, 0xa3, 0x00]),
+    );
+    const reportPath = path.join(fixtureDir, 'report.html');
+    const run = () =>
+      spawnSync(process.execPath, [VALIDATOR, reportPath], { encoding: 'utf8' });
+
+    fs.writeFileSync(reportPath, '![Initial state](screenshots/initial.png)\n');
+    const orphan = run();
+    expect(orphan.status).toBe(1);
+    expect(orphan.stdout).toContain('"orphaned":["clips/issue-001.webm"]');
+
+    fs.writeFileSync(
+      reportPath,
+      '![Initial state](screenshots/initial.png)\n\n<video src="clips/issue-001.webm" controls muted></video>\n',
+    );
+    const referenced = run();
+    expect(referenced.status).toBe(0);
+    expect(referenced.stdout).toContain('"clips":{"referenced":1');
+
+    fs.writeFileSync(
+      reportPath,
+      '![Initial state](screenshots/initial.png)\n\n<video src="clips/gone.webm" controls></video>\n',
+    );
+    const dangling = run();
+    expect(dangling.status).toBe(1);
+    expect(dangling.stdout).toContain('"missing":["clips/gone.webm"]');
+  });
+
   it('rejects retained screenshots that the report does not reference', () => {
     const fixtureDir = fs.mkdtempSync(path.join(os.tmpdir(), 'vs-qa-orphan-'));
     const screenshotsDir = path.join(fixtureDir, 'screenshots');

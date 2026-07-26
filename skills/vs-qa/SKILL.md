@@ -78,7 +78,7 @@ RUN_SLUG="target-domain-or-app-name"
 RUN_ID="$RUN_SLUG-$(date +%Y-%m-%d-%H%M%S)"
 RUN_DIR="$REPORT_DIR/$RUN_ID"
 EVIDENCE_TOOL="<resolved-vs-internal-shared-skill-directory>/scripts/evidence-manifest.mjs"
-mkdir -p "$RUN_DIR/screenshots" "$RUN_DIR/evidence"
+mkdir -p "$RUN_DIR/screenshots" "$RUN_DIR/evidence" "$RUN_DIR/clips"
 ```
 
 QuickJS examples use the harness global `saveScreenshot`. Replace every
@@ -130,6 +130,52 @@ secret and redact it afterward. Store exploratory or discarded captures outside
 the final `screenshots/` directory. The final directory has a one-to-one
 invariant: every retained screenshot is referenced by the report, and every
 report screenshot reference resolves to a valid retained PNG.
+
+### Recording evidence contract
+
+Screenshots prove state; a recording proves sequence. Record only when the
+sequence is the evidence — a hover, a focus order, an animation, a multi-step
+flow, or a bug that only appears between two stable frames. A static rendering
+issue is fully proven by a screenshot, and a recording of it is noise. Nothing
+in this skill requires a recording, and a run with none is complete.
+
+Recording depends on the control surface creating the browser context, because
+Playwright's `recordVideo` is a context-construction option rather than a page
+call. When the surface exposes only page-level operations, record `recording
+unavailable on this control surface` in the run metadata and continue with
+screenshots. Do not describe a sequence in prose and present it as proof.
+
+Write clips to `$RUN_DIR/clips/` as `.webm`, named for what they prove:
+`issue-001.webm`. Keep bytes tool-side exactly as with screenshots — return the
+path, byte count, and duration, never the media itself. Reference each clip from
+the report:
+
+```html
+<video src="clips/issue-001.webm" poster="screenshots/issue-001-before.png"
+       controls muted playsinline width="640"></video>
+```
+
+`controls` and `muted` without `autoplay` is the default. A report is read, not
+watched; several clips playing on load fight each other and the reader. Give
+each clip a `poster` frame so the report still communicates before anything is
+played, and collapse a group of them behind `<details>`.
+
+A `markdown`-body component rejects nested tags, so a clip cannot live inside
+`Evidence` or `Compare`. Place it at the top level under the issue heading, and
+use a Markdown link when only a body row is available.
+
+The Markdown report format has no video element. Reference the clip as a link
+there — `[Recording](clips/issue-001.webm)` — so both formats resolve the file.
+
+Redaction is harder for a recording than a frame and the rule does not soften:
+redact in the DOM before capture, never after. A recording passes through
+intermediate states a screenshot never captures, so a field that is masked when
+you photograph it may be plain while it is typed. When a flow touches
+credentials or PII at any point, do not record it.
+
+`clips/` carries the same one-to-one invariant as `screenshots/`: every retained
+clip is referenced by the report, and every clip reference resolves to a valid
+retained `.webm`.
 
 ### Structured evidence contract
 

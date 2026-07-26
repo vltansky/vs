@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>QA Report: [[APP_NAME]]</title>
-    <script src="https://cdn.jsdelivr.net/npm/@wix/htmdx@4.5.1/dist/browser.js" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/@wix/htmdx@5.0.0/dist/browser.js" defer></script>
   </head>
   <body>
     <!-- prettier-ignore -->
@@ -71,6 +71,15 @@ Health score: **[[SCORE]]/100**. [[ONE_SENTENCE_CONCLUSION]]
    ![Step 1](screenshots/issue-001-step-1.png)
 2. [[ACTION]].
    ![Result](screenshots/issue-001-result.png)
+
+<!-- Only when the sequence is the evidence. Delete this block otherwise. -->
+<details>
+<summary>Recording — [[WHAT_THE_CLIP_PROVES]]</summary>
+
+<video src="clips/issue-001.webm" poster="screenshots/issue-001-step-1.png"
+       controls muted playsinline width="640"></video>
+
+</details>
 
 ## Fixes and verification
 
