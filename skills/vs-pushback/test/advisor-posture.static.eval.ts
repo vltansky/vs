@@ -87,6 +87,12 @@ describe('pushback: anti-noise and anti-sycophancy', () => {
     expect(SKILL).toMatch(/base rates beat plot twists/i);
   });
 
+  it('opens with an assessment and findings, never with questions', () => {
+    expect(SKILL).toMatch(/Stress-Test Assessment/);
+    expect(SKILL).toMatch(/open with the assessment, never with questions/i);
+    expect(SKILL).toMatch(/as empty as a findings dump with no position/i);
+  });
+
   it('steelmans the plan before attacking it', () => {
     expect(SKILL).toMatch(/### 2\. Steelman/);
     expect(SKILL).toMatch(/not flattery/i);

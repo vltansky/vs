@@ -181,7 +181,32 @@ turns out to be stronger than every objection you have, that is the finding.
 
 ### 3. Take a position
 
-Lead with what you found. For each finding:
+Lead with what you found. The first interactive response opens with a
+`Stress-Test Assessment` and the findings behind it, under about 300 words:
+
+```text
+Stress-Test Assessment
+- Readiness: 58/100
+- Weakest: premise, assumptions
+- What holds up: <the steelman in one line>
+
+[High, 75] Premise
+Concern: <the specific failure mode>
+Evidence: <file, number, measurement, or prior art>
+Recommendation: <what I would do instead>
+
+[Medium, 100] Feasibility
+...
+
+[FYI, 50] Maintainability
+...
+```
+
+Open with the assessment, never with questions. An assessment with no findings
+under it is as empty as a findings dump with no position — say what you found,
+what it means, and what you would do.
+
+For each finding:
 
 - the concern in one sentence, with the specific failure mode
 - the evidence: file, number, measurement, or prior art
