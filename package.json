@@ -12,6 +12,7 @@
   "homepage": "https://github.com/vltansky/vs",
   "scripts": {
     "install-plugin": "bash install.sh",
+    "install-plugin:windows": "powershell -NoProfile -ExecutionPolicy Bypass -File install.ps1",
     "eval": "vitest run",
     "eval:static": "vitest run static.eval.ts",
     "eval:watch": "vitest",

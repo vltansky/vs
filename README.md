@@ -24,6 +24,12 @@ Run the installer. It installs vs into every supported coding agent it finds:
 curl -fsSL https://raw.githubusercontent.com/vltansky/vs/main/install.sh | bash
 ```
 
+On Windows, run the PowerShell installer instead:
+
+```powershell
+irm https://raw.githubusercontent.com/vltansky/vs/main/install.ps1 | iex
+```
+
 Restart your agent session after installation.
 
 ### 2. Shape the change
@@ -165,7 +171,14 @@ This uses your existing `gh` authentication and also works for private clones:
 gh api repos/vltansky/vs/contents/install.sh -H "Accept: application/vnd.github.raw" | bash
 ```
 
-From a clone, run `./install.sh` or `npm run install-plugin`.
+On Windows:
+
+```powershell
+gh api repos/vltansky/vs/contents/install.ps1 -H "Accept: application/vnd.github.raw" | iex
+```
+
+From a clone, run `./install.sh` or `npm run install-plugin` (Windows:
+`./install.ps1` or `npm run install-plugin:windows`).
 
 ### Claude Code
 
