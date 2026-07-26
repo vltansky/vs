@@ -145,6 +145,34 @@ describe('raw HTML is allowlisted rather than passed through', () => {
   });
 });
 
+describe('linting gates the artifact before it is rendered', () => {
+  it('runs the linter at the pinned version', () => {
+    expect(SKILL).toContain('npx @wix/htmdx@4.6.0 lint "$ARTIFACT_PATH"');
+    expect(SKILL).toMatch(/Exit `1` means at least one error/);
+    expect(SKILL).toMatch(/`--strict` also fails on warnings/);
+  });
+
+  it('names the rules so a diagnostic maps to a fix', () => {
+    for (const rule of [
+      'unknown-prop',
+      'body-contract',
+      'missing-required-prop',
+      'markdown-body-nested-tags',
+      'event-handler-attribute',
+    ]) {
+      expect(SKILL).toContain(rule);
+    }
+    expect(SKILL).toMatch(/the linter does not\s+stop at the first one/);
+  });
+
+  it('does not let linting stand in for rendering', () => {
+    expect(SKILL).toMatch(/Linting is not rendering/);
+    expect(SKILL).toMatch(/cannot see a CDN that\s+never responds/);
+    expect(SKILL).toMatch(/`runtime-version-mismatch` warning/);
+    expect(SKILL).toMatch(/before `4\.6\.0` ship no linter at all/);
+  });
+});
+
 describe('verification ends at a rendered artifact', () => {
   it('renders the file rather than stopping at structure', () => {
     expect(SKILL).toMatch(

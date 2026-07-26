@@ -14,6 +14,10 @@ const HTML_TEMPLATE = fs.readFileSync(
   path.join(DIR, 'references', 'qa-report-template.html'),
   'utf8',
 );
+const BROWSER_API = fs.readFileSync(
+  path.join(DIR, 'references', 'browser-api.md'),
+  'utf8',
+);
 const VALIDATOR = path.join(DIR, 'scripts', 'validate-screenshot-evidence.mjs');
 
 describe('vs-qa screenshot evidence', () => {
@@ -60,6 +64,22 @@ describe('vs-qa screenshot evidence', () => {
     expect(QA).toMatch(/recording\s+unavailable on this control surface/);
     expect(QA).toMatch(/Do not describe a sequence in prose and present it as proof/);
     expect(QA).toContain('mkdir -p "$RUN_DIR/screenshots" "$RUN_DIR/evidence" "$RUN_DIR/clips"');
+  });
+
+  it('gives a runnable capture sequence rather than declaring recording blocked', () => {
+    expect(QA).toContain('agent-browser record start "$RUN_DIR/clips/issue-001.webm" "$URL"');
+    expect(QA).toContain('agent-browser record stop');
+    expect(BROWSER_API).toContain('## Record a sequence (subcommand CLI)');
+    expect(BROWSER_API).toContain('`record restart <path> [url]`');
+    // The old text claimed no control surface could record at all.
+    expect(QA).not.toMatch(/Recording depends on the control surface creating the browser\s+context/);
+  });
+
+  it('treats an empty capture as no evidence and records over http', () => {
+    expect(QA).toMatch(/`frames: 0` or `No frames captured` as\s+no evidence/);
+    expect(QA).toMatch(/Record over `http:\/\/`, not `file:\/\/`/);
+    expect(BROWSER_API).toMatch(/captured no frames in testing and\s+left `record stop` hanging/);
+    expect(QA).toMatch(/carries cookies and\s+localStorage across/);
   });
 
   it('defaults recordings to controls without autoplay and refuses secret flows', () => {

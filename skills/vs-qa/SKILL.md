@@ -139,16 +139,35 @@ flow, or a bug that only appears between two stable frames. A static rendering
 issue is fully proven by a screenshot, and a recording of it is noise. Nothing
 in this skill requires a recording, and a run with none is complete.
 
-Recording depends on the control surface creating the browser context, because
-Playwright's `recordVideo` is a context-construction option rather than a page
-call. When the surface exposes only page-level operations, record `recording
-unavailable on this control surface` in the run metadata and continue with
-screenshots. Do not describe a sequence in prose and present it as proof.
-
 Write clips to `$RUN_DIR/clips/` as `.webm`, named for what they prove:
 `issue-001.webm`. Keep bytes tool-side exactly as with screenshots — return the
-path, byte count, and duration, never the media itself. Reference each clip from
-the report:
+path, byte count, and duration, never the media itself.
+
+`agent-browser` records directly. Start the recording, drive the sequence, stop:
+
+```bash
+agent-browser record start "$RUN_DIR/clips/issue-001.webm" "$URL"
+agent-browser click '#reveal'
+agent-browser get text '#panel'
+agent-browser record stop
+```
+
+`record start` opens a fresh browser context but carries cookies and
+localStorage across, so an authenticated run stays authenticated. `record stop`
+returns the captured frame count — treat `frames: 0` or `No frames captured` as
+no evidence and do not reference a clip the report cannot play.
+
+Record over `http://`, not `file://`. A `file://` target captured no frames in
+testing and left `record stop` hanging; serve a local directory and point the
+recorder at the served URL instead.
+
+On a Playwright surface, pass `recordVideo` when constructing the context, which
+means deciding to record before the first navigation rather than at the moment
+the bug appears. When the selected surface exposes neither path, record
+`recording unavailable on this control surface` in the run metadata and continue
+with screenshots. Do not describe a sequence in prose and present it as proof.
+
+Reference each clip from the report:
 
 ```html
 <video src="clips/issue-001.webm" poster="screenshots/issue-001-before.png"

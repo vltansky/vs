@@ -54,14 +54,17 @@ that never loaded.
 - Positive: interaction defects become provable instead of narrated
 - Positive: no `ffmpeg` dependency and no GIF size ceiling; clips can be long
   enough to contain the moment they exist to show
-- Negative: recording requires the control surface to create the browser
-  context, since `recordVideo` is a context-construction option. Surfaces
-  exposing only page-level operations record the blocker and continue with
-  screenshots
+- Negative: capture support is uneven across control surfaces. The
+  `agent-browser` subcommand CLI records natively with `record start`/`record
+  stop`; Playwright requires `recordVideo` at context construction, so the
+  decision to record precedes the first navigation rather than following the
+  bug; the QuickJS variant exposes no equivalent. A surface with no path
+  records the blocker and continues with screenshots
+- Negative: recording only works against `http://`. A `file://` target captured
+  no frames and hung the stop call, so recording a local artifact needs a server
+  where screenshotting it did not
 - Negative: redaction is materially harder for a moving capture, and the
   relaxed size budget invites longer recordings that widen the exposure
-- Follow-up: the QuickJS harness needs a context-creation path before any run
-  can actually record
 
 ## Alternatives considered
 

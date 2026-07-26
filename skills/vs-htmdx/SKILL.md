@@ -144,9 +144,32 @@ Before presenting the artifact:
    `RiskTable` take list rows. `RiskTable` is not a generic risk list: every row
    starts with exactly `Must-have`, `Differentiator`, `Not now`, or `Won't do`.
 8. Confirm the artifact answers the review question without inventing facts.
-9. Render the saved file and confirm it compiled. An artifact is a thing the
-   user looks at, so a structural check alone does not establish that it
-   renders, and the grammar errors above surface only at render time.
+9. Lint the saved file. The linter reports every diagnostic in one pass with
+   line and column, so it resolves checks 3 through 7 faster than reading for
+   them. Run it at the version the artifact pins:
+
+```bash
+npx @wix/htmdx@4.6.0 lint "$ARTIFACT_PATH"
+```
+
+Exit `1` means at least one error. Each diagnostic names its rule —
+`unknown-prop`, `body-contract`, `missing-required-prop`,
+`markdown-body-nested-tags`, `event-handler-attribute` — and the component it
+came from. Fix them all and re-run; unlike the renderer, the linter does not
+stop at the first one. `--format json` adds `offset` and `length` for scripted
+use, and `--strict` also fails on warnings.
+
+A `runtime-version-mismatch` warning means the linted version and the pinned
+version disagree, and the results describe a runtime the artifact does not load.
+Change the `npx` version to match the pin rather than ignoring it. Versions
+before `4.6.0` ship no linter at all, so an older pin skips to the render check.
+
+10. Render the saved file and confirm it compiled. An artifact is a thing the
+    user looks at, so a structural check alone does not establish that it
+    renders. Linting is not rendering either: it reads the source without
+    loading the runtime, so it cannot see a CDN that never responds, a pin whose
+    raw tags degrade to visible text, or a referenced screenshot that is not on
+    disk.
 
 ```bash
 node assets/render-check.mjs "$ARTIFACT_PATH"
