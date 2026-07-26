@@ -31,11 +31,13 @@ For a landscape report, produce a matrix-centered map of projects in the same sp
 
 The vs plugin includes `octocode` in its plugin `.mcp.json`. Use its typed MCP tools directly when available.
 
+If they are not active in this session, fall back to the octocode CLI (`npx -y octocode-cli@latest --tool <name> --queries '<json>' --json`) — same tool names, same query payloads — and note in the report that the plugin MCP server was not loaded. See the [shared octocode access ladder](../vs-internal-shared/references/octocode-access.md).
+
 Do not load or invoke Octocode's prompt, skill, or orchestration workflows (for example, `reviewPR`). This skill owns the research plan and execution loop; wrapping it in another workflow can add an approval gate or route the task into local code review.
 
 If host or repository policy requires a research subagent, delegate bounded probes to that subagent and have it call the typed tools directly. The policy changes who executes the probes, not who owns the plan; do not nest another research orchestration workflow.
 
-If octocode tools are not active in the current session, say that the plugin's octocode MCP server is not available and the host may need to reload/reinstall plugin MCP config. Stop rather than pretending web snippets or local files are equivalent evidence.
+If neither MCP nor the CLI can reach Octocode, say so. Stop rather than pretending web snippets or local files are equivalent evidence.
 
 ## Phase 1: Frame The Question
 

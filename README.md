@@ -198,7 +198,10 @@ skills folder.
 vs includes [octocode MCP](https://github.com/bgauryy/octocode-mcp) for
 evidence-backed code research. It supports `/vs-github-research`,
 `/vs-rfc-research`, `/vs-steal`, and prior-art passes in `/vs-shape-it` and
-`/vs-pushback`.
+`/vs-pushback`. If a host does not load plugin MCP config, those skills fall
+back to the [octocode CLI](https://octocode.ai/)
+(`npx -y octocode-cli@latest --tool <name> --queries '<json>' --json`), which
+exposes the same tools.
 
 Optional tools add capabilities without being required for the rest of vs:
 

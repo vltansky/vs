@@ -18,25 +18,34 @@ Before delegating, load and follow
 
 ## Phase 0: Pre-flight Check
 
-Before starting, verify octocode MCP is available by checking if `mcp__octocode__githubSearchRepositories` (or any `mcp__octocode__*` tool) is in your available tools. The vs plugin includes `octocode` in its plugin `.mcp.json`, so absence usually means the host did not load plugin MCP config for this session.
+Determine how this session reaches Octocode, following the
+[shared access ladder](../vs-internal-shared/references/octocode-access.md).
 
-**IF octocode tools are available:** proceed to Phase 1.
+Check whether `mcp__octocode__githubSearchRepositories` (or any `mcp__octocode__*` tool) is in your available tools. The vs plugin includes `octocode` in its plugin `.mcp.json`, so absence usually means the host did not load plugin MCP config for this session.
 
-**IF octocode tools are NOT available:** check whether the user explicitly constrained the task to a local codebase / fixture and asked you to use standard local tools instead of GitHub research.
+**IF octocode MCP tools are available:** proceed to Phase 1.
 
-Use this **local-evidence mode** only when the instruction is explicit (for example: "the fixture is local", "analyze the current repo", "use Read/Grep/Glob tools", or equivalent). In that case:
-- proceed with local repo analysis instead of stopping
+**IF octocode MCP tools are NOT available:** use the octocode CLI instead — same tool names, same query payloads:
+
+```bash
+npx -y octocode-cli@latest --tool githubSearchRepositories --queries '<json>' --json
+```
+
+Confirm it works once before planning (for example `npx -y octocode-cli@latest --tool githubSearchCode --help`). Then proceed to Phase 1 and route every research call through the CLI, and note in the RFC that Octocode ran through the CLI because the plugin MCP server was not loaded.
+
+**IF the user explicitly constrained the task to a local codebase / fixture:** use **local-evidence mode** — only when the instruction is explicit (for example: "the fixture is local", "analyze the current repo", "use Read/Grep/Glob tools", or equivalent). In that case:
+- proceed with local repo analysis instead of GitHub research
 - use local file evidence (`path:line`) rather than GitHub URLs
 - say that prior-art scope is limited to the local codebase unless other external evidence is available
 - do NOT invent or imply GitHub research you did not perform
 
-**IF octocode tools are NOT available and the task is not explicitly local-only:** stop and tell the user:
+**IF neither MCP nor the CLI can reach Octocode and the task is not explicitly local-only:** stop and tell the user:
 
 ```
-Octocode MCP is not active in this session. The vs plugin ships an octocode MCP config in `.mcp.json`; reload or reinstall the plugin MCP config, then start a fresh session and re-run this skill.
+Octocode is not reachable in this session — the plugin MCP server is not loaded and `npx octocode-cli` failed. Reload or reinstall the plugin MCP config (or fix npm registry/network access for the CLI), then re-run this skill.
 ```
 
-Do NOT proceed without octocode MCP unless the user explicitly requested local-evidence mode. The skill cannot claim GitHub-backed research without it.
+Do NOT claim GitHub-backed research without one of the two Octocode routes.
 
 ## Workflow
 
@@ -66,7 +75,7 @@ Proceed?
 
 ### Phase 2: Research Plan
 
-Break the RFC topic into 2-5 concrete research questions. Each question maps to octocode MCP tool calls.
+Break the RFC topic into 2-5 concrete research questions. Each question maps to octocode tool calls.
 
 Example research questions:
 - "How does [library X] implement [feature]?" -> `githubSearchCode` + `githubGetFileContent`
@@ -87,14 +96,16 @@ Proceed?
 
 ### Phase 3: Execute Research
 
-Use Octocode MCP tools through bounded Explore children. Group related research
+Use Octocode through bounded Explore children, via whichever route Phase 0
+resolved (MCP tools, or `octocode-cli --tool <name> --queries '<json>' --json`).
+Group related research
 questions by evidence domain and dispatch one Explore child per evidence domain,
 not one child per query or tool call. Separate children only when domains are
 genuinely independent, such as repository implementation, migration history,
 and ecosystem alternatives.
 
 **Rules:**
-- Use the Agent tool with `subagent_type="Explore"` for octocode MCP calls
+- Use the Agent tool with `subagent_type="Explore"` for octocode calls, and tell the child which route to use (MCP tools or the CLI)
 - Apply the shared standard budget unless the user asks for deep research
 - Reserve one child slot for Phase 5. Standard mode combines Phase 3 into one
   Explore batch; deep mode may use at most three research children plus the
