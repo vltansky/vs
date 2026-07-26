@@ -37,7 +37,7 @@ describe('vs-htmdx', () => {
   it('does not misroute generic blockers into the four-tier RiskTable grammar', () => {
     expect(SKILL).toMatch(/Blocker, warning, or general risk[\s\S]+`Callout`/i);
     expect(SKILL).toMatch(
-      /every row starts\s+with exactly `Must-have`, `Differentiator`, `Not now`, or `Won't do`/i,
+      /every row\s+starts\s+with exactly `Must-have`, `Differentiator`, `Not now`, or `Won't do`/i,
     );
     expect(AUTHORING).toMatch(/Do not use it for\s+generic risks, blockers/i);
   });
@@ -51,7 +51,7 @@ describe('vs-htmdx', () => {
 
   it('requires structural and rendered proof to remain separate', () => {
     expect(SKILL).toMatch(/structural validation as such/i);
-    expect(SKILL).toMatch(/do not claim rendered proof/i);
-    expect(SKILL).toMatch(/Do not start a dev server/i);
+    expect(SKILL).toMatch(/do not\s+claim rendered proof/i);
+    expect(SKILL).toMatch(/no server is needed/i);
   });
 });
