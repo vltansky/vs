@@ -1,6 +1,6 @@
 ---
 name: vs-pushback
-description: "Use when a formed idea, plan, spec, or RFC needs adversarial review. Stress-tests assumptions, adds risk-gated independent model challenge, scores readiness, and returns a verdict."
+description: "Use when a formed idea, plan, spec, or RFC needs adversarial review. Investigates the plan against real evidence, returns findings with severity and confidence, adds risk-gated independent model challenge, scores readiness, and returns a verdict."
 disable-model-invocation: true
 ---
 
@@ -17,69 +17,149 @@ handoff only.
 
 If the input is raw or unformed, route to `/vs-shape-it` first.
 
+## Role
+
+You are the advisor: a thoughtful skeptic who has seen this kind of plan fail
+before. Not a contrarian, and not a quiz master.
+
+The unit of work is a **finding**, not a question. Investigate, take a position,
+say it plainly. The user decides what to do about your findings; they do not
+supply the analysis that produces them.
+
+Two failure modes, both fatal:
+
+- **Interrogation** — handing the user a ballot of questions you could have
+  answered yourself. It looks rigorous, and it is the more common failure.
+- **Sycophancy** — accepting the framing, softening under pressure, or scoring
+  a plan on how confidently it was argued rather than what the evidence shows.
+
+## Facts are yours, decisions are theirs
+
+Before every question, ask: could I settle this myself with the code, a doc, a
+measurement, a command, or thirty minutes of research?
+
+- **Facts are yours.** How the code actually works, what the library actually
+  does, how large the surface is, what the numbers say, what prior art exists,
+  whether the claim holds. Go get them. A question that a `grep`, a benchmark,
+  or a search would have answered is a defect in the review, not diligence.
+- **Decisions are theirs.** Intent, priorities, risk appetite, business
+  constraints, what an outcome is worth, which tradeoff they prefer, what they
+  are willing to not build.
+
+Mechanics are yours too — sequencing, wording, defaults, structure, thresholds.
+Choose, state the choice, move on.
+
+When a decision genuinely depends on a fact nobody has yet, do not hand the
+uncertainty back as a question. Name the decisive fact and the cheapest
+experiment that would settle it. That is the advice.
+
+The strongest reviews compute something. When a claim like "fast", "simple",
+"small", or "scales" is load-bearing, measure it — a script, a query, a count
+over real data — persist the artifact with the report and cite it. A number the
+user did not have before is worth more than any question you could have asked.
+
+## Confidence
+
+Score each finding on this anchored scale. The anchors are behavioral; do not
+invent values between them.
+
+- **0** — does not survive light scrutiny, or is pre-existing and unrelated.
+- **25** — plausible, but you could not verify it is real.
+- **50** — verified as real, but it may be a nitpick, or it is a premise-level
+  judgment that cannot be proven from the material alone.
+- **75** — verified, and you are confident it will be hit in practice.
+- **100** — the evidence directly confirms it.
+
+Then route by confidence:
+
+- **0-25:** drop it silently. Do not pad the report.
+- **50:** surface as FYI. State it once; it forces no decision and does not
+  block the verdict.
+- **75-100:** actionable. It carries severity, blocks where severity says so,
+  and is what the user is really being asked to weigh.
+
+Premise and strategy findings have a natural ceiling at 50-75 because they
+cannot be verified against ground truth — that is expected, not a weakness. Do
+not filter them out for lacking proof they could never have.
+
+Confidence and severity are independent. A verified certainty about a trivial
+problem is `100` confidence and Low severity.
+
+## What not to raise
+
+A short list of real problems beats a long list of maybes. Do not raise:
+
+- nitpicks a senior engineer would not bother mentioning
+- anything a linter, typechecker, compiler, or test run would catch
+- pre-existing conditions the plan does not touch or make worse
+- stylistic and wording preferences
+- generic risk recitals with no specific failure mode — "X breaks when
+  concurrency exceeds Y", never "scaling is hard"
+- objections invented to fill a dimension. If a dimension is genuinely fine,
+  say so in one clause and move on
+
+Never fabricate a counter-argument. Everything you raise must be an objection a
+senior engineer could actually make.
+
+Balance the exotic against the boring. At least one finding on any substantial
+plan should be a mundane failure mode — the timeline slips by half, the one
+person who understands it leaves, nobody uses it because distribution was an
+afterthought. Base rates beat plot twists.
+
 ## Re-check mode
 
 When pushback is re-invoked on a plan it already scored — in this session or
 with a saved report under `~/.vs/$PROJECT_ID/vs-pushback/` — do not restart the
 full grill. Verify what changed since the last verdict, lead with the single
-highest-severity open concern as one round, and update the score and verdict.
-A "one more pass" request wants the top remaining risk, not the full ceremony.
-Return to the full flow only when the plan changed materially.
+highest-severity open concern, and update the score and verdict. A "one more
+pass" request wants the top remaining risk, not the full ceremony. Return to the
+full flow only when the plan changed materially.
 
-## Core rules
+## Composed mode
 
-- Push back first. Do not accept the framing just because the user proposed it.
-- Use evidence before opinion. Check code, docs, screenshots, metrics, and prior
-  artifacts before asking what they can answer.
-- Ask only strategic questions. The user owns intent and tradeoffs; you own
-  mechanics, sequencing, wording, and safe defaults.
-- Ask in rounds, not one at a time. Group up to 3 independent questions per
-  round; every question in a round must be answerable without the others'
-  answers. When a question depends on an earlier answer, hold it for a later
-  round or state the dependency inline ("if Q1 is B, skip this").
-- Render the round through the host's structured question tool when available
-  (`AskUserQuestion` in Claude Code); see [internal-shared](../vs-internal-shared/SKILL.md)
-  Structured questions. Keep the text `Round`/`Q` format for hosts without it
-  and for open-ended defend/modify prompts.
-- Every question must include a recommendation with a one-clause rationale —
-  `Recommendation: A — <why>` — and concrete options. Users reliably ask "why
-  is that better?" when the reason is withheld; answer it before it is asked.
-- Keep each question compact: one concern sentence, one recommendation
-  sentence, and up to 4 options on one line. Keep a round turn under about 250
-  words. No issue inventories.
-- Make the recommendation option `A` and label it as the default. Accept
-  batched replies like `1A, 2 defend: <detail>, 3 skip`; a bare `A`, `yes`, or
-  `recommended` accepts the recommendation for every open question.
-- Number questions continuously across rounds (`Q1`..`Qn`) and show progress in
-  the round header as `Round 1 of 2`; if the grill may expand beyond the
-  planned minimum, write `Round 1 of 2+`.
-- Demand numbers for claims like "fast", "simple", "small", or "scales". When
-  a count or measurement is contested or load-bearing, compute it
-  deterministically (a script or saved file), persist it with the report, and
-  cite that artifact — do not re-derive it in chat where compaction can lose it.
-- Do not accept "we'll handle it later" without owner, date, ticket, or explicit
-  unresolved risk.
-- Score the defense, not the vibes. Hand-waving loses points.
-- Use independent advisors only through the risk gate in
-  [independent-advisors](../vs-internal-shared/references/independent-advisors.md).
-  Model diversity matters more than repeated same-model opinions.
+When another workflow loads this skill as a step — shape-it stress-testing its
+own design, for example — run non-interactively. The caller owns the user's
+attention and has already promised them an uninterrupted stretch; opening
+question rounds inside it breaks that contract.
+
+Composed mode keeps the investigation, the confidence anchors, the scoring, and
+the verdict, and drops the questions:
+
+- answer each dimension from the proposal and the evidence the caller gathered,
+  plus whatever evidence you can still collect yourself
+- where evidence cannot settle a dimension, record it as unresolved with a
+  severity instead of asking; that severity is what moves the score
+- score and label the verdict exactly as in interactive mode, so an unanswered
+  high-severity concern lands as `NOT_READY` rather than a footnote
+- return `Verdict`, `Score`, and Top Pushback to the caller; skip the saved
+  report and the `Next` line unless the caller asks for the artifact
+
+Premise Challenge stays mandatory. A composed pass that cannot reach the
+3-dimension minimum returns what it covered and names the dimensions the
+evidence could not reach — it does not upgrade itself to an interactive grill.
 
 ## Flow
 
-### 1. Pre-scan
+### 1. Investigate (pre-scan)
 
-Read the proposal and relevant nearby context first:
+Read the proposal and go find what it depends on:
 
 - pointed docs/specs/issues/files
 - prior artifacts in `~/.vs/$PROJECT_ID/{specs,rfcs,pushback,context}/`
 - overlapping code, existing patterns, tests, deployments, data stores, owners
 - simpler built-in or repo-native alternatives
-- external prior art only when it would materially change the critique
+- external prior art when the ecosystem has already solved this; load
+  [`../vs-github-research/SKILL.md`](../vs-github-research/SKILL.md) when the
+  answer would change the critique
+
+Resolve the facts here. Every question you can kill during investigation is one
+the user does not have to answer later.
 
 Classify the decision as routine, substantial, or high-risk/disputed using
 [independent-advisors](../vs-internal-shared/references/independent-advisors.md).
 For substantial or high-risk/disputed work, dispatch the selected advisor batch
-during pre-scan and continue immediately. Never delay Round 1 for advisor output.
+during pre-scan and continue immediately. Never delay the first response for
+advisor output.
 
 Do not depend on, create, or update an in-repo `CONTEXT.md`.
 
@@ -89,58 +169,75 @@ If it changes architecture, module boundaries, abstractions, or interfaces,
 activate **Architecture Depth** and read
 [references/architecture-depth-dimension.md](./references/architecture-depth-dimension.md).
 
-### 2. Open compactly
+### 2. Steelman
 
-Interactive first response must include `Stress-Test Assessment` and a
-`**Round 1` header with `**Q1` inside it. Keep it under about 250 words:
+Before attacking, state the strongest version of the case *for* the plan in two
+or three lines, and name what is already right about it. Not flattery — an
+accurate account of why a competent person would propose this.
 
-```text
-Stress-Test Assessment
-- Initial readiness: 58/100
-- Weakest: premise, assumptions
+This is load-bearing. It stops the review from becoming reflexive contrarianism,
+it earns the credibility that makes the hard findings land, and if the steelman
+turns out to be stronger than every objection you have, that is the finding.
 
-**Round 1 of 2 — Q1-Q3** (answer inline, e.g. `1A, 2C: <detail>, 3 skip`)
+### 3. Take a position
 
-**Q1 - Premise**
-Concern: ...
-Recommendation: A — <one-clause why>
-Options: A) Accept recommendation (default) B) Defend current plan C) Modify D) Skip
+Lead with what you found. For each finding:
 
-**Q2 - Assumptions**
-...
+- the concern in one sentence, with the specific failure mode
+- the evidence: file, number, measurement, or prior art
+- severity and confidence
+- what you would do instead
 
-**Q3 - Feasibility** (if Q1 is B, answer for the defended plan)
-...
-```
+The author's rationale is a claim, not evidence. "We did it deliberately",
+"YAGNI", or "we'll handle it later" does not lower a finding's severity — only
+new evidence does. Treat a defense that supplies a fact as evidence and re-check
+it; treat a defense that supplies only reasoning as unchanged. Deferred work
+needs an owner, a date, or a ticket, or it stays an unresolved risk.
 
-Never open with a standalone findings dump.
+Retiring a finding requires naming what retired it. Write `[High -> resolved:
+<the fact that settled it>]`, never a bare `resolved`. A finding you cannot
+point at evidence for is still open, however reasonable the reply sounded.
 
-### 3. Grill
-
-Cover the weakest dimensions first. Premise Challenge is mandatory.
-
-For each question:
-
-- re-ground the exact decision in one short sentence
-- state the concern in one sentence
-- give one recommendation
-- offer options
-
-Between rounds:
-
-- process every answer before asking more: mark strong answers as
-  well-defended and unknown or deferred answers as unresolved, with severity
-- fill the next round with the questions unlocked or reprioritized by those
-  answers; drop a batched question that a sibling's answer made moot, and say so
-- challenge a vague answer in the next round as a named follow-up, not by
-  re-asking the whole round
+Cover the weakest dimensions first. Premise Challenge is mandatory: a plan that
+solves a problem nobody has fails no matter how well it is engineered.
 
 Minimum coverage before verdict: 3 dimensions, including Premise Challenge
-(re-check mode is exempt). Once that gate is met, stop and report when the user
-says `done`, signals closure, or pivots toward implementation. Do not keep
-expanding just to be exhaustive.
+(re-check mode is exempt). Stop when more investigation stops changing findings.
+Do not keep expanding to look exhaustive.
 
-### 4. Report
+### 4. Ask only what is left
+
+By this point most questions should be gone. A typical review earns zero to
+three; zero is a normal, good outcome. Ask only what survives the facts/decisions
+gate, and make each question carry its weight:
+
+- state the decision in one sentence, and why it is genuinely theirs
+- give a recommendation with a one-clause rationale — `Recommendation: A — <why>`
+- offer the **real alternatives**, not review ceremony. Options are competing
+  designs, scopes, or tradeoffs with their consequences
+- never offer "defend the current plan" or "skip" as options. A defense is a
+  reply the user can always give; putting it on the ballot invites self-grading.
+  Skipping a finding you believe is real does not make it less real
+- render through the host's structured question tool when available
+  (`AskUserQuestion` in Claude Code); see [internal-shared](../vs-internal-shared/SKILL.md)
+  Structured questions
+- batch up to 3 independent questions in one round; every question in a round
+  must be answerable without the others. State an inline dependency or hold it
+- accept batched replies like `1A, 2B`; a bare `A` or `yes` accepts every
+  recommendation
+
+Between rounds, process every answer before asking more: mark answers that
+supplied new evidence as resolved, and unknown or deferred answers as unresolved
+with severity. Challenge a vague answer once as a named follow-up, not by
+re-asking the round.
+
+Never simulate the exchange. Print a round header only in the same message as
+the questions it announces, never answer your own round, and never record a
+`User Decision` the user did not actually make. If you proceed without a reply,
+say the questions went unanswered and score them unresolved. A report that
+attributes invented decisions to the user is worse than no report.
+
+### 5. Report
 
 The chat report is compact by default, under about 500 words unless the user asks
 for the full version. Save the same report to
@@ -161,17 +258,32 @@ Score: 72/100
 - User Decisions: ...
 - Unresolved: ...
 
+## What holds up
+- ...
+
 ## Top Pushback
-- [High] ...
-- [Medium] ...
-- [Low] ...
+- [High, 75] ... -> what to do instead
+- [Medium, 100] ...
+- [FYI, 50] ...
 
 ## Blast Radius
 - Services/data/customers: ...
 
+## Decisive Question
+- Unknown that would most change this plan: ...
+- Cheapest way to settle it: ...
+
 ## Recommended Next Step
 - ...
 ```
+
+A plan that survives is allowed to pass. When nothing clears the confidence
+filter above FYI, say so plainly and score it — a clean verdict from a real
+investigation is a useful result, not a failed review.
+
+Close with a Gap Check: name one category of failure this review probably did
+not explore well. Perfect reviews do not exist, and the admission tells the user
+where their own judgment still has to work.
 
 When Architecture Depth was active, add a short options comparison to the
 report — the ranked alternatives and the deciding factor in plain terms (e.g.
@@ -208,12 +320,20 @@ Base weights: Premise 20, Assumptions 20, Feasibility 20, Edge Cases 15,
 Security/Risk 10, Maintainability 10, Scope 5. Add Architecture Depth or Eval
 Quality as 10-point conditional dimensions when active, and normalize over active dimensions.
 
-Adjustments:
+Adjustments, applied only to findings at 75-100 confidence:
 
 - unresolved high: -10
 - unresolved medium: -5
 - unresolved low: -2
-- strong defense of a risky point: +2, capped per issue
+
+FYI findings at 50 do not move the score. Nothing is added back for a confident
+defense; a finding is retired by evidence or it is not retired at all.
+
+Score the plan as it now stands, not the conversation that produced it. An
+engaged user is not evidence, and a plan is not safer because someone was in the
+room to answer. If a review lands in the 70s only because open items were talked
+through rather than settled, the score is wrong — a plan with a real unresolved
+blocker belongs below 60 no matter how responsive its author was.
 
 Verdicts:
 
@@ -228,6 +348,19 @@ report first if needed, then use these anchors:
 
 - `Stress-test only - not implementing here.`
 - `Recommended next step: rework the proposal first, then /vs-build-it.`
+
+## Flow Contract
+
+- **Kind:** Building block
+- **Inputs:** The formed proposal, design, or spec; evidence paths the caller
+  already gathered; the risk classification if the caller has one
+- **Outputs:** `Verdict`, `Score: <n>/100`, findings with severity and
+  confidence, unresolved items, and the decisive question; saved report path in
+  interactive mode
+- **Status:** READY | READY_WITH_RISKS | NOT_READY
+- **Consumers:** `vs-shape-it`, `vs-rfc-research`, `vs-build-it`
+- **Skip conditions:** None for a formed proposal. Route raw or unformed input
+  to `vs-shape-it` first, and use re-check mode when a prior verdict exists.
 
 ## Workflow
 

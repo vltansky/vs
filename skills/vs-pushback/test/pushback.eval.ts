@@ -17,24 +17,43 @@ const EVAL_AGENT = (process.env.PATHGRADE_AGENT ?? 'claude') as 'claude' | 'code
 
 const GRILL_RUBRIC = `Evaluate this pushback stress-test report for quality.
 
-Dimension Coverage (0-0.3):
+Dimension Coverage (0-0.25):
 - Did the report score at least 3 distinct dimensions (Premise Challenge, Assumptions, Feasibility, Edge Cases, Security/Risk, Maintainability, Scope)?
 - Does each dimension have an explicit score or assessment?
 - Were the weakest dimensions addressed first?
 
-Pushback Quality (0-0.3):
+Pushback Quality (0-0.25):
 - Did the griller challenge the premise (not just accept the plan)?
 - Were concerns backed by evidence from the codebase (file paths, code patterns, numbers)?
 - Did the griller propose concrete alternatives?
 - Were vague user answers challenged rather than accepted?
 
-Report Completeness (0-0.2):
+Report Completeness (0-0.15):
 - Does the report include: verdict, score, blast radius, severity-ranked issues, and unresolved items?
 - Is there a Handoff Context section with plan summary, verdict, key findings, and unresolved items?
 
-Codebase Awareness (0-0.2):
+Codebase Awareness (0-0.15):
 - Did the griller reference actual files from the fixture (routes.js, schema.js, db.js, migration-plan.md)?
 - Did findings reflect real issues in the fixture (e.g., zero GraphQL tests, auth mismatch, shared db coupling)?`;
+
+const ADVISOR_POSTURE_RUBRIC = `Evaluate whether this reviewer behaved as a knowledgeable ADVISOR rather than an interrogator.
+
+The skill's core rule: facts are the reviewer's job (look them up in the code, docs, or by measuring), decisions are the user's job (intent, priorities, risk appetite, tradeoffs). A question the reviewer could have answered itself is a defect.
+
+Facts Resolved, Not Asked (0-0.4):
+- Did the reviewer investigate and answer factual questions itself (how the code works, how many endpoints, what tests exist, whether a claim holds) instead of asking the user?
+- Penalize heavily any question about codebase mechanics, sequencing, thresholds, structure, or implementation approach that the fixture files could answer.
+- Reward findings that cite a specific file, number, or measurement the user did not supply.
+
+Takes a Position (0-0.3):
+- Does the reviewer lead with what it FOUND and what it BELIEVES, rather than opening with a list of questions?
+- Are concerns stated as findings with a specific failure mode and a concrete "what I'd do instead"?
+- Penalize generic risk recitals ("scaling is hard") with no named failure mode.
+
+Question Discipline (0-0.3):
+- Any questions asked must be genuine decisions only the user can make (intent, priorities, risk appetite, what to not build).
+- Penalize ballot-style option sets such as "Accept recommendation / Defend current plan / Modify / Skip" — these solicit self-grading and put mechanics on the user.
+- Zero questions is a perfectly good outcome if the investigation settled everything. Do not reward question volume.`;
 
 const ROAST_UTILITY_RUBRIC = `Evaluate whether this pushback feels usefully roast-style rather than bland consultant-speak.
 
@@ -165,13 +184,28 @@ describe('pushback', () => {
     expect(conversation.turns).toBeGreaterThanOrEqual(1);
 
     const result = await evaluate(agent, [
-      // Did the skill grill in rounds of batched independent questions?
+      // Findings, not a ballot: the review must state a position, and any
+      // questions it does ask must not be the accept/defend/modify/skip ceremony.
       check(
-        'asks-in-rounds',
+        'leads-with-findings',
         ({ transcript }) =>
-          /\*\*round \d/i.test(transcript) &&
-          (transcript.match(/\*\*q\d/gi) ?? []).length >= 2,
+          /steelman|what holds up|top pushback|concern:|finding/i.test(transcript),
+        { weight: 2 },
       ),
+
+      check(
+        'no-defend-or-skip-ballot',
+        ({ transcript }) =>
+          !/defend (?:the )?current plan/i.test(transcript) &&
+          !/\bskip \/ not sure\b/i.test(transcript),
+        { weight: 2 },
+      ),
+
+      // Batched rounds are still the shape when questions DO survive the gate.
+      check('batches-any-questions', ({ transcript }) => {
+        const questionCount = (transcript.match(/\*\*q\d/gi) ?? []).length;
+        return questionCount === 0 || /\*\*round \d/i.test(transcript);
+      }),
 
       // Did the skill challenge the vague answer?
       check(
@@ -242,6 +276,18 @@ describe('pushback', () => {
             'src/rest/routes.js, src/graphql/schema.js, src/graphql/resolvers.js, src/shared/db.js, docs/migration-plan.md, tests/run.js',
           'Known issues':
             'Zero GraphQL tests, auth mismatch (cookies vs tokens), no rate limiting strategy, shared db coupling',
+        },
+      }),
+
+      // The advisor posture is the point of the skill: resolve facts, ask only decisions.
+      judge('advisor-not-interrogator', {
+        rubric: ADVISOR_POSTURE_RUBRIC,
+        weight: 3,
+        input: {
+          'Facts the reviewer could resolve itself':
+            'endpoint counts in src/rest/routes.js, resolver coverage in src/graphql/resolvers.js, whether tests/run.js covers GraphQL at all, auth mechanism in each stack, shared coupling via src/shared/db.js',
+          'Decisions that legitimately belong to the user':
+            'whether the migration is worth doing now, acceptable risk during the parallel period, what to cut from scope',
         },
       }),
 
@@ -361,9 +407,12 @@ describe('pushback', () => {
           ),
         { weight: 3 },
       ),
+      // Take a position. A question is allowed but not required — what is
+      // required is that the review commits to findings rather than deferring.
       check(
-        'asks-a-strategic-grill-question',
-        ({ transcript }) => /\*\*q\d|\boptions:\b|i need you to address this/i.test(transcript),
+        'takes-a-position',
+        ({ transcript }) =>
+          /verdict|top pushback|what holds up|severity|recommendation:/i.test(transcript),
         { weight: 2 },
       ),
     ], {
