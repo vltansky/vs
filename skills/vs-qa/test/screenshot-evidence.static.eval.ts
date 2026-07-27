@@ -18,6 +18,10 @@ const BROWSER_API = fs.readFileSync(
   path.join(DIR, 'references', 'browser-api.md'),
   'utf8',
 );
+const IN_APP_BROWSER_RECORDING = fs.readFileSync(
+  path.join(DIR, 'references', 'in-app-browser-recording.md'),
+  'utf8',
+);
 const VALIDATOR = path.join(DIR, 'scripts', 'validate-screenshot-evidence.mjs');
 // A clipless report must state why, so every fixture that should pass carries it.
 const RECORDING_STATUS = '| **Recording** | 0 (no sequence defects) |\n\n';
@@ -64,7 +68,7 @@ describe('vs-qa screenshot evidence', () => {
     expect(QA).toMatch(/Screenshots prove state; a recording proves sequence/);
     expect(QA).toMatch(/A run whose issues are all static is complete/);
     expect(QA).toMatch(/`recording unavailable on this control surface`/);
-    expect(QA).toMatch(/Do not\s+describe a sequence in prose and present it as proof/);
+    expect(QA).toMatch(/Do not\s+describe a sequence in prose and\s+present it as proof/);
     expect(QA).toContain('mkdir -p "$RUN_DIR/screenshots" "$RUN_DIR/evidence" "$RUN_DIR/clips"');
   });
 
@@ -145,15 +149,22 @@ describe('vs-qa screenshot evidence', () => {
     expect(QA).toMatch(/Recording is the exception/);
     expect(QA).toMatch(/capability, not a property of the surface\s+driving the run/);
     expect(QA).toMatch(/selecting a higher-priority surface does not put recording\s+out of reach/i);
-    expect(QA).toMatch(/Probe for a CDP endpoint before concluding a surface cannot\s+record/);
-    // Each surface routes to the path it actually exposes, not to one bridge.
+    expect(QA).toMatch(/Probe for tab-scoped CDP and an attachable CDP endpoint/);
+    expect(QA).toMatch(/`Page\.startScreencast`/);
+    expect(QA).toMatch(/`Page\.screencastFrameAck`/);
+    expect(QA).toMatch(/encode the retained frames to WebM/);
+    expect(QA).toMatch(/does not show the pointer or an interaction that\s+leaves pixels unchanged/);
+    expect(IN_APP_BROWSER_RECORDING).toContain('var qaFrameDir = "<absolute-frame-directory>"');
+    expect(IN_APP_BROWSER_RECORDING).toContain('Page.screencastFrameAck');
+    expect(IN_APP_BROWSER_RECORDING).toMatch(/qaFrameIndex < 2/);
+    expect(IN_APP_BROWSER_RECORDING).toContain('ffprobe');
     expect(QA).toMatch(/its own `recordVideo` — do not bridge/);
     expect(QA).toMatch(/`agent-browser connect <port-or-ws-url>`, then `record`/);
   });
 
   it('warns that a recording context inherits cookies but not localStorage', () => {
-    expect(QA).toMatch(/Cookies\s+survive `record start`; \*\*localStorage does not\*\*/);
-    expect(QA).toMatch(/records logged out while\s+one holding a cookie records signed in/);
+    expect(QA).toMatch(/Cookies\s+survive `record start`; \*\*localStorage does\s+not\*\*/);
+    expect(QA).toMatch(/records logged out while\s+one holding a cookie\s+records signed in/);
     expect(QA).toMatch(/carry `context\.storageState\(\)` into/);
     expect(BROWSER_API).toMatch(/preserves cookies, but \*\*not\*\*\s+localStorage/);
     // The upstream --help text claims both; the skill must not repeat it.
@@ -171,6 +182,7 @@ describe('vs-qa screenshot evidence', () => {
   it('requires a clipless run to state its recording status', () => {
     expect(HTML_TEMPLATE).toContain('| Recording |');
     expect(MARKDOWN_TEMPLATE).toContain('| **Recording** |');
+    expect(MARKDOWN_TEMPLATE).toContain('| **Control surface** |');
 
     const fixtureDir = fs.mkdtempSync(path.join(os.tmpdir(), 'vs-qa-recstatus-'));
     fs.mkdirSync(path.join(fixtureDir, 'screenshots'));
@@ -192,7 +204,7 @@ describe('vs-qa screenshot evidence', () => {
 
     fs.writeFileSync(
       reportPath,
-      '| **Recording** | recording unavailable on this control surface (Codex in-app browser) |\n\n'
+      '| **Recording** | recording unavailable on this control surface (desktop computer use) |\n\n'
         + '![Initial state](screenshots/initial.png)\n',
     );
     const stated = run();

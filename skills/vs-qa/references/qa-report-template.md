@@ -13,6 +13,7 @@
 | **Pages visited** | {COUNT} |
 | **Screenshots** | {COUNT} |
 | **Recording** | {CLIP_COUNT} or "recording unavailable on this control surface" ({REASON}) |
+| **Control surface** | {CONTROL_SURFACE} |
 | **Framework** | {DETECTED or "Unknown"} |
 | **Index** | [All QA runs](./index.md) |
 

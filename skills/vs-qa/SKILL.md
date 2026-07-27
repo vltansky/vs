@@ -40,15 +40,17 @@ out of reach. Route it by what the surface actually exposes:
 | Surface exposes | Route |
 |---|---|
 | Playwright context construction | its own `recordVideo` — do not bridge |
-| A CDP endpoint | `agent-browser connect <port-or-ws-url>`, then `record` |
-| Neither | genuinely unavailable — state it with the reason |
+| Tab-scoped raw CDP | `Page.startScreencast`, retain and acknowledge frame events, then encode the retained frames to WebM |
+| An attachable CDP endpoint | `agent-browser connect <port-or-ws-url>`, then `record` |
+| None of these | genuinely unavailable — state it with the reason |
 
-A recording context does not inherit a live page's session for free. Cookies
-survive `record start`; **localStorage does not**, on a native session and over
-CDP alike, so an app holding its token in localStorage records logged out while
-one holding a cookie records signed in. Check which the app under test uses
-before trusting the clip, and confirm the recorded page is authenticated rather
-than assuming it.
+Tab-scoped CDP records the live page, so it keeps that page's cookies and
+localStorage. A route that creates a recording context does not inherit the live
+page's session for free. Cookies survive `record start`; **localStorage does
+not**, on a native session and over an attached CDP endpoint alike, so an app
+holding its token in localStorage records logged out while one holding a cookie
+records signed in. Check which the app under test uses before trusting the clip,
+and confirm the recorded page is authenticated rather than assuming it.
 
 On Playwright that is fixable: carry `context.storageState()` into
 `browser.newContext({ storageState, recordVideo })` and the recording context
@@ -177,6 +179,8 @@ that nothing was worth recording.
 Write clips to `$RUN_DIR/clips/` as `.webm`, named for what they prove:
 `issue-001.webm`. Keep bytes tool-side exactly as with screenshots — return the
 path, byte count, and duration, never the media itself.
+Persist the byte count and duration with the issue's recording evidence so a
+later artifact review does not depend on transient tool output.
 
 `agent-browser` records directly. Start the recording, drive the sequence, stop:
 
@@ -203,17 +207,46 @@ moment the bug appears — build a second context from the live one's
 `storageState` instead and replay the repro there, which both defers the
 decision and carries localStorage across.
 
-Probe for a CDP endpoint before concluding a surface cannot record;
-`agent-browser get cdp-url` reports one for a session it owns, and
-`agent-browser connect <port-or-ws-url>` attaches to another browser's. Only
-when neither path exists, record `recording unavailable on this control surface`
-in the run metadata with the reason, and continue with screenshots. Do not
-describe a sequence in prose and present it as proof.
+Probe for tab-scoped CDP and an attachable CDP endpoint before concluding a
+surface cannot record. Codex in-app Browser exposes the former through its
+tab `cdp` capability, not a debugger URL. Start `Page.startScreencast`, drain
+`Page.screencastFrame` events after each interaction, write each `params.data`
+payload directly to a numbered temporary JPEG without returning it to model
+context, and send `Page.screencastFrameAck` for every frame. Repeatedly drain
+and acknowledge frames while an animation runs. Stop with
+`Page.stopScreencast`, then encode the retained frames to WebM:
+
+```bash
+ffmpeg -framerate 8 -i "$FRAME_DIR/frame-%06d.jpg" \
+  -c:v libvpx-vp9 -pix_fmt yuv420p -an \
+  "$RUN_DIR/clips/issue-001.webm"
+```
+
+Follow [the in-app Browser recording procedure](references/in-app-browser-recording.md)
+for the exact cursor, drain, write, acknowledgement, zero-frame, and duration
+checks. Resolve `$FRAME_DIR` to an absolute temporary directory before capture.
+The fixed frame rate proves visual order, not elapsed time. When latency or
+animation timing is the claim, use a native recorder that preserves timing or
+state that the CDP frame route cannot prove it.
+
+This route records the current tab and session; do not bridge it through
+`agent-browser`. If no local WebM encoder is available, state that exact
+blocker. A raw CDP screencast does not show the pointer or an interaction that
+leaves pixels unchanged. For that class of failure, use it only when the page
+shows a visible focus, pressed, or navigation state; otherwise state that the
+capture cannot prove the action instead of shipping a static clip.
+
+For an attachable endpoint, `agent-browser get cdp-url` reports one for a
+session it owns, and `agent-browser connect <port-or-ws-url>` attaches to
+another browser's. Only when none of the routes exists, record
+`recording unavailable on this control surface` in the run metadata with the
+reason, and continue with screenshots. Do not describe a sequence in prose and
+present it as proof.
 
 Reference each clip from the report:
 
 ```html
-<video src="clips/issue-001.webm" poster="screenshots/issue-001-before.png"
+<video src="clips/issue-001.webm" poster="screenshots/issue-001-step-1.png"
        controls muted playsinline width="640"></video>
 ```
 
@@ -724,6 +757,8 @@ If repo has `TODOS.md`:
     │   ├── initial.a11y.txt
     │   ├── page-NAME.a11y.txt
     │   └── issue-001-result.a11y.txt
+    ├── clips/
+    │   └── issue-001.webm
     └── baseline.json
 ```
 
