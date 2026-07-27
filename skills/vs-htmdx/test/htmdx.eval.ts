@@ -42,6 +42,12 @@ describe('vs-htmdx', () => {
         /@wix\/htmdx@(?!4\.9\.0)[0-9]/,
       );
     }
+    // The QA evidence validator rejects reports on any other pin, so it moves
+    // with the templates rather than outliving them.
+    const validator = path.resolve(
+      __dirname, '..', '..', 'vs-qa', 'scripts', 'validate-screenshot-evidence.mjs',
+    );
+    expect(fs.readFileSync(validator, 'utf8')).toContain("EXPECTED_RUNTIME = '4.9.0'");
   });
 
   it('ships a single-source template with no host element', () => {

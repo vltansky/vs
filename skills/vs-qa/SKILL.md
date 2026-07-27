@@ -620,6 +620,13 @@ The command must report `"valid":true`. Remove unused template examples, then
 fix missing, orphaned, empty, or invalid PNG evidence before completion. Report
 only its JSON metadata, never image data.
 
+A non-empty `runtime.stale` means the report pins an HTMDX version older than
+the templates. That failure is silent in the browser — the evidence is on disk
+and referenced, but the runtime drops `![]()` and `<video>`, so the report
+renders as a wall of text. It comes from writing the HTML shell from memory or
+from a checkout that predates the current pin. Copy
+`references/qa-report-template.html` again rather than hand-editing the version.
+
 **PR Summary line:** "QA found N issues, fixed M, health score X → Y."
 
 ---

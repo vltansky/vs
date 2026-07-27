@@ -13,6 +13,12 @@ const MEDIA = {
   clips: { extension: '.webm' },
 };
 
+// A stale runtime pin degrades silently: evidence exists on disk and is
+// referenced, but the renderer drops `![]()` and `<video>` so the report shows
+// none of it. Keep in sync with the pin in every vs template.
+const EXPECTED_RUNTIME = '4.9.0';
+const RUNTIME_PATTERN = /@wix\/htmdx@([0-9][^/"'\s]*)/g;
+
 async function listFiles(directory, extension, prefix = '') {
   const entries = await readdir(directory, { withFileTypes: true });
   const files = [];
@@ -145,6 +151,15 @@ for (const [directory, { extension }] of Object.entries(MEDIA)) {
 
 // Screenshots are mandatory for every completed run; clips never are.
 if (result.screenshots.referenced === 0) result.valid = false;
+
+// A report with no htmdx reference is a Markdown report or a local runtime
+// mirror; neither carries a pin to check.
+const pins = [...new Set([...report.matchAll(RUNTIME_PATTERN)].map(match => match[1]))];
+if (pins.length) {
+  const stale = pins.filter(pin => pin !== EXPECTED_RUNTIME);
+  result.runtime = { expected: EXPECTED_RUNTIME, pins, stale };
+  if (stale.length) result.valid = false;
+}
 
 // Retained at the top level so existing callers reading `referenced`/`images`
 // against the screenshot contract keep working.

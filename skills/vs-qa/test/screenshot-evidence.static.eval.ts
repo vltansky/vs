@@ -139,6 +139,58 @@ describe('vs-qa screenshot evidence', () => {
     expect(dangling.stdout).toContain('"missing":["clips/gone.webm"]');
   });
 
+  it('rejects an HTML report pinned to a runtime that cannot render its evidence', () => {
+    const fixtureDir = fs.mkdtempSync(path.join(os.tmpdir(), 'vs-qa-pin-'));
+    fs.mkdirSync(path.join(fixtureDir, 'screenshots'));
+    fs.writeFileSync(
+      path.join(fixtureDir, 'screenshots', 'initial.png'),
+      Buffer.from(
+        'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=',
+        'base64',
+      ),
+    );
+    const reportPath = path.join(fixtureDir, 'report.html');
+    const write = (pin: string) =>
+      fs.writeFileSync(
+        reportPath,
+        `<script src="https://cdn.jsdelivr.net/npm/@wix/htmdx@${pin}/dist/browser.js" defer></script>\n`
+          + '![Initial state](screenshots/initial.png)\n',
+      );
+    const run = () =>
+      spawnSync(process.execPath, [VALIDATOR, reportPath], { encoding: 'utf8' });
+
+    write('2.2.1');
+    const stale = run();
+    expect(stale.status).toBe(1);
+    expect(stale.stdout).toContain('"stale":["2.2.1"]');
+
+    write('4.9.0');
+    const current = run();
+    expect(current.status).toBe(0);
+    expect(current.stdout).toContain('"stale":[]');
+  });
+
+  it('skips the pin check for reports with no htmdx runtime', () => {
+    const fixtureDir = fs.mkdtempSync(path.join(os.tmpdir(), 'vs-qa-nopin-'));
+    fs.mkdirSync(path.join(fixtureDir, 'screenshots'));
+    fs.writeFileSync(
+      path.join(fixtureDir, 'screenshots', 'initial.png'),
+      Buffer.from(
+        'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=',
+        'base64',
+      ),
+    );
+    const reportPath = path.join(fixtureDir, 'report.md');
+    fs.writeFileSync(reportPath, '![Initial state](screenshots/initial.png)\n');
+
+    const result = spawnSync(process.execPath, [VALIDATOR, reportPath], {
+      encoding: 'utf8',
+    });
+
+    expect(result.status).toBe(0);
+    expect(result.stdout).not.toContain('"runtime"');
+  });
+
   it('rejects retained screenshots that the report does not reference', () => {
     const fixtureDir = fs.mkdtempSync(path.join(os.tmpdir(), 'vs-qa-orphan-'));
     const screenshotsDir = path.join(fixtureDir, 'screenshots');
