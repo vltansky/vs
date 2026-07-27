@@ -128,18 +128,21 @@ from the session action: continue, subagent, handoff, compact, clear, or stop.
 
 ## Structured questions
 
-When the host exposes a structured question tool — Claude Code's
-`AskUserQuestion`, or an equivalent multiple-choice prompt UI — present
-clarifying and grill questions through it instead of plain chat text. One tool
-call carries the batched round; each question lists its options with the
-recommended one first, labeled the default. This is the default rendering in
-Claude Code.
+When the host exposes a structured question tool — Codex's
+`request_user_input`, Claude Code's `AskUserQuestion`, or an equivalent
+multiple-choice prompt UI — present clarifying and grill questions through it
+instead of plain chat text. One tool call carries the batched round; each
+question lists its options with the recommended one first and visibly labeled
+as recommended. Prefer this rendering in every supported host. In Codex, when
+`request_user_input` is listed, call it; do not also print or preview the ballot
+in chat.
 
-Fall back to the plain-text `Question N` / `Recommendation` / `Options: A) ...`
-format only when no such tool is available (for example Codex today), or when a
-question is genuinely open-ended (defend/modify/counter) rather than a choice
-among known options. The batching limits and the recommendation-as-default rule
-are identical in both renderings — only the surface changes.
+Fall back to Markdown only when no structured tool is available, or when a
+question is genuinely open-ended rather than a choice among known options. Use
+a short heading per question, put the recommendation on its own line, and put
+one option per line with its consequence. Put the reply syntax once after the
+whole batch; never flatten `A`, `B`, and `C` onto one line. The batching limits
+and recommendation-as-default rule are identical in both renderings.
 
 ## Chaining and invocation gates
 

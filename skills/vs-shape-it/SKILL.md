@@ -82,8 +82,10 @@ the request already settles those decisions, reflect the settled direction and
 move directly into independent shaping.
 
 - Render the round through the host's structured question tool when available
-  (`AskUserQuestion` in Claude Code); see [internal-shared](../vs-internal-shared/SKILL.md)
-  Structured questions. Fall back to the text format below otherwise.
+  (`request_user_input` in Codex, `AskUserQuestion` in Claude Code); see
+  [internal-shared](../vs-internal-shared/SKILL.md) Structured questions. Fall
+  back to the Markdown format below otherwise. In Codex, when
+  `request_user_input` is listed, call it rather than rendering the fallback.
 - Batch only independent questions; every question in the round must be
   answerable without the others' answers. If a question depends on an earlier
   answer, state the dependency inline or infer a reversible default later.
@@ -97,13 +99,24 @@ move directly into independent shaping.
   could proceed without it and the lookup would cost real time. When the need is
   clear, run it in the independent beat instead of asking.
 
-```text
-Question 1 of N: ...
-Recommendation: A
-Options: A) [recommended default] B) ... C) ...
+```markdown
+## Decisions needed
 
-Question 2 of N (independent of Q1): ...
+### 1. <short decision title>
+
+<Why this decision belongs to the user.>
+
+**Recommended: A — <choice>** — <one-clause rationale>
+
+- A. <choice> — <consequence>
+- B. <choice> — <consequence>
+- C. <choice> — <consequence>
+
+### 2. <short decision title>
+
 ...
+
+Reply `A` to accept every recommendation, or specify changes such as `1B, 2A`.
 ```
 
 ### 2. Independent shaping

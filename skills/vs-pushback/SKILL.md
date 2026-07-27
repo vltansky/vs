@@ -244,12 +244,17 @@ gate, and make each question carry its weight:
   reply the user can always give; putting it on the ballot invites self-grading.
   Skipping a finding you believe is real does not make it less real
 - render through the host's structured question tool when available
-  (`AskUserQuestion` in Claude Code); see [internal-shared](../vs-internal-shared/SKILL.md)
-  Structured questions
+  (`request_user_input` in Codex, `AskUserQuestion` in Claude Code); see
+  [internal-shared](../vs-internal-shared/SKILL.md) Structured questions
+- in Codex, when `request_user_input` is listed, call it rather than rendering
+  the Markdown fallback
 - batch up to 3 independent questions in one round; every question in a round
   must be answerable without the others. State an inline dependency or hold it
 - accept batched replies like `1A, 2B`; a bare `A` or `yes` accepts every
   recommendation
+- when falling back to Markdown, use a short heading per question, put the
+  recommendation on its own line, and put one option per line with its
+  consequence; put reply syntax once after the batch
 
 Between rounds, process every answer before asking more: mark answers that
 supplied new evidence as resolved, and unknown or deferred answers as unresolved
