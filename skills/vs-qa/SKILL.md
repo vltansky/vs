@@ -34,12 +34,28 @@ navigate, inspect, interact, network/console inspection, and screenshot actions
 with that surface instead of shelling out to `agent-browser`.
 
 Recording is the exception. It is a capability, not a property of the surface
-driving the run, and `agent-browser record` is the only path most harnesses
-expose. When the selected surface cannot record, use `agent-browser record` for
-the clip alone and keep driving the rest of the run with the selected surface —
-`record start` carries cookies and localStorage across, so an authenticated run
-stays authenticated. Selecting a higher-priority surface does not put recording
-out of reach for the run.
+driving the run, and selecting a higher-priority surface does not put recording
+out of reach. Route it by what the surface actually exposes:
+
+| Surface exposes | Route |
+|---|---|
+| Playwright context construction | its own `recordVideo` — do not bridge |
+| A CDP endpoint | `agent-browser connect <port-or-ws-url>`, then `record` |
+| Neither | genuinely unavailable — state it with the reason |
+
+A recording context does not inherit a live page's session for free. Cookies
+survive `record start`; **localStorage does not**, on a native session and over
+CDP alike, so an app holding its token in localStorage records logged out while
+one holding a cookie records signed in. Check which the app under test uses
+before trusting the clip, and confirm the recorded page is authenticated rather
+than assuming it.
+
+On Playwright that is fixable: carry `context.storageState()` into
+`browser.newContext({ storageState, recordVideo })` and the recording context
+starts with both. That is the reason Playwright records itself rather than
+bridging to `agent-browser`. Over CDP there is no equivalent — re-establish the
+localStorage the flow needs after `record start`, or record a flow that does not
+depend on it.
 
 ## Setup
 
@@ -171,22 +187,28 @@ agent-browser get text '#panel'
 agent-browser record stop
 ```
 
-`record start` opens a fresh browser context but carries cookies and
-localStorage across, so an authenticated run stays authenticated. `record stop`
-returns the captured frame count — treat `frames: 0` or `No frames captured` as
-no evidence and do not reference a clip the report cannot play.
+`record start` opens a fresh browser context and carries cookies across, but not
+localStorage — see the routing table above before recording an authenticated
+flow. `record stop` returns the captured frame count — treat `frames: 0` or
+`No frames captured` as no evidence and do not reference a clip the report
+cannot play.
 
 Record over `http://`, not `file://`. A `file://` target captured no frames in
 testing and left `record stop` hanging; serve a local directory and point the
 recorder at the served URL instead.
 
-On a Playwright surface, pass `recordVideo` when constructing the context, which
-means deciding to record before the first navigation rather than at the moment
-the bug appears. Reach for `agent-browser record` before concluding a surface
-cannot record; it is available independently of the surface driving the run.
-Only when neither path exists, record `recording unavailable on this control
-surface` in the run metadata with the reason, and continue with screenshots. Do
-not describe a sequence in prose and present it as proof.
+On a Playwright surface, pass `recordVideo` when constructing the context. That
+normally means deciding to record before the first navigation rather than at the
+moment the bug appears — build a second context from the live one's
+`storageState` instead and replay the repro there, which both defers the
+decision and carries localStorage across.
+
+Probe for a CDP endpoint before concluding a surface cannot record;
+`agent-browser get cdp-url` reports one for a session it owns, and
+`agent-browser connect <port-or-ws-url>` attaches to another browser's. Only
+when neither path exists, record `recording unavailable on this control surface`
+in the run metadata with the reason, and continue with screenshots. Do not
+describe a sequence in prose and present it as proof.
 
 Reference each clip from the report:
 

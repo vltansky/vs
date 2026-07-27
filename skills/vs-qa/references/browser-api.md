@@ -227,9 +227,14 @@ size on disk suggests.
 - Record over `http://`. A `file://` target captured no frames in testing and
   left `record stop` hanging until it was killed. Serve the directory and point
   the recorder at the served URL.
-- `record start` builds a fresh context but preserves cookies and localStorage,
-  so an authenticated session survives it. It does not preserve the current
-  page — pass the URL you want recorded.
+- `record start` builds a fresh context and preserves cookies, but **not**
+  localStorage — verified on both a native session and a CDP-connected browser,
+  despite what `record --help` claims. A cookie-authenticated app records signed
+  in; one holding its token in localStorage records logged out. It does not
+  preserve the current page either — pass the URL you want recorded.
+- To record a browser another surface drives, attach first:
+  `agent-browser connect <port|ws-url>`, then `record start`. `get cdp-url`
+  reports the endpoint of a session `agent-browser` already owns.
 - `record restart <path> [url]` rotates to a new file without losing the session.
 - Redact in the DOM before `record start`. A recording passes through states a
   screenshot never catches, so a field masked when photographed may be plain

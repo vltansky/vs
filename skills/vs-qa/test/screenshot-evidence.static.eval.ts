@@ -63,8 +63,8 @@ describe('vs-qa screenshot evidence', () => {
     expect(QA).toContain('### Recording evidence contract');
     expect(QA).toMatch(/Screenshots prove state; a recording proves sequence/);
     expect(QA).toMatch(/A run whose issues are all static is complete/);
-    expect(QA).toMatch(/recording\s+unavailable on this control surface/);
-    expect(QA).toMatch(/Do\s+not describe a sequence in prose and present it as proof/);
+    expect(QA).toMatch(/`recording unavailable on this control surface`/);
+    expect(QA).toMatch(/Do not\s+describe a sequence in prose and present it as proof/);
     expect(QA).toContain('mkdir -p "$RUN_DIR/screenshots" "$RUN_DIR/evidence" "$RUN_DIR/clips"');
   });
 
@@ -78,10 +78,10 @@ describe('vs-qa screenshot evidence', () => {
   });
 
   it('treats an empty capture as no evidence and records over http', () => {
-    expect(QA).toMatch(/`frames: 0` or `No frames captured` as\s+no evidence/);
+    expect(QA).toMatch(/`frames: 0` or\s+`No frames captured` as no evidence/);
     expect(QA).toMatch(/Record over `http:\/\/`, not `file:\/\/`/);
     expect(BROWSER_API).toMatch(/captured no frames in testing and\s+left `record stop` hanging/);
-    expect(QA).toMatch(/carries cookies and\s+localStorage across/);
+    expect(QA).toMatch(/carries cookies across, but not\s+localStorage/);
   });
 
   it('defaults recordings to controls without autoplay and refuses secret flows', () => {
@@ -144,8 +144,21 @@ describe('vs-qa screenshot evidence', () => {
   it('routes recording by capability rather than by the driving surface', () => {
     expect(QA).toMatch(/Recording is the exception/);
     expect(QA).toMatch(/capability, not a property of the surface\s+driving the run/);
-    expect(QA).toMatch(/Selecting a higher-priority surface does not put recording\s+out of reach/);
-    expect(QA).toMatch(/Reach for `agent-browser record` before concluding a surface\s+cannot record/);
+    expect(QA).toMatch(/selecting a higher-priority surface does not put recording\s+out of reach/i);
+    expect(QA).toMatch(/Probe for a CDP endpoint before concluding a surface cannot\s+record/);
+    // Each surface routes to the path it actually exposes, not to one bridge.
+    expect(QA).toMatch(/its own `recordVideo` — do not bridge/);
+    expect(QA).toMatch(/`agent-browser connect <port-or-ws-url>`, then `record`/);
+  });
+
+  it('warns that a recording context inherits cookies but not localStorage', () => {
+    expect(QA).toMatch(/Cookies\s+survive `record start`; \*\*localStorage does not\*\*/);
+    expect(QA).toMatch(/records logged out while\s+one holding a cookie records signed in/);
+    expect(QA).toMatch(/carry `context\.storageState\(\)` into/);
+    expect(BROWSER_API).toMatch(/preserves cookies, but \*\*not\*\*\s+localStorage/);
+    // The upstream --help text claims both; the skill must not repeat it.
+    expect(QA).not.toMatch(/carries cookies and\s+localStorage across/);
+    expect(BROWSER_API).not.toMatch(/preserves cookies and localStorage/);
   });
 
   it('names the sequence defects that default to a recording', () => {

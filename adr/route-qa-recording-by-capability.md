@@ -35,10 +35,18 @@ because a clipless run is legitimate by design.
 
 Recording is a capability, not a property of the surface driving the run.
 
-- When the selected surface cannot record, use `agent-browser record` for the
-  clip alone and keep driving the rest of the run with the selected surface.
-  `record start` carries cookies and localStorage across, so an authenticated
-  run stays authenticated. Reach for it before concluding recording is blocked.
+- Route by what the surface exposes. A Playwright surface records itself with
+  `recordVideo`. A surface exposing a CDP endpoint is recorded by attaching
+  `agent-browser connect <port-or-ws-url>` and driving `record` there, while the
+  selected surface keeps driving the rest of the run. Only a surface offering
+  neither is genuinely unable to record.
+- A recording context does not inherit a live session for free. Probing both a
+  native `agent-browser` session and a CDP-connected Chrome showed cookies
+  survive `record start` and localStorage does not, contradicting the CLI's own
+  `--help`. A cookie-authenticated app records signed in; a token-in-localStorage
+  app records logged out and the clip proves nothing. Playwright escapes this by
+  carrying `context.storageState()` into the recording context, which is why it
+  records itself rather than bridging.
 - The default widens from "record only when the sequence is the evidence" to
   name what qualifies: numbered repro steps, a navigation that does not happen,
   and a before frame that is blank or identical to its after frame. Two stills
@@ -63,6 +71,10 @@ longer available is silence.
 - Negative: mixing surfaces within a run means the clip may be captured by a
   different browser than the screenshots, so a clip and a frame of the same
   state can differ in chrome, viewport, and font rendering
+- Negative: the CDP bridge cannot carry localStorage, so an authenticated flow
+  on a token-in-localStorage app is recordable only by re-establishing that
+  state after `record start`. The failure is silent — a clip of a logged-out app
+  looks like a clip
 
 ## Alternatives considered
 
