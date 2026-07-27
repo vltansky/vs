@@ -19,6 +19,11 @@ const MEDIA = {
 const EXPECTED_RUNTIME = '4.9.0';
 const RUNTIME_PATTERN = /@wix\/htmdx@([0-9][^/"'\s]*)/g;
 
+// A clipless run is legitimate, but silence is not: a report that recorded
+// nothing states so, rather than leaving the reader to infer that nothing was
+// worth recording. Matches the run-metadata row both templates ship.
+const RECORDING_STATUS_PATTERN = /^\s*\|\s*\*{0,2}Recording\*{0,2}\s*\|\s*\S/mi;
+
 async function listFiles(directory, extension, prefix = '') {
   const entries = await readdir(directory, { withFileTypes: true });
   const files = [];
@@ -151,6 +156,11 @@ for (const [directory, { extension }] of Object.entries(MEDIA)) {
 
 // Screenshots are mandatory for every completed run; clips never are.
 if (result.screenshots.referenced === 0) result.valid = false;
+
+if (result.clips.referenced === 0) {
+  result.clips.statusStated = RECORDING_STATUS_PATTERN.test(report);
+  if (!result.clips.statusStated) result.valid = false;
+}
 
 // A report with no htmdx reference is a Markdown report or a local runtime
 // mirror; neither carries a pin to check.

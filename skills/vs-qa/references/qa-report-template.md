@@ -12,6 +12,7 @@
 | **Duration** | {DURATION} |
 | **Pages visited** | {COUNT} |
 | **Screenshots** | {COUNT} |
+| **Recording** | {CLIP_COUNT} or "recording unavailable on this control surface" ({REASON}) |
 | **Framework** | {DETECTED or "Unknown"} |
 | **Index** | [All QA runs](./index.md) |
 

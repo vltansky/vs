@@ -33,6 +33,14 @@ syntax. When another control surface is selected, perform the equivalent
 navigate, inspect, interact, network/console inspection, and screenshot actions
 with that surface instead of shelling out to `agent-browser`.
 
+Recording is the exception. It is a capability, not a property of the surface
+driving the run, and `agent-browser record` is the only path most harnesses
+expose. When the selected surface cannot record, use `agent-browser record` for
+the clip alone and keep driving the rest of the run with the selected surface —
+`record start` carries cookies and localStorage across, so an authenticated run
+stays authenticated. Selecting a higher-priority surface does not put recording
+out of reach for the run.
+
 ## Setup
 
 **Parse the user's request:**
@@ -133,11 +141,22 @@ report screenshot reference resolves to a valid retained PNG.
 
 ### Recording evidence contract
 
-Screenshots prove state; a recording proves sequence. Record only when the
-sequence is the evidence — a hover, a focus order, an animation, a multi-step
-flow, or a bug that only appears between two stable frames. A static rendering
-issue is fully proven by a screenshot, and a recording of it is noise. Nothing
-in this skill requires a recording, and a run with none is complete.
+Screenshots prove state; a recording proves sequence. Record when the sequence
+is the evidence — a hover, a focus order, an animation, a multi-step flow, a
+navigation that does not happen, or a bug that only appears between two stable
+frames. A static rendering issue is fully proven by a screenshot, and a
+recording of it is noise.
+
+Read that as a default, not permission to skip. An issue whose repro steps are
+numbered, or whose before frame is blank or identical to its after frame, is a
+sequence defect: two stills of a page that never moved do not show that it
+failed to move. Record those. A run whose issues are all static is complete
+with no clips.
+
+Every report states its recording status in run metadata — the clip count, or
+`recording unavailable on this control surface` with the reason. A run that
+recorded nothing says so on the record rather than leaving the reader to infer
+that nothing was worth recording.
 
 Write clips to `$RUN_DIR/clips/` as `.webm`, named for what they prove:
 `issue-001.webm`. Keep bytes tool-side exactly as with screenshots — return the
@@ -163,9 +182,11 @@ recorder at the served URL instead.
 
 On a Playwright surface, pass `recordVideo` when constructing the context, which
 means deciding to record before the first navigation rather than at the moment
-the bug appears. When the selected surface exposes neither path, record
-`recording unavailable on this control surface` in the run metadata and continue
-with screenshots. Do not describe a sequence in prose and present it as proof.
+the bug appears. Reach for `agent-browser record` before concluding a surface
+cannot record; it is available independently of the surface driving the run.
+Only when neither path exists, record `recording unavailable on this control
+surface` in the run metadata with the reason, and continue with screenshots. Do
+not describe a sequence in prose and present it as proof.
 
 Reference each clip from the report:
 
@@ -619,6 +640,10 @@ node "<resolved-vs-qa-skill-directory>/scripts/validate-screenshot-evidence.mjs"
 The command must report `"valid":true`. Remove unused template examples, then
 fix missing, orphaned, empty, or invalid PNG evidence before completion. Report
 only its JSON metadata, never image data.
+
+`clips.statusStated:false` means the run recorded nothing and never said why.
+Add the `Recording` row to run metadata — a clip count, or
+`recording unavailable on this control surface` with the reason.
 
 A non-empty `runtime.stale` means the report pins an HTMDX version older than
 the templates. That failure is silent in the browser — the evidence is on disk

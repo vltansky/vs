@@ -19,6 +19,8 @@ const BROWSER_API = fs.readFileSync(
   'utf8',
 );
 const VALIDATOR = path.join(DIR, 'scripts', 'validate-screenshot-evidence.mjs');
+// A clipless report must state why, so every fixture that should pass carries it.
+const RECORDING_STATUS = '| **Recording** | 0 (no sequence defects) |\n\n';
 
 describe('vs-qa screenshot evidence', () => {
   it('keeps screenshot bytes out of model context and references retained files', () => {
@@ -46,7 +48,7 @@ describe('vs-qa screenshot evidence', () => {
       ),
     );
     const reportPath = path.join(fixtureDir, 'report.md');
-    fs.writeFileSync(reportPath, '![Initial state](screenshots/initial.png)\n');
+    fs.writeFileSync(reportPath, RECORDING_STATUS + '![Initial state](screenshots/initial.png)\n');
 
     const result = spawnSync(process.execPath, [VALIDATOR, reportPath], {
       encoding: 'utf8',
@@ -60,9 +62,9 @@ describe('vs-qa screenshot evidence', () => {
   it('keeps recordings optional and tied to sequence evidence', () => {
     expect(QA).toContain('### Recording evidence contract');
     expect(QA).toMatch(/Screenshots prove state; a recording proves sequence/);
-    expect(QA).toMatch(/a run with none is complete/);
+    expect(QA).toMatch(/A run whose issues are all static is complete/);
     expect(QA).toMatch(/recording\s+unavailable on this control surface/);
-    expect(QA).toMatch(/Do not describe a sequence in prose and present it as proof/);
+    expect(QA).toMatch(/Do\s+not describe a sequence in prose and present it as proof/);
     expect(QA).toContain('mkdir -p "$RUN_DIR/screenshots" "$RUN_DIR/evidence" "$RUN_DIR/clips"');
   });
 
@@ -117,7 +119,7 @@ describe('vs-qa screenshot evidence', () => {
     const run = () =>
       spawnSync(process.execPath, [VALIDATOR, reportPath], { encoding: 'utf8' });
 
-    fs.writeFileSync(reportPath, '![Initial state](screenshots/initial.png)\n');
+    fs.writeFileSync(reportPath, RECORDING_STATUS + '![Initial state](screenshots/initial.png)\n');
     const orphan = run();
     expect(orphan.status).toBe(1);
     expect(orphan.stdout).toContain('"orphaned":["clips/issue-001.webm"]');
@@ -139,6 +141,52 @@ describe('vs-qa screenshot evidence', () => {
     expect(dangling.stdout).toContain('"missing":["clips/gone.webm"]');
   });
 
+  it('routes recording by capability rather than by the driving surface', () => {
+    expect(QA).toMatch(/Recording is the exception/);
+    expect(QA).toMatch(/capability, not a property of the surface\s+driving the run/);
+    expect(QA).toMatch(/Selecting a higher-priority surface does not put recording\s+out of reach/);
+    expect(QA).toMatch(/Reach for `agent-browser record` before concluding a surface\s+cannot record/);
+  });
+
+  it('names the sequence defects that default to a recording', () => {
+    expect(QA).toMatch(/Read that as a default, not permission to skip/);
+    expect(QA).toMatch(/a\s+navigation that does not happen/);
+    expect(QA).toMatch(/whose before frame is blank or identical to its after frame/);
+    expect(QA).toMatch(/A run whose issues are all static is complete\s+with no clips/);
+  });
+
+  it('requires a clipless run to state its recording status', () => {
+    expect(HTML_TEMPLATE).toContain('| Recording |');
+    expect(MARKDOWN_TEMPLATE).toContain('| **Recording** |');
+
+    const fixtureDir = fs.mkdtempSync(path.join(os.tmpdir(), 'vs-qa-recstatus-'));
+    fs.mkdirSync(path.join(fixtureDir, 'screenshots'));
+    fs.writeFileSync(
+      path.join(fixtureDir, 'screenshots', 'initial.png'),
+      Buffer.from(
+        'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=',
+        'base64',
+      ),
+    );
+    const reportPath = path.join(fixtureDir, 'report.md');
+    const run = () =>
+      spawnSync(process.execPath, [VALIDATOR, reportPath], { encoding: 'utf8' });
+
+    fs.writeFileSync(reportPath, '![Initial state](screenshots/initial.png)\n');
+    const silent = run();
+    expect(silent.status).toBe(1);
+    expect(silent.stdout).toContain('"statusStated":false');
+
+    fs.writeFileSync(
+      reportPath,
+      '| **Recording** | recording unavailable on this control surface (Codex in-app browser) |\n\n'
+        + '![Initial state](screenshots/initial.png)\n',
+    );
+    const stated = run();
+    expect(stated.status).toBe(0);
+    expect(stated.stdout).toContain('"statusStated":true');
+  });
+
   it('rejects an HTML report pinned to a runtime that cannot render its evidence', () => {
     const fixtureDir = fs.mkdtempSync(path.join(os.tmpdir(), 'vs-qa-pin-'));
     fs.mkdirSync(path.join(fixtureDir, 'screenshots'));
@@ -153,7 +201,8 @@ describe('vs-qa screenshot evidence', () => {
     const write = (pin: string) =>
       fs.writeFileSync(
         reportPath,
-        `<script src="https://cdn.jsdelivr.net/npm/@wix/htmdx@${pin}/dist/browser.js" defer></script>\n`
+        RECORDING_STATUS
+          + `<script src="https://cdn.jsdelivr.net/npm/@wix/htmdx@${pin}/dist/browser.js" defer></script>\n`
           + '![Initial state](screenshots/initial.png)\n',
       );
     const run = () =>
@@ -181,7 +230,7 @@ describe('vs-qa screenshot evidence', () => {
       ),
     );
     const reportPath = path.join(fixtureDir, 'report.md');
-    fs.writeFileSync(reportPath, '![Initial state](screenshots/initial.png)\n');
+    fs.writeFileSync(reportPath, RECORDING_STATUS + '![Initial state](screenshots/initial.png)\n');
 
     const result = spawnSync(process.execPath, [VALIDATOR, reportPath], {
       encoding: 'utf8',
@@ -202,7 +251,7 @@ describe('vs-qa screenshot evidence', () => {
     fs.writeFileSync(path.join(screenshotsDir, 'initial.png'), png);
     fs.writeFileSync(path.join(screenshotsDir, 'orphan.png'), png);
     const reportPath = path.join(fixtureDir, 'report.md');
-    fs.writeFileSync(reportPath, '![Initial state](screenshots/initial.png)\n');
+    fs.writeFileSync(reportPath, RECORDING_STATUS + '![Initial state](screenshots/initial.png)\n');
 
     const result = spawnSync(process.execPath, [VALIDATOR, reportPath], {
       encoding: 'utf8',
