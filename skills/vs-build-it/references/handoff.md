@@ -39,6 +39,11 @@ the run started none.
 ### Codex Goal
 [created/reused/completed/unavailable/not created pending shape-it/left active because ...]
 
+### Decision Records
+[`adr/<slug>.md` — one-line decision, written before implementation | honored
+existing `adr/<slug>.md` | superseded `adr/<old>.md` — why | none — no
+repo-level decision]
+
 ### Decision Log
 | # | Phase | Decision | Principle | Rationale |
 |---|-------|----------|-----------|-----------|

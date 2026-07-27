@@ -10,7 +10,7 @@ Work within the user's stated plan or requested outcome; stop for strategic bloc
 
 Build-it takes a plan (or generates one if needed) and runs seven phases within that scope:
 1. **Roast** — load and follow the pushback skill to stress-test the plan
-2. **Fix** — apply pushback findings directly to the plan
+2. **Fix** — apply pushback findings to the plan; record durable decisions as ADRs before any code
 3. **Execute** — create branch and implement with TDD; escalate to debugging on evidence
 4. **Review** — review the integrated diff once, with depth proportional to risk
 5. **QA** — browser-test only changed user-visible browser behavior
@@ -75,7 +75,7 @@ use it as the run-level progress contract for build-it:
 
 ## Decision Principles
 
-These apply the shared `vs-decide-for-me` contract to every question that would normally go to the user:
+These apply the shared `vs-decide-for-me` contract to every question that would normally go to the user. A decision recorded in an ADR read during Phase 0 outranks all of them:
 
 1. **Outcome completeness** — ship the smallest complete observable outcome.
    Do not implement every capability in a plan when a narrower vertical slice
@@ -124,6 +124,11 @@ when the user asks build-it to use a Codex goal.
   first. The Goal Contract defines done; the Execution Strategy's workstreams,
   waves, write scopes, and effort assignments govern Step 3 and Phase 3
   delegation. Do not re-derive an execution topology the spec already provides.
+- Read every ADR the plan names, plus any ADR in the repo's decision directory
+  that covers a surface this work touches. A recorded decision is binding: it
+  outranks the decision principles below, and an implementation that contradicts
+  one is a blocker to surface, not a tactical call to make. If the work requires
+  changing a recorded decision, say so and supersede it per Phase 2 Step 5.
 - Run `git status` and `git diff` to understand the current state.
 - Note the project's test command, build command, and lint command from CLAUDE.md.
   If not found, search for them in package.json, Makefile, or equivalent.
@@ -302,6 +307,29 @@ steps, reordered dependencies).
 Write the updated plan back to the plan file (or note the changes in the decision
 log if there is no plan file on disk).
 
+### Step 5: Record durable decisions before implementing them
+
+The record precedes the implementation it governs, per
+[Record repo-level decisions before implementation](../../adr/record-repo-level-decisions-before-implementation.md).
+This is the last point at which the plan is final and no code exists, so resolve
+the ADR question here rather than at the end of the run.
+
+- **The plan names an ADR** (a shaped Goal Contract `ADR:` line, or a record read
+  in Phase 0): nothing to write. It is already binding; carry it into the worker
+  briefs whose scope it constrains.
+- **Build-it generated the plan itself** (Step 1a) and that plan settles a
+  durable, repo-level decision — one expensive to reverse, that future readers
+  will ask "why did we do it this way" about: write the ADR now and commit it
+  before the first implementation commit. Follow the repo's ADR convention;
+  absent one, use `adr/` at the repo root with a slug-only filename (lowercase,
+  dash-separated, no numeric prefix) and run `/vs-setup-adr` to bootstrap
+  scaffolding if none exists. Record context, decision, alternatives considered,
+  and rationale. Commit it separately: `docs: add ADR for [decision]`.
+- **Pushback overturned a recorded decision** in Phase 1: do not edit the merged
+  ADR. Write a new one that names the ADR it supersedes, and commit it first.
+- **Neither applies:** note "no repo-level decision" in the decision log in one
+  clause and move on. Tactical implementation choices are not ADR material.
+
 Emit a short transition summary:
 > **Phase 1-2 complete.** Roast score: [N]/100. Fixed [X] high, [Y] medium issues.
 > [Z] items noted as known risks. Proceeding to execution with [N] steps.
@@ -409,23 +437,19 @@ Do not spend child budget reviewing partial layers. Inspect the integrated diff
 and run the final review once in Phase 4, after dependency and merge issues are
 visible together.
 
-### Step 3b: Capture ADRs for durable decisions
+### Step 3b: Supersede a decision execution invalidated
 
-If execution settled a durable, repo-level architecture decision — one that is
-expensive to reverse and future readers will ask "why did we do it this way"
-(a shaped ADR from `/vs-shape-it`, or a decision-principle resolution that
-changed the approach) — write an ADR alongside the code.
+Phase 2 Step 5 already recorded the decisions this run was planned around. This
+step covers only the case that could not run earlier: execution proved a
+recorded decision wrong or unworkable.
 
-- Follow the repo's ADR convention if one exists. Otherwise use `adr/` at the
-  repo root with a slug-only filename (lowercase, dash-separated, no numeric
-  prefix), and run `/setup-adr` to bootstrap scaffolding if none exists.
-- Record the context, the decision, the alternatives considered, and the
-  rationale. Never edit a merged ADR — supersede it with a new one.
-- Commit the ADR separately: `docs: add ADR for [decision]`.
-- Note it in the decision log and reference it in the Phase 7 handoff.
+Never edit a merged ADR. Write a new ADR that names the one it supersedes,
+records what execution revealed, and states the replacement decision. Commit it
+separately (`docs: supersede [decision] ADR`), note it in the decision log, and
+reference it in the Phase 7 handoff.
 
-Skip this for tactical implementation choices — ADRs are for repo-level
-decisions, not session notes.
+If execution merely surfaced a tactical implementation choice, log it and move
+on — ADRs are for repo-level decisions, not session notes.
 
 ### Step 4: Final validation
 

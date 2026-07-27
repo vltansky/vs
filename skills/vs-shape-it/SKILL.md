@@ -12,7 +12,8 @@ conversation short and decision-focused; the human makes strategic calls.
 Do NOT write code, scaffold projects, create GitHub issues, or start
 implementation workers. Planning-only research or critique subagents are
 allowed for complex work. Output is questions, evidence, design, stress-test,
-and a goal-ready execution blueprint.
+a decision record when one is warranted, and a goal-ready execution blueprint.
+Writing an ADR is a decision record, not implementation, and is allowed.
 </HARD-GATE>
 
 ## Route the input
@@ -199,9 +200,41 @@ When a cheap prototype would answer a costly design question, recommend
 `/vs-prototype`. When a performance claim shapes the design, use `/vs-perf` to
 define the metric and evaluator before calling it build-ready.
 
-For an expensive-to-reverse repo-level decision, recommend an ADR. Follow the
-repo convention, or suggest slug-only files under `adr/` and `/vs-setup-adr`.
-Name the decision, alternatives, and rationale so implementation can record it.
+#### Record the decision
+
+The record precedes the implementation it governs, per
+[Record repo-level decisions before implementation](../../adr/record-repo-level-decisions-before-implementation.md).
+Resolve the ADR question once, here, with a stated outcome. Silence is not an
+allowed outcome.
+
+An ADR is warranted when the design settles a decision that is expensive to
+reverse and that future readers will ask "why did we do it this way" about:
+cross-cutting workflow or runtime behavior, a convention contributors and agents
+must follow, an enforcement or validation policy, or a build-vs-adopt call that
+locks in a dependency or integration boundary. It is not warranted for feature
+work, local refactors, or tactical implementation choices that a later session
+can change freely.
+
+When it is warranted, write `adr/<slug>.md` now, before the closing interaction:
+
+- Follow the repo's existing ADR convention. Absent one, use `adr/` at the repo
+  root with a slug-only filename — lowercase, dash-separated, present-tense
+  imperative, no numeric prefix.
+- Include Date, Context, Decision, Consequences, and the alternatives actually
+  evaluated with the reason each was rejected. Carry over prior art you rejected
+  during research; that rationale is intact now and expensive to reconstruct
+  later.
+- Leave it uncommitted and add no `Status` field. Approval happens at PR merge.
+- Never edit a merged ADR. When this design changes an existing decision, add a
+  new ADR that names the one it supersedes.
+
+When the repo has no ADR surface and the decision qualifies, recommend
+`/vs-setup-adr` in the closing interaction rather than inventing an ADR
+convention the repo never adopted.
+
+When no repo-level decision was settled, say so in one clause with the reason.
+
+Either way, the Goal Contract's `ADR` line records the result.
 
 #### Finalize the spec
 
@@ -226,6 +259,7 @@ The Goal Contract is the stable handoff from shaping to building:
 - Verification: <tests, runtime evidence, CI, review, or acceptance checks>
 - Evidence plan: <surface + route or command + state or fixture that will prove
   the outcome, or OPEN DECISION when no surface exists today>
+- ADR: <path(s) to the decision record(s) build-it must honor, or None — reason>
 - Constraints and approvals: <hard boundaries and human gates>
 ```
 
@@ -339,7 +373,10 @@ supplies the verdict, not the plan.
 ### 3. Closing interaction
 
 Return with the complete recommendation, evidence-driven changes from the
-stress test, the Goal Contract, and any execution blueprint. Make unresolved
+stress test, the Goal Contract, any drafted ADR, and any execution blueprint.
+Show the ADR as a path plus its one-line decision, or state in one clause why
+none was warranted; it is part of what the approval gate covers, not a follow-up
+task. Make unresolved
 strategic decisions conspicuous; for each, recommend one path and explain how
 the alternatives change the outcome. Do not restart the interview or expose a
 trail of tactical questions the independent phase already resolved.
@@ -353,8 +390,9 @@ being approved. Lead with the blocking finding and recommend reworking it before
 `/vs-build-it`. Offer a full interactive `/vs-pushback` when the user wants to
 defend the design in rounds; composed mode scored it without their answers.
 
-Ask for approval once, after the whole design, Goal Contract, and any execution
-blueprint are visible. Approval means the artifact is ready for `/vs-build-it`;
+Ask for approval once, after the whole design, Goal Contract, any ADR, and any
+execution blueprint are visible. Approval means the artifact is ready for
+`/vs-build-it`;
 it does not itself start implementation.
 Routing metadata does not replace or suppress the closing design.
 
@@ -420,6 +458,8 @@ Before finishing, check:
 - the Goal Contract states an observable outcome, scope, success, and proof
 - the Goal Contract names an Evidence plan, or marks it OPEN DECISION and
   surfaces it in the closing interaction
+- the ADR question was resolved with a stated outcome: a drafted `adr/<slug>.md`
+  named in the Goal Contract, or a one-clause reason none was warranted
 - unresolved strategic ambiguity is explicit
 - direct work has no coordination overhead
 - orchestrated work has bounded workstreams, effort, dependencies, merge gates,
