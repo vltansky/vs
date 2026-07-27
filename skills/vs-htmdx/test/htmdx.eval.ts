@@ -53,7 +53,7 @@ describe('vs-htmdx', () => {
   it('ships a single-source template with no host element', () => {
     expect(TEMPLATE.match(/<script\s[^>]*type="text\/htmdx"/g)).toHaveLength(1);
     expect(TEMPLATE).toContain('data-vs-source="primary"');
-    expect(TEMPLATE).toContain('@wix/htmdx@4.9.0/dist/browser.js');
+    expect(TEMPLATE).toContain('@wix/htmdx@4.10.1/dist/browser.js');
     expect(TEMPLATE).not.toContain('<htmdx-code');
   });
 

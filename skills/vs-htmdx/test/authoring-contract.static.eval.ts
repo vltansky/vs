@@ -12,7 +12,7 @@ const RENDER_CHECK = fs.readFileSync(
 describe('the component catalog is read from the runtime, not from the skill', () => {
   it('loads the guidance with the skill command before authoring', () => {
     expect(SKILL).toContain('## Load the guidance');
-    expect(SKILL).toContain('npx -y @wix/htmdx@4.9.0 skill');
+    expect(SKILL).toContain('npx -y @wix/htmdx@4.10.1 skill');
     expect(SKILL).toMatch(
       /versioned with the\s+runtime, so read them from the runtime rather than from memory/,
     );
@@ -47,20 +47,24 @@ describe('the component catalog is read from the runtime, not from the skill', (
 
   it('routes the companion topics rather than restating them', () => {
     for (const topic of ['skill --list', 'skill components', 'skill integration']) {
-      expect(SKILL).toContain(`npx -y @wix/htmdx@4.9.0 ${topic}`);
+      expect(SKILL).toContain(`npx -y @wix/htmdx@4.10.1 ${topic}`);
     }
     expect(SKILL).toMatch(/at the same version that answered the first call/);
   });
 });
 
-describe('ordered lists are not a usable construct', () => {
-  it('keeps ordered lists out of the shipped HTMDX templates', () => {
-    const templates = [
-      ['..', '..', 'vs-qa', 'references', 'qa-report-template.html'],
-      ['..', '..', 'vs-steal', 'references', 'steals-report-template.html'],
-      ['..', '..', 'vs-analyze-thread', 'references', 'thread-comparison-template.html'],
-      ['..', 'assets', 'artifact.html'],
-    ];
+describe('ordered lists render only from 4.10.1 onward', () => {
+  // Ordered lists collapsed to a paragraph before 4.10.1, and a list nested
+  // under a bullet lost its lines outright (wix-incubator/htmdx#77). Any
+  // template using `1.` has to pin a runtime that renders it.
+  const templates = [
+    ['..', '..', 'vs-qa', 'references', 'qa-report-template.html'],
+    ['..', '..', 'vs-steal', 'references', 'steals-report-template.html'],
+    ['..', '..', 'vs-analyze-thread', 'references', 'thread-comparison-template.html'],
+    ['..', 'assets', 'artifact.html'],
+  ];
+
+  it('pins a runtime that renders an ordered list wherever one is used', () => {
     for (const parts of templates) {
       const file = path.resolve(__dirname, ...parts);
       const source = fs.readFileSync(file, 'utf8');
@@ -68,8 +72,19 @@ describe('ordered lists are not a usable construct', () => {
         source.indexOf('text/htmdx'),
         source.indexOf('</script>'),
       );
-      expect(block, `${path.basename(file)} uses an ordered list`).not.toMatch(
-        /^\d+\. /m,
+      if (!/^\d+\. /m.test(block)) continue;
+      expect(source, `${path.basename(file)} predates the ordered-list fix`).toContain(
+        '@wix/htmdx@4.10.1',
+      );
+    }
+  });
+
+  it('drops the bolded-bullet workaround the collapse forced', () => {
+    for (const parts of templates) {
+      const file = path.resolve(__dirname, ...parts);
+      const source = fs.readFileSync(file, 'utf8');
+      expect(source, `${path.basename(file)} still fakes a numbered list`).not.toMatch(
+        /^- \*\*(?:Step )?\d+\.\*\* /m,
       );
     }
   });
@@ -78,7 +93,7 @@ describe('ordered lists are not a usable construct', () => {
 describe('linting gates the artifact before it is rendered', () => {
   it('runs the linter at the pinned version, strictly', () => {
     expect(SKILL).toContain(
-      'npx -y @wix/htmdx@4.9.0 lint "$ARTIFACT_PATH" --strict',
+      'npx -y @wix/htmdx@4.10.1 lint "$ARTIFACT_PATH" --strict',
     );
     expect(SKILL).toMatch(
       /Exit `0` is clean, `1` means problems were found, and `2` means the check never\s+ran/,
