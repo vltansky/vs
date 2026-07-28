@@ -33,7 +33,7 @@ runtime, so read them from the runtime rather than from memory. Run this before
 authoring, editing, or reviewing any HTMDX:
 
 ```bash
-npx -y @wix/htmdx@4.10.1 skill
+npx -y @wix/htmdx@4.11.0 skill
 ```
 
 When editing a file that already pins a runtime, read the guidance from *that*
@@ -48,9 +48,9 @@ choice, body grammar, attributes, and the CLI. Load a companion topic when the
 task calls for it, at the same version that answered the first call:
 
 ```bash
-npx -y @wix/htmdx@4.10.1 skill --list          # available topics
-npx -y @wix/htmdx@4.10.1 skill components      # body grammar per component
-npx -y @wix/htmdx@4.10.1 skill integration     # React host, registration, testing
+npx -y @wix/htmdx@4.11.0 skill --list          # available topics
+npx -y @wix/htmdx@4.11.0 skill components      # body grammar per component
+npx -y @wix/htmdx@4.11.0 skill integration     # React host, registration, testing
 ```
 
 A pin that exits `2` with `unknown command "skill"` predates the command.
@@ -85,7 +85,7 @@ uncertainty.
 2. Start from [assets/artifact.html](assets/artifact.html), which carries the
    `vs` artifact metadata the other `vs` report skills share. Copy the complete
    shell; replace the title, frontmatter, and primary source placeholders.
-3. Keep `@wix/htmdx@4.10.1` pinned in both the renderer metadata and script URL.
+3. Keep `@wix/htmdx@4.11.0` pinned in both the renderer metadata and script URL.
    Every `vs` template pins one version — do not diverge from it for a single
    artifact.
 4. Build a reading sequence:
@@ -124,7 +124,7 @@ Before presenting the artifact:
    HTML, and an unpinned runtime faster than reading for them:
 
 ```bash
-npx -y @wix/htmdx@4.10.1 lint "$ARTIFACT_PATH" --strict
+npx -y @wix/htmdx@4.11.0 lint "$ARTIFACT_PATH" --strict
 ```
 
 Exit `0` is clean, `1` means problems were found, and `2` means the check never

@@ -28,7 +28,7 @@ describe('vs-steal report format', () => {
     const template = fs.readFileSync(TEMPLATE_PATH, 'utf8');
     const sources = template.match(/<script type="text\/htmdx"/g) ?? [];
 
-    expect(template).toContain('@wix/htmdx@4.10.1/dist/browser.js');
+    expect(template).toContain('@wix/htmdx@4.11.0/dist/browser.js');
     expect(sources).toHaveLength(1);
     expect(template).toContain('<MetricStrip>');
     expect(template).toContain('<DataTable>');

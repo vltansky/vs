@@ -45,7 +45,7 @@ Use this shell and pin the runtime to an exact version:
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>[[TITLE]]</title>
-    <script src="https://cdn.jsdelivr.net/npm/@wix/htmdx@4.10.1/dist/browser.js" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/@wix/htmdx@4.11.0/dist/browser.js" defer></script>
   </head>
   <body>
     <!-- prettier-ignore -->
@@ -71,8 +71,8 @@ The guidance ships with the runtime, so read it from the version this shell
 loads rather than inferring a component from its name:
 
 ```bash
-npx -y @wix/htmdx@4.10.1 skill
-npx -y @wix/htmdx@4.10.1 skill components
+npx -y @wix/htmdx@4.11.0 skill
+npx -y @wix/htmdx@4.11.0 skill components
 ```
 
 It owns component names, body modes, and the compound-component and

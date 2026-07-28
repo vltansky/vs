@@ -27,7 +27,7 @@ describe('vs-htmdx', () => {
   });
 
   it('keeps every vs template on one pinned runtime', () => {
-    expect(SKILL).toMatch(/@wix\/htmdx@4\.9\.0/);
+    expect(SKILL).toMatch(/@wix\/htmdx@4\.11\.0/);
     expect(SKILL).toMatch(
       /Every `vs` template pins one version — do not diverge from it/,
     );
@@ -39,7 +39,7 @@ describe('vs-htmdx', () => {
     ]) {
       const file = path.resolve(__dirname, ...parts);
       expect(fs.readFileSync(file, 'utf8'), path.basename(file)).not.toMatch(
-        /@wix\/htmdx@(?!4\.9\.0)[0-9]/,
+        /@wix\/htmdx@(?!4\.11\.0)[0-9]/,
       );
     }
     // The QA evidence validator rejects reports on any other pin, so it moves
@@ -47,13 +47,13 @@ describe('vs-htmdx', () => {
     const validator = path.resolve(
       __dirname, '..', '..', 'vs-qa', 'scripts', 'validate-screenshot-evidence.mjs',
     );
-    expect(fs.readFileSync(validator, 'utf8')).toContain("EXPECTED_RUNTIME = '4.9.0'");
+    expect(fs.readFileSync(validator, 'utf8')).toContain("EXPECTED_RUNTIME = '4.11.0'");
   });
 
   it('ships a single-source template with no host element', () => {
     expect(TEMPLATE.match(/<script\s[^>]*type="text\/htmdx"/g)).toHaveLength(1);
     expect(TEMPLATE).toContain('data-vs-source="primary"');
-    expect(TEMPLATE).toContain('@wix/htmdx@4.10.1/dist/browser.js');
+    expect(TEMPLATE).toContain('@wix/htmdx@4.11.0/dist/browser.js');
     expect(TEMPLATE).not.toContain('<htmdx-code');
   });
 

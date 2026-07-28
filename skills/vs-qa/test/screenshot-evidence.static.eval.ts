@@ -238,7 +238,7 @@ describe('vs-qa screenshot evidence', () => {
     expect(stale.status).toBe(1);
     expect(stale.stdout).toContain('"stale":["2.2.1"]');
 
-    write('4.10.1');
+    write('4.11.0');
     const current = run();
     expect(current.status).toBe(0);
     expect(current.stdout).toContain('"stale":[]');
