@@ -28,7 +28,7 @@ in `YOU DO` with its condition stated before the command.
 ### Divider format
 
 ```markdown
-━━━ **YOU DO** ━━ 3 items · ~3m
+━━━ **YOU DO** ━━ 3 items
 
 1. ▶ Run `./install.sh` — your installed copy is still 4.10.1
 2. ▶ Open the ship-it report → evidence tab → reload → banner reads 4.11.0
@@ -46,7 +46,7 @@ in `YOU DO` with its condition stated before the command.
 
 - The divider is a fixed three-character `━━━` lead, then the bold zone label.
   It is left-anchored and never padded to a width.
-- `YOU DO` appends a count and a time estimate after `━━`.
+- `YOU DO` appends an item count after `━━`. Do not append a duration.
 - Zone bodies are markdown lists. `YOU DO` is ordered when the steps have an
   order; `DONE` and `NOT PROVEN` are unordered.
 - Markers are fixed symbols and sit inside the list item: Unicode `▶` means you
@@ -96,8 +96,8 @@ model's context and costs nothing.
    answer is a command, path, or snippet, it goes first.
 2. **Restate state every turn.** `Step 3 of 5 done: schema updated.` The user
    cannot hold position across messages.
-3. **Estimate in concrete units.** `About 15 minutes` — never "a bit of work".
-   Point the estimate at whoever executes the step.
+3. **State scope, not duration.** Do not show a wall-clock estimate unless the
+   user explicitly asks for one.
 4. **Cap any list at five.** Past five, split into do-now versus later. Five
    ranked beats ten unranked.
 5. **Report errors matter-of-factly.** State cause, then fix. Never "Uh oh" or

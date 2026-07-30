@@ -167,6 +167,7 @@ describe('ship-it hands the user something to try', () => {
       expect(block, `handback ${fact}`).toContain(fact);
     }
     expect(block).toMatch(/stop: kill <pid>/);
+    expect(block).not.toMatch(/~<M>m|time estimate/i);
     expect(block).toMatch(
       /▶ \*\*if it's wrong\*\* Run <the one command or revert that undoes it>/i,
     );

@@ -73,6 +73,10 @@ describe('output style contract', () => {
     expect(CONTRACT).toMatch(/full-width `━` run costs 20 to 30 tokens/i);
     expect(CONTRACT).toMatch(/under roughly 15 tokens per message/i);
     expect(CONTRACT).toMatch(/Skip zones entirely for messages under four lines/i);
+    expect(CONTRACT).toMatch(
+      /Do not show a wall-clock estimate unless the\s+user explicitly asks/i,
+    );
+    expect(CONTRACT).not.toMatch(/About \d+ minutes|items · ~\d+[mhd]/i);
   });
 
   it('survives an HTML markdown renderer, not only a terminal', () => {

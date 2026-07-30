@@ -645,7 +645,7 @@ it.
 ```markdown
 ## Handed back to you
 
-━━━ **YOU DO** ━━ <N> items · ~<M>m
+━━━ **YOU DO** ━━ <N> items
 
 - ▶ **try it** <preview URL> — or — http://localhost:<port> (running, PID <pid>; stop: kill <pid>)
   → <route to the change> · <fixture or login needed> · <the 3 steps that show the change>
