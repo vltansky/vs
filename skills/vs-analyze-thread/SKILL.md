@@ -188,6 +188,11 @@ the HTML template.
 Do not write findings into rules, memories, issues, or skill files without a
 separate explicit request.
 
+## Output style
+
+Apply the [shared output style](../vs-internal-shared/references/output-style.md)
+to every user-facing message.
+
 ## Workflow
 
 Direct: emit **Next** only. Composed: return to caller.

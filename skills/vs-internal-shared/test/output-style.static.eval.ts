@@ -44,14 +44,19 @@ describe('output style contract', () => {
     expect(CONTRACT).toMatch(
       /blocker that the user must clear is an action: it goes in `YOU DO`/i,
     );
+    expect(CONTRACT).toMatch(
+      /Never\s+repeat a `YOU DO` action as a `NOT PROVEN` item/i,
+    );
   });
 
-  it('defines the three zones with their ASCII gutters', () => {
+  it('defines the three zones with their fixed gutters', () => {
     for (const zone of ['YOU DO', 'DONE', 'NOT PROVEN']) {
       expect(CONTRACT, `zone ${zone}`).toContain(zone);
     }
-    expect(CONTRACT).toMatch(/`▶` you act/);
-    expect(CONTRACT).toMatch(/`!` an\s+unproven or blocked claim/);
+    expect(CONTRACT).toMatch(/Unicode `▶` means you\s+act/);
+    expect(CONTRACT).toMatch(
+      /ASCII `!` marks an\s+unproven or blocked claim/,
+    );
     expect(CONTRACT).toMatch(/No emoji/);
   });
 
@@ -119,9 +124,27 @@ describe('skill text obeys its own output style', () => {
   const files = markdownFiles(SKILLS_DIR).filter(
     (file) => file !== CONTRACT_PATH,
   );
+  const userFacingSkillFiles = fs
+    .readdirSync(SKILLS_DIR, { withFileTypes: true })
+    .filter(
+      (entry) =>
+        entry.isDirectory() &&
+        entry.name.startsWith('vs-') &&
+        entry.name !== 'vs-internal-shared',
+    )
+    .map((entry) => path.join(SKILLS_DIR, entry.name, 'SKILL.md'));
 
   it('finds skill markdown to check', () => {
     expect(files.length).toBeGreaterThan(30);
+  });
+
+  it('is directly reachable from every user-facing skill', () => {
+    for (const file of userFacingSkillFiles) {
+      expect(
+        fs.readFileSync(file, 'utf8'),
+        path.relative(SKILLS_DIR, file),
+      ).toContain('vs-internal-shared/references/output-style.md');
+    }
   });
 
   it('has no closing pleasantries in authored templates', () => {

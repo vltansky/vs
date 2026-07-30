@@ -647,7 +647,7 @@ it.
 
 ━━━ **YOU DO** ━━ <N> items · ~<M>m
 
-- **try it** <preview URL> — or — http://localhost:<port> (running, PID <pid>; stop: kill <pid>)
+- ▶ **try it** <preview URL> — or — http://localhost:<port> (running, PID <pid>; stop: kill <pid>)
   → <route to the change> · <fixture or login needed> · <the 3 steps that show the change>
 
 1. ▶ <check, with its route or command>
@@ -664,10 +664,11 @@ it.
 - ! <claim> → <exact blocker>
 ```
 
-The `▶` list holds only what the agent genuinely could not verify itself. An
-empty list is a valid and good outcome, but the zone still renders — write
-`▶ none — every check was automated.` The point is that it is stated rather
-than left implicit.
+The numbered `▶` list holds only what the agent genuinely could not verify
+itself. Omit that list when every check was automated; the `try it` action keeps
+`YOU DO` non-empty. Do not repeat a manual check under `NOT PROVEN`: the action
+owns that gap until the user clears it. Omit the entire `NOT PROVEN` zone when
+no non-actionable evidence gap remains.
 
 Each `▶` line is one imperative action under 20 words, naming its command or
 route literally.
@@ -700,8 +701,8 @@ each item below.
       stop command, or the precise blocker
 - [ ] The QA report was opened and what was tested is listed, or its absence is
       stated as a blocker
-- [ ] The `## Handed back to you` block was emitted with all seven facts across
-      its three zones, and every user action sits in `YOU DO`
+- [ ] The `## Handed back to you` block emitted every required fact across its
+      applicable zones, and every user action sits in `YOU DO`
 - [ ] `vs-brief` generated and used as source material (unless trivial diff)
 - [ ] `vs-verify` generated a PASS/WARN result or was skipped as trivial
 - [ ] `vs-write` tightened the final body without dropping evidence or risks

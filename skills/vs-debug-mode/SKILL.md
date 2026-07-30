@@ -234,6 +234,11 @@ export default {
 - `scripts/debug_server.js` — log collection server (port 8787)
 - `scripts/debug_cleanup.js` — clear or remove log files
 
+## Output style
+
+Apply the [shared output style](../vs-internal-shared/references/output-style.md)
+to every user-facing message.
+
 ## Workflow
 
 Direct: emit **Next** only. Composed: return to caller.

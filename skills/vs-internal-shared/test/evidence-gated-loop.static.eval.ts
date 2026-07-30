@@ -152,7 +152,7 @@ describe('ship-it hands the user something to try', () => {
     expect(SHIP_IT).toMatch(/Ship-it never re-runs QA/);
   });
 
-  it('emits the handback block with all seven facts across its zones', () => {
+  it('emits the handback facts across their applicable zones', () => {
     const block = SHIP_IT.slice(SHIP_IT.indexOf('## Handed back to you'));
     for (const fact of [
       '━━━ **YOU DO**',
@@ -168,9 +168,13 @@ describe('ship-it hands the user something to try', () => {
     }
     expect(block).toMatch(/stop: kill <pid>/);
     expect(block).toMatch(/exact blocker/);
-    expect(block).toMatch(/empty list is a valid and good outcome/);
+    expect(block).toMatch(/Omit that list when every check was automated/);
+    expect(block).toMatch(
+      /Do not repeat a manual check under `NOT PROVEN`/i,
+    );
+    expect(block).toMatch(/Omit the entire `NOT PROVEN` zone when/i);
     expect(SHIP_IT).toMatch(
-      /all seven facts across\s+its three zones, and every user action sits in `YOU DO`/i,
+      /every required fact across its\s+applicable zones, and every user action sits in `YOU DO`/i,
     );
   });
 });

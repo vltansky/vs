@@ -172,6 +172,11 @@ Before the final handoff, apply
 `Next` below as the semantic route; report a session action only when required
 by that contract.
 
+## Output style
+
+Apply the [shared output style](../vs-internal-shared/references/output-style.md)
+to every user-facing message.
+
 ## Workflow
 
 Direct: emit **Next** only. Composed: return to caller.

@@ -102,6 +102,11 @@ If the user applies a fix, offer to re-run Step 3-5 with the same blind prompt t
 - This is complementary to `skill-test` (offline `claude -p` canary runs) — use `vs-try-skill` mid-iteration, `skill-test` for scripted regression.
 - Does not produce session artifacts. Comparison is inline.
 
+## Output style
+
+Apply the [shared output style](../vs-internal-shared/references/output-style.md)
+to every user-facing message.
+
 ## Workflow
 
 Direct: emit **Next** only. Composed: return to caller.

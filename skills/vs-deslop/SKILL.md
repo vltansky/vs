@@ -66,6 +66,11 @@ Inspect the requested scope for:
   - `<command>` - <result>
 ```
 
+## Output style
+
+Apply the [shared output style](../vs-internal-shared/references/output-style.md)
+to every user-facing message.
+
 ## Workflow
 
 Direct: emit **Next** only. Composed: return to caller.

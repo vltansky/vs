@@ -20,7 +20,9 @@ this order. Skip any zone that is empty.
 | `NOT PROVEN` | `!` | Claims the run could not verify, each with its exact blocker |
 
 A blocker that the user must clear is an action: it goes in `YOU DO`, not in
-`NOT PROVEN`. `NOT PROVEN` is for gaps the user only needs to know about.
+`NOT PROVEN`. `NOT PROVEN` is for gaps the user only needs to know about. Never
+repeat a `YOU DO` action as a `NOT PROVEN` item; the action owns that gap until
+the user clears it.
 
 ### Divider format
 
@@ -46,8 +48,9 @@ A blocker that the user must clear is an action: it goes in `YOU DO`, not in
 - `YOU DO` appends a count and a time estimate after `━━`.
 - Zone bodies are markdown lists. `YOU DO` is ordered when the steps have an
   order; `DONE` and `NOT PROVEN` are unordered.
-- Markers are ASCII and sit inside the list item: `▶` you act, `✓` a completed
-  item inside prose, `!` an unproven or blocked claim. No emoji.
+- Markers are fixed symbols and sit inside the list item: Unicode `▶` means you
+  act, Unicode `✓` marks a completed item inside prose, and ASCII `!` marks an
+  unproven or blocked claim. No emoji.
 - Never draw a box, a right border, or a column that needs padding math. The
   model cannot reliably count columns, and a misaligned border is worse than no
   border.

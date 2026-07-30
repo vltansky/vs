@@ -153,6 +153,11 @@ TDD returns: test file path, implementation file paths, guardrail results.
 - **Match existing test patterns.** TDD is about discipline, not about introducing
   your preferred test framework or assertion library.
 
+## Output style
+
+Apply the [shared output style](../vs-internal-shared/references/output-style.md)
+to every user-facing message.
+
 ## Workflow
 
 Direct: emit **Next** only. Composed: return to caller.

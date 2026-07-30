@@ -203,6 +203,11 @@ Follow the shared Mermaid guidance in
 - Only flag changes where the specific affected code path is identifiable from the diff (and session context when available)
 - Do not flag intentional design choices unless they introduce a clear defect
 
+## Output style
+
+Apply the [shared output style](../vs-internal-shared/references/output-style.md)
+to every user-facing message.
+
 ## Workflow
 
 Direct: emit **Next** only. Composed: return to caller.
