@@ -384,7 +384,7 @@ the final evidence, review map, and verification result before declaring it read
 Immediately re-resolve the PR from the same checkout:
 
 ```bash
-PR_JSON=$(gh pr view --json number,url,state,headRefName,headRefOid)
+PR_JSON=$(gh pr view --json number,url,title,state,headRefName,headRefOid)
 LOCAL_BRANCH=$(git branch --show-current)
 LOCAL_HEAD=$(git rev-parse HEAD)
 
@@ -401,7 +401,15 @@ printf '%s\n' "$PR_URL"
 Do not switch branches or end the turn before this succeeds; Codex uses the
 current checkout and authenticated `gh` to refresh native PR context. On failure,
 run `gh auth status`, report the mismatch, and stop. Use the verified `PR_NUM`,
-`PR_URL`, and `REPO` below. Print `PR_URL` and the brief to chat.
+`PR_URL`, and `REPO` below. Immediately print a clickable PR link in this block,
+using the verified title, head SHA, and local validation state:
+
+```markdown
+## PR created and verified
+
+**PR:** [#<N> — <title>](<PR_URL>)
+**Head:** `<short SHA>` · **Local checks:** <status>
+```
 
 ### Step 5c: Optional GitHub-hosted image upload
 
@@ -470,14 +478,22 @@ when the handle isn't obvious. Skip anyone you can't map confidently.
 
 ## Step 7: Watch CI
 
-Print the brief to chat again before starting the watch — the user is about to
-wait on CI, so give them something useful to read:
+Start a new, visibly separated chat update before the watch so PR creation and
+babysitting cannot look like one continuous phase. Print the brief after the
+transition — the user is about to wait on CI, so give them something useful to
+read:
 
-```
+```markdown
+---
+
+## Babysitting PR #<N>
+
+Watching CI and automated review. I’ll report only state changes, fix actionable
+findings, and stop when the PR is merge-ready.
+
 === Change Brief ===
 <contents of $BRIEF_FILE>
 ====================
-Watching CI…
 ```
 
 Then block until CI checks complete. This keeps the agent in context so it can
@@ -670,6 +686,7 @@ each item below.
 - [ ] `vs-write` tightened the final body without dropping evidence or risks
 - [ ] PR created with conventional format title and concise body
 - [ ] PR re-resolved from the current checkout before turn completion; state, branch, and HEAD verified
+- [ ] Clickable PR link printed immediately after association verification
 - [ ] WHY explains the problem, diagnosis, impact, and important system boundary without inventing motivation
 - [ ] UI evidence uses matched before/after screenshots or a recording with captions; other observable changes use paired output or a demo
 - [ ] Optional browser image upload was skipped or explicitly approved through `request_user_input` before browser access; only approved files were uploaded and no comment was posted
@@ -680,6 +697,7 @@ each item below.
 - [ ] Human review focus states the judgment automation cannot settle, when applicable
 - [ ] Reviewer suggestions reported in chat only
 - [ ] Brief printed to chat before CI watch starts
+- [ ] Babysitting transition printed as a separated phase before CI watch starts
 - [ ] CI checks pass (or failures investigated and fixed, max 2 attempts)
 - [ ] Shipping goal reconciled before handoff or optional monitoring
 - [ ] `vs-baby-sit` started only when continued monitoring was requested

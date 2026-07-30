@@ -49,7 +49,7 @@ describe('vs-ship-it routing', () => {
 describe('vs-ship-it PR association handshake', () => {
   it('re-resolves complete PR identity after creation', () => {
     expect(SKILL).toContain(
-      'gh pr view --json number,url,state,headRefName,headRefOid',
+      'gh pr view --json number,url,title,state,headRefName,headRefOid',
     );
     expect(SKILL).toMatch(/PR_NUM=.*\.number/);
     expect(SKILL).toMatch(/PR_URL=.*\.url/);
@@ -66,6 +66,13 @@ describe('vs-ship-it PR association handshake', () => {
   it('uses the verified URL and stops on failed verification', () => {
     expect(SKILL).toContain('printf \'%s\\n\' "$PR_URL"');
     expect(SKILL).toMatch(/On failure,[\s\S]*report the mismatch, and stop/);
+  });
+
+  it('prints the verified PR link before visibly starting babysitting', () => {
+    expect(SKILL).toContain('## PR created and verified');
+    expect(SKILL).toContain('**PR:** [#<N> — <title>](<PR_URL>)');
+    expect(SKILL).toMatch(/---\n\n## Babysitting PR #<N>/);
+    expect(SKILL).toContain('I’ll report only state changes');
   });
 });
 
