@@ -255,11 +255,9 @@ Use `npm run eval:static` as the default edit loop. Each behavior eval starts a
 live agent, so the full `npm run eval` suite takes minutes and may require agent
 credentials.
 
-Run evals through the `npm run eval*` scripts rather than `vitest` directly. They
-go through `scripts/eval-home.mjs`, which points `HOME` at a sanitized copy of
-your home directory. PathGrade's macOS Keychain auth path copies `~/.claude.json`
-into every trial sandbox; without the wrapper each eval agent inherits your
-personal MCP servers and stalls on interactive logins the evals never need.
+Prefer the `npm run eval*` scripts so PathGrade's Vitest timeouts and worker
+caps stay consistent. On macOS, PathGrade reuses Claude Code Keychain OAuth
+without copying `~/.claude.json` or enabling Claude.ai MCP connectors.
 
 ## Acknowledgements
 
