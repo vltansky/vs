@@ -161,12 +161,15 @@ describe('ship-it hands the user something to try', () => {
       '━━━ **DONE**',
       '**shipped**',
       '**tested**',
-      '**undo**',
+      '**if it\'s wrong**',
       '━━━ **NOT PROVEN**',
     ]) {
       expect(block, `handback ${fact}`).toContain(fact);
     }
     expect(block).toMatch(/stop: kill <pid>/);
+    expect(block).toMatch(
+      /▶ \*\*if it's wrong\*\* Run <the one command or revert that undoes it>/i,
+    );
     expect(block).toMatch(/exact blocker/);
     expect(block).toMatch(/Omit that list when every check was automated/);
     expect(block).toMatch(

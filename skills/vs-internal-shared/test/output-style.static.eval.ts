@@ -47,6 +47,10 @@ describe('output style contract', () => {
     expect(CONTRACT).toMatch(
       /Never\s+repeat a `YOU DO` action as a `NOT PROVEN` item/i,
     );
+    expect(CONTRACT).toMatch(
+      /conditional rollback.*belongs\s+in `YOU DO`/is,
+    );
+    expect(CONTRACT).not.toMatch(/\| `DONE` \|[^|]*how to undo/i);
   });
 
   it('defines the three zones with their fixed gutters', () => {

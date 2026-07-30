@@ -653,11 +653,12 @@ it.
 1. ▶ <check, with its route or command>
 2. ▶ <check, with its route or command>
 
+- ▶ **if it's wrong** Run <the one command or revert that undoes it>
+
 ━━━ **DONE**
 
 - **shipped** <PR URL> · <N> commits · CI <status>
 - **tested** <N> routes, <N> interactions — report opened, <artifact path>
-- **undo** <the one command or revert that undoes it>
 
 ━━━ **NOT PROVEN**
 
@@ -671,7 +672,8 @@ owns that gap until the user clears it. Omit the entire `NOT PROVEN` zone when
 no non-actionable evidence gap remains.
 
 Each `▶` line is one imperative action under 20 words, naming its command or
-route literally.
+route literally. A conditional rollback remains in `YOU DO`; state its condition
+before its command.
 
 If the change altered skill or plugin content, the `▶` list includes the
 re-install command; the user does not have the new behavior until their

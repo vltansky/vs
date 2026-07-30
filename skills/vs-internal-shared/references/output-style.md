@@ -16,27 +16,28 @@ this order. Skip any zone that is empty.
 | Zone | Gutter | Holds |
 |---|---|---|
 | `YOU DO` | `▶` | Every action the user must take, plus the surface they take it on |
-| `DONE` | none | What now works, what was tested, how to undo it |
+| `DONE` | none | What now works and what was tested |
 | `NOT PROVEN` | `!` | Claims the run could not verify, each with its exact blocker |
 
 A blocker that the user must clear is an action: it goes in `YOU DO`, not in
 `NOT PROVEN`. `NOT PROVEN` is for gaps the user only needs to know about. Never
 repeat a `YOU DO` action as a `NOT PROVEN` item; the action owns that gap until
-the user clears it.
+the user clears it. A conditional rollback is still a user action, so it belongs
+in `YOU DO` with its condition stated before the command.
 
 ### Divider format
 
 ```markdown
-━━━ **YOU DO** ━━ 2 items · ~3m
+━━━ **YOU DO** ━━ 3 items · ~3m
 
 1. ▶ Run `./install.sh` — your installed copy is still 4.10.1
 2. ▶ Open the ship-it report → evidence tab → reload → banner reads 4.11.0
+3. ▶ If the release is wrong, run `git revert 3f2a91c`.
 
 ━━━ **DONE**
 
 - **shipped** PR #214 · 3 commits · CI green
 - **tested** 4 routes · 9 interactions
-- **undo** `git revert 3f2a91c`
 
 ━━━ **NOT PROVEN**
 
