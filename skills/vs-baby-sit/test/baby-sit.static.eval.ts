@@ -34,6 +34,26 @@ describe('vs-baby-sit remote-first validation', () => {
     expect(SKILL).toMatch(/Do not implement\s+polling with JavaScript `setTimeout`/);
   });
 
+  it('names the busy-wait patterns that replace the watcher', () => {
+    expect(SKILL).toMatch(/token bugs rather than alternatives to the watcher/);
+    expect(SKILL).toMatch(
+      /`gh pr checks <pr> --watch`, in the foreground or in a background\s+terminal/,
+    );
+    expect(SKILL).toMatch(/A `sleep` loop wrapped around `gh pr view`, `gh pr checks`, or `gh api`/);
+    expect(SKILL).toMatch(/only job is to re-poll\s+GitHub while the watcher is already running/);
+  });
+
+  it('keeps every watcher resume cheap', () => {
+    expect(SKILL).toMatch(/smallest output budget that still holds one JSONL line/);
+    expect(SKILL).toMatch(/hundreds of tokens,\s+not tens of thousands/);
+    expect(SKILL).toMatch(/Prefer babysitting\s+in a fresh thread/);
+  });
+
+  it('forbids narrating an unchanged wait', () => {
+    expect(SKILL).toMatch(/Never send a message whose\s+only content is that nothing changed/);
+    expect(SKILL).toMatch(/`CI is still running` are not state changes/);
+  });
+
   it('reflects babysitting state in the host thread title when supported', () => {
     expect(SKILL).toContain('set_thread_title');
     expect(SKILL).toContain('[babysit]');
@@ -365,6 +385,63 @@ esac
     expect(result.stdout.trim()).toBe(
       JSON.stringify({ event: 'baseline', snapshot }),
     );
+  });
+
+  it('wakes with review-feedback once a reviewer bot posts findings', () => {
+    const fixturePath = path.join(os.tmpdir(), `baby-sit-reviewer-${process.pid}.jsonl`);
+    const pending = {
+      state: 'open',
+      merged: false,
+      headSha: 'abc123',
+      mergeable: true,
+      reviewDecision: 'REVIEW_REQUIRED',
+      unresolvedThreads: 0,
+      ciState: 'PENDING',
+      failures: [],
+    };
+    const findings = { ...pending, ciState: 'SUCCESS', unresolvedThreads: 2 };
+    fs.writeFileSync(
+      fixturePath,
+      `${JSON.stringify(pending)}\n${JSON.stringify(findings)}\n`,
+    );
+
+    const result = spawnSync(
+      'python3',
+      [WATCHER, '--replay', fixturePath, '--until', 'merge-ready'],
+      { encoding: 'utf8' },
+    );
+    fs.unlinkSync(fixturePath);
+
+    expect(result.status).toBe(10);
+    expect(result.stdout.trim().split('\n')).toEqual([
+      JSON.stringify({ event: 'baseline', snapshot: pending }),
+      JSON.stringify({
+        event: 'attention',
+        reason: 'review-feedback',
+        snapshot: findings,
+      }),
+    ]);
+  });
+
+  it('does not treat a reviewer bot NEUTRAL conclusion as a failure', () => {
+    const code = `
+import importlib.util
+import sys
+spec = importlib.util.spec_from_file_location("watch_pr", sys.argv[1])
+watcher = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(watcher)
+combined = {"state": "success", "statuses": []}
+for conclusion in ("neutral", "skipped"):
+    checks = {"check_runs": [{"name": "Repo Review (Codex)", "status": "completed", "conclusion": conclusion}]}
+    print(watcher.ci_state(checks, combined)[0])
+`;
+    const result = spawnSync('python3', ['-c', code, WATCHER], {
+      encoding: 'utf8',
+      env: { ...process.env, PYTHONDONTWRITEBYTECODE: '1' },
+    });
+
+    expect(result.status).toBe(0);
+    expect(result.stdout.trim().split('\n')).toEqual(['SUCCESS', 'SUCCESS']);
   });
 
   it('classifies every unsuccessful terminal check conclusion as failure', () => {
