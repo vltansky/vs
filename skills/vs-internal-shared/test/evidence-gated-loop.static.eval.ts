@@ -152,21 +152,25 @@ describe('ship-it hands the user something to try', () => {
     expect(SHIP_IT).toMatch(/Ship-it never re-runs QA/);
   });
 
-  it('emits the handback block with all seven fields', () => {
+  it('emits the handback block with all seven facts across its zones', () => {
     const block = SHIP_IT.slice(SHIP_IT.indexOf('## Handed back to you'));
-    for (const field of [
-      '**Shipped:**',
-      '**Try it:**',
-      '**Tested:**',
-      '**You must check:**',
-      '**Not proven:**',
-      '**If it\'s wrong:**',
+    for (const fact of [
+      '━━━ **YOU DO**',
+      '**try it**',
+      '1. ▶',
+      '━━━ **DONE**',
+      '**shipped**',
+      '**tested**',
+      '**undo**',
+      '━━━ **NOT PROVEN**',
     ]) {
-      expect(block).toContain(field);
+      expect(block, `handback ${fact}`).toContain(fact);
     }
     expect(block).toMatch(/stop: kill <pid>/);
+    expect(block).toMatch(/exact blocker/);
+    expect(block).toMatch(/empty list is a valid and good outcome/);
     expect(SHIP_IT).toMatch(
-      /the `## Handed back to you` block was emitted with all seven fields/i,
+      /all seven facts across\s+its three zones, and every user action sits in `YOU DO`/i,
     );
   });
 });

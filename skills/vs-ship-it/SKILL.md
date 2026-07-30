@@ -637,22 +637,42 @@ Ship-it never re-runs QA. It reports what QA found.
 
 ### The handback block
 
+Zoned per
+[`../vs-internal-shared/references/output-style.md`](../vs-internal-shared/references/output-style.md).
+Everything the user must do sits in `YOU DO`; nothing actionable appears below
+it.
+
 ```markdown
 ## Handed back to you
-**Shipped:** <PR URL> · <N> commits · CI <status>
-**Try it:** <preview URL>  — or —  http://localhost:<port> (running, PID <pid>; stop: kill <pid>)
-   → <route to the change> · <fixture or login needed> · <the 3 steps that show the change>
-**Tested:** <N> routes, <N> interactions — report opened, see <artifact path>
-**You must check:** <numbered, specific, each with its route or command>
-**Not proven:** <claim → exact blocker>
-**If it's wrong:** <the one command or revert that undoes it>
+
+━━━ **YOU DO** ━━ <N> items · ~<M>m
+
+- **try it** <preview URL> — or — http://localhost:<port> (running, PID <pid>; stop: kill <pid>)
+  → <route to the change> · <fixture or login needed> · <the 3 steps that show the change>
+
+1. ▶ <check, with its route or command>
+2. ▶ <check, with its route or command>
+
+━━━ **DONE**
+
+- **shipped** <PR URL> · <N> commits · CI <status>
+- **tested** <N> routes, <N> interactions — report opened, <artifact path>
+- **undo** <the one command or revert that undoes it>
+
+━━━ **NOT PROVEN**
+
+- ! <claim> → <exact blocker>
 ```
 
-`You must check` lists only what the agent genuinely could not verify itself.
-An empty list is a valid and good outcome — the point is that it is stated
-rather than left implicit.
+The `▶` list holds only what the agent genuinely could not verify itself. An
+empty list is a valid and good outcome, but the zone still renders — write
+`▶ none — every check was automated.` The point is that it is stated rather
+than left implicit.
 
-If the change altered skill or plugin content, `You must check` includes the
+Each `▶` line is one imperative action under 20 words, naming its command or
+route literally.
+
+If the change altered skill or plugin content, the `▶` list includes the
 re-install command; the user does not have the new behavior until their
 installed copy is verified.
 
@@ -680,7 +700,8 @@ each item below.
       stop command, or the precise blocker
 - [ ] The QA report was opened and what was tested is listed, or its absence is
       stated as a blocker
-- [ ] The `## Handed back to you` block was emitted with all seven fields
+- [ ] The `## Handed back to you` block was emitted with all seven facts across
+      its three zones, and every user action sits in `YOU DO`
 - [ ] `vs-brief` generated and used as source material (unless trivial diff)
 - [ ] `vs-verify` generated a PASS/WARN result or was skipped as trivial
 - [ ] `vs-write` tightened the final body without dropping evidence or risks

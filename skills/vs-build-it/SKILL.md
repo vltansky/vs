@@ -49,6 +49,11 @@ Emit one line at each phase boundary so the user can see the run moving:
 Emit at phase start and phase end only — not per file edit or per tool call.
 Keep the detail out of chat; it belongs in the run report.
 
+Progress emissions stay one line and skip zones. When a phase boundary carries
+something the user must clear, zone the message per
+[`../vs-internal-shared/references/output-style.md`](../vs-internal-shared/references/output-style.md):
+the blocker's cause first, then the `▶` steps that clear it.
+
 Non-trivial runs write one portable HTMDX report to
 `~/.vs/$PROJECT_ID/build-it/YYYY-MM-DD-<slug>.html` via
 [`../vs-htmdx/SKILL.md`](../vs-htmdx/SKILL.md), and the handoff links it. The
