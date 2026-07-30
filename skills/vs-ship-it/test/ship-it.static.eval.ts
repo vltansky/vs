@@ -127,6 +127,35 @@ describe('vs-ship-it mechanical PR fast path', () => {
   });
 });
 
+describe('vs-ship-it CI watching', () => {
+  it('waits with the shared PR watcher instead of a streaming check table', () => {
+    expect(SKILL).toContain('scripts/watch_pr.py');
+    expect(SKILL).toMatch(/emits compact JSONL only when the state changes/);
+    expect(SKILL).toMatch(/Exit `10` carries an `attention` event/);
+    expect(SKILL).toMatch(/smallest output budget the runtime supports/);
+  });
+
+  it('bans busy-wait CI polling', () => {
+    expect(SKILL).toMatch(/Do not wait with `gh pr checks \$PR_NUM --watch`/);
+    expect(SKILL).toMatch(/a `sleep` poll loop/);
+    expect(SKILL).toMatch(/dominant token cost of a long CI wait/);
+    expect(SKILL).not.toMatch(/^gh pr checks \$PR_NUM --watch$/m);
+  });
+
+  it('still fetches reviewer findings on a non-SUCCESS conclusion', () => {
+    expect(SKILL).toMatch(/`NEUTRAL` or `FAILURE` to signal "I posted findings"/);
+    expect(SKILL).toMatch(/bailing on the first non-success would skip the findings fetch/);
+  });
+
+  it('points at a watcher that actually ships', () => {
+    expect(
+      fs.existsSync(
+        path.resolve(__dirname, '..', '..', 'vs-baby-sit', 'scripts', 'watch_pr.py'),
+      ),
+    ).toBe(true);
+  });
+});
+
 describe('vs-ship-it reviewer guide', () => {
   it('uses vs-write for dense, complete reviewer-facing copy', () => {
     expect(SKILL).toContain('[`vs-write`](../vs-write/SKILL.md)');
