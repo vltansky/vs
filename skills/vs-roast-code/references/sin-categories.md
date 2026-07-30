@@ -12,7 +12,7 @@ Fixed taxonomy. Use these exact labels in every roast — consistency builds a s
 | MISDEMEANORS | Console logs, TODO fossils, WHAT comments, minor inefficiencies, naming drift |
 | PARKING TICKETS | Nitpicks, polish, preferences, "if you're bored" notes |
 
-Findings from the deterministic slop-scan (Pass 0) are tagged `[slop-scan]` inline — their tier is assigned by impact, not by source. A hallucinated import that breaks the build is a CAPITAL OFFENSE; a verbose wrapper is a MISDEMEANOR.
+Tier is assigned by impact, not by which lens or model found it. A hallucinated import that breaks the build is a CAPITAL OFFENSE; a verbose wrapper is a MISDEMEANOR. Tag findings that came from the cross-model advisor so the independent signal stays visible.
 
 ## Common Sins
 
@@ -40,7 +40,7 @@ Findings from the deterministic slop-scan (Pass 0) are tagged `[slop-scan]` inli
 | Inconsistent naming | MISDEMEANORS | Identity crisis |
 | Trailing whitespace | PARKING TICKETS | Mention if bored |
 | Preference-only polish | PARKING TICKETS | Not a crime, just a vibe |
-| AI-generated slop | any tier | Tag `[slop-scan]`; assign tier by impact — hallucinated imports = CAPITAL, verbose wrapper = MISDEMEANOR |
+| AI-generated slop | any tier | Assign tier by impact — hallucinated imports = CAPITAL, verbose wrapper = MISDEMEANOR |
 
 ## Scan Lenses
 

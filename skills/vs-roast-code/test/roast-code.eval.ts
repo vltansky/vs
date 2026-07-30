@@ -1,3 +1,4 @@
+import * as fs from 'fs';
 import * as path from 'path';
 import { describe, it, expect } from 'vitest';
 import { createAgent, check, score, judge, evaluate } from '@wix/pathgrade';
@@ -49,6 +50,47 @@ Structural correctness (0-0.2):
 
 const REDACTION_FIXTURE = path.join(__dirname, 'fixtures', 'secret-code');
 const PRIORITY_FIXTURE = path.join(__dirname, 'fixtures', 'prioritized-review');
+const SMALL_CHANGE_FIXTURE = path.join(__dirname, 'fixtures', 'small-change');
+
+// ──────────────────────────────────────────────────────────────────
+// Proportionality test — a small, low-risk diff gets a small review
+// ──────────────────────────────────────────────────────────────────
+
+// Staged over the committed baseline: one file, ~8 changed lines, no risk
+// surface — SMALL by Phase 1 — carrying one real correctness bug (the hours
+// branch prints total minutes instead of the within-hour remainder).
+const SMALL_CHANGE_CONTENT = [
+  'function formatDuration(totalSeconds) {',
+  '  const hours = Math.floor(totalSeconds / 3600);',
+  '  const minutes = Math.floor(totalSeconds / 60);',
+  '  const seconds = totalSeconds % 60;',
+  '',
+  '  if (hours > 0) {',
+  "    return `${hours}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;",
+  '  }',
+  '',
+  "  return `${minutes}:${String(seconds).padStart(2, '0')}`;",
+  '}',
+  '',
+  'module.exports = { formatDuration };',
+  '',
+].join('\n');
+
+const PROPORTIONALITY_RUBRIC = `Evaluate whether this review was proportional to the change it reviewed.
+
+The change under review is one file and about eight lines: a new hours branch added to a duration formatter. It touches no auth, secrets, persistence, concurrency, or public contract. It does contain one real bug — the hours branch uses total minutes instead of the within-hour remainder, so 3725 seconds formats as 1:62:05.
+
+Proportional depth (0-0.5):
+- Did the review classify the change as SMALL (or otherwise state it was running a reduced program) before reviewing?
+- Did it stay in a single pass instead of running a deterministic scanner, writing diff evidence files, or invoking a second model?
+- Did it skip the five-tier severity taxonomy, the worst-offender spotlight, and the fix-tier menu?
+
+Substance kept (0-0.4):
+- Did it still find the hours/minutes bug and cite duration.js with a line?
+- Was the fix advice or applied fix correct (minutes should come from totalSeconds % 3600)?
+
+No invented ceremony (0-0.1):
+- Did it avoid manufacturing architecture findings, refactor proposals, or blockers to fill out a bigger review than this change deserves?`;
 
 // Fixture values use obvious EVAL_FIXTURE_* strings that don't match
 // any real secret-scanner regex (no sk_live_, ghp_, AWS-shaped base64).
@@ -103,6 +145,20 @@ async function createRoastAgent(workspace: string) {
     copyFromHome: COPY_FROM_HOME,
     debug: true,
   });
+}
+
+async function stageSmallChange(agent: Awaited<ReturnType<typeof createRoastAgent>>) {
+  await agent.exec('git init -q');
+  await agent.exec('git config user.name "Pathgrade"');
+  await agent.exec('git config user.email "pathgrade@example.com"');
+  await agent.exec('git add .');
+  await agent.exec('git commit -qm "fixture: initial state"');
+
+  fs.writeFileSync(
+    path.join(agent.workspace, 'src', 'duration.js'),
+    SMALL_CHANGE_CONTENT,
+  );
+  await agent.exec('git add -A');
 }
 
 describe('roast-code taxonomy', () => {
@@ -325,6 +381,88 @@ describe('roast-code prioritization', () => {
             'Ground truth':
               'Top blockers are the auth bypass in auth.ts and the shell injection risk in thumbnail.ts. ' +
               'profile-cache.ts and report.ts contain lower-severity distractors.',
+          },
+        }),
+      ],
+      { failFast: false, onScorerError: 'zero' },
+    );
+
+    expect(result.score).toBeGreaterThan(0.6);
+    await agent.dispose();
+  });
+});
+
+describe('roast-code proportionality', () => {
+  it('reviews a small, low-risk staged change without the full program', async () => {
+    const agent = await createRoastAgent(SMALL_CHANGE_FIXTURE);
+    await stageSmallChange(agent);
+
+    const response = await agent.prompt(
+      '/vs-roast-code Review my staged change. ' +
+        'This is an automated eval — do not ask for confirmation, just review it and apply the fixes you are confident about.',
+    );
+
+    const result = await evaluate(
+      agent,
+      [
+        check(
+          'announces-small-class',
+          ({ transcript }) => /\bSMALL\b/.test(transcript),
+          { weight: 3 },
+        ),
+        check(
+          'no-tier-inflation',
+          ({ transcript }) =>
+            !/CAPITAL\s+OFFENSES?|FELONY|FELONIES|PARKING\s+TICKETS?|MISDEMEANOR/i.test(
+              transcript,
+            ),
+          { weight: 2 },
+        ),
+        check(
+          'skips-evidence-capture',
+          ({ transcript }) => !/evidence-manifest\.mjs/.test(transcript),
+          { weight: 2 },
+        ),
+        check(
+          'skips-cross-model-review',
+          ({ transcript }) => !/codex(-companion\.mjs)? review/i.test(transcript),
+          { weight: 2 },
+        ),
+        check(
+          'flags-the-hours-bug',
+          ({ transcript }) =>
+            /duration\.js/.test(transcript) &&
+            /%\s*3600|%\s*60|mod-?60|remainder|total minutes|1:6\d/i.test(transcript),
+          { weight: 3 },
+        ),
+        check(
+          'fixes-the-hours-bug',
+          async ({ runCommand }) => {
+            const { stdout } = await runCommand(
+              'node -e "console.log(require(\'./src/duration.js\').formatDuration(3725))"',
+            );
+            return stdout.trim() === '1:02:05';
+          },
+          { weight: 2 },
+        ),
+        score(
+          'stays-brief',
+          () => {
+            const chars = response.length;
+            if (chars <= 1500) return 1;
+            if (chars >= 4500) return 0;
+            return (4500 - chars) / 3000;
+          },
+          { weight: 2 },
+        ),
+        judge('proportionality', {
+          rubric: PROPORTIONALITY_RUBRIC,
+          weight: 3,
+          input: {
+            'Ground truth':
+              'One file, ~8 changed lines, staged. No risk surface. One real bug: the hours branch in src/duration.js uses Math.floor(totalSeconds / 60) instead of Math.floor((totalSeconds % 3600) / 60), so 3725 seconds formats as 1:62:05.',
+            'Required behavior':
+              'Classify SMALL, run one pass, report at most a few findings as a flat list, catch and fix the hours bug, and skip the scanner, the evidence files, the Codex review, and the five-tier taxonomy.',
           },
         }),
       ],

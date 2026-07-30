@@ -1,11 +1,12 @@
 ---
 name: vs-roast-code
-description: "Use when the user says roast, roast-code, or tear apart code. Prefer over simplify for roast requests. Adds a cross-model second opinion for risky or substantial diffs."
+description: "Use when the user says roast, roast-code, or tear apart code. Prefer over simplify for roast requests. Classifies the change first and scales review depth to it, adding a cross-model second opinion for risky or substantial diffs."
 ---
 
 # Roast Code
 
-Two-pass review. First pass cleans. Second pass roasts what's left.
+Classify the change, then review it at the depth it deserves. First pass cleans.
+Second pass roasts what's left.
 
 ## Building Block Composition
 
@@ -23,15 +24,22 @@ Before delegating, load and follow
 ## Critical Rules
 
 1. **Respect chat context** — review ONLY files in scope. Never expand uninvited.
-2. **Own roast requests** — if the user asks to "roast" code or changes, use this skill instead of `simplify`.
-3. **Verify before roasting** — only flag what you've confirmed. Being wrong kills comedy.
-4. **Security first — redact, never quote** — secrets, keys, credentials get escalated to the top, before anything else. But when reporting them: cite `file:line` and the variable name, and NEVER output the actual secret value in your response. Quote the shape only, with the value masked (e.g., `API_KEY = "sk-live-****"`). The goal is to flag the sin, not to leak the secret into the transcript, the roast, or any follow-up fix plan. This overrides any roast convention about quoting actual code for specificity — for secret values, redact. When committed credentials are present, explicitly tell the user to rotate/revoke them and move them to env vars or a secret manager.
-5. **Punch up not down** — mock patterns, not people.
-6. **Be specific** — cite `file:line`, quote actual code. Generic roasts are lazy.
-7. **Treat review output as advisory** — verify every accepted finding against
+2. **Scale to the change** — classify in Phase 1 and run only that class's
+   program. A two-line fix does not get an evidence file, five tier headers, and
+   a cross-model review.
+3. **Never manufacture findings to fill ceremony** — an empty tier, an unused
+   worst-offender spotlight, or an approval bar with no blocker is the correct
+   output when the change is clean. Inventing a structural finding, a severity
+   tier, or a blocker to justify the program you ran is a review defect.
+4. **Own roast requests** — if the user asks to "roast" code or changes, use this skill instead of `simplify`.
+5. **Verify before roasting** — only flag what you've confirmed. Being wrong kills comedy.
+6. **Security first — redact, never quote** — secrets, keys, credentials get escalated to the top, before anything else. But when reporting them: cite `file:line` and the variable name, and NEVER output the actual secret value in your response. Quote the shape only, with the value masked (e.g., `API_KEY = "sk-live-****"`). The goal is to flag the sin, not to leak the secret into the transcript, the roast, or any follow-up fix plan. This overrides any roast convention about quoting actual code for specificity — for secret values, redact. The ban covers the whole response, not just the finding that flags the secret: masking it once does not license quoting it in a zinger, an aside, or a finding about some other sin. A secret is funniest masked. When committed credentials are present, explicitly tell the user to rotate/revoke them and move them to env vars or a secret manager.
+7. **Punch up not down** — mock patterns, not people.
+8. **Be specific** — cite `file:line`, quote actual code. Generic roasts are lazy.
+9. **Treat review output as advisory** — verify every accepted finding against
    the real code path and adjacent files before fixing or reporting it as true.
-8. **Reject speculative review noise** — skip unrealistic edge cases, vague
-   rewrites, and fixes that over-complicate the codebase.
+10. **Reject speculative review noise** — skip unrealistic edge cases, vague
+    rewrites, and fixes that over-complicate the codebase.
 
 **Tone:** Senior dev who's seen too much + Gordon Ramsay energy. Not mean, not personal. "I'm roasting because I care."
 
@@ -48,35 +56,72 @@ Before delegating, load and follow
 
 ---
 
-## Pass 0: Deterministic Scan
+## Phase 1: Classify the Change
 
-Before LLM passes, run a deterministic AI-slop scanner. Fast, reproducible, zero-hallucination.
+Measure before reviewing. One stat read plus a look at the changed lines decides
+which program runs, and the whole review is scoped to that program.
 
 ```bash
-PROJECT_ID=$(git config --get remote.origin.url 2>/dev/null \
-  | sed -E 's#\.git$##; s#.*[:/]([^/]+/[^/]+)$#\1#; s#/#-#g')
-[ -z "$PROJECT_ID" ] && PROJECT_ID=$(basename "$PWD")
-REVIEW_EVIDENCE_DIR="$HOME/.vs/$PROJECT_ID/reviews/evidence"
-EVIDENCE_TOOL="<resolved-vs-internal-shared-skill-directory>/scripts/evidence-manifest.mjs"
-mkdir -p "$REVIEW_EVIDENCE_DIR"
-
-if command -v slop-scan >/dev/null 2>&1; then
-  slop-scan scan . --json 2>/dev/null \
-    | node "$EVIDENCE_TOOL" capture "$REVIEW_EVIDENCE_DIR/slop-scan.json"
-elif [ -x node_modules/.bin/slop-scan ]; then
-  node_modules/.bin/slop-scan scan . --json 2>/dev/null \
-    | node "$EVIDENCE_TOOL" capture "$REVIEW_EVIDENCE_DIR/slop-scan.json"
-fi
+git diff --stat <resolved-scope-arguments>
 ```
 
-Persist scanner JSON when it is large, filter to files in scope tool-side, and
-return counts plus at most 20 strongest matching findings. Show a one-line
-summary: `slop-scan: N findings (N strong, N medium, N weak)`. Feed the findings
-into the Code Quality lens and Parent Roast as pre-computed evidence — label them
-`[slop-scan]` so the source is visible. Do not re-report them without additional
-context.
+For explicitly named files with no diff to measure (a file review rather than a
+change review), use the files themselves as the size signal.
 
-**If it fails:** skip silently. Continue to Pass 1.
+**Signal 1 — size:** changed files, changed lines, and whether the change is
+docs, comments, tests, or formatting only.
+
+**Signal 2 — risk surface:** does the change touch auth or authorization,
+secrets and credentials, crypto, query construction, shell or dynamic execution,
+untrusted input parsing, persistence or migrations, concurrency, payments, a
+public API or wire contract, or CI, release, permission, and ownership config?
+
+Sniff it deterministically on the added lines, then confirm by reading the hunks
+it hits — a keyword is a pointer, not a verdict:
+
+```bash
+git diff -U0 <resolved-scope-arguments> \
+  | rg -n '^\+' \
+  | rg -in 'password|secret|token|api[_-]?key|credential|authn|authz|authoriz|permission|jwt|crypto|exec|spawn|eval\(|innerHTML|SELECT |INSERT |UPDATE |DELETE |migrat|lock|mutex|Promise\.all|charge|refund|price'
+```
+
+Keep the pattern tight. A sniff that matches every TypeScript diff escalates
+every review and buys nothing; public-API and wire-contract changes are a
+judgment call on the hunks, not a keyword.
+
+Paths carry the same signal: `.github/workflows/`, `migrations/`, `*.sql`,
+`Dockerfile`, lockfiles, `CODEOWNERS`, and dependency manifests are risk surface
+regardless of how few lines changed.
+
+| Class | When | Program |
+|-------|------|---------|
+| **SMALL** | Docs, comments, or formatting only, or at most 2 files and 30 changed lines — and no risk surface | One integrated pass (Pass 1 lenses plus correctness, run inline). No disk-backed capture, no Codex, no tiers. |
+| **STANDARD** | Everything else up to 5 files and 300 changed lines, no risk surface | Pass 1 inline, parent roast, tiered Sin Inventory, approval bar. Codex only if the parent pass ends with nothing confirmed. |
+| **HIGH-RISK** | Any risk surface touched, or more than 5 files or 300 changed lines, or the user asked for a deep review, an exhaustive roast, or a second opinion | The full program: disk-backed evidence plus the Codex cross-model review. |
+
+**Risk surface outranks size.** A five-line diff that hardcodes a credential,
+loosens an auth check, or builds a query by string concatenation is HIGH-RISK.
+Size can only downgrade a change that touches no risk surface.
+
+Announce the class in one line before reviewing, so the user can see which
+program ran and override it:
+
+```
+Scope: 2 files, 18 lines, no risk surface — SMALL review (single pass, no Codex).
+```
+
+**Escalate on evidence, never on suspicion.** Upgrade mid-review only when the
+pass confirms a security, data-loss, or crash-level problem, the diff turns out
+materially larger than the stat implied, or the user asks for more depth. Say so
+in one line — `Upgrading to HIGH-RISK: unsanitized input reaches exec at
+src/thumb.ts:44` — and continue with the larger program.
+
+An ordinary bug that the cheap pass found is the cheap pass working. Fix it,
+report it, and stay in the class you started in — do not inflate a finding's
+severity to justify a bigger program.
+
+Never downgrade a depth the user explicitly asked for, and never upgrade because
+the code looks interesting.
 
 ---
 
@@ -86,15 +131,30 @@ Clean the code first. The parent performs one integrated reuse, quality, and
 efficiency pass. Delegate separate review domains only when deep effort was
 selected and the shared budget permits it; verify findings before applying fixes.
 
-Persist the authoritative diff instead of printing it into model context. Resolve
-the shared `evidence-manifest.mjs`, write `git diff` (or `git diff HEAD` for
-staged changes) to an evidence file under `~/.vs/$PROJECT_ID/reviews/evidence/`,
-then emit its manifest and a bounded `diff --git` / `@@` hunk index. Inspect only
-the relevant diff hunks, owning source functions, callers, and tests. This keeps
-the full review surface available without paying for it on every pass. Follow
-the [disk-backed evidence contract](../vs-internal-shared/references/disk-backed-evidence.md).
+**SMALL and STANDARD:** read the diff directly (`git diff
+<resolved-scope-arguments>`) plus the enclosing functions and their callers. Skip
+the evidence capture below — under 300 changed lines, writing a patch file, an
+index, and a manifest costs more than the change is worth. Sweep the three lenses
+plus correctness and security inline and fix what is confirmed. SMALL then goes
+straight to the SMALL Verdict section; STANDARD continues to Pass 2.
+
+**HIGH-RISK:** persist the authoritative diff instead of printing it
+into model context. Resolve the shared `evidence-manifest.mjs`, write `git diff`
+(or `git diff HEAD` for staged changes) to an evidence file under
+`~/.vs/$PROJECT_ID/reviews/evidence/`, then emit its manifest and a bounded
+`diff --git` / `@@` hunk index. Inspect only the relevant diff hunks, owning
+source functions, callers, and tests. This keeps the full review surface
+available without paying for it on every pass. Follow the
+[disk-backed evidence contract](../vs-internal-shared/references/disk-backed-evidence.md).
 
 ```bash
+PROJECT_ID=$(git config --get remote.origin.url 2>/dev/null \
+  | sed -E 's#\.git$##; s#.*[:/]([^/]+/[^/]+)$#\1#; s#/#-#g')
+[ -z "$PROJECT_ID" ] && PROJECT_ID=$(basename "$PWD")
+REVIEW_EVIDENCE_DIR="$HOME/.vs/$PROJECT_ID/reviews/evidence"
+EVIDENCE_TOOL="<resolved-vs-internal-shared-skill-directory>/scripts/evidence-manifest.mjs"
+mkdir -p "$REVIEW_EVIDENCE_DIR"
+
 DIFF_PATH="$REVIEW_EVIDENCE_DIR/diff-$(date +%Y%m%d-%H%M%S).patch"
 HUNK_INDEX_PATH="$DIFF_PATH.index.txt"
 git diff --no-color <resolved-scope-arguments> > "$DIFF_PATH"
@@ -122,7 +182,7 @@ or symbol when a relevant hunk falls beyond the initial orientation sample.
 5. Stringly-typed code where constants/enums exist
 6. Unnecessary JSX nesting adding no layout value
 7. Comments explaining WHAT (delete; keep only non-obvious WHY)
-8. AI slop: hallucinated imports, verbose boilerplate, defensive nulls on non-null types, wrappers adding zero logic — augment with any `[slop-scan]` findings from Pass 0
+8. AI slop: hallucinated imports, verbose boilerplate, defensive nulls on non-null types, wrappers adding zero logic
 
 ### Lens 3: Efficiency
 
@@ -138,9 +198,19 @@ or symbol when a relevant hunk falls beyond the initial orientation sample.
 
 Aggregate findings from all three lenses. Fix each issue directly. Skip false positives — don't argue, just move on. Briefly summarize what was fixed.
 
+**Sweep for the other copies.** Before calling a fix done, grep the repository
+for further copies of what you just changed — the same CSS selector, constant,
+threshold, validation rule, or copy-pasted block. A rule that exists twice and is
+fixed once ships the bug in the copy you did not read, and the diff will not show
+it to you. Fix every copy in scope, or name the unfixed ones as a finding.
+
 ---
 
 ## Pass 2: Parent Roast + Gated Codex Review
+
+**STANDARD and HIGH-RISK only.** A SMALL change already got correctness and
+security coverage in its single pass; a second sweep over 18 lines finds nothing
+the first one missed.
 
 Run on the cleaned code. The parent owns the roast while Codex provides the
 cross-model second opinion. Do not spawn another local child merely to restate
@@ -165,19 +235,23 @@ Structural review guidance lives in [structural-review.md](references/structural
 
 Rate each finding with confidence (0-100). Only report 80+.
 
-Deliver 2-4 opening zingers based on worst patterns. Reference actual names, line counts. See [comedy-techniques.md](references/comedy-techniques.md).
+Deliver 1-3 opening zingers based on worst patterns — one per real finding, never
+more than the findings support. Reference actual names, line counts. See [comedy-techniques.md](references/comedy-techniques.md).
 
 ### Codex Review
 
-Run Codex review only when the user explicitly asks for a second opinion, the
-diff exceeds 5 files or 300 changed lines, or it changes auth, security,
-persistence, migrations, concurrency, payments, or a public API. The CLI run is
-a model-backed advisor and counts toward the shared child budget. For a smaller,
-low-risk diff, the parent roast plus deterministic evidence is the complete
-second pass.
+Run the advisor lane when either trigger fires:
 
-When the risk gate applies, use the cross-model review as independent evidence;
-do not replace it with a mental review or a slash-command reference.
+- **HIGH-RISK** — the Phase 1 class already encodes it: an explicit
+  second-opinion request, a diff past 5 files or 300 changed lines, or a touched
+  risk surface.
+- **A clean parent pass on a STANDARD change** — the parent roast confirmed
+  nothing. A clean self-review is the least trustworthy verdict this skill
+  produces, and it is the cheapest moment to buy an independent one: the lane
+  fires only on diffs where there is nothing else left to do.
+
+Skip it for SMALL unless the user asked. Never replace it with a mental review or
+a slash-command reference — the point is that a different model read the code.
 
 **In Claude Code:** run the codex plugin's review command:
 ```bash
@@ -188,33 +262,95 @@ the direct CLI below.
 
 **In Codex:** run the shell command directly.
 
-Match the flag to where the diff lives — `--uncommitted` reviews only the
-dirty working tree and returns nothing on an already-committed branch:
+**Resolve the scope flag once, from git state — never probe.** `--uncommitted`
+reviews only the dirty working tree and returns nothing on an already-committed
+branch, so ask git which case you are in instead of trying flags until one
+prints something:
 
 ```bash
-# uncommitted changes in the working tree
-codex review --uncommitted 2>/dev/null \
-  | node "$EVIDENCE_TOOL" capture "$REVIEW_EVIDENCE_DIR/codex-review.txt"
-# committed branch diff
-codex review --base <base-branch> 2>/dev/null \
+if [ -n "$(git status --porcelain --untracked-files=no)" ]; then
+  CODEX_SCOPE="--uncommitted"
+else
+  CODEX_SCOPE="--base <base-branch>"
+fi
+timeout 120 codex review $CODEX_SCOPE 2>/dev/null \
   | node "$EVIDENCE_TOOL" capture "$REVIEW_EVIDENCE_DIR/codex-review.txt"
 ```
 
-Resolve `$EVIDENCE_TOOL` and `$REVIEW_EVIDENCE_DIR` during diff capture. Inspect
-the advisor artifact with bounded `slice` ranges around concrete findings; do
-not stream the complete review into model context.
+Re-resolve the flag only after you changed git state yourself (you committed
+mid-review). Running `codex review --help`, retrying the other flag on empty
+output, or polling a backgrounded review with `sleep` is wasted budget — the two
+cases above are exhaustive.
 
-If neither executable path works, or if the review produces no useful output after about 2 minutes with the correct flag for the diff's location, interrupt it, log "Codex review unavailable", and continue with roast only.
+Resolve `$EVIDENCE_TOOL` and `$REVIEW_EVIDENCE_DIR` as in Pass 1; on a STANDARD
+change with no evidence directory, read the advisor output directly. Inspect the
+artifact with bounded `slice` ranges around concrete findings; do not stream the
+complete review into model context.
+
+`timeout 120` is the whole retry policy. If `timeout` is unavailable, run the
+review in the foreground and abort at two minutes — never hand it to a background
+task and poll. When the executable is missing, the environment blocks it, the
+user declines to share the diff externally, or it produces nothing within the
+window: log the lane as skipped with the reason and honor the missing-lane rule
+below.
+
+**Missing-lane rule.** The advisor lane failing does not make the review
+stronger, so the verdict may not read as though it ran:
+
+- Report the lane explicitly in the closeout — `Lanes: codex ✗ (timeout)`.
+- On HIGH-RISK, the verdict is "reviewed, not independently verified — human
+  review required". Never `Remaining: 0` on its own.
+- Cap confidence at 70%, exactly as the Zero-Finding Gate does.
+
+The one confirmed miss this skill has on record happened exactly this way: a
+parent pass closed a review with `Remaining: 0` and no advisor lane, on a diff an
+independent reviewer then broke into two capital-level and three felony-level
+findings.
+
+**Re-review only when it earned a re-run.** After fixes, re-run the advisor only
+if a CAPITAL OFFENSE or FELONY was fixed. For lower tiers the focused tests plus
+a re-read of the changed hunks are the proof; a second full advisor pass to
+confirm a misdemeanor is budget spent on wording.
 
 Parse Codex review output for finding titles, bodies, priorities, and locations when present. Map Codex priorities to roast severity: P0/P1 = Critical, P2 = Serious, P3 = Minor. If Codex returns unstructured text, summarize the findings manually and note that structured output was unavailable.
 
 ---
 
+## SMALL Verdict
+
+A SMALL review answers in a few lines: no tier headers, no worst-offender
+spotlight, no fix menu.
+
+- One zinger, and only if the code earned it.
+- A flat list of at most 3 findings, worst first: `**[Sin Name]** — file:line`
+  plus one line on what to do.
+- Fix the confirmed ones directly, then one line on what changed.
+- Nothing wrong? Say so, name the one thing that is specifically right with
+  `file:line` evidence, and stop. Do not open a tier to hold a single nitpick.
+
+Escalate to the Sin Inventory below only when the pass confirms one of:
+
+- a security, data-loss, or crash-level problem
+- the change provably does not do what it claims — the fix cannot fire on the
+  path it targets, the guard is checked where it is never armed, the test asserts
+  something other than the behavior in question
+
+A plain correctness bug, fixed inline with a one-line finding, is a complete
+SMALL review — do not reach for a severity tier to dress it up. A no-op fix is
+different in kind: green tests and a confident summary are actively laundering it,
+so it earns the spotlight even on a twenty-line diff.
+
+---
+
 ## Sin Inventory
 
-Aggregate findings from Roast + Codex. Deduplicate — if both flag the same line, keep the more specific finding. Tag Codex-only findings so the user sees the cross-model signal.
+**STANDARD and HIGH-RISK.** Aggregate findings from Roast + Codex. Deduplicate — if both flag the same line, keep the more specific finding. Tag Codex-only findings so the user sees the cross-model signal.
 
-Group by the fixed 5-tier taxonomy — **CAPITAL OFFENSES / FELONIES / CRIMES / MISDEMEANORS / PARKING TICKETS**. Use these exact labels every time; keep the openers and metaphors fresh, keep the tiers stable. Each sin: `N. **[Sin Name]** — file:line` + one-liner roast. Slop-scan findings get an inline `[slop-scan]` tag; assign tier by impact.
+Group by the fixed 5-tier taxonomy — **CAPITAL OFFENSES / FELONIES / CRIMES / MISDEMEANORS / PARKING TICKETS**. Use these exact labels every time; keep the openers and metaphors fresh, keep the tiers stable. Each sin: `N. **[Sin Name]** — file:line` + one-liner roast; assign tier by impact.
+
+Drop a tier that has nothing in it rather than filling it. A finding that is moot
+by its own admission — a guard that can never fire, a nitpick on a line you just
+deleted — is not a PARKING TICKET, it is padding.
 
 If 15+ sins, show top 10 by severity. Mention overflow count.
 
@@ -228,13 +364,9 @@ noise.
 
 **Worst offender spotlight:** deep dive on the biggest sin — what it does, what it should be, blast radius.
 
-Fix options (shown for reference):
-- a) CAPITAL OFFENSES only
-- b) CAPITAL OFFENSES + FELONIES **[default — applied automatically]**
-- c) Everything down to MISDEMEANORS
-- d) Custom
-
-**Default to option b) and proceed.** If the user wants a different tier, they can interrupt.
+**Fix CAPITAL OFFENSES + FELONIES automatically and proceed.** Do not print a
+tier menu — say which tiers you fixed in one line; the user can interrupt for
+more or less.
 
 ## Fix
 
@@ -252,30 +384,45 @@ the touched behavior and rerun the relevant review pass. Keep going until there
 are no accepted/actionable findings left in scope. Once a rerun is clean, stop;
 do not spend another review cycle just to get nicer closeout wording.
 
+Closeout for STANDARD and HIGH-RISK is one line, not a scorecard block:
+
 ```
-Pass 1: [N] issues auto-fixed
-Pass 2: [N] sins found, [M] absolved
-Files modified: N | Lines: -N / +N
-Remaining: [count by tier]
+Pass 1: [N] fixed | Pass 2: [N] found, [M] absolved | Files: N | Lanes: codex ✓ | Remaining: [by tier]
 ```
+
+`Lanes` is mandatory and names every evidence lane the class called for, with a
+reason when one is missing: `Lanes: codex ✗ (declined — private diff)`. A verdict
+that hides which lanes ran is the defect the missing-lane rule exists to prevent.
+
+SMALL closes out in one line: `SMALL review: [N] fixed, [N] left — <files>`.
 
 ## Zero-Finding Gate
 
-If all applicable review passes (Parent Roast plus gated Codex review) produce
-zero findings — no critical, serious, or medium issues across every lens:
+Applies in every class. If all applicable review passes produce zero findings —
+no critical, serious, or medium issues across every lens:
 
 1. Verify you read the changed files in full, not just diffstat.
 2. Name at least one specific positive assertion with `file:line` evidence:
    "auth is correct because X at `src/auth.ts:42`"
-3. If still zero findings after the positive-assertion pass, cap confidence at 70%
-   and note "Zero findings — low-confidence approval" in the summary.
+3. For STANDARD and HIGH-RISK, spend the advisor lane before declaring clean —
+   this is the trigger described under Codex Review. A clean parent pass is a
+   reason to get a second opinion, not a reason to skip one.
+4. If still zero findings after the positive-assertion pass and the advisor lane,
+   cap confidence at 70% and note "Zero findings — low-confidence approval" in the
+   summary.
 
-A clean review that can't name what's specifically right is a rubber stamp.
+A clean review that can't name what's specifically right is a rubber stamp. A
+clean review that invents a finding rather than say "clean" is worse.
 
 ## Approval Bar
 
 Do not approve a change merely because behavior appears correct. Passing tests
 are necessary, not a waiver for maintainability debt.
+
+Walk this list for STANDARD and HIGH-RISK. For SMALL, only report a blocker you
+actually tripped over while reading the diff — a 20-line change rarely has a
+decomposition problem, and hunting for one is how a small review turns into a
+long one.
 
 Treat these as high-confidence blockers when they are in scope, supported by
 evidence, and materially worsen maintainability:
