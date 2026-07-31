@@ -1,6 +1,7 @@
 import * as path from 'path';
 import { describe, it, expect } from 'vitest';
 import { createAgent, check, judge, evaluate } from '@wix/pathgrade';
+import { promptOnce } from '../../vs-internal-shared/test/pathgrade-v1';
 
 // Grounded in a real prompt from the author's Codex history:
 //   "im not buying the need of 'review report' - why? also why wouldnt
@@ -29,7 +30,7 @@ describe('pushback (real prompt)', () => {
       debug: true,
     });
 
-    await agent.prompt(REAL_PROMPT);
+    await promptOnce(agent, REAL_PROMPT);
 
     const result = await evaluate(
       agent,

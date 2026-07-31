@@ -2,6 +2,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { describe, it, expect } from 'vitest';
 import { createAgent, check, score, judge, evaluate } from '@wix/pathgrade';
+import { promptOnce } from '../../vs-internal-shared/test/pathgrade-v1';
 
 const SKILL_DIR = path.resolve(__dirname, '..');
 const BUG_FIXTURE = path.join(__dirname, 'fixtures', 'ts-library-with-bug');
@@ -75,7 +76,7 @@ describe('bugfix', () => {
   it('reproduces a bug with a regression test, fixes it, and verifies the suite', async () => {
     const agent = await createBugfixAgent();
 
-    await agent.prompt(
+    await promptOnce(agent, 
       "The slugify helper is broken: when the input is only special characters like '!!!@@@###', it returns an empty string. " +
         "It should return 'untitled' instead. Fix the bug end-to-end using the bugfix workflow. " +
         'Do not ask questions. Do not call AskUserQuestion or any other interactive/user-input tool. ' +

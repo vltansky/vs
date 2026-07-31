@@ -6,7 +6,13 @@ import {
   judge,
   evaluate,
 } from '@wix/pathgrade';
-import type { Reaction } from '@wix/pathgrade';
+import {
+  askedClarifyingQuestion,
+  CONVERSE_ASK_USER_DEFAULTS,
+  promptAllowingAskUserInterrupt,
+  promptOnce,
+  withAskUserSupport,
+} from '../../vs-internal-shared/test/pathgrade-v1';
 
 const SKILL_DIR = path.resolve(__dirname, '..');
 const FIXTURE_DIR = path.join(__dirname, 'fixtures', 'caching-project');
@@ -23,20 +29,27 @@ describe('shape-it', () => {
       debug: true,
     });
 
-    await agent.prompt(
+    await promptAllowingAskUserInterrupt(
+      agent,
       'I want to improve performance somehow, maybe caching?',
     );
 
     const result = await evaluate(agent, [
+      check(
+        'asks-via-tool-or-markdown',
+        (ctx) => askedClarifyingQuestion(ctx),
+        { weight: 2 },
+      ),
       judge('asks-before-acting', {
         rubric: `The user message is: "I want to improve performance somehow, maybe caching?"
 
-Look at the FIRST agent response (not the user's message).
+Look at the FIRST agent response and any ask_user / AskUserQuestion tool events.
 
-Score 1.0: The agent asked at least one clarifying question about context (what's slow, the goal, the platform, constraints, etc.) BEFORE proposing or implementing any solution.
+Score 1.0: The agent asked at least one clarifying question about context (what's slow, the goal, the platform, constraints, etc.) BEFORE proposing or implementing any solution. Structured ask_user tool calls count.
 Score 0.5: The agent asked a clarifying question but simultaneously proposed approaches or hinted at a solution in the same turn.
 Score 0.0: The agent jumped straight to proposing or implementing a solution (wrote code, described "what was added", listed implementation steps) without asking what specifically needs improvement.`,
         weight: 3,
+        includeToolEvents: true,
       }),
       check(
         'does-not-immediately-grill',
@@ -55,7 +68,7 @@ Score 0.0: The agent jumped straight to proposing or implementing a solution (wr
     // Reactions simulate a user answering one topic per turn.
     // If the skill drips questions (one at a time), multiple reactions fire before the design.
     // If the skill batches questions, fewer reactions fire and the design arrives sooner.
-    const REACTIONS: Reaction[] = [
+    const REACTIONS = withAskUserSupport([
       // Platform / mobile question
       {
         when: /\bios\b|\bandroid\b|platform|mobile|simulator/i,
@@ -87,7 +100,7 @@ Score 0.0: The agent jumped straight to proposing or implementing a solution (wr
         when: /\?/,
         reply: 'Keep it simple.',
       },
-    ];
+    ]);
 
     const agent = await createAgent({
       agent: EVAL_AGENT,
@@ -102,6 +115,7 @@ Score 0.0: The agent jumped straight to proposing or implementing a solution (wr
         "I want to build a self-QA harness for our mobile app — something coding agents can run after making changes to verify they didn't break anything. Not sure about the exact shape yet.",
       maxTurns: 10,
       reactions: REACTIONS,
+      ...CONVERSE_ASK_USER_DEFAULTS,
       // Stop when we see actual design section headers (## X) — not just the word "design"
       until: async ({ lastMessage }) =>
         (lastMessage.match(/^## /m) !== null) && lastMessage.length > 500,
@@ -149,7 +163,8 @@ Score 0.0: three or more mid-design approval requests (section-by-section gating
       debug: true,
     });
 
-    await agent.prompt(
+    await promptOnce(
+      agent,
       'I have a plan to add Redis caching to this API. See docs/plan.md. Challenge it — I want to make sure it holds up.',
     );
 
@@ -203,7 +218,7 @@ Score 0.0: three or more mid-design approval requests (section-by-section gating
       firstMessage:
         "We're planning a tenant migration that touches authentication, billing, and data storage. It is too large for one coding session, and we're working in Codex. Help me shape it and recommend how to coordinate the work across sessions, but don't create or implement anything yet.",
       maxTurns: 6,
-      reactions: [
+      reactions: withAskUserSupport([
         {
           when: /destination|success|done|outcome|goal/i,
           reply:
@@ -217,7 +232,8 @@ Score 0.0: three or more mid-design approval requests (section-by-section gating
           once: true,
         },
         { when: /\?/, reply: 'Use the safest practical default.' },
-      ],
+      ]),
+      ...CONVERSE_ASK_USER_DEFAULTS,
       until: async ({ lastMessage }) =>
         lastMessage.match(/^## /m) !== null && lastMessage.length > 500,
     });
@@ -262,7 +278,7 @@ Score 0.0: three or more mid-design approval requests (section-by-section gating
       firstMessage:
         'Shape a build-ready plan for a migration audit across the legacy web app, replacement mobile app, and shared backend contracts. The audit needs static inventory, runtime proof, and an independent evidence review. Give build-it enough operational detail to run it safely, but do not create workers, issues, or implementation changes yet.',
       maxTurns: 5,
-      reactions: [
+      reactions: withAskUserSupport([
         {
           when: /success|outcome|goal|done|approval/i,
           reply:
@@ -276,7 +292,8 @@ Score 0.0: three or more mid-design approval requests (section-by-section gating
           once: true,
         },
         { when: /\?/, reply: 'Use the safest practical default.' },
-      ],
+      ]),
+      ...CONVERSE_ASK_USER_DEFAULTS,
       until: async ({ lastMessage }) =>
         /```mermaid[\s\S]*```/i.test(lastMessage) &&
         /implementation goal|goal contract/i.test(lastMessage),
@@ -327,7 +344,8 @@ Score 0.0: three or more mid-design approval requests (section-by-section gating
       debug: true,
     });
 
-    await agent.prompt(
+    await promptOnce(
+      agent,
       'Shape a tiny change for this CLI: rename the --pretty flag to --json, keep --pretty as a deprecated alias for one release, and update the existing CLI behavior test. This should fit in one coding session. Keep the design in chat.',
     );
 
@@ -369,7 +387,8 @@ Score 0.0: three or more mid-design approval requests (section-by-section gating
       debug: true,
     });
 
-    await agent.prompt(
+    await promptOnce(
+      agent,
       'Shape the next build for a Wix Headless marketing page. It currently sends Meta PageView and lead events. We eventually want GA4 attribution, PostHog funnels, agent-readable analytics, A/B tests, and qualified CRM conversions. We are authorized to push and deploy code, but external analytics access may require the user. Keep the first delivery useful and buildable.',
     );
 
@@ -428,7 +447,8 @@ Score 0.0: three or more mid-design approval requests (section-by-section gating
       debug: true,
     });
 
-    await agent.prompt(
+    await promptOnce(
+      agent,
       'We already decided the products endpoint will use a five-minute Redis cache, stale reads are acceptable, cache invalidation happens on product writes, and success means p99 below 100ms with unchanged API responses. Turn this into a buildable design in chat. The existing endpoint integration tests should remain the main verification surface.',
     );
 
@@ -474,7 +494,8 @@ Score 0.0: three or more mid-design approval requests (section-by-section gating
       debug: true,
     });
 
-    await agent.prompt(
+    await promptOnce(
+      agent,
       'We are using Claude Code to shape a large modernization with three independent lanes: audit authentication, inventory billing integrations, and prototype the storage migration state machine. Recommend how to coordinate the planning work, but do not create or run anything.',
     );
 

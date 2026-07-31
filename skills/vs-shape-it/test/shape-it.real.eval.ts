@@ -1,7 +1,12 @@
 import * as path from 'path';
 import { describe, it, expect } from 'vitest';
 import { createAgent, check, judge, evaluate } from '@wix/pathgrade';
-import type { Reaction } from '@wix/pathgrade';
+import {
+  askedClarifyingQuestion,
+  CONVERSE_ASK_USER_DEFAULTS,
+  promptAllowingAskUserInterrupt,
+  withAskUserSupport,
+} from '../../vs-internal-shared/test/pathgrade-v1';
 
 // Grounded in a real prompt from the author's Codex history:
 //   "lets start brainstorming auto update functionality for user scope.
@@ -30,20 +35,26 @@ describe('shape-it (real prompt)', () => {
       debug: true,
     });
 
-    await agent.prompt(REAL_PROMPT);
+    await promptAllowingAskUserInterrupt(agent, REAL_PROMPT);
 
     const result = await evaluate(
       agent,
       [
+        check(
+          'asks-via-tool-or-markdown',
+          (ctx) => askedClarifyingQuestion(ctx),
+          { weight: 2 },
+        ),
         judge('asks-before-acting', {
           rubric: `The user prompt is a loose brainstorm request about an auto-update feature.
 
-Look at the FIRST agent response only.
+Look at the FIRST agent response and any ask_user / AskUserQuestion tool events.
 
-Score 1.0: The agent asked at least one blocking/strategic clarifying question (e.g. update channel, opt-in vs silent, which scope, failure behavior) BEFORE proposing a concrete solution or writing code.
+Score 1.0: The agent asked at least one blocking/strategic clarifying question (e.g. update channel, opt-in vs silent, which scope, failure behavior) BEFORE proposing a concrete solution or writing code. Structured ask_user tool calls count.
 Score 0.5: It asked a question but also drafted a full solution/implementation in the same turn.
 Score 0.0: It skipped questions and jumped straight to a design dump or code.`,
           weight: 3,
+          includeToolEvents: true,
         }),
         check(
           'no-implementation',
@@ -64,7 +75,7 @@ Score 0.0: It skipped questions and jumped straight to a design dump or code.`,
   it('recommends capturing the durable decision as an ADR', async () => {
     // The user explicitly said "adr writing". After answering the blocking
     // questions, the design should recommend an ADR for the update mechanism.
-    const REACTIONS: Reaction[] = [
+    const REACTIONS = withAskUserSupport([
       {
         when: /silent|opt.?in|prompt|ask.*user|notify|background/i,
         unless: /^##\s/m,
@@ -79,7 +90,7 @@ Score 0.0: It skipped questions and jumped straight to a design dump or code.`,
       },
       { when: /^##\s/m, reply: 'Looks good.' },
       { when: /\?/, reply: 'Keep it simple.' },
-    ];
+    ]);
 
     const agent = await createAgent({
       agent: EVAL_AGENT,
@@ -93,11 +104,16 @@ Score 0.0: It skipped questions and jumped straight to a design dump or code.`,
       firstMessage: REAL_PROMPT,
       maxTurns: 8,
       reactions: REACTIONS,
+      ...CONVERSE_ASK_USER_DEFAULTS,
       until: async ({ lastMessage }) =>
         lastMessage.match(/^## /m) !== null && lastMessage.length > 400,
     });
 
-    expect(conversation.turns).toBeGreaterThanOrEqual(2);
+    // Structured ask_user can collapse Q&A into one model turn; accept either
+    // multi-turn dialogue or a single turn that reached the design `until`.
+    expect(
+      conversation.turns >= 2 || conversation.completionReason === 'until',
+    ).toBe(true);
 
     const result = await evaluate(
       agent,
