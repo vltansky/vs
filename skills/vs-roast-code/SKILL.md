@@ -27,18 +27,22 @@ Before delegating, load and follow
 2. **Scale to the change** — classify in Phase 1 and run only that class's
    program. A two-line fix does not get an evidence file, five tier headers, and
    a cross-model review.
-3. **Never manufacture findings to fill ceremony** — an empty tier, an unused
+3. **Keep SMALL output flat** — after classifying a change as SMALL, announce
+   `SMALL review`, skip Pass 2 and the Sin Inventory, and use no taxonomy tier
+   names anywhere in the response. Finding a normal bug does not unlock tiered
+   ceremony; only a Phase 1 escalation changes the class.
+4. **Never manufacture findings to fill ceremony** — an empty tier, an unused
    worst-offender spotlight, or an approval bar with no blocker is the correct
    output when the change is clean. Inventing a structural finding, a severity
    tier, or a blocker to justify the program you ran is a review defect.
-4. **Own roast requests** — if the user asks to "roast" code or changes, use this skill instead of `simplify`.
-5. **Verify before roasting** — only flag what you've confirmed. Being wrong kills comedy.
-6. **Security first — redact, never quote** — secrets, keys, credentials get escalated to the top, before anything else. But when reporting them: cite `file:line` and the variable name, and NEVER output the actual secret value in your response. Quote the shape only, with the value masked (e.g., `API_KEY = "sk-live-****"`). The goal is to flag the sin, not to leak the secret into the transcript, the roast, or any follow-up fix plan. This overrides any roast convention about quoting actual code for specificity — for secret values, redact. The ban covers the whole response, not just the finding that flags the secret: masking it once does not license quoting it in a zinger, an aside, or a finding about some other sin. A secret is funniest masked. When committed credentials are present, explicitly tell the user to rotate/revoke them and move them to env vars or a secret manager.
-7. **Punch up not down** — mock patterns, not people.
-8. **Be specific** — cite `file:line`, quote actual code. Generic roasts are lazy.
-9. **Treat review output as advisory** — verify every accepted finding against
+5. **Own roast requests** — if the user asks to "roast" code or changes, use this skill instead of `simplify`.
+6. **Verify before roasting** — only flag what you've confirmed. Being wrong kills comedy.
+7. **Security first — redact, never quote** — secrets, keys, credentials get escalated to the top, before anything else. But when reporting them: cite `file:line` and the variable name, and NEVER output the actual secret value in your response. Quote the shape only, with the value masked (e.g., `API_KEY = "sk-live-****"`). The goal is to flag the sin, not to leak the secret into the transcript, the roast, or any follow-up fix plan. This overrides any roast convention about quoting actual code for specificity — for secret values, redact. The ban covers the whole response, not just the finding that flags the secret: masking it once does not license quoting it in a zinger, an aside, or a finding about some other sin. A secret is funniest masked. When committed credentials are present, explicitly tell the user to rotate/revoke them and move them to env vars or a secret manager.
+8. **Punch up not down** — mock patterns, not people.
+9. **Be specific** — cite `file:line`, quote actual code. Generic roasts are lazy.
+10. **Treat review output as advisory** — verify every accepted finding against
    the real code path and adjacent files before fixing or reporting it as true.
-10. **Reject speculative review noise** — skip unrealistic edge cases, vague
+11. **Reject speculative review noise** — skip unrealistic edge cases, vague
     rewrites, and fixes that over-complicate the codebase.
 
 **Tone:** Senior dev who's seen too much + Gordon Ramsay energy. Not mean, not personal. "I'm roasting because I care."
@@ -113,6 +117,10 @@ regardless of how few lines changed.
 | **SMALL** | Docs, comments, or formatting only, or at most 2 files and 30 changed lines — and no risk surface | One integrated pass (Pass 1 lenses plus correctness, run inline). No disk-backed capture, no Codex, no tiers. |
 | **STANDARD** | Everything else up to 5 files and 300 changed lines, no risk surface | Pass 1 inline, parent roast, tiered Sin Inventory, approval bar. Codex only if the parent pass ends with nothing confirmed. |
 | **HIGH-RISK** | Any risk surface touched, or more than 5 files or 300 changed lines, or the user asked for a deep review, an exhaustive roast, or a second opinion | The full program: disk-backed evidence plus the Codex cross-model review. |
+
+Set the class from this table before reviewing and announce it before any other
+review commentary. The class is a program choice, not a severity label. Keep it
+fixed unless the evidence meets the explicit escalation rule below.
 
 **Risk surface outranks size.** A five-line diff that hardcodes a credential,
 loosens an auth check, or builds a query by string concatenation is HIGH-RISK.
@@ -342,6 +350,11 @@ Parse Codex review output for finding titles, bodies, priorities, and locations 
 A SMALL review answers in a few lines: no tier headers, no worst-offender
 spotlight, no fix menu.
 
+Start with the Phase 1 scope announcement containing the literal words `SMALL
+review`. Then report only the flat finding list below. Do not print `CAPITAL
+OFFENSES`, `FELONIES`, `CRIMES`, `MISDEMEANORS`, or `PARKING TICKETS` anywhere
+in a SMALL response; those labels mean the wrong program ran.
+
 - One zinger, and only if the code earned it.
 - A flat list of at most 3 findings, worst first: `**[Sin Name]** — file:line`
   plus one line on what to do.
@@ -352,20 +365,26 @@ spotlight, no fix menu.
 Escalate to the Sin Inventory below only when the pass confirms one of:
 
 - a security, data-loss, or crash-level problem
-- the change provably does not do what it claims — the fix cannot fire on the
-  path it targets, the guard is checked where it is never armed, the test asserts
-  something other than the behavior in question
+- a provable no-op — the fix cannot execute or affect the path it targets, the
+  guard is checked where it is never armed, or the test asserts something other
+  than the behavior in question
 
 A plain correctness bug, fixed inline with a one-line finding, is a complete
 SMALL review — do not reach for a severity tier to dress it up. A no-op fix is
 different in kind: green tests and a confident summary are actively laundering it,
 so it earns the spotlight even on a twenty-line diff.
 
+Wrong output from a path that does execute is an ordinary correctness bug, not a
+no-op and not an escalation trigger.
+
 ---
 
 ## Sin Inventory
 
 **STANDARD and HIGH-RISK.** Aggregate findings from Roast + Codex. Deduplicate — if both flag the same line, keep the more specific finding. Tag Codex-only findings so the user sees the cross-model signal.
+
+Entry guard: if the Phase 1 class is SMALL, stop and return the SMALL Verdict.
+Do not open this section or use any taxonomy tier label.
 
 Group by the fixed 5-tier taxonomy — **CAPITAL OFFENSES / FELONIES / CRIMES / MISDEMEANORS / PARKING TICKETS**. Use these exact labels every time; keep the openers and metaphors fresh, keep the tiers stable. Each sin: `N. **[Sin Name]** — file:line` + one-liner roast; assign tier by impact.
 

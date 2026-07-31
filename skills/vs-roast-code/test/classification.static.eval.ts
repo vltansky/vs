@@ -88,6 +88,13 @@ describe('roast-code proportional program', () => {
     expect(SKILL.indexOf('## SMALL Verdict')).toBeLessThan(
       SKILL.indexOf('## Sin Inventory'),
     );
+    expect(SKILL).toMatch(
+      /Start with the Phase 1 scope announcement containing the literal words `SMALL\s+review`/,
+    );
+    expect(SKILL).toMatch(
+      /if the Phase 1 class is SMALL, stop and return the SMALL Verdict/,
+    );
+    expect(SKILL).toMatch(/Do not open this section or use any taxonomy tier label/);
   });
 
   it('keeps the fixed taxonomy for the classes that use tiers', () => {
@@ -104,10 +111,13 @@ describe('roast-code proportional program', () => {
 
   it('escalates a small change that provably does not work', () => {
     expect(SKILL).toMatch(
-      /the change provably does not do what it claims/,
+      /a provable no-op — the fix cannot execute or affect the path it targets/,
     );
     expect(SKILL).toMatch(
       /A no-op fix is\s+different in kind/,
+    );
+    expect(SKILL).toMatch(
+      /Wrong output from a path that does execute is an ordinary correctness bug/,
     );
   });
 
