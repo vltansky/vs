@@ -2,6 +2,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { describe, it, expect } from 'vitest';
 import { createAgent, check, score, judge, evaluate } from '@wix/pathgrade';
+import { promptOnce } from '../../vs-internal-shared/test/pathgrade-v1';
 
 const SKILL_DIR = path.resolve(__dirname, '..');
 const FIXTURE_DIR = path.join(__dirname, 'fixtures', 'slugify-regression');
@@ -98,7 +99,7 @@ describe('tdd', () => {
   it('fixes the empty-slug bug with a failing-test-first flow', async () => {
     const agent = await createTddAgent(FIXTURE_DIR, 420);
 
-    await agent.prompt(
+    await promptOnce(agent, 
       'This slug generator breaks article URLs when the title is only punctuation. ' +
         "Please fix it so punctuation-only titles become 'untitled'. " +
         'Follow TDD: add the regression test in src/slugify.test.ts first, verify it fails, ' +

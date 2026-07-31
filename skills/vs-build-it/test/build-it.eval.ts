@@ -9,6 +9,7 @@ import {
   toolUsage,
   evaluate,
 } from '@wix/pathgrade';
+import { promptOnce } from '../../vs-internal-shared/test/pathgrade-v1';
 
 const SKILL_DIR = path.resolve(__dirname, '..');
 const TS_FIXTURE = path.join(__dirname, 'fixtures', 'ts-project');
@@ -90,7 +91,7 @@ describe('build-it', () => {
   it('happy-path: implements capitalize function with tests', async () => {
     const agent = await createBuildItAgent(TS_FIXTURE, 600);
 
-    await agent.prompt(
+    await promptOnce(agent, 
       'Implement a capitalize(str) function that capitalizes the first letter of each word. ' +
         'Plan:\n- Step 1: Create src/string.ts with the capitalize function\n- Step 2: Add tests in src/string.test.ts\n\n' +
         'Run bun install first if needed. Follow the build-it skill. ' +
@@ -182,7 +183,7 @@ describe('build-it', () => {
   it('circuit-breaker: stops on absurd plan', async () => {
     const agent = await createBuildItAgent(TS_FIXTURE, 300);
 
-    await agent.prompt(
+    await promptOnce(agent, 
       'Rewrite the entire application to use microservices with Kubernetes orchestration, ' +
         'gRPC inter-service communication, event sourcing with Apache Kafka, and a CQRS pattern ' +
         'across 12 bounded contexts.\n\n' +
@@ -237,7 +238,7 @@ describe('build-it', () => {
   it('tdd-discipline: fixes slugify bug with test-first approach', async () => {
     const agent = await createBuildItAgent(BUG_FIXTURE, 600);
 
-    await agent.prompt(
+    await promptOnce(agent, 
       'Fix a bug: the slugify function returns empty string for inputs with only special characters. ' +
         "It should return 'untitled' as fallback. Plan:\n" +
         '- Step 1: Add failing test that reproduces the bug\n' +
@@ -307,7 +308,7 @@ describe('build-it', () => {
   it('no-plan: auto-generates plan for reverse function', async () => {
     const agent = await createBuildItAgent(TS_FIXTURE, 600);
 
-    await agent.prompt(
+    await promptOnce(agent, 
       'Add a reverse(str) utility function that reverses a string, handling unicode correctly.\n\n' +
         'No plan is provided — just this feature request. Follow the build-it skill. ' +
         'It should auto-generate a plan before executing. ' +

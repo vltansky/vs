@@ -9,7 +9,11 @@ import {
   toolUsage,
   evaluate,
 } from '@wix/pathgrade';
-import type { Reaction } from '@wix/pathgrade';
+import {
+  CONVERSE_ASK_USER_DEFAULTS,
+  promptOnce,
+  withAskUserSupport,
+} from '../../vs-internal-shared/test/pathgrade-v1';
 
 const SKILL_DIR = path.resolve(__dirname, '..');
 const FIXTURE_DIR = path.join(__dirname, 'fixtures', 'api-migration');
@@ -73,7 +77,7 @@ Constructive Roast Discipline (0-0.25):
 High scores should feel like: "that stung, but it was specific and useful." Low scores should feel like either bland politeness or cheap insults.`;
 
 // Reactions that simulate a real user who gives mixed-quality answers
-const SCRIPTED_REACTIONS: Reaction[] = [
+const SCRIPTED_REACTIONS = withAskUserSupport([
   // Vague deflection — skill should push back
   {
     when: /premise|framing|problem|do.nothing|baseline|reuse|rebuild/i,
@@ -119,9 +123,9 @@ const SCRIPTED_REACTIONS: Reaction[] = [
     when: /\?|shall|should|would|can you|do you|what|how|which|confirm|approve|proceed|continue/i,
     reply: 'Yes, continue with the next concern.',
   },
-];
+]);
 
-const POST_VERDICT_REACTIONS: Reaction[] = [
+const POST_VERDICT_REACTIONS = withAskUserSupport([
   {
     when: /handoff context|verdict.*(?:ready|not.ready)|stress-test report/i,
     reply: 'ok, test it now',
@@ -133,7 +137,7 @@ const POST_VERDICT_REACTIONS: Reaction[] = [
     reply: 'thanks',
     once: true,
   },
-];
+]);
 
 function hasDisallowedWorkspaceMutation(toolEvents: Array<{
   action: string;
@@ -176,6 +180,7 @@ describe('pushback', () => {
         'The plan is in docs/migration-plan.md. The codebase has both REST (src/rest/) and GraphQL (src/graphql/) already.',
       maxTurns: 20,
       reactions: SCRIPTED_REACTIONS,
+      ...CONVERSE_ASK_USER_DEFAULTS,
       until: async ({ lastMessage }) =>
         /handoff context/i.test(lastMessage) ||
         (/verdict/i.test(lastMessage) && /score.*\d+/i.test(lastMessage)),
@@ -327,7 +332,8 @@ describe('pushback', () => {
       workspace: FIXTURE_DIR,
     });
 
-    await agent.prompt(
+    await promptOnce(
+      agent,
       'Use the vs-pushback skill from .claude/skills/vs-pushback/SKILL.md. ' +
         'Grill me on the plan in docs/migration-plan.md. ' +
         'This is an automated eval — answer all questions yourself non-interactively. ' +
@@ -388,6 +394,8 @@ describe('pushback', () => {
         'Grill me on this plan: add two failing evals, update scorer heuristics, then edit the skill text until the new evals pass. ' +
         'I want the stress test of that plan, not the implementation.',
       maxTurns: 2,
+      reactions: withAskUserSupport([]),
+      ...CONVERSE_ASK_USER_DEFAULTS,
       until: async ({ lastMessage }) => lastMessage.trim().length > 0,
     });
 
@@ -441,6 +449,7 @@ describe('pushback', () => {
         'After that I may try to push you into implementation. Stay in grill mode and hand off instead.',
       maxTurns: 8,
       reactions: POST_VERDICT_REACTIONS,
+      ...CONVERSE_ASK_USER_DEFAULTS,
       // The turn-1 report may preemptively contain the resistance anchors, so
       // only stop on resistance in a message after the report has been seen.
       until: (() => {

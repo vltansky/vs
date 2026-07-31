@@ -28,11 +28,10 @@ just the pass or fail.
 
 ## Run evals through the npm scripts
 
-Do not call `vitest` directly. The `npm run eval*` scripts go through
-`scripts/eval-home.mjs`, which points `HOME` at a sanitized copy of your home
-directory. PathGrade's macOS Keychain auth path copies `~/.claude.json` into
-every trial sandbox; without the wrapper each eval agent inherits your personal
-MCP servers and stalls on interactive logins the evals never need.
+Prefer `npm run eval*` over calling `vitest` ad hoc so timeouts and worker caps
+from `vitest.config.ts` stay consistent. On macOS, PathGrade reuses Claude Code
+Keychain OAuth without copying `~/.claude.json` or enabling Claude.ai MCP
+connectors, so personal MCP servers no longer leak into trial sandboxes.
 
 ## When a static eval fails
 

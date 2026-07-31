@@ -384,7 +384,7 @@ the final evidence, review map, and verification result before declaring it read
 Immediately re-resolve the PR from the same checkout:
 
 ```bash
-PR_JSON=$(gh pr view --json number,url,state,headRefName,headRefOid)
+PR_JSON=$(gh pr view --json number,url,title,state,headRefName,headRefOid)
 LOCAL_BRANCH=$(git branch --show-current)
 LOCAL_HEAD=$(git rev-parse HEAD)
 
@@ -401,7 +401,15 @@ printf '%s\n' "$PR_URL"
 Do not switch branches or end the turn before this succeeds; Codex uses the
 current checkout and authenticated `gh` to refresh native PR context. On failure,
 run `gh auth status`, report the mismatch, and stop. Use the verified `PR_NUM`,
-`PR_URL`, and `REPO` below. Print `PR_URL` and the brief to chat.
+`PR_URL`, and `REPO` below. Immediately print a clickable PR link in this block,
+using the verified title, head SHA, and local validation state:
+
+```markdown
+## PR created and verified
+
+**PR:** [#<N> — <title>](<PR_URL>)
+**Head:** `<short SHA>` · **Local checks:** <status>
+```
 
 ### Step 5c: Optional GitHub-hosted image upload
 
@@ -470,25 +478,40 @@ when the handle isn't obvious. Skip anyone you can't map confidently.
 
 ## Step 7: Watch CI
 
-Print the brief to chat again before starting the watch — the user is about to
-wait on CI, so give them something useful to read:
+Start a new, visibly separated chat update before the watch so PR creation and
+babysitting cannot look like one continuous phase. Print the brief after the
+transition — the user is about to wait on CI, so give them something useful to
+read:
 
-```
+```markdown
+---
+
+## Babysitting PR #<N>
+
+Watching CI and automated review. I’ll report only state changes, fix actionable
+findings, and stop when the PR is merge-ready.
+
 === Change Brief ===
 <contents of $BRIEF_FILE>
 ====================
-Watching CI…
 ```
 
 Then block until CI checks complete. This keeps the agent in context so it can
 fix failures immediately without the user having to start a new session and
 re-explain the change.
 
-Use `--watch` without `--fail-fast`. `--fail-fast` exits on any terminal conclusion, and reviewer bots commonly use non-SUCCESS conclusions (`NEUTRAL`, `FAILURE`) to signal "I posted findings" — bailing on first non-success would skip the findings fetch:
+Wait with the bundled PR watcher. It polls inside one process and emits compact JSONL only when the state changes, so an unchanged CI run costs nothing. It also never treats a reviewer bot's non-SUCCESS conclusion as "done" — bots commonly use `NEUTRAL` or `FAILURE` to signal "I posted findings", and bailing on the first non-success would skip the findings fetch:
 
 ```bash
-gh pr checks $PR_NUM --watch
+python3 <resolved-vs-baby-sit-skill-directory>/scripts/watch_pr.py \
+  --repo "$REPO" \
+  --pr "$PR_NUM" \
+  --until merge-ready
 ```
+
+Exit `10` carries an `attention` event (a check failed or unresolved review feedback appeared); exit `0` means the PR reached a clean terminal state. Resume that same process with the longest wait and the smallest output budget the runtime supports.
+
+Do not wait with `gh pr checks $PR_NUM --watch`, a `sleep` poll loop, or a background terminal whose only job is to re-poll GitHub. Each repaints a full check table into context on every wake, which is the dominant token cost of a long CI wait.
 
 Then classify each check. A check is a **reviewer bot** when its name matches a reviewer keyword (`review`, `codex`, `copilot`, `claude`, etc.) **as a whole word** — use `\breview\b|\bcodex\b|\bcopilot\b|\bclaude\b` in regex. Raw substring matching misclassifies `Deploy Preview` as a reviewer. Keep the keyword list extensible so new bots can be added without rewriting detection.
 
@@ -497,7 +520,7 @@ Then classify each check. A check is a **reviewer bot** when its name matches a 
 | Build | SUCCESS | Pass |
 | Build | FAILURE | Fix (see below) |
 | Reviewer bot | any terminal conclusion | **Fetch findings** — the comments are the signal, not the conclusion |
-| Reviewer bot | still pending | Wait in background (Claude Code: `run_in_background: true` — harness wakes on exit; Codex: delegate to `awaiter` builtin sub-agent or unified-exec background terminal with `background_terminal_max_timeout` raised in `~/.codex/config.toml`) and re-classify when terminal |
+| Reviewer bot | still pending | Resume the watcher process and re-classify when it reports the change |
 
 ### Surface a preview deployment
 
@@ -571,7 +594,7 @@ instead of leaving commits stranded on a merged branch.
 1. Read the failure: `gh pr checks $PR_NUM --json name,state,description --jq '.[] | select(.state == "FAILURE")'`
 2. Get logs: `gh run view <run-id> --log-failed | tail -50`
 3. Fix, commit, push.
-4. Re-watch: `gh pr checks $PR_NUM --watch` (no `--fail-fast`).
+4. Re-watch: restart the same `watch_pr.py` command.
 5. Max 2 fix attempts. If still failing: report what's broken, stop.
 
 **Tip:** while this agent watches CI, the user can open a new terminal and
@@ -670,6 +693,7 @@ each item below.
 - [ ] `vs-write` tightened the final body without dropping evidence or risks
 - [ ] PR created with conventional format title and concise body
 - [ ] PR re-resolved from the current checkout before turn completion; state, branch, and HEAD verified
+- [ ] Clickable PR link printed immediately after association verification
 - [ ] WHY explains the problem, diagnosis, impact, and important system boundary without inventing motivation
 - [ ] UI evidence uses matched before/after screenshots or a recording with captions; other observable changes use paired output or a demo
 - [ ] Optional browser image upload was skipped or explicitly approved through `request_user_input` before browser access; only approved files were uploaded and no comment was posted
@@ -680,6 +704,7 @@ each item below.
 - [ ] Human review focus states the judgment automation cannot settle, when applicable
 - [ ] Reviewer suggestions reported in chat only
 - [ ] Brief printed to chat before CI watch starts
+- [ ] Babysitting transition printed as a separated phase before CI watch starts
 - [ ] CI checks pass (or failures investigated and fixed, max 2 attempts)
 - [ ] Shipping goal reconciled before handoff or optional monitoring
 - [ ] `vs-baby-sit` started only when continued monitoring was requested

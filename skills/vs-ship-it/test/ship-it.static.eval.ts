@@ -49,7 +49,7 @@ describe('vs-ship-it routing', () => {
 describe('vs-ship-it PR association handshake', () => {
   it('re-resolves complete PR identity after creation', () => {
     expect(SKILL).toContain(
-      'gh pr view --json number,url,state,headRefName,headRefOid',
+      'gh pr view --json number,url,title,state,headRefName,headRefOid',
     );
     expect(SKILL).toMatch(/PR_NUM=.*\.number/);
     expect(SKILL).toMatch(/PR_URL=.*\.url/);
@@ -66,6 +66,13 @@ describe('vs-ship-it PR association handshake', () => {
   it('uses the verified URL and stops on failed verification', () => {
     expect(SKILL).toContain('printf \'%s\\n\' "$PR_URL"');
     expect(SKILL).toMatch(/On failure,[\s\S]*report the mismatch, and stop/);
+  });
+
+  it('prints the verified PR link before visibly starting babysitting', () => {
+    expect(SKILL).toContain('## PR created and verified');
+    expect(SKILL).toContain('**PR:** [#<N> — <title>](<PR_URL>)');
+    expect(SKILL).toMatch(/---\n\n## Babysitting PR #<N>/);
+    expect(SKILL).toContain('I’ll report only state changes');
   });
 });
 
@@ -117,6 +124,35 @@ describe('vs-ship-it mechanical PR fast path', () => {
     );
     expect(SKILL).toMatch(/verify the PR association/);
     expect(SKILL).toMatch(/Verify\s+each requested modifier took effect/);
+  });
+});
+
+describe('vs-ship-it CI watching', () => {
+  it('waits with the shared PR watcher instead of a streaming check table', () => {
+    expect(SKILL).toContain('scripts/watch_pr.py');
+    expect(SKILL).toMatch(/emits compact JSONL only when the state changes/);
+    expect(SKILL).toMatch(/Exit `10` carries an `attention` event/);
+    expect(SKILL).toMatch(/smallest output budget the runtime supports/);
+  });
+
+  it('bans busy-wait CI polling', () => {
+    expect(SKILL).toMatch(/Do not wait with `gh pr checks \$PR_NUM --watch`/);
+    expect(SKILL).toMatch(/a `sleep` poll loop/);
+    expect(SKILL).toMatch(/dominant token cost of a long CI wait/);
+    expect(SKILL).not.toMatch(/^gh pr checks \$PR_NUM --watch$/m);
+  });
+
+  it('still fetches reviewer findings on a non-SUCCESS conclusion', () => {
+    expect(SKILL).toMatch(/`NEUTRAL` or `FAILURE` to signal "I posted findings"/);
+    expect(SKILL).toMatch(/bailing on the first non-success would skip the findings fetch/);
+  });
+
+  it('points at a watcher that actually ships', () => {
+    expect(
+      fs.existsSync(
+        path.resolve(__dirname, '..', '..', 'vs-baby-sit', 'scripts', 'watch_pr.py'),
+      ),
+    ).toBe(true);
   });
 });
 

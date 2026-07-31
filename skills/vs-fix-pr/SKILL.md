@@ -149,10 +149,18 @@ Detect them in the checks output — names containing `review` (e.g., `Repo Revi
 
 Tell the user once: "`<check name>` is still running — waiting for it, will fetch comments when it finishes."
 
-Then wait using whichever primitive your runtime supports:
+Then wait with the bundled PR watcher. It stays in one process and prints nothing until the state actually changes:
 
-- **Claude Code:** spawn `gh pr checks $PR_NUM --watch` with `run_in_background: true`; the harness wakes you when it exits. Do not run `--watch` in the foreground — the Bash tool caps foreground commands at 600s.
-- **Codex CLI:** delegate the watch to the `awaiter` builtin sub-agent (already configured with `background_terminal_max_timeout = 3_600_000`), or spawn via unified-exec background terminal after raising `background_terminal_max_timeout` in `~/.codex/config.toml`. Do not busy-poll with `--json name,state` between other work.
+```bash
+python3 <resolved-vs-baby-sit-skill-directory>/scripts/watch_pr.py \
+  --repo "$REPO" \
+  --pr "$PR_NUM" \
+  --until merge-ready
+```
+
+Exit `10` carries an `attention` event — the reviewer posted findings or a check failed. Exit `0` means the PR reached a clean terminal state. Resume that same process with the longest wait and the smallest output budget your runtime supports; an unchanged tick emits nothing, so a large output budget only buys a larger buffer replay.
+
+Do not wait with `gh pr checks $PR_NUM --watch` (foreground or background), a `sleep` poll loop, or a busy-poll on `--json name,state`. Each of those repaints a full check table into context on every wake, which is the dominant token cost of a long CI wait.
 
 When the check finishes, re-fetch comments and proceed to Step 2.
 

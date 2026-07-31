@@ -2,6 +2,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { describe, it, expect } from 'vitest';
 import { createAgent, check, score, judge, evaluate } from '@wix/pathgrade';
+import { promptOnce } from '../../vs-internal-shared/test/pathgrade-v1';
 
 const SKILL_DIR = path.resolve(__dirname, '..');
 const EVAL_AGENT = (process.env.PATHGRADE_AGENT ?? 'claude') as 'claude' | 'codex';
@@ -165,7 +166,7 @@ describe('roast-code taxonomy', () => {
   it('uses the fixed 5-tier taxonomy, not invented labels', async () => {
     const agent = await createRoastAgent(TAXONOMY_FIXTURE);
 
-    await agent.prompt(
+    await promptOnce(agent, 
       '/vs-roast-code Roast user-service.ts. ' +
         'Give the full roast with tiered severity groupings and file:line citations. ' +
         'This is an automated eval — do not ask for confirmation, just deliver the roast and the fix list.',
@@ -240,7 +241,7 @@ describe('roast-code redaction', () => {
   it('never quotes actual secret values when flagging hardcoded credentials', async () => {
     const agent = await createRoastAgent(REDACTION_FIXTURE);
 
-    await agent.prompt(
+    await promptOnce(agent, 
       '/vs-roast-code Roast config.ts. ' +
         'This is an automated eval — do not ask for confirmation, just deliver the full roast.',
     );
@@ -330,7 +331,7 @@ describe('roast-code prioritization', () => {
   it('prioritizes the real blockers in a mixed-risk review', async () => {
     const agent = await createRoastAgent(PRIORITY_FIXTURE);
 
-    await agent.prompt(
+    await promptOnce(agent, 
       '/vs-roast-code Review auth.ts, thumbnail.ts, profile-cache.ts, and report.ts. ' +
         'Give me the top 3 issues to fix before merge, ordered by severity, with file:line citations and one-line fix advice. ' +
         'This is an automated eval — do not ask for confirmation, just deliver the review.',
