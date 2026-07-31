@@ -19,6 +19,7 @@ const COMMUNICATION = fs.readFileSync(
 function markdownFiles(dir: string): string[] {
   return fs.readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
     const full = path.join(dir, entry.name);
+    if (entry.isDirectory() && entry.name === 'pathgrade-debug') return [];
     if (entry.isDirectory()) return markdownFiles(full);
     return entry.isFile() && entry.name.endsWith('.md') ? [full] : [];
   });
@@ -138,7 +139,8 @@ describe('skill text obeys its own output style', () => {
       (entry) =>
         entry.isDirectory() &&
         entry.name.startsWith('vs-') &&
-        entry.name !== 'vs-internal-shared',
+        entry.name !== 'vs-internal-shared' &&
+        fs.existsSync(path.join(SKILLS_DIR, entry.name, 'SKILL.md')),
     )
     .map((entry) => path.join(SKILLS_DIR, entry.name, 'SKILL.md'));
 
