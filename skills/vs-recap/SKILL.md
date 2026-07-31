@@ -47,6 +47,11 @@ We added the `vs-recap` skill as a standalone marketplace skill and wired the VS
 Possible actions: create PR, add eval, adjust wording, stop here.
 ```
 
+## Output style
+
+Apply the [shared output style](../vs-internal-shared/references/output-style.md)
+to every user-facing message.
+
 ## Workflow
 
 Direct: emit **Next** only. Composed: return to caller.

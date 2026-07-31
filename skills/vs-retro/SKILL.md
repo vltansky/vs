@@ -152,6 +152,11 @@ Format for per-skill references:
 - Does not extract code patterns (derivable from the code itself)
 - Does not duplicate what's already in CLAUDE.md or memory files — check before proposing
 
+## Output style
+
+Apply the [shared output style](../vs-internal-shared/references/output-style.md)
+to every user-facing message.
+
 ## Workflow
 
 Direct: emit **Next** only. Composed: return to caller.

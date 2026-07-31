@@ -47,6 +47,11 @@ Octocode is not reachable in this session — the plugin MCP server is not loade
 
 Do NOT claim GitHub-backed research without one of the two Octocode routes.
 
+## Output style
+
+Apply the [shared output style](../vs-internal-shared/references/output-style.md)
+to every user-facing message.
+
 ## Workflow
 
 ### Phase 1: Scope the RFC

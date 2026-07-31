@@ -152,6 +152,11 @@ Do not echo the document body into chat.
 - **Skip conditions:** trivial diff, or the reader wants orientation or a
   quality judgment rather than understanding
 
+## Output style
+
+Apply the [shared output style](../vs-internal-shared/references/output-style.md)
+to every user-facing message.
+
 ## Workflow
 
 Direct: emit **Next** only. Composed: return to caller.

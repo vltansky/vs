@@ -121,6 +121,11 @@ Blocked until all items pass:
 - [ ] Report written to `~/.vs/$PROJECT_ID/steals/YYYY-MM-DD-<target-slug>.html`, or the Markdown fallback is justified
 - [ ] Target repo's license noted
 
+## Output style
+
+Apply the [shared output style](../vs-internal-shared/references/output-style.md)
+to every user-facing message.
+
 ## Workflow
 
 Direct: emit **Next** only. Composed: return to caller.

@@ -152,21 +152,33 @@ describe('ship-it hands the user something to try', () => {
     expect(SHIP_IT).toMatch(/Ship-it never re-runs QA/);
   });
 
-  it('emits the handback block with all seven fields', () => {
+  it('emits the handback facts across their applicable zones', () => {
     const block = SHIP_IT.slice(SHIP_IT.indexOf('## Handed back to you'));
-    for (const field of [
-      '**Shipped:**',
-      '**Try it:**',
-      '**Tested:**',
-      '**You must check:**',
-      '**Not proven:**',
-      '**If it\'s wrong:**',
+    for (const fact of [
+      '━━━ **YOU DO**',
+      '**try it**',
+      '1. ▶',
+      '━━━ **DONE**',
+      '**shipped**',
+      '**tested**',
+      '**if it\'s wrong**',
+      '━━━ **NOT PROVEN**',
     ]) {
-      expect(block).toContain(field);
+      expect(block, `handback ${fact}`).toContain(fact);
     }
     expect(block).toMatch(/stop: kill <pid>/);
+    expect(block).not.toMatch(/~<M>m|time estimate/i);
+    expect(block).toMatch(
+      /▶ \*\*if it's wrong\*\* Run <the one command or revert that undoes it>/i,
+    );
+    expect(block).toMatch(/exact blocker/);
+    expect(block).toMatch(/Omit that list when every check was automated/);
+    expect(block).toMatch(
+      /Do not repeat a manual check under `NOT PROVEN`/i,
+    );
+    expect(block).toMatch(/Omit the entire `NOT PROVEN` zone when/i);
     expect(SHIP_IT).toMatch(
-      /the `## Handed back to you` block was emitted with all seven fields/i,
+      /every required fact across its\s+applicable zones, and every user action sits in `YOU DO`/i,
     );
   });
 });

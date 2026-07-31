@@ -425,7 +425,7 @@ Mark TODO complete, move to next comment.
 |----------|----------|
 | No comments | "No PR comments to address." |
 | All addressed | "All done! Addressed X comments." |
-| Some skipped | "Addressed X comments, skipped Y. Let me know if you want to revisit." |
+| Some skipped | "Addressed X comments, skipped Y — <reason>." plus a `▶` line per skipped comment the user must rule on |
 
 ## Verification
 
@@ -441,6 +441,11 @@ Before the final handoff, apply
 [Phase Boundaries](../vs-internal-shared/references/phase-boundaries.md). Keep
 `Next` below as the semantic route; report a session action only when required
 by that contract.
+
+## Output style
+
+Apply the [shared output style](../vs-internal-shared/references/output-style.md)
+to every user-facing message.
 
 ## Workflow
 

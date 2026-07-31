@@ -29,10 +29,10 @@ describe('verification status contract', () => {
     expect(SHIP_IT).toMatch(/carry the WARN wording into[\s\S]+do not describe the change as fixed or\s+verified/);
   });
 
-  it('routes prompts through the PathGrade v1 helper and scores the transcript', () => {
+  it('scores behavior against the agent response without prompt leakage', () => {
     expect(VERIFY_BEHAVIOR_EVAL).toMatch(/await promptOnce\(/);
-    expect(VERIFY_BEHAVIOR_EVAL).toMatch(/return \{ agent \};/);
-    expect(VERIFY_BEHAVIOR_EVAL).toMatch(/\(\{\s*transcript\s*\}\)\s*=>/);
-    expect(VERIFY_BEHAVIOR_EVAL).not.toMatch(/agent\.prompt\(/);
+    expect(VERIFY_BEHAVIOR_EVAL).toMatch(/agent\.messages/);
+    expect(VERIFY_BEHAVIOR_EVAL).toMatch(/return \{ agent, response \};/);
+    expect(VERIFY_BEHAVIOR_EVAL).not.toMatch(/\(\{\s*transcript\s*\}\)\s*=>/);
   });
 });
