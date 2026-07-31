@@ -1,6 +1,6 @@
 interface:
   display_name: "vs-roast-code"
-  short_description: "Roast or tear apart changed code with Codex review"
+  short_description: "Roast changed code at a depth scaled to the change"
 
 policy:
   allow_implicit_invocation: true

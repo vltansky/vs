@@ -125,9 +125,56 @@ describe('subagent budget', () => {
   });
 
   it('gates cross-model review instead of running it unconditionally', () => {
-    expect(ROAST_REVIEW).toMatch(/Run Codex review only when/is);
+    expect(ROAST_REVIEW).toMatch(/Run the advisor lane when either trigger fires/is);
+    expect(ROAST_REVIEW).toMatch(/Skip it for SMALL unless the user asked/);
     expect(ROAST_REVIEW).toMatch(/Parent Roast \+ Gated Codex Review/);
     expect(ROAST_REVIEW).not.toMatch(/Always try to run Codex review/);
+  });
+
+  it('spends the advisor lane exactly when a clean self-review needs it', () => {
+    expect(ROAST_REVIEW).toMatch(
+      /A clean parent pass on a STANDARD change\*\* — the parent roast confirmed\s+nothing/,
+    );
+    expect(ROAST_REVIEW).toMatch(
+      /A clean parent pass is a\s+reason to get a second opinion, not a reason to skip one/,
+    );
+  });
+
+  it('derives the advisor scope from the selected review scope without probing', () => {
+    expect(ROAST_REVIEW).toMatch(
+      /\*\*Derive the advisor scope from the Phase 0 selection — never from global git\s+state and never by probing\.\*\*/,
+    );
+    expect(ROAST_REVIEW).toMatch(/case "\$REVIEW_SCOPE_KIND" in/);
+    expect(ROAST_REVIEW).toMatch(/explicit-uncommitted\|staged/);
+    expect(ROAST_REVIEW).toMatch(/explicit-branch\|branch/);
+    expect(ROAST_REVIEW).not.toMatch(/git status --porcelain --untracked-files=no/);
+    expect(ROAST_REVIEW).toMatch(
+      /timeout 120 codex review "\$\{CODEX_SCOPE_ARGS\[@\]\}"/,
+    );
+    expect(ROAST_REVIEW).toMatch(/`timeout 120` is the whole retry policy/);
+    expect(ROAST_REVIEW).toMatch(
+      /Running `codex review --help`,\s+retrying another flag on empty output, or polling a backgrounded review with\s+`sleep` is wasted budget/,
+    );
+  });
+
+  it('weakens the verdict when the advisor lane did not run', () => {
+    expect(ROAST_REVIEW).toMatch(/\*\*Missing-lane rule\.\*\*/);
+    expect(ROAST_REVIEW).toMatch(/Lanes: codex ✗ \(timeout\)/);
+    expect(ROAST_REVIEW).toMatch(
+      /reviewed, not independently verified — human\s+review required/,
+    );
+    expect(ROAST_REVIEW).toMatch(/Never `Remaining: 0` on its own/);
+    expect(ROAST_REVIEW).toMatch(/Lanes: codex ✓/);
+    expect(ROAST_REVIEW).toMatch(/`Lanes` is mandatory/);
+  });
+
+  it('re-runs the advisor only when a serious finding was fixed', () => {
+    expect(ROAST_REVIEW).toMatch(
+      /\*\*Re-review only when it earned a re-run\.\*\*/,
+    );
+    expect(ROAST_REVIEW).toMatch(
+      /re-run the advisor only\s+if a CAPITAL OFFENSE or FELONY was fixed/,
+    );
   });
 });
 

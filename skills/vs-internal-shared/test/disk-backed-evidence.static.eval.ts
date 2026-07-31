@@ -114,7 +114,6 @@ describe('disk-backed evidence contract', () => {
     expect(brief).toMatch(/symbolic-ref --quiet --short refs\/remotes\/origin\/HEAD/);
     expect(review).not.toMatch(/Get the full diff/i);
     expect(review).toMatch(/codex review[\s\S]*evidence-manifest|codex review[\s\S]*\$EVIDENCE_TOOL/is);
-    expect(review).toMatch(/slop-scan scan[\s\S]*capture "\$REVIEW_EVIDENCE_DIR\/slop-scan\.json"/is);
     expect(review).toMatch(/git diff[\s\S]*HUNK_INDEX_PATH[\s\S]*manifest "\$DIFF_PATH"/is);
     expect(live).toMatch(/structured annotations.*primary/is);
     expect(live).toMatch(/smallest.*crop/is);
