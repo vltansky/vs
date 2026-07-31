@@ -140,15 +140,20 @@ describe('subagent budget', () => {
     );
   });
 
-  it('resolves the advisor scope flag from git state without probing', () => {
+  it('derives the advisor scope from the selected review scope without probing', () => {
     expect(ROAST_REVIEW).toMatch(
-      /\*\*Resolve the scope flag once, from git state — never probe\.\*\*/,
+      /\*\*Derive the advisor scope from the Phase 0 selection — never from global git\s+state and never by probing\.\*\*/,
     );
-    expect(ROAST_REVIEW).toMatch(/git status --porcelain --untracked-files=no/);
-    expect(ROAST_REVIEW).toMatch(/timeout 120 codex review \$CODEX_SCOPE/);
+    expect(ROAST_REVIEW).toMatch(/case "\$REVIEW_SCOPE_KIND" in/);
+    expect(ROAST_REVIEW).toMatch(/explicit-uncommitted\|staged/);
+    expect(ROAST_REVIEW).toMatch(/explicit-branch\|branch/);
+    expect(ROAST_REVIEW).not.toMatch(/git status --porcelain --untracked-files=no/);
+    expect(ROAST_REVIEW).toMatch(
+      /timeout 120 codex review "\$\{CODEX_SCOPE_ARGS\[@\]\}"/,
+    );
     expect(ROAST_REVIEW).toMatch(/`timeout 120` is the whole retry policy/);
     expect(ROAST_REVIEW).toMatch(
-      /Running `codex review --help`, retrying the other flag on empty\s+output, or polling a backgrounded review with `sleep` is wasted budget/,
+      /Running `codex review --help`,\s+retrying another flag on empty output, or polling a backgrounded review with\s+`sleep` is wasted budget/,
     );
   });
 

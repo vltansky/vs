@@ -52,6 +52,20 @@ Before delegating, load and follow
 4. Branch diff: `git diff main...HEAD --name-only`
 5. If none: ask
 
+Resolve the scope once and retain its exact diff arguments, base branch, paths,
+and kind for every later phase. Use these scope kinds:
+
+- `explicit-uncommitted` when a chat- or user-selected path is staged,
+  unstaged, or untracked
+- `explicit-branch` when selected paths belong to the committed branch diff
+- `explicit-file` for a current-file review with no diff
+- `staged` for the staged fallback
+- `branch` for the branch-diff fallback
+
+Unrelated working-tree changes never replace the selected scope. If the user
+selected an untracked file, retain it as `explicit-uncommitted`; do not infer
+scope from a tracked-files-only status query later.
+
 **If empty:** "Nothing to roast. Either your code is perfect (unlikely) or you forgot to stage."
 
 ---
@@ -76,12 +90,13 @@ secrets and credentials, crypto, query construction, shell or dynamic execution,
 untrusted input parsing, persistence or migrations, concurrency, payments, a
 public API or wire contract, or CI, release, permission, and ownership config?
 
-Sniff it deterministically on the added lines, then confirm by reading the hunks
+Sniff it deterministically on the changed lines, then confirm by reading the hunks
 it hits — a keyword is a pointer, not a verdict:
 
 ```bash
 git diff -U0 <resolved-scope-arguments> \
-  | rg -n '^\+' \
+  | rg -n '^[+-]' \
+  | rg -v '^[0-9]+:(\+\+\+|---) ' \
   | rg -in 'password|secret|token|api[_-]?key|credential|authn|authz|authoriz|permission|jwt|crypto|exec|spawn|eval\(|innerHTML|SELECT |INSERT |UPDATE |DELETE |migrat|lock|mutex|Promise\.all|charge|refund|price'
 ```
 
@@ -262,30 +277,36 @@ the direct CLI below.
 
 **In Codex:** run the shell command directly.
 
-**Resolve the scope flag once, from git state — never probe.** `--uncommitted`
-reviews only the dirty working tree and returns nothing on an already-committed
-branch, so ask git which case you are in instead of trying flags until one
-prints something:
+**Derive the advisor scope from the Phase 0 selection — never from global git
+state and never by probing.** `--uncommitted` reviews the dirty working tree,
+while `--base` reviews the branch diff. Preserve the chosen review surface even
+when unrelated dirty files exist:
 
 ```bash
-if [ -n "$(git status --porcelain --untracked-files=no)" ]; then
-  CODEX_SCOPE="--uncommitted"
+case "$REVIEW_SCOPE_KIND" in
+  explicit-uncommitted|staged) CODEX_SCOPE_ARGS=(--uncommitted) ;;
+  explicit-branch|branch) CODEX_SCOPE_ARGS=(--base "$BASE_BRANCH") ;;
+  explicit-file) CODEX_SCOPE_ARGS=() ;;
+esac
+CODEX_SCOPE_PROMPT="Review only the Phase 0 scope: $REVIEW_SCOPE_DESCRIPTION"
+
+if [ "$REVIEW_CLASS" = "HIGH-RISK" ]; then
+  timeout 120 codex review "${CODEX_SCOPE_ARGS[@]}" "$CODEX_SCOPE_PROMPT" 2>/dev/null \
+    | node "$EVIDENCE_TOOL" capture "$REVIEW_EVIDENCE_DIR/codex-review.txt"
 else
-  CODEX_SCOPE="--base <base-branch>"
+  timeout 120 codex review "${CODEX_SCOPE_ARGS[@]}" "$CODEX_SCOPE_PROMPT" 2>/dev/null
 fi
-timeout 120 codex review $CODEX_SCOPE 2>/dev/null \
-  | node "$EVIDENCE_TOOL" capture "$REVIEW_EVIDENCE_DIR/codex-review.txt"
 ```
 
-Re-resolve the flag only after you changed git state yourself (you committed
-mid-review). Running `codex review --help`, retrying the other flag on empty
-output, or polling a backgrounded review with `sleep` is wasted budget — the two
-cases above are exhaustive.
+Re-resolve the scope only after you changed its source yourself (for example,
+you committed the staged change mid-review). Running `codex review --help`,
+retrying another flag on empty output, or polling a backgrounded review with
+`sleep` is wasted budget.
 
-Resolve `$EVIDENCE_TOOL` and `$REVIEW_EVIDENCE_DIR` as in Pass 1; on a STANDARD
-change with no evidence directory, read the advisor output directly. Inspect the
-artifact with bounded `slice` ranges around concrete findings; do not stream the
-complete review into model context.
+For HIGH-RISK, resolve `$EVIDENCE_TOOL` and `$REVIEW_EVIDENCE_DIR` as in Pass 1
+and inspect the artifact with bounded `slice` ranges around concrete findings.
+For STANDARD, the command reads advisor stdout directly and does not reference
+the HIGH-RISK-only evidence variables.
 
 `timeout 120` is the whole retry policy. If `timeout` is unavailable, run the
 review in the foreground and abort at two minutes — never hand it to a background

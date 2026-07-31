@@ -56,10 +56,12 @@ budget goes to the lanes that produce findings.
   self-review is the least trustworthy verdict the skill produces and the
   cheapest moment to buy an independent one — there is nothing else left to do
   on that diff. Size alone does not gate the lane.
-- **The scope flag is resolved from git state, once.** A dirty working tree
-  means `--uncommitted`; otherwise `--base <base-branch>`. The two cases are
-  exhaustive, so `--help`, retry-the-other-flag, and poll-a-background-run are
-  all forbidden.
+- **The scope flag is derived from the selected review scope, once.** Phase 0
+  retains whether it selected explicit uncommitted paths, explicit branch
+  paths, a current-file review, staged changes, or a branch diff. Unrelated
+  working-tree changes do not replace that selection, and explicitly selected
+  untracked files stay in the uncommitted scope. `--help`, retry-the-other-flag,
+  and poll-a-background-run are all forbidden.
 - **`timeout 120` is the whole retry policy.** No backgrounding, no polling.
   Past the window the lane is logged as skipped and the missing-lane rule
   applies.

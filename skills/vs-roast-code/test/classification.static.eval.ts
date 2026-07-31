@@ -37,6 +37,28 @@ describe('roast-code change classification', () => {
       /Never downgrade a depth the user explicitly asked for/,
     );
   });
+
+  it('sniffs both additions and deletions without diff headers', () => {
+    expect(SKILL).toMatch(/Sniff it deterministically on the changed lines/);
+    expect(SKILL).toMatch(/rg -n '\^\[\+-\]'/);
+    expect(SKILL).toMatch(/rg -v '\^\[0-9\]\+:\(\\\+\\\+\\\+\|---\) '/);
+  });
+
+  it('retains the selected scope for advisor execution', () => {
+    expect(SKILL).toMatch(/Resolve the scope once and retain its exact diff arguments/);
+    expect(SKILL).toContain('explicit-uncommitted');
+    expect(SKILL).toContain('explicit-branch');
+    expect(SKILL).toContain('explicit-file');
+    expect(SKILL).toMatch(/Unrelated working-tree changes never replace the selected scope/);
+    expect(SKILL).toMatch(/case "\$REVIEW_SCOPE_KIND" in/);
+    expect(SKILL).not.toMatch(/git status --porcelain --untracked-files=no/);
+  });
+
+  it('keeps standard advisor execution independent of high-risk evidence capture', () => {
+    expect(SKILL).toMatch(/if \[ "\$REVIEW_CLASS" = "HIGH-RISK" \]; then/);
+    expect(SKILL).toMatch(/For STANDARD, the command reads advisor stdout directly/);
+    expect(SKILL).toMatch(/does not reference\s+the HIGH-RISK-only evidence variables/);
+  });
 });
 
 describe('roast-code proportional program', () => {
