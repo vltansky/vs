@@ -30,7 +30,8 @@ describe('verification status contract', () => {
   });
 
   it('scores behavior against the agent response without prompt leakage', () => {
-    expect(VERIFY_BEHAVIOR_EVAL).toMatch(/const response = await agent\.prompt/);
+    expect(VERIFY_BEHAVIOR_EVAL).toMatch(/await promptOnce\(/);
+    expect(VERIFY_BEHAVIOR_EVAL).toMatch(/agent\.messages/);
     expect(VERIFY_BEHAVIOR_EVAL).toMatch(/return \{ agent, response \};/);
     expect(VERIFY_BEHAVIOR_EVAL).not.toMatch(/\(\{\s*transcript\s*\}\)\s*=>/);
   });
