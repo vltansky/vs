@@ -69,6 +69,15 @@ workflow skill. It defines the chat budget, phase-boundary progress emissions,
 when a run owes the user an artifact, how to open one, and the install-freshness
 rule that makes skill changes take effect at all.
 
+## Output style
+
+Use [`references/output-style.md`](./references/output-style.md) in every
+user-facing skill — it applies to chat messages, not just workflow handoffs. It
+defines the `YOU DO` / `DONE` / `NOT PROVEN` zones and their dividers, the
+action-first shape rules, and the procedural sentence constraints that apply to
+any step the user executes. Communication decides what reaches chat; this
+decides how it is arranged once there.
+
 ## Agent-owned previews
 
 Use [`references/preview.md`](./references/preview.md) when a skill needs a

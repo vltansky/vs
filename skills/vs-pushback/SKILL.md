@@ -392,6 +392,11 @@ report first if needed, then use these anchors:
 - **Skip conditions:** None for a formed proposal. Route raw or unformed input
   to `vs-shape-it` first, and use re-check mode when a prior verdict exists.
 
+## Output style
+
+Apply the [shared output style](../vs-internal-shared/references/output-style.md)
+to every user-facing message.
+
 ## Workflow
 
 Direct: emit **Next** only. Composed: return to caller.

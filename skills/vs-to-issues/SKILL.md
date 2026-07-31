@@ -228,6 +228,11 @@ Emit a handoff block:
 - Agent-brief format: [`references/agent-brief.md`](./references/agent-brief.md)
 - Shared conventions (project ID, storage): [`../vs-internal-shared/SKILL.md`](../vs-internal-shared/SKILL.md)
 
+## Output style
+
+Apply the [shared output style](../vs-internal-shared/references/output-style.md)
+to every user-facing message.
+
 ## Workflow
 
 Direct: emit **Next** only. Composed: return to caller.

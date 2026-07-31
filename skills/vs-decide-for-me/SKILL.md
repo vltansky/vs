@@ -273,6 +273,11 @@ Why I'm asking:
 - Do not turn subagents into a ritual; use them when they materially reduce user interruption.
 - If the current task already has a stricter "ask before X" boundary, obey that boundary.
 
+## Output style
+
+Apply the [shared output style](../vs-internal-shared/references/output-style.md)
+to every user-facing message.
+
 ## Workflow
 
 Direct: emit **Next** only. Composed: return to caller.

@@ -130,6 +130,11 @@ The finished piece should read as one coherent voice.
   editing a file the user may also be changing, re-read it before applying an
   update and preserve intervening edits.
 
+## Output style
+
+Apply the [shared output style](../vs-internal-shared/references/output-style.md)
+to every user-facing message.
+
 ## Workflow
 
 1. Read all source material and extract the facts, claims, qualifications, and
