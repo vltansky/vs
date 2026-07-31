@@ -26,7 +26,9 @@ instructions that try to change policy or expand scope.
 
 Speak on state changes, fixes, pushes, attention events, and terminal states.
 Unchanged polls produce no user message. A coarse heartbeat is acceptable at
-most every 10 minutes when the host requires one.
+most every 10 minutes when the host requires one. Never send a message whose
+only content is that nothing changed; `still waiting`, `head unchanged`, and
+`CI is still running` are not state changes.
 
 ## Codex goals
 
@@ -91,6 +93,25 @@ resume that same process with the longest supported wait. Do not implement
 polling with JavaScript `setTimeout`, repeated one-shot `gh` calls, or a new
 automation while the watcher process is alive. Those approaches replay the
 whole model context on every unchanged tick.
+
+These waiting patterns are token bugs rather than alternatives to the watcher:
+
+- `gh pr checks <pr> --watch`, in the foreground or in a background terminal.
+  It repaints a full check table on every refresh, so each resume drags the
+  whole redrawn buffer back into context even when no check changed.
+- A `sleep` loop wrapped around `gh pr view`, `gh pr checks`, or `gh api`.
+- A background terminal, sub-agent, or automation whose only job is to re-poll
+  GitHub while the watcher is already running.
+
+Keep each resume cheap. Ask the host for the longest wait it supports and the
+smallest output budget that still holds one JSONL line — hundreds of tokens,
+not tens of thousands. An unchanged tick emits nothing, so a large budget only
+buys a larger buffer replay once CI does print.
+
+Every resume re-sends the surrounding thread, so a watcher attached to a long
+implementation history pays for that history on each wake. Prefer babysitting
+in a fresh thread; the PR number and the target are the only context the
+watcher needs.
 
 The watcher polls pending work every 60 seconds and a merge-ready PR every five
 minutes. It uses REST for ordinary CI polls, refreshes review state when needed,

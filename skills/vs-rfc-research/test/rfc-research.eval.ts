@@ -1,6 +1,7 @@
 import * as path from 'path';
 import { describe, it, expect } from 'vitest';
 import { createAgent, check, judge, evaluate } from '@wix/pathgrade';
+import { promptOnce } from '../../vs-internal-shared/test/pathgrade-v1';
 
 const SKILL_DIR = path.resolve(__dirname, '..');
 const FIXTURE_DIR = path.join(__dirname, 'fixtures', 'caching-decision');
@@ -49,7 +50,7 @@ describe('rfc-research bias guards', () => {
       debug: true,
     });
 
-    await agent.prompt(
+    await promptOnce(agent, 
       "/vs-rfc-research We're considering adding Redis for caching to improve performance and scalability. " +
         'Write an RFC evaluating whether we should adopt Redis as our caching layer. ' +
         'This is an automated eval — skip the octocode MCP preflight (the fixture is local; analyze the codebase ' +

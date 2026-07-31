@@ -13,9 +13,9 @@
   "scripts": {
     "install-plugin": "bash install.sh",
     "install-plugin:windows": "powershell -NoProfile -ExecutionPolicy Bypass -File install.ps1",
-    "eval": "node scripts/eval-home.mjs run",
-    "eval:static": "node scripts/eval-home.mjs run static.eval.ts",
-    "eval:watch": "node scripts/eval-home.mjs",
+    "eval": "vitest run",
+    "eval:static": "vitest run static.eval.ts",
+    "eval:watch": "vitest",
     "eval:preview": "pathgrade preview browser",
     "typecheck": "tsc --noEmit"
   },
@@ -27,7 +27,7 @@
   "license": "MIT",
   "type": "commonjs",
   "devDependencies": {
-    "@wix/pathgrade": "^0.37.0",
+    "@wix/pathgrade": "^1.0.1",
     "typescript": "^5.9.3",
     "vitest": "^4.1.5"
   }

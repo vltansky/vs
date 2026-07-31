@@ -500,11 +500,18 @@ Then block until CI checks complete. This keeps the agent in context so it can
 fix failures immediately without the user having to start a new session and
 re-explain the change.
 
-Use `--watch` without `--fail-fast`. `--fail-fast` exits on any terminal conclusion, and reviewer bots commonly use non-SUCCESS conclusions (`NEUTRAL`, `FAILURE`) to signal "I posted findings" — bailing on first non-success would skip the findings fetch:
+Wait with the bundled PR watcher. It polls inside one process and emits compact JSONL only when the state changes, so an unchanged CI run costs nothing. It also never treats a reviewer bot's non-SUCCESS conclusion as "done" — bots commonly use `NEUTRAL` or `FAILURE` to signal "I posted findings", and bailing on the first non-success would skip the findings fetch:
 
 ```bash
-gh pr checks $PR_NUM --watch
+python3 <resolved-vs-baby-sit-skill-directory>/scripts/watch_pr.py \
+  --repo "$REPO" \
+  --pr "$PR_NUM" \
+  --until merge-ready
 ```
+
+Exit `10` carries an `attention` event (a check failed or unresolved review feedback appeared); exit `0` means the PR reached a clean terminal state. Resume that same process with the longest wait and the smallest output budget the runtime supports.
+
+Do not wait with `gh pr checks $PR_NUM --watch`, a `sleep` poll loop, or a background terminal whose only job is to re-poll GitHub. Each repaints a full check table into context on every wake, which is the dominant token cost of a long CI wait.
 
 Then classify each check. A check is a **reviewer bot** when its name matches a reviewer keyword (`review`, `codex`, `copilot`, `claude`, etc.) **as a whole word** — use `\breview\b|\bcodex\b|\bcopilot\b|\bclaude\b` in regex. Raw substring matching misclassifies `Deploy Preview` as a reviewer. Keep the keyword list extensible so new bots can be added without rewriting detection.
 
@@ -513,7 +520,7 @@ Then classify each check. A check is a **reviewer bot** when its name matches a 
 | Build | SUCCESS | Pass |
 | Build | FAILURE | Fix (see below) |
 | Reviewer bot | any terminal conclusion | **Fetch findings** — the comments are the signal, not the conclusion |
-| Reviewer bot | still pending | Wait in background (Claude Code: `run_in_background: true` — harness wakes on exit; Codex: delegate to `awaiter` builtin sub-agent or unified-exec background terminal with `background_terminal_max_timeout` raised in `~/.codex/config.toml`) and re-classify when terminal |
+| Reviewer bot | still pending | Resume the watcher process and re-classify when it reports the change |
 
 ### Surface a preview deployment
 
@@ -587,7 +594,7 @@ instead of leaving commits stranded on a merged branch.
 1. Read the failure: `gh pr checks $PR_NUM --json name,state,description --jq '.[] | select(.state == "FAILURE")'`
 2. Get logs: `gh run view <run-id> --log-failed | tail -50`
 3. Fix, commit, push.
-4. Re-watch: `gh pr checks $PR_NUM --watch` (no `--fail-fast`).
+4. Re-watch: restart the same `watch_pr.py` command.
 5. Max 2 fix attempts. If still failing: report what's broken, stop.
 
 **Tip:** while this agent watches CI, the user can open a new terminal and

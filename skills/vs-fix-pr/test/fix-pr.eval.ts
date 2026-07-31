@@ -8,6 +8,10 @@ import {
   toolUsage,
   evaluate,
 } from '@wix/pathgrade';
+import {
+  hasAskUserEvent,
+  promptAllowingAskUserInterrupt,
+} from '../../vs-internal-shared/test/pathgrade-v1';
 const SKILL_DIR = path.resolve(__dirname, '..');
 const FIXTURE_DIR = path.join(__dirname, 'fixtures', 'review-thread-gates');
 const EVAL_AGENT = (process.env.PATHGRADE_AGENT ?? 'claude') as 'claude' | 'codex';
@@ -79,27 +83,6 @@ function createFixPrAgent(timeout: number) {
   });
 }
 
-async function promptAllowingQuestionToolInterrupt(
-  agent: Awaited<ReturnType<typeof createAgent>>,
-  prompt: string,
-) {
-  try {
-    await agent.prompt(prompt);
-  } catch {
-    // In Pathgrade, AskUserQuestion often terminates the one-shot prompt with a
-    // non-zero exit even though the tool call is already recorded in the log.
-    // These evals score the recorded tool event, so keep going.
-  }
-}
-
-function hasAskUserEvent(toolEvents: Array<{ action: string; summary: string; arguments?: Record<string, unknown> }>, pattern: RegExp) {
-  return toolEvents.some((event) => {
-    if (event.action !== 'ask_user') return false;
-    const haystack = `${event.summary} ${JSON.stringify(event.arguments ?? {})}`;
-    return pattern.test(haystack);
-  });
-}
-
 function getAskUserPayload(toolEvents: Array<{ action: string; arguments?: Record<string, unknown> }>) {
   const askEvent = toolEvents.find((event) => event.action === 'ask_user');
   return JSON.stringify(askEvent?.arguments ?? {});
@@ -110,7 +93,7 @@ describe('fix-pr', () => {
     const agent = await createFixPrAgent(360);
 
     try {
-      await promptAllowingQuestionToolInterrupt(
+      await promptAllowingAskUserInterrupt(
         agent,
         'Use fix-pr. Read docs/reply-approval.md and continue from that exact state. ' +
           'Do not fetch PR data again. Do not post anything yet. I want the normal approval gate for this drafted reply.',
@@ -174,7 +157,7 @@ describe('fix-pr', () => {
     const agent = await createFixPrAgent(360);
 
     try {
-      await promptAllowingQuestionToolInterrupt(
+      await promptAllowingAskUserInterrupt(
         agent,
         'Use fix-pr. Read docs/ambiguous-thread.md and continue from that exact state. ' +
           'Do not fetch PR data again. Do not post anything yet. I want the normal unsure-path escalation for this thread.',
