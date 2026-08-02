@@ -425,7 +425,7 @@ Mark TODO complete, move to next comment.
 |----------|----------|
 | No comments | "No PR comments to address." |
 | All addressed | "All done! Addressed X comments." |
-| Some skipped | "Addressed X comments, skipped Y — <reason>." plus a `▶` line per skipped comment the user must rule on |
+| Some skipped | "Addressed X comments, skipped Y — <reason>." plus one `Your action` item per skipped comment the user must rule on |
 
 ## Verification
 

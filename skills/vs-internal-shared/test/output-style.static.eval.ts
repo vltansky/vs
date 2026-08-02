@@ -37,43 +37,37 @@ const BANNED_IDIOMS =
   /circle back|get the ball rolling|on the same page|low-hanging fruit|under the hood/i;
 
 describe('output style contract', () => {
-  it('puts every user action in one zone, first', () => {
+  it('leads with the answer and keeps required actions together', () => {
     expect(CONTRACT).toMatch(
-      /everything the user must do appears in one\s+zone, first/i,
-    );
-    expect(CONTRACT).toMatch(/nothing actionable appears outside it/i);
-    expect(CONTRACT).toMatch(
-      /blocker that the user must clear is an action: it goes in `YOU DO`/i,
+      /first line is the answer: the outcome, decision, or blocker/i,
     );
     expect(CONTRACT).toMatch(
-      /Never\s+repeat a `YOU DO` action as a `NOT PROVEN` item/i,
+      /everything the user must do now appears in one optional `Your action`\s+section/i,
+    );
+    expect(CONTRACT).toMatch(/nothing required appears outside it/i);
+    expect(CONTRACT).toMatch(
+      /Never\s+repeat a `Your action` item under `Still unverified`/i,
     );
     expect(CONTRACT).toMatch(
-      /conditional rollback.*belongs\s+in `YOU DO`/is,
+      /conditional rollback.*belongs\s+in `Your action`/is,
     );
-    expect(CONTRACT).not.toMatch(/\| `DONE` \|[^|]*how to undo/i);
   });
 
-  it('defines the three zones with their fixed gutters', () => {
-    for (const zone of ['YOU DO', 'DONE', 'NOT PROVEN']) {
-      expect(CONTRACT, `zone ${zone}`).toContain(zone);
+  it('uses quiet optional sections without decorative chrome', () => {
+    for (const section of ['Your action', 'Verified', 'Still unverified']) {
+      expect(CONTRACT, `section ${section}`).toContain(section);
     }
-    expect(CONTRACT).toMatch(/Unicode `▶` means you\s+act/);
-    expect(CONTRACT).toMatch(
-      /ASCII `!` marks an\s+unproven or blocked claim/,
-    );
-    expect(CONTRACT).toMatch(/No emoji/);
+    expect(CONTRACT).toMatch(/omitting every section that is empty/i);
+    expect(CONTRACT).toMatch(/plain bold Markdown labels/i);
+    expect(CONTRACT).toMatch(/Do not add dividers, item counts, gutter\s+symbols/i);
+    expect(CONTRACT).not.toContain('━━━');
+    expect(CONTRACT).not.toContain('▶');
   });
 
-  it('keeps dividers portable and cheap rather than full-width', () => {
-    expect(CONTRACT).toMatch(
-      /fixed three-character `━━━` lead.*left-anchored and never padded/is,
-    );
+  it('keeps formatting portable and compact', () => {
     expect(CONTRACT).toMatch(/Never draw a box, a right border/i);
-    expect(CONTRACT).toMatch(/cannot reliably count columns/i);
-    expect(CONTRACT).toMatch(/full-width `━` run costs 20 to 30 tokens/i);
-    expect(CONTRACT).toMatch(/under roughly 15 tokens per message/i);
-    expect(CONTRACT).toMatch(/Skip zones entirely for messages under four lines/i);
+    expect(CONTRACT).toMatch(/Skip sections entirely for messages under four lines/i);
+    expect(CONTRACT).toMatch(/at most three bullets/i);
     expect(CONTRACT).toMatch(
       /Do not show a wall-clock estimate unless the\s+user explicitly asks/i,
     );
@@ -81,7 +75,7 @@ describe('output style contract', () => {
   });
 
   it('survives an HTML markdown renderer, not only a terminal', () => {
-    expect(CONTRACT).toMatch(/Zone bodies are markdown lists/i);
+    expect(CONTRACT).toMatch(/Section bodies are markdown lists/i);
     expect(CONTRACT).toMatch(/HTML collapses a run of spaces to one/i);
     expect(CONTRACT).toMatch(
       /single newline is a soft break, so\s+consecutive bare lines can join/i,
@@ -90,10 +84,7 @@ describe('output style contract', () => {
   });
 
   it('forbids host detection and routes host branching to capability', () => {
-    expect(CONTRACT).toMatch(/Do not detect the host/i);
-    expect(CONTRACT).toMatch(
-      /Do not shell out for `CLAUDE_CODE_ENTRYPOINT`, `TERM_PROGRAM`/i,
-    );
+    expect(CONTRACT).toMatch(/Do not\s+probe the host to choose formatting/i);
     expect(CONTRACT).toMatch(/branch on capability instead/i);
     expect(CONTRACT).toMatch(/`request_user_input` is listed/);
   });
@@ -101,8 +92,8 @@ describe('output style contract', () => {
   it('constrains procedural sentences without flattening rationale', () => {
     expect(CONTRACT).toMatch(/One action per sentence, imperative/i);
     expect(CONTRACT).toMatch(/Keep the article/i);
-    expect(CONTRACT).toMatch(/Under 20 words per step/i);
-    expect(CONTRACT).toMatch(/warning comes before the step/i);
+    expect(CONTRACT).toMatch(/under 20 words/i);
+    expect(CONTRACT).toMatch(/warning before the step/i);
     expect(CONTRACT).toMatch(/Use "must" for a required check/i);
     expect(CONTRACT).toMatch(
       /They do not\s+apply to rationale, decisions, or trade-off prose/i,
@@ -112,14 +103,14 @@ describe('output style contract', () => {
   it('exempts decisions from the list cap', () => {
     expect(CONTRACT).toMatch(/the options are the answer/i);
     expect(CONTRACT).toMatch(
-      /Do not compress a\s+decision into a single recommended path/i,
+      /Do not compress a\s+decision into one path/i,
     );
   });
 
   it('bans preamble, recap, and closers by name', () => {
-    expect(CONTRACT).toMatch(/No preamble, no recap, no closers/i);
-    expect(CONTRACT).toMatch(/Great question/);
-    expect(CONTRACT).toMatch(/Hope this\s+helps/);
+    expect(CONTRACT).toMatch(/No preamble, duplicate recap, or closers/i);
+    expect(CONTRACT).toMatch(/Great\s+question/);
+    expect(CONTRACT).toMatch(/Hope this helps/);
   });
 
   it('is reachable from the shared index and the communication contract', () => {
@@ -154,6 +145,15 @@ describe('skill text obeys its own output style', () => {
         fs.readFileSync(file, 'utf8'),
         path.relative(SKILLS_DIR, file),
       ).toContain('vs-internal-shared/references/output-style.md');
+    }
+  });
+
+  it('removes the old zone chrome from every user-facing skill', () => {
+    for (const file of userFacingSkillFiles) {
+      expect(
+        fs.readFileSync(file, 'utf8'),
+        path.relative(SKILLS_DIR, file),
+      ).not.toMatch(/`YOU DO`|`NOT PROVEN`|━━━|▶/);
     }
   });
 

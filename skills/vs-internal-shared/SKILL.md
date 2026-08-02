@@ -73,10 +73,10 @@ rule that makes skill changes take effect at all.
 
 Use [`references/output-style.md`](./references/output-style.md) in every
 user-facing skill — it applies to chat messages, not just workflow handoffs. It
-defines the `YOU DO` / `DONE` / `NOT PROVEN` zones and their dividers, the
-action-first shape rules, and the procedural sentence constraints that apply to
-any step the user executes. Communication decides what reaches chat; this
-decides how it is arranged once there.
+defines the answer-first handoff and the optional `Your action`, `Verified`,
+and `Still unverified` sections, plus the procedural sentence constraints that
+apply to any step the user executes. Communication decides what reaches chat;
+this decides how it is arranged once there.
 
 ## Agent-owned previews
 

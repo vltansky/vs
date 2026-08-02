@@ -644,45 +644,47 @@ Ship-it never re-runs QA. It reports what QA found.
 
 ### The handback block
 
-Zoned per
-[`../vs-internal-shared/references/output-style.md`](../vs-internal-shared/references/output-style.md).
-Everything the user must do sits in `YOU DO`; nothing actionable appears below
-it.
+Adaptive per
+[`../vs-internal-shared/references/output-style.md`](../vs-internal-shared/references/output-style.md):
+answer first, and every required action sits in `Your action`.
 
 ```markdown
 ## Handed back to you
 
-━━━ **YOU DO** ━━ <N> items
+<Outcome sentence: what shipped, current readiness, and the main caveat.>
 
-- ▶ **try it** <preview URL> — or — http://localhost:<port> (running, PID <pid>; stop: kill <pid>)
-  → <route to the change> · <fixture or login needed> · <the 3 steps that show the change>
+**Your action**
 
-1. ▶ <check, with its route or command>
-2. ▶ <check, with its route or command>
+1. <required check, with its route or command>
+2. **if it's wrong:** <the one command or revert that undoes it>
 
-- ▶ **if it's wrong** Run <the one command or revert that undoes it>
+**Preview**
 
-━━━ **DONE**
+- <preview URL> — or — http://localhost:<port> (running, PID <pid>; stop: kill <pid>)
+  · <route to the change> · <fixture or login needed> · <success state>
+
+**Verified**
 
 - **shipped** <PR URL> · <N> commits · CI <status>
 - **tested** <N> routes, <N> interactions — report opened, <artifact path>
 
-━━━ **NOT PROVEN**
+**Still unverified**
 
-- ! <claim> → <exact blocker>
+- <claim> — <exact blocker>
 ```
 
-The numbered `▶` list holds only what the agent genuinely could not verify
-itself. Omit that list when every check was automated; the `try it` action keeps
-`YOU DO` non-empty. Do not repeat a manual check under `NOT PROVEN`: the action
-owns that gap until the user clears it. Omit the entire `NOT PROVEN` zone when
-no non-actionable evidence gap remains.
+`Preview` exposes the result without pretending optional QA is required. The
+numbered list holds only what the agent genuinely could not verify itself and
+the user must do now. Omit `Your action` when the user does not need to act. Do
+not repeat a manual check under `Still unverified`: the action owns that gap
+until the user clears it. Omit `Still unverified` when no material evidence gap
+remains. Omit `Verified` when the outcome sentence already carries enough proof.
 
-Each `▶` line is one imperative action under 20 words, naming its command or
-route literally. A conditional rollback remains in `YOU DO`; state its condition
-before its command.
+Each action is one imperative sentence under 20 words, naming its command or
+route literally. A conditional rollback remains in `Your action`; state its
+condition before its command.
 
-If the change altered skill or plugin content, the `▶` list includes the
+If the change altered skill or plugin content, `Your action` includes the
 re-install command; the user does not have the new behavior until their
 installed copy is verified.
 
@@ -711,7 +713,8 @@ each item below.
 - [ ] The QA report was opened and what was tested is listed, or its absence is
       stated as a blocker
 - [ ] The `## Handed back to you` block emitted every required fact across its
-      applicable zones, and every user action sits in `YOU DO`
+      adaptive sections, with the answer first; every required action sits in
+      `Your action`
 - [ ] `vs-brief` generated and used as source material (unless trivial diff)
 - [ ] `vs-verify` generated a PASS/WARN result or was skipped as trivial
 - [ ] `vs-write` tightened the final body without dropping evidence or risks

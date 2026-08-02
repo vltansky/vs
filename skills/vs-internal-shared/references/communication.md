@@ -22,8 +22,8 @@ reports while it works.
 Chat is the index. The artifact is the content.
 
 Arrange whatever survives this budget per
-[`output-style.md`](./output-style.md): actions first, in one `YOU DO` zone,
-nothing actionable outside it.
+[`output-style.md`](./output-style.md): answer first, with every required next
+step in one optional `Your action` section.
 
 - At each phase boundary, emit at most a few lines: what finished, the single
   number or verdict that matters, what runs next.
