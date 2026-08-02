@@ -152,33 +152,32 @@ describe('ship-it hands the user something to try', () => {
     expect(SHIP_IT).toMatch(/Ship-it never re-runs QA/);
   });
 
-  it('emits the handback facts across their applicable zones', () => {
+  it('emits a compact, adaptive handback', () => {
     const block = SHIP_IT.slice(SHIP_IT.indexOf('## Handed back to you'));
     for (const fact of [
-      '━━━ **YOU DO**',
-      '**try it**',
-      '1. ▶',
-      '━━━ **DONE**',
+      '**Preview**',
+      '**Your action**',
+      '**Verified**',
       '**shipped**',
       '**tested**',
-      '**if it\'s wrong**',
-      '━━━ **NOT PROVEN**',
+      '**if it\'s wrong:**',
+      '**Still unverified**',
     ]) {
       expect(block, `handback ${fact}`).toContain(fact);
     }
     expect(block).toMatch(/stop: kill <pid>/);
     expect(block).not.toMatch(/~<M>m|time estimate/i);
     expect(block).toMatch(
-      /▶ \*\*if it's wrong\*\* Run <the one command or revert that undoes it>/i,
+      /\*\*if it's wrong:\*\*.*<the one command or revert that undoes it>/i,
     );
     expect(block).toMatch(/exact blocker/);
-    expect(block).toMatch(/Omit that list when every check was automated/);
+    expect(block).toMatch(/Omit `Your action` when the user does not need to act/);
     expect(block).toMatch(
-      /Do not repeat a manual check under `NOT PROVEN`/i,
+      /Do\s+not repeat a manual check under `Still unverified`/i,
     );
-    expect(block).toMatch(/Omit the entire `NOT PROVEN` zone when/i);
+    expect(block).toMatch(/Omit `Still unverified` when/i);
     expect(SHIP_IT).toMatch(
-      /every required fact across its\s+applicable zones, and every user action sits in `YOU DO`/i,
+      /answer first.*required action sits in `Your action`/is,
     );
   });
 });

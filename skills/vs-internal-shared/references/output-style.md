@@ -1,129 +1,119 @@
 # Output style — how a vs skill talks to the user
 
 Shared by every user-facing vs skill. It governs the shape of chat messages.
-[`communication.md`](./communication.md) governs what belongs in chat at all;
-this file governs how that content is arranged once it gets there.
+[`communication.md`](./communication.md) decides what belongs in chat; this file
+decides how to arrange it.
 
-One rule underneath all of it: **everything the user must do appears in one
-zone, first, and nothing actionable appears outside it.** A user who reads only
-the first zone must not miss an action.
+Two rules sit underneath everything else:
 
-## Zones
+1. **The first line is the answer: the outcome, decision, or blocker.**
+2. **Everything the user must do now appears in one optional `Your action`
+   section; nothing required appears outside it.**
 
-Every terminal message with more than three lines is arranged into zones, in
-this order. Skip any zone that is empty.
+## Adaptive handoff
 
-| Zone | Gutter | Holds |
-|---|---|---|
-| `YOU DO` | `▶` | Every action the user must take, plus the surface they take it on |
-| `DONE` | none | What now works and what was tested |
-| `NOT PROVEN` | `!` | Claims the run could not verify, each with its exact blocker |
+Most replies need only the opening sentence. Longer handoffs may add these
+sections in this order, omitting every section that is empty:
 
-A blocker that the user must clear is an action: it goes in `YOU DO`, not in
-`NOT PROVEN`. `NOT PROVEN` is for gaps the user only needs to know about. Never
-repeat a `YOU DO` action as a `NOT PROVEN` item; the action owns that gap until
-the user clears it. A conditional rollback is still a user action, so it belongs
-in `YOU DO` with its condition stated before the command.
+| Section | Holds |
+| --- | --- |
+| `Your action` | Only actions the user must take now |
+| `Verified` | Up to three facts that establish confidence |
+| `Still unverified` | Up to three material gaps the user only needs to know about |
 
-### Divider format
+Use plain bold Markdown labels. Do not add dividers, item counts, gutter
+symbols, status icons, or a section whose only purpose is to make the template
+look complete.
 
 ```markdown
-━━━ **YOU DO** ━━ 3 items
+PR #214 is ready for review; the settings flow passed browser QA.
 
-1. ▶ Run `./install.sh` — your installed copy is still 4.10.1
-2. ▶ Open the ship-it report → evidence tab → reload → banner reads 4.11.0
-3. ▶ If the release is wrong, run `git revert 3f2a91c`.
+**Your action**
 
-━━━ **DONE**
+1. Approve [PR #214](https://example.com/pr/214).
 
-- **shipped** PR #214 · 3 commits · CI green
-- **tested** 4 routes · 9 interactions
+**Verified**
 
-━━━ **NOT PROVEN**
+- **tested:** four routes and nine interactions
+- **CI:** required checks passed on commit `3f2a91c`
 
-- ! pre-today artifacts render — no archived fixture in repo
+**Still unverified**
+
+- Pre-existing artifacts have no archived browser fixture.
 ```
 
-- The divider is a fixed three-character `━━━` lead, then the bold zone label.
-  It is left-anchored and never padded to a width.
-- `YOU DO` appends an item count after `━━`. Do not append a duration.
-- Zone bodies are markdown lists. `YOU DO` is ordered when the steps have an
-  order; `DONE` and `NOT PROVEN` are unordered.
-- Markers are fixed symbols and sit inside the list item: Unicode `▶` means you
-  act, Unicode `✓` marks a completed item inside prose, and ASCII `!` marks an
-  unproven or blocked claim. No emoji.
-- Never draw a box, a right border, or a column that needs padding math. The
-  model cannot reliably count columns, and a misaligned border is worse than no
-  border.
+If the user does not need to act, omit `Your action`. If the opening sentence
+already carries enough evidence, omit `Verified`. If no material claim remains
+open, omit `Still unverified`.
 
-### Why this shape and not a wider one
+A blocker that the user must clear is an action and belongs in `Your action`.
+Never repeat a `Your action` item under `Still unverified`; the action owns that
+gap until the user clears it. A conditional rollback is still a user action, so
+it belongs in `Your action` with its condition before the command.
 
-Three constraints kill full-width rules, boxes, and aligned columns:
+### Keep the handoff compact
 
-- **Renderer independence.** Some hosts show a terminal; some render the same
-  markdown to HTML. HTML collapses a run of spaces to one, so a padded column
-  like `shipped   PR #214` flattens; and a single newline is a soft break, so
-  consecutive bare lines can join into one paragraph. Lists and bold labels
-  survive both. Alignment and bare line breaks survive only the terminal.
-- **Width independence.** Nothing here is padded to a column count, so a
-  60-column terminal, a wide one, and an HTML pane all show the same break.
-- **Token cost.** A full-width `━` run costs 20 to 30 tokens; three of them
-  spend most of a short message's budget on chrome. The three-character lead
-  costs about two.
+- Put at most three bullets in `Verified` and at most three in `Still
+  unverified`. Link the report, PR, or artifact for the full ledger.
+- Use an ordered list in `Your action` only when order matters; otherwise use
+  bullets.
+- Skip sections entirely for messages under four lines. A single action can
+  follow the opening sentence without a label.
+- A preview is information when it merely exposes the finished result. Give
+  its URL, route, fixture, and success state without pretending the user must
+  perform optional QA.
+- Use `Next` only for a real recommended continuation, never as a workflow
+  footer.
 
-Budget: zone chrome must stay under roughly 15 tokens per message. If the
-message cannot carry that, it does not need zones.
+### Renderer independence
 
-Skip zones entirely for messages under four lines, and for progress emissions
-under [`communication.md`](./communication.md), which stay one line. A single
-action needs a line, not a zone.
+Section bodies are markdown lists. HTML collapses a run of spaces to one, and a
+single newline is a soft break, so consecutive bare lines can join into one
+paragraph. Lists and bold labels survive both terminal and HTML renderers.
 
-### Do not detect the host
-
-This format is renderer-agnostic on purpose, so no skill needs to probe for its
-surface. Do not shell out for `CLAUDE_CODE_ENTRYPOINT`, `TERM_PROGRAM`, or a
-Codex marker to pick a rendering: it costs a tool call, it has to be redone
-every session, and it forces every skill to carry two layouts.
-
-Where a skill genuinely must branch on host, branch on capability instead —
-whether a tool such as `request_user_input` is listed, per
-[`../SKILL.md`](../SKILL.md) Structured questions. That signal is already in the
-model's context and costs nothing.
+Never draw a box, a right border, a padded column, or a full-width rule. Do not
+probe the host to choose formatting. Where a skill genuinely must branch on
+host behavior, branch on capability instead — for example, whether
+`request_user_input` is listed.
 
 ## Shape
 
-1. **The first line is the next action.** Not context, not a plan. If the
-   answer is a command, path, or snippet, it goes first.
+1. **Lead with state, not process.** Say `PR #214 is ready for review`, not
+   `I used vs-ship-it and checked the PR`.
 2. **Restate state every turn.** `Step 3 of 5 done: schema updated.` The user
    cannot hold position across messages.
 3. **State scope, not duration.** Do not show a wall-clock estimate unless the
    user explicitly asks for one.
-4. **Cap any list at five.** Past five, split into do-now versus later. Five
-   ranked beats ten unranked.
+4. **Cap any other list at five.** Past five, rank or move detail into the
+   artifact. Five ranked beats ten unranked.
 5. **Report errors matter-of-factly.** State cause, then fix. Never "Uh oh" or
    "There seems to be a problem".
 6. **Make completed work concrete.** `Login now works with magic links` — not
-   "I've made some changes to the auth flow".
+   `I've made some changes to the auth flow`.
 7. **Suppress tangents.** Finish the first thing. Raise the second once, at the
    end, as its own question.
-8. **No preamble, no recap, no closers.** Forbidden openers: "Great question",
-   "Let me", "Sure!", "To answer your question". Forbidden closers: "Hope this
-   helps", "Let me know if you need anything else", "Feel free to ask",
-   "Happy to clarify". Start with the answer, end when the answer is done.
+8. **No preamble, duplicate recap, or closers.** Forbidden openers: "Great
+   question", "Let me", "Sure!", "To answer your question". Forbidden closers:
+   "Hope this helps", "Let me know if you need anything else", "Feel free to
+   ask", "Happy to clarify". Start with the answer and end when it is done.
+
+Skill-use announcements belong in progress commentary, not the final handoff.
+When a skill changes behavior or introduces a gate, name it once in one short
+sentence and state that consequence. Do not narrate the workflow catalog.
 
 ## Procedural sentences
 
-These apply only to lines inside `YOU DO` and to any other step the user
-executes — install commands, QA repro steps, manual verification. They do not
-apply to rationale, decisions, or trade-off prose, where they would flatten the
-nuance that is the point of the sentence.
+These apply only to lines inside `Your action` and to any other step the user
+executes — install commands, QA repro steps, or manual verification. They do not
+apply to rationale, decisions, or trade-off prose, where brevity can erase the
+point.
 
 - One action per sentence, imperative. No step contains "and then" twice.
 - Keep the article: "open the report", not "open report".
-- Under 20 words per step.
-- Name the command or path literally. No idiom, no figurative phrase, no
-  status word standing alone in place of the thing it describes.
-- The warning comes before the step it applies to, never after.
+- Keep each step under 20 words.
+- Name the command or path literally. No idiom, figurative phrase, or status
+  word standing alone in place of the action.
+- Put the warning before the step it applies to, never after.
 - Use "must" for a required check. Not "should", not "could".
 
 ## Decisions are exempt from brevity
@@ -131,12 +121,12 @@ nuance that is the point of the sentence.
 When the user's answer is a choice, the options are the answer. Render two to
 four ranked options with the recommendation first and a one-clause consequence
 each, per [`../SKILL.md`](../SKILL.md) Structured questions. Do not compress a
-decision into a single recommended path to satisfy rule 4.
+decision into one path merely to shorten the reply.
 
 ## When to break the rules
 
-1. The user asked to "explain" or "walk me through". Run as long as the topic
-   needs; still no preamble and no closer. Add headers so they can skim back.
+1. The user asked to "explain" or "walk me through". Use the necessary length;
+   still start with the answer and add headings for navigation.
 2. A destructive action is next (`rm -rf`, force push, schema migration).
    Confirm first. Safety outranks brevity.
 3. Debug spiral. After three turns of "still broken", stop iterating. Name the
@@ -151,11 +141,11 @@ decision into a single recommended path to satisfy rule 4.
 Delete, in order:
 
 1. The first sentence, if it announces what you are about to do.
-2. The last sentence, if it recaps or asks "anything else?".
-3. Any "by the way" sidebar.
-4. Any hedging adverb carrying no information. Keep a hedge that carries real
-   uncertainty — deleting that one manufactures confidence.
-5. Any idiom inside a `YOU DO` step. Replace it with the literal action.
+2. The last sentence, if it duplicates the outcome or asks "anything else?".
+3. Any empty section or workflow footer.
+4. Any "by the way" sidebar.
+5. Any hedge that carries no real uncertainty.
+6. Any idiom inside a `Your action` step. Replace it with the literal action.
 
-Then verify: reading only the `YOU DO` zone, does the user know everything they
-must do? If yes, send.
+Then verify: does the first line answer the user, and does `Your action` contain
+every required next step without duplication?
