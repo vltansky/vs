@@ -135,7 +135,7 @@ Before shipping:      /vs-improve branch -> /vs-ship-it
 | `/vs-setup-adr` | Add an ADR convention and scaffolding to a repository |
 | `/vs-decide-for-me` | Resolve tactical uncertainty before interrupting you |
 | `/vs-next` | Decide whether the current work should continue, delegate, hand off, compact, clear, or stop |
-| `/vs-analyze-thread` | Diagnose Codex, Claude Code, or Cursor conversations from transcript evidence |
+| `/vs-search-threads` | Find and diagnose Codex, Claude Code, or Cursor conversations from transcript evidence |
 | `/vs-recap` | Explain the current situation or recent changes from zero prior context, with next actions |
 | `/vs-retro` | Extract session learnings and route them to durable destinations |
 | `/vs-try-skill` | Blind-test a skill and compare its behavior with expectations |

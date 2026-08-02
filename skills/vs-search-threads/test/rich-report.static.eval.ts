@@ -10,7 +10,7 @@ const TEMPLATE_PATH = path.join(
   'thread-comparison-template.html',
 );
 
-describe('vs-analyze-thread report format', () => {
+describe('vs-search-threads report format', () => {
   it('keeps a single-thread analysis compact in Markdown', () => {
     expect(SKILL).toMatch(/single.thread.*Markdown/is);
     expect(SKILL).toMatch(/compact/i);

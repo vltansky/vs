@@ -1,9 +1,9 @@
 ---
-name: vs-analyze-thread
-description: "Analyze Codex, Claude Code, or Cursor threads, transcripts, and transcriptions. Use for thread analysis, transcript review, conversation audits, agent-performance diagnosis, comparing sessions, finding loops or corrections, and extracting decisions, outcomes, evidence, and actionable improvements."
+name: vs-search-threads
+description: "Search Codex, Claude Code, or Cursor threads, chats, transcripts, and transcriptions, then analyze what they contain. Use to find a past session or conversation, review a transcript, audit agent performance, compare sessions, locate loops or corrections, and extract decisions, outcomes, evidence, and actionable improvements."
 ---
 
-# Analyze Thread
+# Search Threads
 
 Turn one or more coding-agent conversations into an evidence-backed diagnosis.
 Support the active conversation, attached or exported transcripts, and local Codex
@@ -31,6 +31,11 @@ conversation first. If the user says only "analyze this thread," analyze the
 active thread. If they ask for recent history without a count, use the three most
 recent project-matching sessions.
 
+When the user names a thread by content instead of by path or ID ("the session
+where we fixed the auth bug"), search the host's history for those terms, rank
+candidates by recency and match strength, and confirm the chosen session before
+analyzing it. Report the shortlist when more than one session plausibly matches.
+
 Ask only when choosing the wrong project, session set, or comparison baseline
 would materially change the result.
 
@@ -48,6 +53,16 @@ narrowest local source that matches the request:
 Do not scrape Cursor's SQLite history by default. Its internal schema is not a
 portable contract; request a Markdown export if the active chat is insufficient.
 Background or remote-agent chats may require the host's own history surface.
+
+To locate a session by content, search the host's history directory before
+normalizing anything, so only the matching files enter scope:
+
+```bash
+rg -l -i --glob '*.jsonl' '<search terms>' ~/.claude/projects/<project-slug>/ \
+  | xargs -r ls -t | head -5
+```
+
+Print candidate paths and modification times, not transcript bodies.
 
 For local JSONL or exported Markdown, normalize only the files in scope:
 

@@ -60,7 +60,7 @@ describe('ordered lists render only from 4.10.1 onward', () => {
   const templates = [
     ['..', '..', 'vs-qa', 'references', 'qa-report-template.html'],
     ['..', '..', 'vs-steal', 'references', 'steals-report-template.html'],
-    ['..', '..', 'vs-analyze-thread', 'references', 'thread-comparison-template.html'],
+    ['..', '..', 'vs-search-threads', 'references', 'thread-comparison-template.html'],
     ['..', 'assets', 'artifact.html'],
   ];
 

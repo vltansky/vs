@@ -8,7 +8,7 @@ const DIR = path.resolve(__dirname, '..');
 const NORMALIZER = path.join(DIR, 'scripts', 'normalize-transcript.mjs');
 const SKILL = fs.readFileSync(path.join(DIR, 'SKILL.md'), 'utf8');
 
-describe('vs-analyze-thread disk-backed transcripts', () => {
+describe('vs-search-threads disk-backed transcripts', () => {
   it('writes normalized text and a turn index without printing transcript bodies', () => {
     const fixtureDir = fs.mkdtempSync(path.join(os.tmpdir(), 'vs-transcript-'));
     const inputPath = path.join(fixtureDir, 'thread.jsonl');

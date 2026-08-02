@@ -34,7 +34,7 @@ describe('vs-htmdx', () => {
     for (const parts of [
       ['..', '..', 'vs-qa', 'references', 'qa-report-template.html'],
       ['..', '..', 'vs-steal', 'references', 'steals-report-template.html'],
-      ['..', '..', 'vs-analyze-thread', 'references', 'thread-comparison-template.html'],
+      ['..', '..', 'vs-search-threads', 'references', 'thread-comparison-template.html'],
       ['..', '..', 'vs-internal-shared', 'references', 'rich-artifacts.md'],
     ]) {
       const file = path.resolve(__dirname, ...parts);
