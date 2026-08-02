@@ -69,6 +69,14 @@ def attention_reason(snapshot: Snapshot) -> str | None:
         return "ci-failure"
     if snapshot.get("unresolvedThreads", 0) > 0:
         return "review-feedback"
+    if (
+        snapshot.get("state") == "open"
+        and snapshot.get("ciState") in ("SUCCESS", "NONE")
+        and snapshot.get("unresolvedThreads") == 0
+        and snapshot.get("reviewDecision") == "REVIEW_REQUIRED"
+        and snapshot.get("mergeable") is True
+    ):
+        return "review-approval"
     return None
 
 
@@ -161,6 +169,29 @@ def fetch_review(repo: str, pr: int) -> tuple[str | None, int]:
         not thread["isResolved"] for thread in pull_request["reviewThreads"]["nodes"]
     )
     return pull_request.get("reviewDecision"), unresolved
+
+
+def fetch_approval_candidates(repo: str, pr: int, pull_request: Snapshot) -> list[str]:
+    candidates: list[str] = []
+    seen: set[str] = set()
+
+    def add(login: Any) -> None:
+        if not isinstance(login, str) or not login or login in seen:
+            return
+        seen.add(login)
+        candidates.append(login)
+
+    for reviewer in pull_request.get("requested_reviewers") or []:
+        add(reviewer.get("login"))
+
+    try:
+        reviews = gh_json("api", f"repos/{repo}/pulls/{pr}/reviews?per_page=100")
+    except subprocess.CalledProcessError:
+        return candidates
+    for review in reversed(reviews):
+        if review.get("state") == "APPROVED":
+            add((review.get("user") or {}).get("login"))
+    return candidates
 
 
 def fetch_preview_urls(repo: str, head_sha: str) -> list[str]:
@@ -269,6 +300,16 @@ def fetch_snapshot(repo: str, pr: int, previous: Snapshot | None) -> Snapshot:
         "ciState": current_ci,
         "failures": failures,
     }
+    if (
+        snapshot["state"] == "open"
+        and snapshot["ciState"] in ("SUCCESS", "NONE")
+        and snapshot["unresolvedThreads"] == 0
+        and snapshot["reviewDecision"] == "REVIEW_REQUIRED"
+        and snapshot["mergeable"] is True
+    ):
+        approval_candidates = fetch_approval_candidates(repo, pr, pull_request)
+        if approval_candidates:
+            snapshot["approvalCandidates"] = approval_candidates
     if preview_urls:
         snapshot["previewUrls"] = preview_urls
     if preview_candidates:

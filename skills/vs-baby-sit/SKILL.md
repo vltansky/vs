@@ -119,7 +119,8 @@ and emits compact JSONL only for:
 
 - `baseline` — initial state
 - `change` — head SHA, CI, review, or PR state changed
-- `attention` — CI failed or unresolved review feedback appeared; exit `10`
+- `attention` — CI failed, unresolved review feedback appeared, or the only
+  remaining merge-readiness gate is review approval; exit `10`
 - `terminal` — merge-ready, merged, or closed; exit `0`
 
 No output means no state change. Do not interrupt the watcher to perform a
@@ -203,6 +204,22 @@ Confirm the failure belongs to the PR before editing. For an actionable failure,
 add or update the focused regression, make the smallest fix, run the focused
 check, commit `fix: resolve CI failure in <check-name>`, and push immediately.
 
+### Review approval gate
+
+After `reason: review-approval`, stop the watcher and hand control back to the
+user immediately. Do not keep polling an external human gate. Say explicitly
+that the PR is **waiting for approval**, and include the verified final SHA, CI
+state, mergeability, and unresolved-thread count so it is clear that approval is
+the remaining gate rather than a hung task.
+
+Suggest one person to ping when the evidence supports it. Prefer, in order, the
+first login in `approvalCandidates` (requested reviewers first, then the most
+recent prior approver), a current requested reviewer, or a user owner from
+changed-file `CODEOWNERS`. State why that person is the best candidate. Never
+invent an owner, treat a team as a user, or send the ping automatically. If no
+specific user can be identified, say so and point to the requested-reviewer or
+CODEOWNERS surface the user can choose from.
+
 ## 4. Validate while remote feedback runs
 
 Unless repository policy requires broad pre-push validation:
@@ -228,6 +245,9 @@ manually poll between the push and watcher restart.
 - Same CI failure survives two focused fix attempts: report the evidence and
   stop as unrecoverable.
 - Only ambiguous review threads remain: report them explicitly and stop.
+- Review approval is the only remaining merge-readiness gate: report
+  **waiting for approval**, suggest a grounded user to ping when available, and
+  stop instead of leaving the watcher running.
 - User interrupts the watcher: preserve the last emitted snapshot and stop.
 
 If the PR merges before local fix commits are pushed, branch from the fresh
@@ -248,7 +268,7 @@ the next step.
 **CI:** pass / fail (<check>)
 
 **Needs attention:**
-- <ambiguous thread or external blocker>
+- <ambiguous thread or external blocker; for approval use "Waiting for approval — suggested ping: @user (reason)">
 ```
 
 Before claiming completion, verify clear feedback was fixed and pushed, CI

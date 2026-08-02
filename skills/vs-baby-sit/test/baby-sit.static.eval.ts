@@ -54,6 +54,14 @@ describe('vs-baby-sit remote-first validation', () => {
     expect(SKILL).toMatch(/`CI is still running` are not state changes/);
   });
 
+  it('stops and hands off an approval-only gate with a grounded ping suggestion', () => {
+    expect(SKILL).toMatch(/After `reason: review-approval`, stop the watcher/);
+    expect(SKILL).toMatch(/waiting for approval/i);
+    expect(SKILL).toMatch(/first login in `approvalCandidates`/);
+    expect(SKILL).toMatch(/Never\s+invent an owner/);
+    expect(SKILL).toMatch(/Never\s+.*send the ping automatically/);
+  });
+
   it('reflects babysitting state in the host thread title when supported', () => {
     expect(SKILL).toContain('set_thread_title');
     expect(SKILL).toContain('[babysit]');
@@ -360,7 +368,7 @@ esac
     );
   });
 
-  it('does not declare merge-ready while an approval is required', () => {
+  it('stops with an approval attention event instead of hanging', () => {
     const fixturePath = path.join(os.tmpdir(), `baby-sit-review-required-${process.pid}.jsonl`);
     const snapshot = {
       state: 'open',
@@ -381,10 +389,33 @@ esac
     );
     fs.unlinkSync(fixturePath);
 
-    expect(result.status).toBe(0);
+    expect(result.status).toBe(10);
     expect(result.stdout.trim()).toBe(
-      JSON.stringify({ event: 'baseline', snapshot }),
+      JSON.stringify({ event: 'attention', reason: 'review-approval', snapshot }),
     );
+  });
+
+  it('suggests requested reviewers before prior approvers for an approval gate', () => {
+    const code = `
+import importlib.util
+import sys
+spec = importlib.util.spec_from_file_location("watch_pr", sys.argv[1])
+watcher = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(watcher)
+watcher.gh_json = lambda *args: [
+    {"state": "APPROVED", "user": {"login": "prior-approver"}},
+    {"state": "COMMENTED", "user": {"login": "commenter"}},
+]
+pull = {"requested_reviewers": [{"login": "requested-reviewer"}]}
+print(watcher.fetch_approval_candidates("owner/repo", 42, pull))
+`;
+    const result = spawnSync('python3', ['-c', code, WATCHER], {
+      encoding: 'utf8',
+      env: { ...process.env, PYTHONDONTWRITEBYTECODE: '1' },
+    });
+
+    expect(result.status).toBe(0);
+    expect(result.stdout.trim()).toBe("['requested-reviewer', 'prior-approver']");
   });
 
   it('wakes with review-feedback once a reviewer bot posts findings', () => {
