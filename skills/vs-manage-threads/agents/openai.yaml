@@ -1,0 +1,6 @@
+interface:
+  display_name: "vs-manage-threads"
+  short_description: "Control tower for active Codex tasks"
+
+policy:
+  allow_implicit_invocation: true
