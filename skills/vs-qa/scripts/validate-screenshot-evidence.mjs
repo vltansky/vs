@@ -16,7 +16,7 @@ const MEDIA = {
 // A stale runtime pin degrades silently: evidence exists on disk and is
 // referenced, but the renderer drops `![]()` and `<video>` so the report shows
 // none of it. Keep in sync with the pin in every vs template.
-const EXPECTED_RUNTIME = '4.11.0';
+const EXPECTED_RUNTIME = '4.11.1';
 const RUNTIME_PATTERN = /@wix\/htmdx@([0-9][^/"'\s]*)/g;
 
 // A clipless run is legitimate, but silence is not: a report that recorded
