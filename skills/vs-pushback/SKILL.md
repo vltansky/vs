@@ -189,6 +189,8 @@ Read the proposal and go find what it depends on:
 - prior artifacts in `~/.vs/$PROJECT_ID/{specs,rfcs,pushback,context}/`
 - overlapping code, existing patterns, tests, deployments, data stores, owners
 - simpler built-in or repo-native alternatives
+- the applicable `CONTEXT.md` or `CONTEXT-MAP.md` for project vocabulary, using
+  [`../vs-internal-shared/references/context-docs.md`](../vs-internal-shared/references/context-docs.md)
 - external prior art when the ecosystem has already solved this; load
   [`../vs-github-research/SKILL.md`](../vs-github-research/SKILL.md) when the
   answer would change the critique
@@ -204,7 +206,9 @@ high-risk or disputed work, use two when available. Continue immediately and
 disclose skipped or late
 advisors; never delay the first response for advisor output.
 
-Do not depend on, create, or update an in-repo `CONTEXT.md`.
+Read existing context docs to use the project's canonical language, but do not
+create or update `CONTEXT.md` in pushback. This skill reviews a formed proposal;
+active glossary changes belong to the shaping caller.
 
 If the proposal involves non-deterministic eval design, activate **Eval Quality**
 and read [references/eval-quality-dimension.md](./references/eval-quality-dimension.md).

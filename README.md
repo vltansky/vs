@@ -42,7 +42,8 @@ Open your project in the agent and describe what you want:
 
 `/vs-shape-it` starts with a short alignment round, then researches and
 stress-tests the direction independently before returning with a complete
-design for approval. Stay for the opening decisions; come back for the final
+design for approval. It also keeps settled domain language in a lazy
+`CONTEXT.md` glossary. Stay for the opening decisions; come back for the final
 review.
 
 ### 3. Build it

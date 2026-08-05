@@ -125,6 +125,14 @@ when the user asks build-it to use a Codex goal.
 
 - Read CLAUDE.md for project-specific commands (test, build, lint).
 - Read the plan file the user pointed to (or the most recent plan in conversation).
+- Resolve and read the applicable repository context docs before interpreting the
+  plan: root `CONTEXT-MAP.md` first when present, then the mapped or root
+  `CONTEXT.md` described by
+  [`../vs-internal-shared/references/context-docs.md`](../vs-internal-shared/references/context-docs.md).
+  Existing glossary terms are binding vocabulary for the implementation.
+- Do not create or update `CONTEXT.md` during build-it. If code exposes a
+  terminology conflict, log it, keep the handoff `UNPROVEN` where it matters,
+  and route the unresolved term back through shape-it.
 - If the plan is a shape-it spec, read its Goal Contract and Execution Strategy
   first. The Goal Contract defines done; the Execution Strategy's workstreams,
   waves, write scopes, and effort assignments govern Step 3 and Phase 3

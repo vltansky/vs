@@ -31,6 +31,11 @@ If the initial route was wrong, pivot immediately.
 Both routes end in pushback. Explore runs it as the last step of independent
 shaping; Challenge hands the whole session to it.
 
+For Explore, use the shared
+[`context-docs.md`](../vs-internal-shared/references/context-docs.md) protocol
+for project language. Shape-it owns the question rounds, design, ADR outcome,
+and any resolved glossary updates; do not open a separate context interview.
+
 When Codex goal tools are available, follow
 [Codex Goal Integration](../vs-internal-shared/references/codex-goal.md).
 Shape-it owns only the planning goal, never the later implementation goal.
@@ -70,6 +75,11 @@ Assume the user is available and engaged at the start. Read the sources they
 named and inspect only enough nearby context to avoid questions the repository
 can answer. Do not begin broad research or produce a near-final design before
 alignment.
+
+Before asking the first question, resolve and read the applicable
+`CONTEXT-MAP.md`/`CONTEXT.md` using the shared context-docs protocol, then use
+its canonical language. Ask about unresolved strategic choices only; do not
+ask the user to restate a term the glossary or nearby code already settles.
 
 Discover the active workspace, repository, and existing artifacts from the host
 and current directory. Ask for an evidence location only when it cannot be
@@ -154,6 +164,12 @@ Read relevant repository docs, nearby code, screenshots, and prior artifacts
 needed to test the aligned direction. Check
 `~/.vs/$PROJECT_ID/{pushback,specs,context,rfcs}/` when relevant, resolving
 `$PROJECT_ID` per [internal-shared](../vs-internal-shared/SKILL.md).
+When the topic has project-specific language, also read the applicable
+`CONTEXT.md` or `CONTEXT-MAP.md` using
+[`../vs-internal-shared/references/context-docs.md`](../vs-internal-shared/references/context-docs.md).
+If a term resolves during this session, update the selected glossary inline
+according to the shared context-docs protocol; do not create an empty context
+file merely because context support was loaded.
 
 Start with sources the user named and the nearest relevant implementation. Do
 not inventory the repo or launch broad research until a specific design question
@@ -239,6 +255,10 @@ locks in a dependency or integration boundary. It is not warranted for feature
 work, local refactors, or tactical implementation choices that a later session
 can change freely.
 
+For an ADR connected to a context decision, also follow the context-document
+storage rules so an existing in-repo or per-user preference is not overridden.
+The glossary records vocabulary; the ADR records the durable trade-off.
+
 When it is warranted, write `adr/<slug>.md` now, before the closing interaction:
 
 - Follow the repo's existing ADR convention. Absent one, use `adr/` at the repo
@@ -284,6 +304,7 @@ The Goal Contract is the stable handoff from shaping to building:
 - Evidence plan: <surface + route or command + state or fixture that will prove
   the outcome, or OPEN DECISION when no surface exists today>
 - ADR: <path(s) to the decision record(s) build-it must honor, or None — reason>
+- Context: <glossary path(s) updated or read, or None — reason>
 - Constraints and approvals: <hard boundaries and human gates>
 ```
 
@@ -502,6 +523,9 @@ Before finishing, check:
   surfaces it in the closing interaction
 - the ADR question was resolved with a stated outcome: a drafted `adr/<slug>.md`
   named in the Goal Contract, or a one-clause reason none was warranted
+- resolved project vocabulary was written inline to the applicable glossary,
+  or no context file was created because no term crystallised
+- `CONTEXT.md` contains vocabulary only, with no implementation detail or spec
 - unresolved strategic ambiguity is explicit
 - direct work has no coordination overhead
 - orchestrated work has bounded workstreams, effort, dependencies, merge gates,
