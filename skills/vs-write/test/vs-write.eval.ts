@@ -68,11 +68,23 @@ function scorersFor(caseSpec: WriteCase) {
       },
       { weight: 3 },
     ),
-    check(
+    // Scored rather than checked only so a failure names the canary and quotes
+    // the sentence that tripped it. The gate is unchanged: anything below 1 is
+    // a fidelity failure.
+    score(
       'no-invention',
       ({ workspace }) => {
         const copy = readAnswer(workspace);
-        return copy !== '' && !caseSpec.canaries.some((re) => re.test(copy));
+        if (!copy) return { score: 0, details: `${ANSWER} not written` };
+        const tripped = caseSpec.canaries
+          .map((re) => ({ re, hit: copy.match(re) }))
+          .filter((entry) => entry.hit);
+        return {
+          score: tripped.length ? 0 : 1,
+          details: tripped
+            .map((entry) => `${entry.re} matched "${entry.hit?.[0]}"`)
+            .join(' | '),
+        };
       },
       { weight: 3 },
     ),
@@ -159,6 +171,17 @@ describe(`vs-write fidelity and shape (${SLICE} slice)`, () => {
           if (entry.score < 1 && entry.details) {
             console.log(`    ${entry.name}: ${entry.details}`);
           }
+        }
+
+        // The workspace goes away with the agent, so keep the copy for
+        // inspection. `VS_WRITE_KEEP` names the run so passes stay comparable.
+        const keep = process.env.VS_WRITE_KEEP;
+        if (keep) {
+          fs.mkdirSync(keep, { recursive: true });
+          fs.writeFileSync(
+            path.join(keep, `${caseSpec.id}-t${trial}.md`),
+            readAnswer(agent.workspace),
+          );
         }
 
         await agent.dispose();

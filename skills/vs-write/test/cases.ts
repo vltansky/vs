@@ -75,7 +75,9 @@ export const CASES: WriteCase[] = [
     wordCeiling: 220,
     anchors: [
       /RETRY_MAX_ATTEMPTS/,
-      /0[\s–-]*(to\s*)?10/,
+      // The range's two bounds near each other, however they are joined:
+      // "0-10", "0 to 10", "between 0 and 10".
+      /\b0\b[^.\n]{0,24}\b10\b/,
       /RETRY_BASE_DELAY_MS/,
       /500/,
       /2\^|doubl/i,
@@ -84,7 +86,7 @@ export const CASES: WriteCase[] = [
       /RETRY_DEAD_LETTER_URL/,
       /warn/i,
       /restart/i,
-      /4 minutes/i,
+      /4\s*\+?\s*min|four minutes/i,
     ],
     canaries: [
       // Dead-lettering fires after attempts are exhausted, so it cannot
@@ -107,7 +109,8 @@ export const CASES: WriteCase[] = [
       /328/,
       /1\/400|400x|400 times/i,
       /not confirmed|do not know|don't know|haven't confirmed/i,
-      /no data loss/i,
+      // Negation is part of the fact: "orders were lost" is the opposite claim.
+      /no data (loss|was lost)|no (data|orders?|records?) (were|was) lost|nothing was lost|(data|orders?) (were|was) not lost/i,
       /double.charg/i,
       /ledger/i,
       /contributing factor|contributed to/i,
