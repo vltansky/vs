@@ -45,6 +45,23 @@ Pocock's `writing-shape` skill. It keeps routine rewrites direct while applying
 the source skill's model for grounding concepts, ordering blocks, preserving
 raw material, and naming gaps.
 
+## The Elements of Style
+
+- Author: William Strunk Jr.
+- Used in: `skills/vs-write`
+- Source: _The Elements of Style_ (1918), public domain
+- Via: a `vs-write-clearly` skill that restated Strunk's rules for agent use
+
+The `vs-write` composition and usage guidance distills Strunk's elementary
+principles — put the emphatic word last, keep related words together, make the
+paragraph the unit of composition, prefer the definite and concrete, omit
+needless words — into the skill's existing principles, style, and structure
+sections. The rules are restated in this skill's own terms and applied to the
+artifacts vs writes; the source text is not reproduced and no reference corpus
+is vendored. Strunk's rules assume a trusted author writing their own claims, so
+`vs-write` subordinates them to its source-fidelity guardrails. See
+`adr/gate-writing-concision-on-source-fidelity.md`.
+
 ## Impeccable
 
 - Project: https://github.com/pbakaus/impeccable

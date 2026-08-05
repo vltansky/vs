@@ -5,7 +5,14 @@ import { CASES, FIXTURE_DIR } from './cases';
 
 const ROOT = path.resolve(__dirname, '..', '..', '..');
 const SKILL_PATH = path.resolve(ROOT, 'skills', 'vs-write', 'SKILL.md');
-const SKILL = fs.readFileSync(SKILL_PATH, 'utf8');
+// SKILL.md is hard-wrapped, so a phrase assertion has to survive a line break
+// falling anywhere inside it. Collapsing runs of whitespace to one space keeps
+// these checks about content rather than about where the wrap landed. For the
+// canary checks it is also strictly stricter: a canary split across two lines
+// still counts as present.
+const SKILL = fs
+  .readFileSync(SKILL_PATH, 'utf8')
+  .replace(/\s+/g, ' ');
 const NOTICES = fs.readFileSync(
   path.resolve(ROOT, 'THIRD_PARTY_NOTICES.md'),
   'utf8',

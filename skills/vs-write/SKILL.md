@@ -46,7 +46,8 @@ request for a direct rewrite overrides shaping mode.
 4. **Prefer concrete language.** Use specific names, dates, numbers, actors, and
    actions. Replace vague abstractions with what actually happens.
 5. **Cut without flattening.** Remove repetition, filler, throat-clearing, and
-   words that add no meaning. Preserve intentional voice and rhythm.
+   words that add no meaning. Preserve intentional voice and rhythm. Concision
+   may not buy a fact: where tightening and fidelity disagree, fidelity wins.
 
 ## Ground the reader
 
@@ -58,6 +59,8 @@ before a later sentence or section relies on it.
 - Ground the idea and its term together when introducing domain language.
 - Do not front-load every definition. Introduce a concept immediately before it
   becomes useful.
+- Do not explain a concept the named audience already owns. Defining a primitive
+  for the team that maintains it spends their attention and buys nothing.
 - If a passage needs an ungrounded concept, add the foundation earlier, explain
   it here, or remove the passage.
 - After each paragraph or block, ask what the reader needs next. Use that answer
@@ -102,6 +105,11 @@ The finished piece should read as one coherent voice.
 
 ## Structure and formatting
 
+- Do not add a section the requested format does not need. Deliver the shape the
+  reader asked for; a section they did not ask for is padding with a heading on
+  it. When the format itself requires a section, keep it.
+- Never restate a heading in the sentence beneath it. The first sentence of a
+  section carries what the reader most needs from that section.
 - Use sentence case for headings and labels.
 - Make headings descriptive, distinct, and easy to scan.
 - Use paragraphs for connected reasoning and bullets for genuinely parallel
@@ -113,14 +121,22 @@ The finished piece should read as one coherent voice.
 - Use descriptive link text that makes sense without surrounding context.
 - Do not use bold, italics, all caps, or exclamation marks as a substitute for
   clear wording and structure. Bold may identify a literal interface control.
+- A bold run-in label earns its place only when the reader scans for it. Used to
+  decorate a sentence that already reads in order, it is noise.
 - Keep direct quotations, code, data tables, registered names, and required
   templates in their original conventions.
 
 ## Accuracy guardrails
 
 - Do not invent facts, benefits, evidence, quotes, dates, or calls to action.
-- Keep uncertainty and attribution visible. Do not strengthen "may" into
-  "will," correlation into causation, or an opinion into a fact.
+- Keep uncertainty and attribution visible. Promoting "may" to "will," a hedge
+  to a claim, correlation to causation, a contributing factor to a cause, or a
+  partial failure to a total one is a fidelity failure however much better the
+  sentence reads.
+- Do not supply a cause, a severity word, a guarantee, a recommendation, a
+  commitment, or a mechanism so a sentence lands harder. When the source names a
+  problem without naming the remedy, the copy names the problem without the
+  remedy.
 - Preserve security, legal, medical, financial, and irreversible-action
   warnings even when shortening the surrounding copy.
 - If essential facts or intent are missing, ask only for the information that
