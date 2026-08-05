@@ -8,6 +8,8 @@ const OPENAI_CONFIG = fs.readFileSync(
   'utf8',
 );
 const DESCRIPTION = SKILL.match(/^description: "([^"]+)"$/m)?.[1] ?? '';
+const IMMEDIATE_PR_PATH =
+  SKILL.split('### Immediate PR path')[1]?.split('### Mechanical PR fast path')[0] ?? '';
 
 describe('vs-ship-it routing', () => {
   it('prioritizes PR creation while retaining explicit direct-push routing', () => {
@@ -124,6 +126,30 @@ describe('vs-ship-it mechanical PR fast path', () => {
     );
     expect(SKILL).toMatch(/verify the PR association/);
     expect(SKILL).toMatch(/Verify\s+each requested modifier took effect/);
+  });
+});
+
+describe('vs-ship-it immediate PR path', () => {
+  it('routes a bare ship-it request to immediate PR creation', () => {
+    expect(SKILL).toMatch(
+      /bare `ship it` request without a named destination means\s+create a PR immediately/,
+    );
+    expect(IMMEDIATE_PR_PATH).toMatch(/publish-first path/);
+    expect(IMMEDIATE_PR_PATH).toMatch(/create the PR as soon as the scoped changes are pushed/);
+  });
+
+  it('skips validation and workflow ceremony before creating the PR', () => {
+    expect(IMMEDIATE_PR_PATH).toMatch(/Do not run tests, linters, builds, review agents/);
+    expect(IMMEDIATE_PR_PATH).toMatch(/`vs-brief`,\s+or `vs-verify`/);
+    expect(IMMEDIATE_PR_PATH).toMatch(/Create the PR immediately after the push/);
+    expect(IMMEDIATE_PR_PATH).toMatch(/Do not wait for CI or automated review/);
+    expect(IMMEDIATE_PR_PATH).toMatch(/Do not run repository-required checks/);
+  });
+
+  it('reports skipped checks and leaves modifiers and monitoring opt-in', () => {
+    expect(IMMEDIATE_PR_PATH).toMatch(/local checks, review, and CI\s+watching were skipped/);
+    expect(IMMEDIATE_PR_PATH).toMatch(/Do not apply modifiers or start monitoring unless/);
+    expect(IMMEDIATE_PR_PATH).toMatch(/Stop after the PR handoff/);
   });
 });
 

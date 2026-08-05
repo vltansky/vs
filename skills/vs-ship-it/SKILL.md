@@ -12,9 +12,11 @@ Honor the outcome the user named instead of expanding a narrow push into a PR:
 - **Direct push:** the user explicitly says to push to `main`, `master`, another
   named branch, or the current branch, or says to commit and push without a PR.
   Follow the direct-push path below and stop after verifying the remote SHA.
-- **PR:** the user asks to create/open a PR, submit for review, send to dev, or
-  says only "ship it" without naming a destination. Continue with the full PR
-  workflow.
+- **Immediate PR:** a bare `ship it` request without a named destination means
+  create a PR immediately. Use the Immediate PR path below; do not run local
+  validation, review, brief, verify, or CI watching first.
+- **PR:** the user asks to create/open a PR, submit for review, or send to dev
+  without asking for an immediate publish. Continue with the full PR workflow.
 
 If the named destination branch does not exist, do not silently create or map
 it. Report the repository's default branch and ask only when the intended
@@ -34,6 +36,33 @@ destination remains ambiguous.
    match. Report the branch, commit, and validation evidence.
 
 Do not create a feature branch or PR in direct-push mode.
+
+### Immediate PR path
+
+Use this path for a bare `ship it` request without a named destination. This is
+the publish-first path: create the PR as soon as the scoped changes are pushed,
+without running checks as a prerequisite.
+
+1. Inspect only `git status -sb`, the scoped diff, the current branch, and
+   remotes. Preserve unrelated changes and stage only files in scope.
+2. If the checkout is on `main`, `master`, `prod`, or detached HEAD, create a
+   feature branch. Do not run tests, linters, builds, review agents, `vs-brief`,
+   or `vs-verify`.
+3. Commit the scoped files and push the branch with `git push -u origin HEAD`.
+4. Create the PR immediately after the push with a concise body derived from
+   the user request and diff. Do not wait for CI or automated review before
+   creating it.
+5. Re-resolve the PR association from the same checkout using Step 5b. This is
+   an identity handoff, not a validation gate; if it fails, report the mismatch
+   and stop.
+6. Hand back the PR URL and state explicitly that local checks, review, and CI
+   watching were skipped. Do not apply modifiers or start monitoring unless
+   the user explicitly requests them.
+
+Do not run repository-required checks on this path. If committing or pushing
+cannot proceed, report the exact Git blocker instead of substituting a check.
+Stop after the PR handoff; do not fall through into the full PR workflow or
+the preview, QA, or monitoring steps below.
 
 ### Mechanical PR fast path
 
