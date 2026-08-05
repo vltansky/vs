@@ -29,8 +29,9 @@ verbatim.
 ## Matt Pocock's skills
 
 - Project: https://github.com/mattpocock/skills
-- Used in: `skills/vs-prototype`, `skills/vs-write`
+- Used in: `skills/vs-bro`, `skills/vs-prototype`, `skills/vs-write`
 - Sources:
+  - https://github.com/mattpocock/skills/blob/0986ebaf5d29e812162702b2633a2942c30200d2/docs/productivity/wait-what.md
   - https://github.com/mattpocock/skills/tree/main/skills/engineering/prototype
   - https://github.com/mattpocock/skills/blob/main/skills/in-progress/writing-shape/SKILL.md
 - License: MIT
@@ -44,6 +45,12 @@ The `vs-write` source-grounding and long-form shaping guidance adapts Matt
 Pocock's `writing-shape` skill. It keeps routine rewrites direct while applying
 the source skill's model for grounding concepts, ordering blocks, preserving
 raw material, and naming gaps.
+
+The `vs-bro` comprehension-repair contract adapts the referenced `wait-what`
+skill: it re-pitches the explanation that did not land, restores the missing
+premise, and keeps the repair explicit-only. The implementation is rewritten
+for the vs routing, output-style, and cross-host contracts. The MIT license text
+is included at `skills/vs-bro/LICENSE.mattpocock-skills`.
 
 ## The Elements of Style
 

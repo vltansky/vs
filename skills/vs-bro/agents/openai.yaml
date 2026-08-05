@@ -1,0 +1,6 @@
+interface:
+  display_name: "vs-bro"
+  short_description: "Re-explain the part that did not land, in plain English."
+
+policy:
+  allow_implicit_invocation: false
