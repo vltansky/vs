@@ -30,3 +30,26 @@ describe('vs-fix-pr async reviewer waiting', () => {
     expect(fs.existsSync(WATCHER)).toBe(true);
   });
 });
+
+describe('vs-fix-pr CI ownership', () => {
+  it('treats failing CI as address-mode work even without comments', () => {
+    expect(SKILL).toMatch(/CI is a first-class input/);
+    expect(SKILL).toMatch(/red required check is actionable work even when Step 2 finds no\s+comments/);
+    expect(SKILL).toMatch(/Do not stop with "No PR comments to address" while a required check\s+is failing or still running/);
+  });
+
+  it('requires diagnosis, repair, and exact-head recheck', () => {
+    expect(SKILL).toMatch(/Open the failed check logs/);
+    expect(SKILL).toMatch(/Do not classify a failure as external merely because the reported file is not in\s+the diff/);
+    expect(SKILL).toMatch(/diagnose, fix or re-run, push if needed, and re-fetch the exact HEAD\s+checks/);
+  });
+
+  it('keeps CI repair separate from reply approval', () => {
+    expect(SKILL).toMatch(/CI fixes do not require the review-reply approval gate/);
+    expect(SKILL).toMatch(/posting a PR\s+comment about the failure still does/);
+  });
+
+  it('blocks completion until required checks are green', () => {
+    expect(SKILL).toMatch(/Required CI and automated reviewer checks are terminal and green after fixes/);
+  });
+});

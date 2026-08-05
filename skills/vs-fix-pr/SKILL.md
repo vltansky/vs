@@ -1,28 +1,31 @@
 ---
 name: vs-fix-pr
-description: "Primary VS workflow whenever the user asks to see, check, review, address, or fix PR comments or feedback; handle requested changes; or resolve review threads. Use this instead of a generic GitHub PR-comments workflow when available. Inspect-only requests stay read-only; action requests evaluate feedback, implement accepted fixes, and gate every reply or resolution on approval."
+description: "Primary VS workflow whenever the user asks to see, check, review, address, or fix a PR, its comments or feedback, or its failing CI; handle requested changes; or resolve review threads. Use this instead of a generic GitHub PR-comments workflow when available. Inspect-only requests stay read-only; action requests repair actionable CI and feedback, then gate every reply or resolution on approval."
 ---
 
 # Fix PR
 
-## Choose the feedback mode
+## Choose the PR mode
 
-Preserve the difference between inspecting feedback and acting on it:
+Preserve the difference between inspecting a PR and acting on it:
 
 - **Inspect only:** the user says see, check, list, review, or summarize PR
   comments/feedback without asking to address them. Resolve the PR, wait for
   relevant reviewer checks, fetch all feedback surfaces in Step 2, and report
-  the actionable, outdated, resolved, and informational items. Do not edit,
-  commit, reply, or resolve threads. Stop after the report.
-- **Address feedback:** the user says address, fix, handle, apply, or resolve PR
-  comments/feedback. Continue through the full workflow, including the approval
-  gates before posting replies or resolving threads.
+  CI plus the actionable, outdated, resolved, and informational feedback. Do
+  not edit, commit, push, rerun CI, reply, or resolve threads. Stop after the
+  report.
+- **Address PR:** the user says address, fix, handle, apply, or resolve a PR or
+  its comments/feedback. Treat both actionable CI failures and reviewer
+  feedback as owned work. Continue through the full workflow, including the
+  approval gates before posting replies or resolving threads.
 
 If the request combines both, inspect first and then continue in address mode.
 
 ## Building Block Composition
 
-Fix-pr is a workflow for reviewer feedback. It composes:
+Fix-pr is a workflow for making an existing PR healthy after review or CI
+feedback. It composes:
 
 - `vs-decide-for-me` for tactical uncertainty around implementation details.
 - `vs-verify` after applying fixes so replies are backed by evidence.
@@ -37,13 +40,14 @@ When running in Codex, use
 [`../vs-internal-shared/references/codex-goal.md`](../vs-internal-shared/references/codex-goal.md)
 for goal ownership and completion rules.
 
-Fix-pr owns the reviewer-feedback goal after Step 0 resolves the target PR and
-Step 2 identifies unresolved feedback. The objective should name the PR and the
-unresolved thread/comment scope. Complete the goal only after every accepted
+Fix-pr owns the PR-health goal after Step 0 resolves the target PR and either
+Step 1 finds actionable CI or Step 2 identifies unresolved feedback. The
+objective should name the PR plus its failing-check and unresolved-feedback
+scope. Complete the goal only after every owned CI failure and accepted review
 fix is committed and pushed, approved replies are posted, approved threads are
-resolved, and the build/reviewer state has been rechecked. Declined or
-human-decision threads keep the goal active or blocked according to Codex goal
-policy.
+resolved, and the build/reviewer state has been rechecked. Declined feedback,
+external CI blockers, or human-decision threads keep the goal active or blocked
+according to Codex goal policy.
 
 ## Entry Points
 
@@ -119,7 +123,7 @@ Switching:
 git checkout $PR_BRANCH && git pull
 ```
 
-## Step 1: Check Build Status
+## Step 1: Check and Repair CI
 
 ```bash
 SHA=$(gh pr view $PR_NUM --json commits --jq '.commits[-1].oid')
@@ -135,9 +139,14 @@ gh pr checks $PR_NUM
 | Build Status | Action |
 |--------------|--------|
 | **success** | Proceed to Step 2 |
-| **failure** | Analyze failure (Step 1a), then ask user |
-| **pending** | Tell user: "Build still running. Proceed with comments or wait?" |
+| **failure** | Analyze failure (Step 1a); in address mode, repair owned failures |
+| **pending** | Process available feedback, but wait before the final handoff |
 | **No status** | Proceed to Step 2 |
+
+CI is a first-class input, not merely context for reviewer comments. In address
+mode, a red required check is actionable work even when Step 2 finds no
+comments. Do not stop with "No PR comments to address" while a required check
+is failing or still running.
 
 ### Async reviewer checks
 
@@ -164,7 +173,7 @@ Do not wait with `gh pr checks $PR_NUM --watch` (foreground or background), a `s
 
 When the check finishes, re-fetch comments and proceed to Step 2.
 
-### If Build Failed
+### If CI Failed
 
 #### Step 1a: Analyze the Failure
 
@@ -173,23 +182,33 @@ When the check finishes, re-fetch comments and proceed to Step 2.
 gh pr view $PR_NUM --json comments --jq '.comments[-1].body' | head -50
 ```
 
-1. **Identify the error** — parse for test failures, type errors, lint errors, build errors.
-2. **Check if caused by this PR:**
+1. **Open the failed check logs** — do not infer the cause from the check name or
+   last PR comment alone. Parse the failing step and its first causal error.
+2. **Check whether the failure is owned by this PR:**
    ```bash
    gh pr view $PR_NUM --json files --jq '.files[].path'
    ```
 
-| Error Location | Action |
-|----------------|--------|
-| File in PR diff | Fix it — it's your change |
-| File NOT in PR diff | Likely flaky/external — explain to user |
+| Cause | Address-mode action |
+|-------|---------------------|
+| Product/test/workflow behavior introduced or exposed by the PR | Fix it, verify locally, commit, and push |
+| Deterministic repository failure repairable on the PR branch | Fix it, verify locally, commit, and push |
+| Confirmed transient/flaky check | Re-run the failed job once when supported, then recheck |
+| External infrastructure, quota, permission, or secret blocker | Repair it only when the PR safely owns that configuration; otherwise report the exact blocker |
 
-**If caused by PR:** Read the failing file, fix, commit: `fix: [description]`
+Do not classify a failure as external merely because the reported file is not in
+the diff. A PR can expose existing tests, generated artifacts, workflow steps,
+or repository-wide constraints. Establish the causal link from logs, the diff,
+and a local reproduction when practical.
 
-**If external:** Present options to user:
-- Post explanation as PR comment
-- Re-run the build (if CI supports re-trigger comments)
-- Skip and proceed with PR comments
+In address mode, iterate until required CI is green or an external blocker is
+proven: diagnose, fix or re-run, push if needed, and re-fetch the exact HEAD
+checks. Continue to Step 2 in the same run so newly posted reviewer feedback is
+not missed. CI fixes do not require the review-reply approval gate; posting a PR
+comment about the failure still does.
+
+In inspect-only mode, report the same diagnosis without editing, pushing, or
+re-running anything.
 
 ## Step 2: Fetch Comments
 
@@ -224,10 +243,11 @@ For each unresolved thread, tag it:
 
 **Outdated bulk-resolve** — don't walk each outdated thread through Step 4 individually. Offer one prompt: "N outdated threads — resolve all as addressed-by-rewrite?" If the user keeps one open, label it `[OUTDATED]` in the finding list and re-evaluate whether the concern migrated to a new line.
 
-Exit gate — only report "No PR comments to address" when the unresolved-thread
-list, issue-level comment list, and actionable review-submission bodies are all
-empty. A review body can contain valid feedback even when no inline threads
-remain.
+Feedback exit gate — only report "No PR comments to address" when the
+unresolved-thread list, issue-level comment list, and actionable
+review-submission bodies are all empty. This is not a workflow exit: Step 1's CI
+gate must also be green or have no required checks. A review body can contain
+valid feedback even when no inline threads remain.
 
 ## Step 3: Create TODO List
 
@@ -423,19 +443,22 @@ Mark TODO complete, move to next comment.
 
 | Scenario | Response |
 |----------|----------|
-| No comments | "No PR comments to address." |
-| All addressed | "All done! Addressed X comments." |
-| Some skipped | "Addressed X comments, skipped Y — <reason>." plus one `Your action` item per skipped comment the user must rule on |
+| No comments, CI green | "No PR comments to address; required CI is green." |
+| CI fixed, no comments | "CI fixed; no PR comments needed changes." |
+| All addressed | "All done: required CI is green and X comments were addressed." |
+| Some skipped or blocked | Report fixed CI/comments plus one `Your action` item per unresolved decision or external blocker |
 
 ## Verification
 
 Blocked until all items pass — do not report "all addressed" without evidence for each.
 
 - [ ] Every comment evaluated (accepted, rejected with reason, or deferred)
+- [ ] Every required failing check diagnosed from logs
+- [ ] Every owned CI failure fixed or rerun and rechecked on exact HEAD
 - [ ] Fixes committed for all accepted feedback
 - [ ] Replies posted on-thread for every addressed comment (user approved each)
 - [ ] Review threads resolved (user approved each resolution)
-- [ ] Build still passes after fixes
+- [ ] Required CI and automated reviewer checks are terminal and green after fixes
 
 Before the final handoff, apply
 [Phase Boundaries](../vs-internal-shared/references/phase-boundaries.md). Keep

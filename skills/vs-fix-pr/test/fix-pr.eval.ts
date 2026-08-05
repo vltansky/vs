@@ -25,20 +25,21 @@ const OPENAI_CONFIG = fs.readFileSync(
 describe('fix-pr routing', () => {
   it('allows implicit invocation for PR comment requests', () => {
     expect(SKILL).not.toContain('disable-model-invocation: true');
-    expect(SKILL).toMatch(/see, check, review, address, or fix PR comments/);
+    expect(SKILL).toMatch(/see, check, review, address, or fix a PR/);
+    expect(SKILL).toMatch(/comments or feedback, or its failing CI/);
     expect(OPENAI_CONFIG).toContain('allow_implicit_invocation: true');
   });
 
   it('keeps see-comments requests read-only', () => {
     expect(SKILL).toContain('**Inspect only:**');
-    expect(SKILL).toContain(
-      'Do not edit,\n  commit, reply, or resolve threads.',
+    expect(SKILL).toMatch(
+      /Do\s+not edit, commit, push, rerun CI, reply, or resolve threads/,
     );
     expect(SKILL).toContain('Stop after the report.');
   });
 
   it('routes action requests through approval-gated fixes', () => {
-    expect(SKILL).toContain('**Address feedback:**');
+    expect(SKILL).toContain('**Address PR:**');
     expect(SKILL).toMatch(/approval\s+gates before posting replies or resolving/);
   });
 });
