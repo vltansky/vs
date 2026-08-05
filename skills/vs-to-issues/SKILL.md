@@ -40,7 +40,17 @@ If the plan is still fuzzy on terminology or framing, route to `/vs-shape-it` fi
 Before slicing:
 
 1. **Read the source plan.** Full text. Do not skim. If the plan references external docs (linked specs, related issues, ADRs), read those too.
-2. **Read the repo.** Skim the modules the plan touches, existing issue labels (`gh label list`), and any `AGENTS.md` / `CLAUDE.md` / `CONTRIBUTING.md` conventions.
+2. **Read the repo — and verify you're reading the *current* repo.** Skim the modules the plan touches, existing issue labels (`gh label list`), and any `AGENTS.md` / `CLAUDE.md` / `CONTRIBUTING.md` conventions.
+
+   A stale checkout silently produces confident, wrong issues. Before citing any code:
+
+   ```bash
+   git fetch origin -q && git rev-list --count HEAD..origin/<default-branch>
+   ```
+
+   If that number is non-trivial, read via `git show origin/<branch>:<path>` rather than the working tree. A feature landing after your checkout can move the live code path entirely — the module the plan *sounds* like it touches may be dead code. Confirm the path is live (recent commits, referenced by current callers) before building an issue on it.
+
+   When you find a module that looks right but isn't, **say so in the issue**. A "don't start here, and here's why" note is worth more than the correct pointer alone — it pre-empts the same wrong turn by the next reader.
 3. **Read issue tracker conventions.** If `docs/agents/issue-tracker.md` exists, follow it. Otherwise, check `AGENTS.md` for an `Agent skills` / issue workflow section. If neither exists:
    - GitHub remote present → use GitHub issues.
    - No GitHub remote → draft markdown issues under `~/.vs/$PROJECT_ID/issues/` and do not call `gh issue create`.
@@ -83,6 +93,14 @@ Rules for slicing:
 
 Typical slice count for a medium plan: **3–8 issues.** Fewer than 3 and you don't need this skill. More than 12 and the plan is too big to decompose in one pass — push back and ask the user to pick a Phase 1.
 
+### When the work isn't slice-shaped
+
+Some work can't be sliced yet because it's gated on something outside the repo — a permission, a vendor limit, an approval, a decision someone else owns. Slicing it produces fiction: acceptance criteria for code nobody can run.
+
+Recognize this when the honest status is *"possible, but not by us, not today."* File **one proposal issue** instead of a slice set, and use the [proposal shape](#proposal-issues) in Phase 3. Decompose into slices later, once the gate clears.
+
+Do not disguise a blocked proposal as a ready slice. An issue labeled `ready-for-agent` that cannot be started burns exactly the trust the label exists to protect.
+
 ## Phase 2: Tag for execution mode
 
 Every issue gets one of three execution tags:
@@ -121,7 +139,50 @@ Durability rules (the whole reason this format exists):
 - **No private shorthand.** If the issue references a concept, define it or link to `CONTEXT.md`.
 - **No procedural steps** ("first do X, then Y"). Describe the outcome; let the implementer choose the path.
 
-If the plan has details that *are* procedural or file-specific, they belong in a comment on the issue or in `~/.vs/$PROJECT_ID/issues/<issue-number>-notes.md`, not in the body.
+If the plan has details that *are* procedural or file-specific, they belong in a comment on the issue, a collapsed agent-context block (below), or `~/.vs/$PROJECT_ID/issues/<issue-number>-notes.md` — not in the durable prose.
+
+### Two audiences, one body
+
+An issue is read by a human deciding *whether* to do this, and by an agent working out *how*. Those need different things, and mixing them serves neither: the human wades through line numbers, the agent gets prose without pointers.
+
+When an issue carries real technical context, split the body:
+
+1. **Prose section (default, visible).** Written for the human. Product framing, concrete examples, why it matters, what's blocking. No file paths, no line numbers — the durability rules apply in full.
+2. **Agent section (collapsed).** Everything volatile and precise, fenced in `<details>`:
+
+   ```markdown
+   <details>
+   <summary><b>Agent context</b> — technical detail, code references, prior art</summary>
+
+   ...file table, exact functions, permalinks, prior art, unverified list...
+
+   </details>
+   ```
+
+Why this works: the durability rules exist because rot is invisible and misleads. Inside a `<details>` block that is **explicitly pinned to a commit SHA**, rot is legible — a reader who checks the SHA knows what they're holding. So the collapsed section may carry what the prose must not: paths, line numbers, code excerpts, "start here / not there" pointers.
+
+Rules for the agent section:
+
+- **Pin it.** State the SHA or branch the references were read at (`All line references are against origin/master at <sha>`). Unpinned line numbers are the thing the durability rules ban.
+- **Show, don't just cite.** Paste the 5–10 load-bearing lines. A reader who can see the current code in the issue can diff it against reality without a checkout.
+- **Include prior art.** If someone already solved this — in this repo or another — link the file and quote the mechanism. Existing production code is the strongest possible evidence that an approach works.
+- **Keep an `Unverified` list.** Name what you could not confirm and why. This is what separates a brief that can be trusted from one that must be re-derived.
+
+Skip the split entirely for a straightforward slice. Two sections on a 200-word issue is ceremony.
+
+### Proposal issues
+
+For work gated outside the repo (see Phase 1), replace *Acceptance criteria* with:
+
+- **What / why** — the feature as a product, with **concrete worked examples**. Show the interaction, don't describe it. A two-line before/after exchange communicates more than a paragraph of explanation, and it's what makes a proposal forwardable to someone who wasn't in the conversation.
+- **How it would work** — the mechanism, plus the approaches ruled out and *why*. Rejected options carry as much weight as the chosen one; without them the first reviewer re-litigates settled ground.
+- **Known tradeoff** — what this does *not* give you, stated plainly. A proposal that reads as pure upside invites the reviewer to find the catch themselves and distrust everything else.
+- **Blocker** — the single thing standing in the way, who owns it, and what the exact ask is. If everything else is small, say that: *"this permission is the only thing between us and shipping"* converts a vague proposal into a decision someone can make.
+- **Scope checklist** — unchecked boxes, with the blocking item first and marked as gating the rest.
+
+Label these `hitl` (a human decision is required) plus the category label. Do not label them `ready-for-agent`.
+
+When the blocker needs a message to another team, **draft that message as an issue comment** rather than sending it. It gets reviewed before it's sent, it's copy-pasteable, and the issue becomes the record of the ask. Include: the likely routing (and any known dead ends — a bot that will refuse, a queue that ignores), the ask framed in terms of the *approver's* interest, the blast radius stated honestly, and a fallback option so a "no" still yields a path forward.
 
 ## Phase 4: Wire dependencies
 

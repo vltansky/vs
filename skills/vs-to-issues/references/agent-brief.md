@@ -14,6 +14,8 @@ The brief format optimizes for **durability** over precision. A brief that names
 6. **Out of scope** — explicit bullets of what this does NOT do
 7. **Dependencies** — `Blocked by #<n>` lines
 
+For a **proposal issue** (work gated on an external approval), swap sections 3–5 for *What/why with worked examples*, *How it would work*, *Known tradeoff*, *Blocker*, and a *Scope checklist* — see the skill's `Proposal issues` section. The remaining rules on this page still apply.
+
 `Current behavior` and `Key interfaces/contracts` are optional but useful for bugs and API/config work. Keep them durable: name observable behavior or public contracts, not private helper functions. Do not add optional sections (design notes, implementation hints, risks) unless they're genuinely load-bearing. Side info goes in issue comments or a linked notes file.
 
 ## Durability rules
@@ -24,6 +26,10 @@ The brief format optimizes for **durability** over precision. A brief that names
 - **No private shorthand.** If the issue references a concept, define it inline or link to the glossary (`CONTEXT.md`).
 - **No procedural steps.** Don't say "first do X, then Y, then Z". Describe the end state and let the implementer choose the path. Procedural steps pre-commit to an implementation that may no longer be viable.
 - **No author-specific voice.** Write in third person / neutral. "The system shall...", not "I want...".
+
+**Scope of these rules:** they govern the visible prose. A collapsed agent-context block pinned to a commit SHA may carry paths, line numbers, and code excerpts — pinning makes the rot legible instead of invisible, which is what the rules are actually protecting against. Unpinned, the rules apply everywhere.
+
+One exception earns its place in the prose: a **worked example**. Showing a two-line interaction ("user types X → system responds Y") is not implementation detail — it's the fastest way to convey a behavioral outcome, and it survives reorg because it describes behavior, not structure.
 
 ## Phrasing acceptance criteria
 
@@ -70,6 +76,8 @@ Do not invent issue numbers. Create dependencies in order (blocking issues first
 A good agent brief is **200–400 words**. Briefs under 100 words are usually missing acceptance criteria. Briefs over 600 words are usually mixing multiple slices or leaking implementation detail.
 
 If your brief is over 600 words, ask: can any section be moved to a linked doc (`CONTEXT.md`, an ADR, a notes file) and referenced instead? Comments on the issue are also fair game — they don't need to survive reorg the way the body does.
+
+**The limit applies to the prose section only.** A collapsed agent-context block (see *Two audiences, one body* in the skill) is reference material, not brief, and is measured differently: every line must be load-bearing, but there's no word ceiling. A proposal issue with a substantial `<details>` block can legitimately run long — what matters is that the visible prose stays under 400 words so the human decision is still one screen.
 
 ## Example (short slice)
 
