@@ -525,11 +525,12 @@ findings, and stop when the PR is merge-ready.
 ====================
 ```
 
-Then block until CI checks complete. This keeps the agent in context so it can
-fix failures immediately without the user having to start a new session and
-re-explain the change.
+Then wait until the initial CI state settles. Keep short, active feedback in the
+shipping task, but move sustained waiting to the Codex fresh-context watcher
+defined by `vs-baby-sit`; its compact handoff preserves the exact PR contract
+without replaying the implementation transcript.
 
-Wait with the bundled PR watcher. It polls inside one process and emits compact JSONL only when the state changes, so an unchanged CI run costs nothing. It also never treats a reviewer bot's non-SUCCESS conclusion as "done" — bots commonly use `NEUTRAL` or `FAILURE` to signal "I posted findings", and bailing on the first non-success would skip the findings fetch:
+Wait with the bundled PR watcher. It polls inside one process and emits compact JSONL only when the state changes. That removes repeated tool output, but a model-level resume can still reread task context, so Codex must also use the fresh-context rule. The watcher never treats a reviewer bot's non-SUCCESS conclusion as "done" — bots commonly use `NEUTRAL` or `FAILURE` to signal "I posted findings", and bailing on the first non-success would skip the findings fetch:
 
 ```bash
 python3 <resolved-vs-baby-sit-skill-directory>/scripts/watch_pr.py \

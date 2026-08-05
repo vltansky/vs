@@ -27,6 +27,11 @@ describe('vs-manage-threads live control-tower contract', () => {
     expect(SKILL).toContain('wait_threads');
     expect(SKILL).toMatch(/up to eight/i);
     expect(SKILL).toContain('afterCursor');
+    expect(SKILL).toMatch(/300000/);
+    expect(SKILL).toMatch(/600000/);
+    expect(SKILL).toMatch(/completion.*attention.*user input.*wake|wake.*completion.*attention.*user input/is);
+    expect(SKILL).not.toMatch(/timeout of at most 60\s+seconds/i);
+    expect(SKILL).toMatch(/do not.*re-?read.*unchanged timeout|unchanged timeout.*do not.*re-?read/is);
     expect(SKILL).toMatch(/rotate.*(batch|queue).*(timeout|cycle)|(timeout|cycle).*rotate.*(batch|queue)/is);
     expect(SKILL).toMatch(/report only.*change|delta/i);
     expect(SKILL).toMatch(/timeout.*not.*stalled|not.*stalled.*timeout/is);

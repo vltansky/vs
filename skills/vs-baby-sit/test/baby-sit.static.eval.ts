@@ -40,13 +40,18 @@ describe('vs-baby-sit remote-first validation', () => {
       /`gh pr checks <pr> --watch`, in the foreground or in a background\s+terminal/,
     );
     expect(SKILL).toMatch(/A `sleep` loop wrapped around `gh pr view`, `gh pr checks`, or `gh api`/);
-    expect(SKILL).toMatch(/only job is to re-poll\s+GitHub while the watcher is already running/);
+    expect(SKILL).toMatch(/second background terminal, subagent, or automation that re-polls GitHub/);
+    expect(SKILL).toMatch(/exactly one watcher process/);
   });
 
   it('keeps every watcher resume cheap', () => {
     expect(SKILL).toMatch(/smallest output budget that still holds one JSONL line/);
     expect(SKILL).toMatch(/hundreds of tokens,\s+not tens of thousands/);
-    expect(SKILL).toMatch(/Prefer babysitting\s+in a fresh thread/);
+    expect(SKILL).toMatch(/fresh-context watcher/i);
+    expect(SKILL).toMatch(/fork_turns=["`]none["`]/);
+    expect(SKILL).toMatch(/parent.*wait.*once|wait once.*parent/is);
+    expect(SKILL).toMatch(/routine.*lower-cost model|lower-cost model.*routine/is);
+    expect(SKILL).not.toMatch(/Prefer babysitting\s+in a fresh thread/);
   });
 
   it('forbids narrating an unchanged wait', () => {

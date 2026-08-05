@@ -159,6 +159,8 @@ describe('vs-ship-it CI watching', () => {
     expect(SKILL).toMatch(/emits compact JSONL only when the state changes/);
     expect(SKILL).toMatch(/Exit `10` carries an `attention` event/);
     expect(SKILL).toMatch(/smallest output budget the runtime supports/);
+    expect(SKILL).toMatch(/fresh-context watcher/i);
+    expect(SKILL).not.toContain('an unchanged CI run costs nothing');
   });
 
   it('bans busy-wait CI polling', () => {

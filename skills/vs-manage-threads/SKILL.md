@@ -54,12 +54,13 @@ If more than eight tasks qualify, prioritize in this order:
 3. waiting on an external state that may change;
 4. most recently updated.
 
-Keep the remainder in queued batches. Rotate the next batch after each bounded
-unchanged timeout or completed cycle, as well as when a watched task becomes
+Keep the remainder in queued batches. Rotate the next batch after a coarse
+unchanged checkpoint or completed cycle, as well as when a watched task becomes
 terminal, while retaining every task's cursor. This prevents a long-running
-first batch from starving a queued task that needs attention. Do not ask the
-user which tasks to include unless two different scopes are equally plausible
-and the choice materially changes the control tower.
+first batch from starving a queued task that needs attention without waking the
+model every minute. Do not ask the user which tasks to include unless two
+different scopes are equally plausible and the choice materially changes the
+control tower.
 
 ## 2. Build the initial board
 
@@ -151,19 +152,44 @@ Use `wait_threads` rather than repeated `read_thread` polling:
 
 1. Take an immediate `timeoutMs: 0` snapshot for each managed task and retain
    its cursor.
-2. Wait on up to eight tasks at a time with a bounded timeout of at most 60
-   seconds, passing every returned cursor as `afterCursor` on the next wait.
+2. Wait on up to eight tasks in one call, passing every returned cursor as
+   `afterCursor`. In Codex Desktop, start with `timeoutMs: 300000`; after one
+   unchanged timeout use `timeoutMs: 600000`. On another host, use its longest
+   supported event wait instead of inventing a minute poll.
 3. When a task completes or needs attention, read only the turn needed to
    classify the change, update the board, pop a real question when appropriate,
    and resume the wait.
-4. On an unchanged timeout, emit no status message; continue the bounded wait.
-5. Report only a state change or delta. Do not replay the full board after every
+4. Completion, attention, and new user input wake the wait early, so the longer
+   timeout does not delay actionable events. Commentary alone does not wake it.
+5. On an unchanged timeout, do not re-read tasks or re-classify unchanged state.
+   Rotate a queued batch when needed, retain the cursors, and begin the next
+   long wait without a user-facing update.
+6. Report only a state change or delta. Do not replay the full board after every
    event.
 
 `wait_threads` commentary does not wake the loop; completion, attention, new
 user input, or timeout does. New user input interrupts the wait. Process it
 immediately: update management policy when it is a control instruction, or
 route it when it belongs to one managed task.
+
+### Codex context isolation
+
+A control loop is routine coordination, not a reason to repeatedly replay an
+implementation transcript through an expensive model.
+
+- If the calling task already contains substantial implementation, debugging,
+  or tool-output history, run sustained monitoring in a fresh-context
+  coordinator subagent with `fork_turns="none"`. Give it only `(hostId,
+  threadId)` targets, current cursors, classification rules, granted authority,
+  and stop conditions.
+- Use a routine lower-cost model for that coordinator when the host supports
+  model selection. The owning task remains responsible for difficult domain
+  work after an attention event.
+- The parent should wait once for the coordinator's completion or attention
+  message. Do not poll `wait_agent`, call `list_agents` for progress, or mirror
+  the coordinator with a second `wait_threads` loop.
+- If the calling task is already a dedicated, short control task, keep the loop
+  there; another subagent would add coordination without reducing context.
 
 Continue until one of these conditions holds:
 

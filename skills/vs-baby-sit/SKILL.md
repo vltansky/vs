@@ -94,24 +94,44 @@ polling with JavaScript `setTimeout`, repeated one-shot `gh` calls, or a new
 automation while the watcher process is alive. Those approaches replay the
 whole model context on every unchanged tick.
 
+### Codex fresh-context watcher
+
+For Codex, silence inside the process is not enough: every model-level resume
+can still re-read the surrounding conversation. Isolate sustained waiting from
+implementation history:
+
+1. If the current task contains substantial implementation, debugging, or tool
+   output, spawn one fresh-context watcher with `fork_turns="none"`.
+2. Give it only the repository, PR number, target, current external-write mode,
+   stop conditions, and the watcher command. Do not copy the parent transcript.
+3. Use a routine lower-cost model for the waiting lane when model selection is
+   available. Escalate difficult diagnosis or code changes back to the owning
+   task after an attention event.
+4. Have the parent wait once for completion or attention. Do not repeatedly
+   poll `wait_agent` or `list_agents` while the child is running.
+
+If this is already a short, dedicated babysitting task, run the watcher here;
+another subagent would add overhead without shrinking context. In either case,
+there is exactly one watcher process for the PR.
+
 These waiting patterns are token bugs rather than alternatives to the watcher:
 
 - `gh pr checks <pr> --watch`, in the foreground or in a background terminal.
   It repaints a full check table on every refresh, so each resume drags the
   whole redrawn buffer back into context even when no check changed.
 - A `sleep` loop wrapped around `gh pr view`, `gh pr checks`, or `gh api`.
-- A background terminal, sub-agent, or automation whose only job is to re-poll
-  GitHub while the watcher is already running.
+- A second background terminal, subagent, or automation that re-polls GitHub
+  while the chosen watcher process is already running. The Codex fresh-context
+  watcher above is the allowed owner of that one process, not an extra poller.
 
 Keep each resume cheap. Ask the host for the longest wait it supports and the
 smallest output budget that still holds one JSONL line — hundreds of tokens,
 not tens of thousands. An unchanged tick emits nothing, so a large budget only
 buys a larger buffer replay once CI does print.
 
-Every resume re-sends the surrounding thread, so a watcher attached to a long
-implementation history pays for that history on each wake. Prefer babysitting
-in a fresh thread; the PR number and the target are the only context the
-watcher needs.
+Every resume re-sends the surrounding task, so keep the selected watcher lane
+limited to the PR contract above. A long implementation history must not become
+the waiting context.
 
 The watcher polls pending work every 60 seconds and a merge-ready PR every five
 minutes. It uses REST for ordinary CI polls, refreshes review state when needed,
