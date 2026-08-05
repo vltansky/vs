@@ -81,6 +81,15 @@ still unclear, ask up to 3 high-leverage strategic questions in one round. If
 the request already settles those decisions, reflect the settled direction and
 move directly into independent shaping.
 
+When choosing questions, use only the lenses that remain unresolved:
+
+- **Problem and outcome** — what should change, for whom, and why it matters
+- **System boundary and ownership** — where the responsibility belongs
+- **Kill criterion** — what evidence would make this not worth building
+
+Do not ask all three by rote or spend a slot on a lens the evidence already
+settles.
+
 - Render the round through the host's structured question tool when available
   (`request_user_input` in Codex, `AskUserQuestion` in Claude Code); see
   [internal-shared](../vs-internal-shared/SKILL.md) Structured questions. Fall
@@ -194,6 +203,8 @@ about 450 words, excluding a justified orchestration appendix, and include:
 - scope and explicit non-goals
 - terminology and system boundaries
 - data/control flow and important interfaces
+- failure modes, degradation/recovery, and ownership when the design crosses a
+  runtime or operational boundary
 - 1-2 alternatives with concrete tradeoffs
 - risks, success criteria, and verification
 
@@ -383,6 +394,23 @@ Then integrate before returning:
 Shape-it still owns synthesis, user communication, and the design. Pushback
 supplies the verdict, not the plan.
 
+#### Self-review the design
+
+Review the final integrated design, Goal Contract, any ADR, and execution
+strategy. Fix issues directly rather than handing editorial cleanup to the user:
+
+- **Placeholder scan** — remove any TBD, TODO, placeholder, or incomplete
+  section
+- **Internal consistency** — align the architecture, Goal Contract, ADR, and
+  execution strategy
+- **Scope check** — keep one buildable outcome or decompose work that cannot
+  share one contract
+- **Ambiguity check** — choose one interpretation or surface a strategic open
+  decision
+
+Do not repeat the review after fixing these issues; continue to the closing
+interaction.
+
 ### 3. Closing interaction
 
 Return with the complete recommendation, evidence-driven changes from the
@@ -463,6 +491,7 @@ Before finishing, check:
   and score, and its supported findings were folded into the design
 - the cadence was opening interaction, uninterrupted independent shaping, then closing interaction
 - the design has one approval gate and a behavioral verification seam
+- the completed design passed placeholder, consistency, scope, and ambiguity review
 - the first delivery is the smallest complete vertical slice, with later
   capabilities explicitly deferred
 - the first delivery advances the approved outcome beyond the confirmed baseline
