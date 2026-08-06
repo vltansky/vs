@@ -75,8 +75,9 @@ The finished piece should read as one coherent voice.
   missing a qualification or contradiction later in the source.
 - Decide what the piece is arguing or helping the reader do. Let that promise
   control what belongs.
-- Make every paragraph or block perform one useful job. If removing it changes
-  nothing for the reader, cut it.
+- Make the paragraph the unit of composition: one topic per paragraph, stated in
+  its opening sentence and developed by the ones after it. If removing a
+  paragraph changes nothing for the reader, cut it.
 - Keep transitions honest. If the opening promises one thing and the body drifts
   elsewhere, restore the thread or change the opening.
 - Quote when the original wording matters. Paraphrase when only the idea matters.
@@ -90,10 +91,23 @@ The finished piece should read as one coherent voice.
   data was reviewed."
 - Keep most sentences to one idea and roughly 15 to 20 words. Split sentences
   that become hard to follow; do not enforce a mechanical word limit.
+- Omit needless words. A sentence carries no word that does nothing, and a
+  paragraph no sentence that does nothing. This is a demand for economy, not for
+  brevity: the cure for a long sentence is to make every word tell, not to drop
+  what it was telling.
+- End the sentence on the word you want the reader to keep. The emphatic
+  position is the last one; a qualifier parked there steals it.
+- Keep related words together. A modifier that drifts from what it modifies
+  makes the reader reassemble the sentence.
 - Prefer familiar words: use, help, start, end, buy, enough, fix, about, and so.
 - Replace marketing language and empty metaphors with literal claims. Avoid
   words such as leverage, empower, unlock, robust, seamless, ecosystem, and
   going forward unless they carry necessary domain meaning.
+- Avoid the vocabulary that marks machine-written prose: delve, multifaceted,
+  foster, realm, tapestry, testament, enduring legacy, pivotal, groundbreaking,
+  and cutting-edge. Avoid the reflex openers too — "in today's fast-paced
+  world," "it's important to note that," and any sentence whose first clause
+  announces that a point is about to be made.
 - Address the reader as "you" when appropriate. Use "we" for the authoring
   organisation and singular "they" where gender is unknown or irrelevant.
 - Preserve required product, legal, technical, and domain terms. Explain them
@@ -107,7 +121,11 @@ The finished piece should read as one coherent voice.
 
 - Do not add a section the requested format does not need. Deliver the shape the
   reader asked for; a section they did not ask for is padding with a heading on
-  it. When the format itself requires a section, keep it.
+  it.
+- When the request names one part of a larger document, write that part only.
+  Its neighbours are somebody else's section, however naturally the material
+  leads into them. Summarizing a fact belongs in a summary; reproducing the
+  section that fact came from does not.
 - Never restate a heading in the sentence beneath it. The first sentence of a
   section carries what the reader most needs from that section.
 - Use sentence case for headings and labels.

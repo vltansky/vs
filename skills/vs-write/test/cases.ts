@@ -118,7 +118,11 @@ export const CASES: WriteCase[] = [
     canaries: [
       // The brief says "39 minutes of degraded checkout" at a 38% error rate.
       /\boutage\b/i,
-      /abandoned|churn|lost (those|these|the) customers/i,
+      // Only assertive loss counts. "we have not confirmed whether they
+      // retried later or abandoned" restates the brief's own hedge, so a bare
+      // /abandoned/ punished faithful copy — the hedge itself is already an
+      // anchor above.
+      /\bchurn\w*|lost (those|these|the) customers/i,
       // Promotes the tooling gap from contributing factor to cause.
       /(root )?cause[:\s][^.]{0,60}production.like/i,
     ],
