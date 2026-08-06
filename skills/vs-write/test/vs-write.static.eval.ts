@@ -77,6 +77,14 @@ describe('vs-write: the merge did not change the contract', () => {
     expect(SKILL).toMatch(/\*\*Shaping mode:\*\*/);
   });
 
+  it('stays within the merged size ceiling', () => {
+    // The merge took the skill from 176 lines to 210. The ceiling is that
+    // result plus headroom: a distillation that keeps growing is a vendored
+    // corpus with extra steps, and every line here is read on every write.
+    const lines = fs.readFileSync(SKILL_PATH, 'utf8').split('\n').length;
+    expect(lines).toBeLessThanOrEqual(240);
+  });
+
   it('distills rather than vendoring a reference corpus', () => {
     const skillDir = path.resolve(ROOT, 'skills', 'vs-write');
     const subdirs = fs

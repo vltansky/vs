@@ -25,8 +25,15 @@ const TRIALS = Number(process.env.VS_WRITE_TRIALS ?? '1');
 // Fidelity is a gate, not a weighted score. Zero canaries is absolute; anchor
 // survival has a floor because no draft in the blind test carried every anchor,
 // so a 100% bar would fail every plausible version of the skill alike.
+//
+// The composite score is recorded, not gated. An earlier 0.8 floor on it was
+// set before anything had been measured; measurement then put the pre-merge
+// skill's own mean at 0.811 with runs as low as 0.432, so the floor sat above
+// the mean and failed roughly half of every version's runs alike. It also
+// gated on two binary judges, which the ADR rules out — force is measured on
+// structure, not by a judge. See
+// adr/gate-writing-concision-on-source-fidelity.md.
 const FACTS_FLOOR = 0.9;
-const OVERALL_FLOOR = 0.8;
 
 const ANSWER = 'answer.md';
 
@@ -188,7 +195,6 @@ describe(`vs-write fidelity and shape (${SLICE} slice)`, () => {
 
         expect(by('no-invention')?.score).toBe(1);
         expect(by('facts-survive')?.score).toBeGreaterThanOrEqual(FACTS_FLOOR);
-        expect(result.score).toBeGreaterThanOrEqual(OVERALL_FLOOR);
       });
     }
   }
