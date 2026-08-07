@@ -25,6 +25,25 @@ subagent tool.
 - Reuse a completed child with a follow-up only when the task needs its existing
   context. Otherwise prefer a fresh, narrow child.
 
+## Depth
+
+Breadth limits do not control the cost of a child that keeps running. Every child
+also gets a runtime budget, counted in model turns/calls as reported by the host:
+
+- **Checkpoint at 40:** return a bounded checkpoint before requesting another
+  model turn. State `complete`, `blocked`, or `waiting`, the evidence collected,
+  the files or artifacts changed, and the smallest next action.
+- **Stop at 60:** stop issuing new implementation or research turns and return
+  the checkpoint. A long-running external command may finish, but it does not
+  justify more model turns or a new polling loop.
+- A fresh follow-up is a new child run and consumes the remaining shared child
+  budget. The parent must inspect the checkpoint before starting it; otherwise
+  continue the work in the parent or report the blocker.
+
+These are stop-and-return limits, not a license to abandon useful work. A child
+that reaches its checkpoint without evidence has failed; do not silently let it
+turn into a second unbounded parent session.
+
 ## Escalation
 
 Collect deterministic evidence before delegating: inspect the scoped diff and
@@ -56,9 +75,13 @@ After dispatching, confirm each spawned thread or task ID resolves to a live
 child before waiting on it; if the host reports it missing ("No thread found"),
 recreate it instead of babysitting a placeholder.
 
-Wait once for the expected completion event after dispatching a batch. Do not
-poll `wait_agent` repeatedly while nothing can change; continue useful local
-work or use the host's long-wait/notification mechanism. After collection,
-verify child claims against the real diff, files, commands, or external state.
+Wait once for the expected completion event after dispatching a batch. If that
+wait times out or returns while the child is still running, treat it as an
+incomplete event rather than a failure: continue useful non-overlapping parent
+work, keep the child on its existing process, and do not call `wait_agent`
+again immediately. Use one longer event-aware wait only when the child's result
+is on the critical path; otherwise collect it at the next phase gate. After
+collection, verify child claims against the real diff, files, commands, or
+external state.
 A child that completes without evidence or edits counts as failed — re-scope
 its brief before re-spawning; do not re-run the same brief.

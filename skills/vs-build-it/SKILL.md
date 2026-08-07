@@ -35,6 +35,13 @@ one-off behavior:
 - `vs-brief` produces the human-readable orientation layer and renders captured
   before-and-after evidence for the handoff.
 
+This list is routing metadata, not a preload list. Read a sibling `SKILL.md`
+only when its phase gate fires: pushback in Phase 1, TDD/debugging in Phase 3,
+roast-code/deslop in Phase 4, QA in Phase 5, and verify/brief/HTMDX in Phase 7.
+Do not load phase-heavy skills during Phase 0 merely because they appear above,
+and pass disk-backed evidence paths instead of pasting their full contents into
+worker briefs.
+
 ## Communication
 
 Build-it is autonomous, not silent. Follow
@@ -352,7 +359,8 @@ Emit a short transition summary:
 ## Phase 3: Execute
 
 Implement the fixed plan. Execute directly unless independent steps make
-delegation materially faster or safer. Follow the shared subagent budget.
+delegation materially faster or safer. Follow the shared subagent breadth and
+depth budgets, including the checkpoint and stop-and-return rules.
 
 ### Step 0: Load TDD; escalate to debugging only on evidence
 
@@ -641,6 +649,13 @@ follow `../vs-ship-it/SKILL.md`; if the host cannot resolve it, say to type
 `/vs-ship-it` and stop — do not hand-roll a PR flow in its place. Load `../vs-brief/SKILL.md` only when the change is
 non-trivial (more than 3 files, a durable design decision, user-requested PR
 orientation, or meaningful before-and-after evidence).
+
+This is a phase boundary: once the Build It handoff is sent, implementation is
+complete. Route requested shipping, CI watching, review fixes, and production
+verification through their owning workflow with the compact handoff above; do
+not keep an implementation transcript alive for sustained monitoring. A
+continuation in the same task is allowed only for one concrete authorized next
+step, not idle waiting or a new unscoped workstream.
 
 ---
 
