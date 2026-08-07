@@ -25,7 +25,7 @@ describe('architecture depth skill guards', () => {
     expect(SKILL).toMatch(/Architecture Depth/);
     expect(SKILL).toMatch(/architecture-depth-dimension\.md/);
     expect(SKILL).toMatch(/module boundaries, abstractions, or interfaces/);
-    expect(SKILL).toMatch(/normalize over active dimensions/);
+    expect(SKILL).toMatch(/When Architecture Depth was active, add a short options comparison/i);
   });
 
   it('defines concrete architecture vocabulary and deletion-test pressure', () => {
