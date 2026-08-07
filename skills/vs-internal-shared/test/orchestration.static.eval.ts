@@ -72,7 +72,23 @@ describe('subagent budget', () => {
     expect(SUBAGENTS).toMatch(/standard.*one active child.*two total/is);
     expect(SUBAGENTS).toMatch(/deep.*two active children.*four total/is);
     expect(SUBAGENTS).toMatch(/fresh context/);
+    expect(SUBAGENTS).toMatch(/checkpoint at 40/is);
+    expect(SUBAGENTS).toMatch(/stop at 60/is);
+    expect(SUBAGENTS).toMatch(/stop-and-return limits/is);
+    expect(SUBAGENTS).toMatch(/Do not fork the full parent transcript/is);
+    expect(SUBAGENTS).toMatch(/fork_turns: "all"/);
     expect(SUBAGENTS).toMatch(/Do not\s+poll `wait_agent`/);
+  });
+
+  it('makes incomplete child waits actionable without busy polling', () => {
+    expect(SUBAGENTS).toMatch(
+      /times out or returns while the child is still running/is,
+    );
+    expect(SUBAGENTS).toMatch(
+      /continue useful non-overlapping parent work/is,
+    );
+    expect(SUBAGENTS).toMatch(/one longer event-aware wait/is);
+    expect(SUBAGENTS).toMatch(/next phase gate/is);
   });
 
   it('counts model-backed advisors and requires deterministic evidence first', () => {
@@ -106,6 +122,18 @@ describe('subagent budget', () => {
     expect(BUILD_IT).toMatch(/user-visible.*browser behavior/is);
     expect(BUILD_IT).toMatch(/small, low-risk diff.*parent/is);
     expect(BUILD_HANDOFF).toMatch(/vs-brief\/SKILL\.md.*when the change/is);
+  });
+
+  it('defers phase-heavy context and ends the implementation phase cleanly', () => {
+    expect(BUILD_IT).toMatch(/routing metadata, not a preload list/is);
+    expect(BUILD_IT).toMatch(/only when its phase gate fires/is);
+    expect(BUILD_IT).toMatch(/pass disk-backed evidence paths/is);
+    expect(BUILD_IT).toMatch(
+      /once the Build It handoff is sent, implementation is\s+complete/is,
+    );
+    expect(BUILD_IT).toMatch(
+      /do not keep an implementation transcript alive for sustained monitoring/is,
+    );
   });
 
   it('gates bugfix stress testing and cross-model review by risk', () => {
