@@ -2,7 +2,7 @@
 # Install the vs plugin into Claude Code, Codex, and/or Cursor.
 #
 # Local:  ./install.sh
-# Remote: curl -fsSL https://raw.githubusercontent.com/vltansky/vs/main/install.sh | bash
+# Remote: curl -fsSL https://raw.githubusercontent.com/vltansky/vs/master/install.sh | bash
 #         gh api repos/vltansky/vs/contents/install.sh -H "Accept: application/vnd.github.raw" | bash
 set -euo pipefail
 

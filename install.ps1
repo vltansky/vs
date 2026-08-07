@@ -2,7 +2,7 @@
 # Install the vs plugin into Claude Code, Codex, and/or Cursor on Windows.
 #
 # Local:  ./install.ps1
-# Remote: irm https://raw.githubusercontent.com/vltansky/vs/main/install.ps1 | iex
+# Remote: irm https://raw.githubusercontent.com/vltansky/vs/master/install.ps1 | iex
 
 $ErrorActionPreference = 'Stop'
 

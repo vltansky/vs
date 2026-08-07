@@ -4,12 +4,12 @@ This repo is a plugin of skills. A change to a skill is a change to agent
 behavior, so the evals in `skills/vs-*/test/` are the only way to tell whether
 an edit did what you meant.
 
-## Branch from and push to `main`
+## Branch from and push to `master`
 
-`main` is the only long-lived branch. There is no `master`, and a repository rule
+`master` is the only long-lived branch. There is no `main`, and a repository rule
 blocks creating one — a run that pushes there fails outright rather than parking
-the work somewhere nobody looks. Branch work off `main` as `vladta/<topic>` and
-open a PR, or commit to `main` directly for small changes.
+the work somewhere nobody looks. Branch work off `master` as `vladta/<topic>` and
+open a PR, or commit to `master` directly for small changes.
 
 If you find yourself on a detached HEAD, check where the branch you are about to
 push actually points before pushing.

@@ -21,13 +21,13 @@ review, and follow through on CI.
 Run the installer. It installs vs into every supported coding agent it finds:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/vltansky/vs/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/vltansky/vs/master/install.sh | bash
 ```
 
 On Windows, run the PowerShell installer instead:
 
 ```powershell
-irm https://raw.githubusercontent.com/vltansky/vs/main/install.ps1 | iex
+irm https://raw.githubusercontent.com/vltansky/vs/master/install.ps1 | iex
 ```
 
 Restart your agent session after installation.
