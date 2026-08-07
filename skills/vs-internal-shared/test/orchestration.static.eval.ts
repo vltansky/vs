@@ -87,7 +87,7 @@ describe('subagent budget', () => {
       /times out or returns while the child is still running/is,
     );
     expect(SUBAGENTS).toMatch(
-      /continue useful non-overlapping parent work/is,
+      /continue useful non-overlapping parent\s+work/is,
     );
     expect(SUBAGENTS).toMatch(/one longer event-aware wait/is);
     expect(SUBAGENTS).toMatch(/next phase gate/is);
