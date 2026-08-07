@@ -77,7 +77,9 @@ describe('subagent budget', () => {
     expect(SUBAGENTS).toMatch(/stop-and-return limits/is);
     expect(SUBAGENTS).toMatch(/Do not fork the full parent transcript/is);
     expect(SUBAGENTS).toMatch(/fork_turns: "all"/);
-    expect(SUBAGENTS).toMatch(/Do not\s+poll `wait_agent`/);
+    expect(SUBAGENTS).toMatch(
+      /do\s+not call `wait_agent`\s+again immediately/is,
+    );
   });
 
   it('makes incomplete child waits actionable without busy polling', () => {
@@ -132,7 +134,7 @@ describe('subagent budget', () => {
       /once the Build It handoff is sent, implementation is\s+complete/is,
     );
     expect(BUILD_IT).toMatch(
-      /do not keep an implementation transcript alive for sustained monitoring/is,
+      /do\s+not keep an implementation transcript alive for sustained monitoring/is,
     );
   });
 
