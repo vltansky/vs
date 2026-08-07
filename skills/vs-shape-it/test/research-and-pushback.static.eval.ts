@@ -71,16 +71,17 @@ describe('pushback: composed mode', () => {
     expect(PUSHBACK).toMatch(/opening\s+question rounds inside it breaks that contract/i);
   });
 
-  it('keeps the investigation, scoring, and verdict', () => {
+  it('keeps the investigation, qualitative verdict, and risk-aware routing', () => {
     expect(PUSHBACK).toMatch(
-      /composed mode keeps the investigation, the confidence anchors, the scoring, and\s+the verdict/i,
+      /composed mode keeps the investigation, the confidence anchors, and the verdict/i,
     );
     expect(PUSHBACK).toMatch(/record it as unresolved with a\s+severity instead of asking/i);
     expect(PUSHBACK).toMatch(/premise challenge stays mandatory/i);
+    expect(PUSHBACK).toMatch(/do not convert uncertainty\s+into a numeric approval signal/i);
   });
 
   it('does not upgrade itself into an interactive grill', () => {
-    expect(PUSHBACK).toMatch(/does not upgrade itself to an interactive grill/i);
+    expect(PUSHBACK).toMatch(/do not upgrade a small request into full ceremony/i);
   });
 
   it('publishes a flow contract for composing workflows', () => {

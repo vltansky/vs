@@ -67,9 +67,10 @@ describe('pushback: confidence gating', () => {
     expect(SKILL).toMatch(/confidence and severity are independent/i);
   });
 
-  it('only lets confident findings move the score', () => {
-    expect(SKILL).toMatch(/adjustments, applied only to findings at 75-100 confidence/i);
-    expect(SKILL).toMatch(/FYI findings at 50 do not move the score/i);
+  it('keeps confidence per finding separate from the verdict', () => {
+    expect(SKILL).toMatch(/confidence and severity are independent/i);
+    expect(SKILL).toMatch(/must not be averaged into an approval score/i);
+    expect(SKILL).toMatch(/make the verdict\s+depend on blockers and evidence gaps/i);
   });
 });
 
@@ -102,7 +103,7 @@ describe('pushback: anti-noise and anti-sycophancy', () => {
   it('refuses to let the author grade their own plan', () => {
     expect(SKILL).toMatch(/the author's rationale is a claim, not evidence/i);
     expect(SKILL).toMatch(/only\s+new evidence does/i);
-    expect(SKILL).toMatch(/a finding is retired by evidence or it is not retired at all/i);
+    expect(SKILL).toMatch(/retire a finding only with the fact that settled it/i);
   });
 
   it('allows a clean pass instead of manufacturing a grill', () => {
@@ -143,9 +144,27 @@ describe('pushback: integrity of the record', () => {
     expect(SKILL).toMatch(/never a bare `resolved`/i);
   });
 
-  it('scores the plan rather than the conversation', () => {
-    expect(SKILL).toMatch(/score the plan as it now stands, not the conversation/i);
-    expect(SKILL).toMatch(/an\s+engaged user is not evidence/i);
-    expect(SKILL).toMatch(/belongs below 60 no matter how responsive its author was/i);
+  it('does not let engagement raise the verdict', () => {
+    expect(SKILL).toMatch(/do not raise a verdict because the user is engaged/i);
+  });
+});
+
+describe('pushback: proportional review and verification', () => {
+  it('routes review depth by risk instead of imposing one ceremony', () => {
+    expect(SKILL).toMatch(/## Routing and review budget/);
+    expect(SKILL).toMatch(/ROUTINE.*short premise\/scope\/verification check/is);
+    expect(SKILL).toMatch(/SUBSTANTIAL.*one independent reviewer/is);
+    expect(SKILL).toMatch(/HIGH-RISK \/ DISPUTED.*two independent advisors/is);
+    expect(SKILL).toMatch(/URGENT.*schedule a post-action pushback review/is);
+  });
+
+  it('tracks artifact identity and separates pre-implementation from post-proof checks', () => {
+    expect(SKILL).toMatch(/## Artifact identity and drift/);
+    expect(SKILL).toMatch(/repository and base commit/i);
+    expect(SKILL).toMatch(/## Two review moments/);
+    expect(SKILL).toMatch(/Completeness/);
+    expect(SKILL).toMatch(/Correctness/);
+    expect(SKILL).toMatch(/Coherence/);
+    expect(SKILL).toMatch(/manual, deployment, and served-behavior gaps/i);
   });
 });

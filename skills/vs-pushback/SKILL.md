@@ -1,6 +1,6 @@
 ---
 name: vs-pushback
-description: "Use when a formed idea, plan, spec, or RFC needs adversarial review. Investigates the plan against real evidence, returns findings with severity and confidence, adds risk-gated independent model challenge, scores readiness, and returns a verdict."
+description: "Use when a formed idea, plan, spec, or RFC needs adversarial review before implementation or high-risk execution. Investigates real evidence, challenges the premise, scales review to risk, optionally adds an independent model challenge, and returns actionable findings with a qualitative verdict."
 disable-model-invocation: true
 ---
 
@@ -16,6 +16,33 @@ handoff only.
 </HARD-GATE>
 
 If the input is raw or unformed, route to `/vs-shape-it` first.
+
+## Routing and review budget
+
+Choose the smallest review that can settle the decision. The review is a gate at
+the points where changing direction is still cheap, not a ceremony applied to
+every request.
+
+- **ROUTINE** — mechanical work, an obvious one-file change, or a clear user
+  instruction. Run a short premise/scope/verification check, skip advisors, and
+  do not persist a report unless requested.
+- **SUBSTANTIAL** — non-trivial behavior, multiple files, a public contract,
+  meaningful architecture, or a decision with several plausible approaches.
+  Produce an evidence-backed plan, cover the premise plus the two most relevant
+  risk dimensions, and use one independent reviewer only when it can add a
+  genuinely different signal.
+- **HIGH-RISK / DISPUTED** — auth, security, persistence, migrations,
+  concurrency, irreversible operations, or competing conclusions. Run the full
+  review, use two independent advisors when available, and make rollback and
+  verification explicit.
+- **URGENT** — an active incident or an explicit speed-over-review request. Do
+  not block the operational response on this skill; hand off to the incident or
+  implementation workflow and schedule a post-action pushback review.
+
+If the request is routine, do not manufacture three dimensions or a numeric
+readiness score. If the review budget is exhausted before a decisive fact is
+settled, report the gap and the cheapest next experiment rather than widening
+the ceremony.
 
 ## Role
 
@@ -60,8 +87,8 @@ user did not have before is worth more than any question you could have asked.
 
 ## Confidence
 
-Score each finding on this anchored scale. The anchors are behavioral; do not
-invent values between them.
+Rate each finding on this anchored confidence scale. The anchors are behavioral;
+do not invent values between them.
 
 - **0** — does not survive light scrutiny, or is pre-existing and unrelated.
 - **25** — plausible, but you could not verify it is real.
@@ -108,12 +135,25 @@ afterthought. Base rates beat plot twists.
 
 ## Re-check mode
 
-When pushback is re-invoked on a plan it already scored — in this session or
+When pushback is re-invoked on a plan it already reviewed — in this session or
 with a saved report under `~/.vs/$PROJECT_ID/vs-pushback/` — do not restart the
 full grill. Verify what changed since the last verdict, lead with the single
-highest-severity open concern, and update the score and verdict. A "one more
+highest-severity open concern, and update the findings and verdict. A "one more
 pass" request wants the top remaining risk, not the full ceremony. Return to the
-full flow only when the plan changed materially.
+full flow when the reviewed artifact, scope, or base revision changed.
+
+## Artifact identity and drift
+
+Treat the proposal, plan, or spec as a reviewable artifact, not only as chat
+context. Record its path or inline digest, repository and base commit when
+available, reviewed scope, and review date. A re-check may reuse the prior
+verdict only when those identity fields still match.
+
+Plans and handoffs should include exact evidence pointers, verification commands
+with expected outcomes, explicit in/out-of-scope boundaries, and STOP conditions
+for mismatches. Persist a report only when durable history is useful or the user
+asks for it; redact secrets and avoid copying broad private context into the
+saved artifact.
 
 ## Composed mode
 
@@ -122,21 +162,22 @@ own design, for example — run non-interactively. The caller owns the user's
 attention and has already promised them an uninterrupted stretch; opening
 question rounds inside it breaks that contract.
 
-Composed mode keeps the investigation, the confidence anchors, the scoring, and
-the verdict, and drops the questions:
+Composed mode keeps the investigation, the confidence anchors, and the verdict,
+and drops the questions:
 
 - answer each dimension from the proposal and the evidence the caller gathered,
   plus whatever evidence you can still collect yourself
 - where evidence cannot settle a dimension, record it as unresolved with a
-  severity instead of asking; that severity is what moves the score
-- score and label the verdict exactly as in interactive mode, so an unanswered
-  high-severity concern lands as `NOT_READY` rather than a footnote
-- return `Verdict`, `Score`, and Top Pushback to the caller; skip the saved
+  severity instead of asking; an unresolved high-severity concern is a blocker
+- label the verdict exactly as in interactive mode; do not convert uncertainty
+  into a numeric approval signal
+- return `Verdict` and Top Pushback to the caller; skip the saved
   report and the `Next` line unless the caller asks for the artifact
 
-Premise Challenge stays mandatory. A composed pass that cannot reach the
-3-dimension minimum returns what it covered and names the dimensions the
-evidence could not reach — it does not upgrade itself to an interactive grill.
+For SUBSTANTIAL and HIGH-RISK work, Premise Challenge stays mandatory and the
+review covers the risk-relevant dimensions. A composed ROUTINE pass may use the
+short check instead of forcing a three-dimension review. Name dimensions the
+evidence could not reach; do not upgrade a small request into full ceremony.
 
 ## Flow
 
@@ -156,10 +197,12 @@ Resolve the facts here. Every question you can kill during investigation is one
 the user does not have to answer later.
 
 Classify the decision as routine, substantial, or high-risk/disputed using
-[independent-advisors](../vs-internal-shared/references/independent-advisors.md).
-For substantial or high-risk/disputed work, dispatch the selected advisor batch
-during pre-scan and continue immediately. Never delay the first response for
-advisor output.
+[independent-advisors](../vs-internal-shared/references/independent-advisors.md)
+and the routing section above. For substantial work, dispatch at most one
+advisor during pre-scan when it can add a genuinely different signal; for
+high-risk or disputed work, use two when available. Continue immediately and
+disclose skipped or late
+advisors; never delay the first response for advisor output.
 
 Do not depend on, create, or update an in-repo `CONTEXT.md`.
 
@@ -186,7 +229,7 @@ Lead with what you found. The first interactive response opens with a
 
 ```text
 Stress-Test Assessment
-- Readiness: 58/100
+- Status: READY_WITH_RISKS
 - Weakest: premise, assumptions
 - What holds up: <the steelman in one line>
 
@@ -223,12 +266,15 @@ Retiring a finding requires naming what retired it. Write `[High -> resolved:
 <the fact that settled it>]`, never a bare `resolved`. A finding you cannot
 point at evidence for is still open, however reasonable the reply sounded.
 
-Cover the weakest dimensions first. Premise Challenge is mandatory: a plan that
-solves a problem nobody has fails no matter how well it is engineered.
+Cover the weakest dimensions first. For SUBSTANTIAL and HIGH-RISK work, Premise
+Challenge is mandatory: a plan that solves a problem nobody has fails no matter
+how well it is engineered. Add the dimensions that match the actual risk surface
+instead of mechanically visiting every category. ROUTINE work uses the short
+premise/scope/verification check from the routing section.
 
-Minimum coverage before verdict: 3 dimensions, including Premise Challenge
-(re-check mode is exempt). Stop when more investigation stops changing findings.
-Do not keep expanding to look exhaustive.
+Stop when more investigation is unlikely to change a finding or when the review
+budget is exhausted. Report the decisive unknown and its cheapest experiment;
+do not expand the review merely to satisfy a dimension count.
 
 ### 4. Ask only what is left
 
@@ -264,22 +310,38 @@ re-asking the round.
 Never simulate the exchange. Print a round header only in the same message as
 the questions it announces, never answer your own round, and never record a
 `User Decision` the user did not actually make. If you proceed without a reply,
-say the questions went unanswered and score them unresolved. A report that
+say the questions went unanswered and record them as unresolved. A report that
 attributes invented decisions to the user is worse than no report.
+
+## Two review moments
+
+Use pushback before implementation to test intent, scope, requirements, and the
+plan while changes are cheap. After implementation, run a separate verification
+pass against the reviewed artifact:
+
+- **Completeness:** every accepted requirement and task is addressed.
+- **Correctness:** implementation and tests match the requirements and key
+  scenarios.
+- **Coherence:** design decisions, code patterns, and operational behavior agree.
+
+Keep pre-implementation pushback evidence separate from post-implementation
+proof. Passing tests alone does not prove the user-visible or production claim;
+label manual, deployment, and served-behavior gaps explicitly.
 
 ### 5. Report
 
 The chat report is compact by default, under about 500 words unless the user asks
-for the full version. Save the same report to
-`~/.vs/$PROJECT_ID/vs-pushback/YYYY-MM-DD-<topic>.md` when file tools are available;
-do not write it into the project tree.
+for the full version. Persist the same report to
+`~/.vs/$PROJECT_ID/vs-pushback/YYYY-MM-DD-<topic>.md` only when durable history is
+useful or the user asks for it; do not write it into the project tree. Redact
+secrets and broad private context before persistence.
 
-Always include `Verdict: <label>` and `Score: <n>/100` near the top, plus the
-literal `## Handoff Context` header.
+Always include `Verdict: <label>` near the top, plus the literal
+`## Handoff Context` header. The verdict is qualitative; do not present an
+aggregate readiness score as an approval gate.
 
 ```markdown
 Verdict: READY | READY_WITH_RISKS | NOT_READY
-Score: 72/100
 
 ## Handoff Context
 - Proposal: ...
@@ -308,8 +370,13 @@ Score: 72/100
 ```
 
 A plan that survives is allowed to pass. When nothing clears the confidence
-filter above FYI, say so plainly and score it — a clean verdict from a real
-investigation is a useful result, not a failed review.
+filter above FYI, say so plainly and return the qualitative verdict — a clean
+verdict from a real investigation is a useful result, not a failed review.
+
+For implementation or deployment handoff, include a compact verification
+checklist: the claim, command or observation, expected outcome, actual outcome,
+and any manual or production gap. Keep plan evidence and post-implementation
+verification visibly separate.
 
 Close with a Gap Check: name one category of failure this review probably did
 not explore well. Perfect reviews do not exist, and the admission tells the user
@@ -344,32 +411,24 @@ results and disclose skipped advisors without delaying the verdict.
   boundaries, abstractions, or interfaces.
 - **Eval Quality**: conditional; use for non-deterministic eval design.
 
-## Scoring
+## Readiness gate
 
-Base weights: Premise 20, Assumptions 20, Feasibility 20, Edge Cases 15,
-Security/Risk 10, Maintainability 10, Scope 5. Add Architecture Depth or Eval
-Quality as 10-point conditional dimensions when active, and normalize over active dimensions.
+Confidence describes the evidence behind an individual finding; it is not a
+calibrated probability and it must not be averaged into an approval score.
+Severity describes impact. Keep both visible per finding and make the verdict
+depend on blockers and evidence gaps:
 
-Adjustments, applied only to findings at 75-100 confidence:
+- **READY** — the relevant evidence and verification criteria are present, no
+  unresolved high-severity issue remains, and the remaining risks are explicitly
+  accepted by the decision owner or are low impact.
+- **READY_WITH_RISKS** — no high-severity blocker remains, but medium risks,
+  explicit manual checks, or deployment decisions are still open.
+- **NOT_READY** — an unresolved high-severity issue remains, the premise is not
+  established, or a decisive requirement/evidence surface is missing.
 
-- unresolved high: -10
-- unresolved medium: -5
-- unresolved low: -2
-
-FYI findings at 50 do not move the score. Nothing is added back for a confident
-defense; a finding is retired by evidence or it is not retired at all.
-
-Score the plan as it now stands, not the conversation that produced it. An
-engaged user is not evidence, and a plan is not safer because someone was in the
-room to answer. If a review lands in the 70s only because open items were talked
-through rather than settled, the score is wrong — a plan with a real unresolved
-blocker belongs below 60 no matter how responsive its author was.
-
-Verdicts:
-
-- **READY**: 75+ and no unresolved high-severity issue
-- **READY_WITH_RISKS**: 60-74, or 75+ with unresolved medium issues
-- **NOT_READY**: below 60, or any unresolved high-severity blocker
+Do not raise a verdict because the user is engaged or because an advisor agrees.
+Retire a finding only with the fact that settled it. If evidence is incomplete,
+name the exact gap and the cheapest check that can close it.
 
 ## Implementation pressure
 
@@ -384,13 +443,15 @@ report first if needed, then use these anchors:
 - **Kind:** Building block
 - **Inputs:** The formed proposal, design, or spec; evidence paths the caller
   already gathered; the risk classification if the caller has one
-- **Outputs:** `Verdict`, `Score: <n>/100`, findings with severity and
-  confidence, unresolved items, and the decisive question; saved report path in
-  interactive mode
+- **Outputs:** `Verdict`, findings with severity and confidence, unresolved
+  items, verification gaps, and the decisive question; optional saved report path
+  in interactive mode
 - **Status:** READY | READY_WITH_RISKS | NOT_READY
 - **Consumers:** `vs-shape-it`, `vs-rfc-research`, `vs-build-it`
-- **Skip conditions:** None for a formed proposal. Route raw or unformed input
-  to `vs-shape-it` first, and use re-check mode when a prior verdict exists.
+- **Skip conditions:** ROUTINE work uses the short check. URGENT work routes to
+  the incident or implementation workflow and schedules pushback afterward.
+  Route raw or unformed input to `vs-shape-it` first, and use re-check mode
+  only when the prior artifact identity still matches.
 
 ## Output style
 
