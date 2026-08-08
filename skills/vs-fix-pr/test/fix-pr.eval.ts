@@ -35,7 +35,7 @@ describe('fix-pr routing', () => {
     expect(SKILL).toMatch(
       /Do\s+not edit, commit, push, rerun CI, reply, or resolve threads/,
     );
-    expect(SKILL).toContain('Stop after the report.');
+    expect(SKILL).toMatch(/Stop after the\s+report\./);
   });
 
   it('routes action requests through approval-gated fixes', () => {
