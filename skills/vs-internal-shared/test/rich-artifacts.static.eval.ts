@@ -14,7 +14,7 @@ describe('rich artifact security boundary', () => {
     expect(CONTRACT).toMatch(/sensitive data must remain.*trusted local/is);
     expect(CONTRACT).toMatch(/replace.*runtime `src`.*before inserting/is);
     expect(CONTRACT).toMatch(/edit-only-source-block rule.*after/is);
-    expect(CONTRACT).toMatch(/user or repository provides.*exact pinned runtime/is);
+    expect(CONTRACT).toMatch(/user or repository provides.*exact runtime build/is);
     expect(CONTRACT).toMatch(/Do not.*install.*during report generation/is);
   });
 });

@@ -33,7 +33,7 @@ runtime, so read them from the runtime rather than from memory. Run this before
 authoring, editing, or reviewing any HTMDX:
 
 ```bash
-npx -y @wix/htmdx@4.11.1 skill
+npx -y @wix/htmdx@4 skill
 ```
 
 When editing a file that already pins a runtime, read the guidance from *that*
@@ -48,9 +48,9 @@ choice, body grammar, attributes, and the CLI. Load a companion topic when the
 task calls for it, at the same version that answered the first call:
 
 ```bash
-npx -y @wix/htmdx@4.11.1 skill --list          # available topics
-npx -y @wix/htmdx@4.11.1 skill components      # body grammar per component
-npx -y @wix/htmdx@4.11.1 skill integration     # React host, registration, testing
+npx -y @wix/htmdx@4 skill --list          # available topics
+npx -y @wix/htmdx@4 skill components      # body grammar per component
+npx -y @wix/htmdx@4 skill integration     # React host, registration, testing
 ```
 
 A pin that exits `2` with `unknown command "skill"` predates the command.
@@ -85,9 +85,11 @@ uncertainty.
 2. Start from [assets/artifact.html](assets/artifact.html), which carries the
    `vs` artifact metadata the other `vs` report skills share. Copy the complete
    shell; replace the title, frontmatter, and primary source placeholders.
-3. Keep `@wix/htmdx@4.11.1` pinned in both the renderer metadata and script URL.
-   Every `vs` template pins one version — do not diverge from it for a single
-   artifact.
+3. Keep `@wix/htmdx@4` pinned in both the renderer metadata and script URL.
+   Every `vs` template pins one major line — do not diverge from it for a single
+   artifact. The major is the pin: `@wix/htmdx` promises compatibility within a
+   major and publishes a new minor on every merge, so a saved artifact picks up
+   rendering fixes without being rewritten, while a major bump stays a decision.
 4. Build a reading sequence:
    - conclusion first;
    - decisive metrics, comparison, or timeline second;
@@ -124,7 +126,7 @@ Before presenting the artifact:
    HTML, and an unpinned runtime faster than reading for them:
 
 ```bash
-npx -y @wix/htmdx@4.11.1 lint "$ARTIFACT_PATH" --strict
+npx -y @wix/htmdx@4 lint "$ARTIFACT_PATH" --strict
 ```
 
 Exit `0` is clean, `1` means problems were found, and `2` means the check never
@@ -133,8 +135,8 @@ malformed body can mask the diagnostics after it, so a clean run is the only
 evidence that the file is clean. The `skill` output explains the flags and each
 diagnostic code.
 
-A `runtime-version-mismatch` finding means the linted version and the pinned
-version disagree, so the results describe a runtime the artifact does not load.
+A `runtime-version-mismatch` finding means the linted runtime and the pinned
+major disagree, so the results describe a runtime the artifact does not load.
 Change the `npx` version to match the pin rather than ignoring it.
 
 3. Render the saved file and confirm it compiled. An artifact is a thing the

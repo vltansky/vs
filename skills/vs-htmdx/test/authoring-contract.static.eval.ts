@@ -12,7 +12,7 @@ const RENDER_CHECK = fs.readFileSync(
 describe('the component catalog is read from the runtime, not from the skill', () => {
   it('loads the guidance with the skill command before authoring', () => {
     expect(SKILL).toContain('## Load the guidance');
-    expect(SKILL).toContain('npx -y @wix/htmdx@4.11.1 skill');
+    expect(SKILL).toContain('npx -y @wix/htmdx@4 skill');
     expect(SKILL).toMatch(
       /versioned with the\s+runtime, so read them from the runtime rather than from memory/,
     );
@@ -47,7 +47,7 @@ describe('the component catalog is read from the runtime, not from the skill', (
 
   it('routes the companion topics rather than restating them', () => {
     for (const topic of ['skill --list', 'skill components', 'skill integration']) {
-      expect(SKILL).toContain(`npx -y @wix/htmdx@4.11.1 ${topic}`);
+      expect(SKILL).toContain(`npx -y @wix/htmdx@4 ${topic}`);
     }
     expect(SKILL).toMatch(/at the same version that answered the first call/);
   });
@@ -56,7 +56,8 @@ describe('the component catalog is read from the runtime, not from the skill', (
 describe('ordered lists render only from 4.10.1 onward', () => {
   // Ordered lists collapsed to a paragraph before 4.10.1, and a list nested
   // under a bullet lost its lines outright (wix-incubator/htmdx#77). Any
-  // template using `1.` has to pin a runtime that renders it.
+  // template using `1.` has to pin a runtime that renders it — the `@4` major
+  // line resolves to the newest 4.x, which is past that fix.
   const templates = [
     ['..', '..', 'vs-qa', 'references', 'qa-report-template.html'],
     ['..', '..', 'vs-steal', 'references', 'steals-report-template.html'],
@@ -73,8 +74,8 @@ describe('ordered lists render only from 4.10.1 onward', () => {
         source.indexOf('</script>'),
       );
       if (!/^\d+\. /m.test(block)) continue;
-      expect(source, `${path.basename(file)} predates the ordered-list fix`).toContain(
-        '@wix/htmdx@4.11.1',
+      expect(source, `${path.basename(file)} predates the ordered-list fix`).toMatch(
+        /@wix\/htmdx@4(?![.\d])/,
       );
     }
   });
@@ -93,7 +94,7 @@ describe('ordered lists render only from 4.10.1 onward', () => {
 describe('linting gates the artifact before it is rendered', () => {
   it('runs the linter at the pinned version, strictly', () => {
     expect(SKILL).toContain(
-      'npx -y @wix/htmdx@4.11.1 lint "$ARTIFACT_PATH" --strict',
+      'npx -y @wix/htmdx@4 lint "$ARTIFACT_PATH" --strict',
     );
     expect(SKILL).toMatch(
       /Exit `0` is clean, `1` means problems were found, and `2` means the check never\s+ran/,

@@ -27,9 +27,9 @@ describe('vs-htmdx', () => {
   });
 
   it('keeps every vs template on one pinned runtime', () => {
-    expect(SKILL).toMatch(/@wix\/htmdx@4\.11\.1/);
+    expect(SKILL).toMatch(/@wix\/htmdx@4(?![.\d])/);
     expect(SKILL).toMatch(
-      /Every `vs` template pins one version — do not diverge from it/,
+      /Every `vs` template pins one major line — do not diverge from it/,
     );
     for (const parts of [
       ['..', '..', 'vs-qa', 'references', 'qa-report-template.html'],
@@ -38,22 +38,24 @@ describe('vs-htmdx', () => {
       ['..', '..', 'vs-internal-shared', 'references', 'rich-artifacts.md'],
     ]) {
       const file = path.resolve(__dirname, ...parts);
+      // Bare `@4` only. An exact `@4.11.1` here would freeze the template on a
+      // minor that @wix/htmdx supersedes on its next merge.
       expect(fs.readFileSync(file, 'utf8'), path.basename(file)).not.toMatch(
-        /@wix\/htmdx@(?!4\.11\.1)[0-9]/,
+        /@wix\/htmdx@(?!4(?![.\d]))[0-9]/,
       );
     }
-    // The QA evidence validator rejects reports on any other pin, so it moves
+    // The QA evidence validator rejects reports off this major line, so it moves
     // with the templates rather than outliving them.
     const validator = path.resolve(
       __dirname, '..', '..', 'vs-qa', 'scripts', 'validate-screenshot-evidence.mjs',
     );
-    expect(fs.readFileSync(validator, 'utf8')).toContain("EXPECTED_RUNTIME = '4.11.1'");
+    expect(fs.readFileSync(validator, 'utf8')).toContain("EXPECTED_RUNTIME_MAJOR = '4'");
   });
 
   it('ships a single-source template with no host element', () => {
     expect(TEMPLATE.match(/<script\s[^>]*type="text\/htmdx"/g)).toHaveLength(1);
     expect(TEMPLATE).toContain('data-vs-source="primary"');
-    expect(TEMPLATE).toContain('@wix/htmdx@4.11.1/dist/browser.js');
+    expect(TEMPLATE).toContain('@wix/htmdx@4/dist/browser.js');
     expect(TEMPLATE).not.toContain('<htmdx-code');
   });
 
