@@ -238,10 +238,17 @@ describe('vs-qa screenshot evidence', () => {
     expect(stale.status).toBe(1);
     expect(stale.stdout).toContain('"stale":["2.2.1"]');
 
-    write('4.11.1');
+    write('4');
     const current = run();
     expect(current.status).toBe(0);
     expect(current.stdout).toContain('"stale":[]');
+
+    // A report written before the templates floated pins an exact 4.x. It still
+    // renders its evidence, so the major is what decides staleness.
+    write('4.11.1');
+    const exact = run();
+    expect(exact.status).toBe(0);
+    expect(exact.stdout).toContain('"stale":[]');
   });
 
   it('skips the pin check for reports with no htmdx runtime', () => {

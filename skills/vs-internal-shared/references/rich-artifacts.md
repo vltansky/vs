@@ -36,7 +36,7 @@ An HTMDX result is one `.html` file. It contains one editable
 agents read and edit only that source block. Use components only when they add
 semantics; ordinary paragraphs and lists remain Markdown inside the block.
 
-Use this shell and pin the runtime to an exact version:
+Use this shell and pin the runtime to the HTMDX major line:
 
 ```html
 <!doctype html>
@@ -45,7 +45,7 @@ Use this shell and pin the runtime to an exact version:
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>[[TITLE]]</title>
-    <script src="https://cdn.jsdelivr.net/npm/@wix/htmdx@4.11.1/dist/browser.js" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/@wix/htmdx@4/dist/browser.js" defer></script>
   </head>
   <body>
     <!-- prettier-ignore -->
@@ -65,20 +65,24 @@ updated: [[YYYY-MM-DD]]
 
 Prefer `MetricStrip`, `DataTable`, `Compare`, `Timeline`, `Evidence`, and
 `RiskTable` for their named jobs. Do not add components merely for decoration.
-Never use a floating runtime version such as `@latest`.
+Never use an unpinned runtime such as `@latest`: it can cross a major and change
+the component set under a saved artifact. `@4` is a pin — `@wix/htmdx` promises
+compatibility within a major and its publisher assigns a new minor on every
+merge, so the major is the only version it can promise, and a saved artifact
+picks up rendering fixes without being rewritten.
 
 The guidance ships with the runtime, so read it from the version this shell
 loads rather than inferring a component from its name:
 
 ```bash
-npx -y @wix/htmdx@4.11.1 skill
-npx -y @wix/htmdx@4.11.1 skill components
+npx -y @wix/htmdx@4 skill
+npx -y @wix/htmdx@4 skill components
 ```
 
 It owns component names, body modes, and the compound-component and
 angle-bracket rules. The component set differs between runtime versions, so a
 tag that exists in one pin is a compile error in another; keep every pin in this
-repo on one version.
+repo on one major line.
 
 ## Security boundary
 
@@ -96,6 +100,7 @@ Never place sensitive content into a template that still loads the remote
 runtime.
 
 Treat a local mirror as available only when the user or repository provides an
-approved local URL or absolute path for the exact pinned runtime version. Do not
+approved local URL or absolute path for an exact runtime build on the pinned
+major line — a mirror serves one build, not a range. Do not
 guess a mirror location or install one during report generation. Without that
 configuration, use Markdown whenever sensitive data must remain.

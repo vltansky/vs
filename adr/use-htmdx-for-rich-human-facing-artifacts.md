@@ -34,10 +34,13 @@ An HTMDX output is one canonical `.html` file containing one editable
 `<script type="text/htmdx">` source block. Do not create a Markdown twin.
 Downstream agents read and edit the source block rather than generated markup.
 
-Pin the browser runtime to an exact version. Never use a floating alias such as
-`@latest`. Reports containing credentials, secrets, PII, or sensitive internal
-data use a trusted local runtime mirror; when none is available, they remain in
-Markdown.
+Pin the browser runtime to a major line — `@wix/htmdx@4`. Never use an alias
+that can cross a major, such as `@latest`. `@wix/htmdx` promises compatibility
+within a major and publishes a new minor on every merge, so the major is the
+only version it can promise, and saved artifacts pick up rendering fixes without
+being rewritten. Reports containing credentials, secrets, PII, or sensitive
+internal data use a trusted local runtime mirror; when none is available, they
+remain in Markdown.
 
 Use bespoke HTML and JavaScript instead when an artifact needs custom behavior
 outside the HTMDX component catalog.
@@ -48,7 +51,11 @@ outside the HTMDX component catalog.
   making agents author presentation code.
 - Positive: the editable source stays compact and legible to downstream agents.
 - Positive: one canonical artifact avoids drift between Markdown and HTML copies.
+- Positive: a saved artifact picks up rendering fixes on the major line without
+  being rewritten, so a bug like the dropped GFM tables does not outlive it.
 - Negative: rich artifacts depend on a pinned runtime or trusted mirror to render.
+- Negative: a regression published on the major line reaches every saved
+  artifact at once; a major bump is the only change that stays a decision.
 - Negative: each producing skill must make an explicit format-selection decision.
 - Negative: sensitive reports may lose the rich rendering when no trusted local
   runtime is available.

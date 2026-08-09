@@ -15,8 +15,10 @@ const MEDIA = {
 
 // A stale runtime pin degrades silently: evidence exists on disk and is
 // referenced, but the renderer drops `![]()` and `<video>` so the report shows
-// none of it. Keep in sync with the pin in every vs template.
-const EXPECTED_RUNTIME = '4.11.1';
+// none of it. Templates float on the major line, so the major is what this
+// checks — every 4.x renders evidence, and an exact 4.x pin in an older report
+// is still valid. Keep in sync with the pin in every vs template.
+const EXPECTED_RUNTIME_MAJOR = '4';
 const RUNTIME_PATTERN = /@wix\/htmdx@([0-9][^/"'\s]*)/g;
 
 // A clipless run is legitimate, but silence is not: a report that recorded
@@ -166,8 +168,8 @@ if (result.clips.referenced === 0) {
 // mirror; neither carries a pin to check.
 const pins = [...new Set([...report.matchAll(RUNTIME_PATTERN)].map(match => match[1]))];
 if (pins.length) {
-  const stale = pins.filter(pin => pin !== EXPECTED_RUNTIME);
-  result.runtime = { expected: EXPECTED_RUNTIME, pins, stale };
+  const stale = pins.filter(pin => pin.split('.')[0] !== EXPECTED_RUNTIME_MAJOR);
+  result.runtime = { expectedMajor: EXPECTED_RUNTIME_MAJOR, pins, stale };
   if (stale.length) result.valid = false;
 }
 
