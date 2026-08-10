@@ -84,6 +84,39 @@ angle-bracket rules. The component set differs between runtime versions, so a
 tag that exists in one pin is a compile error in another; keep every pin in this
 repo on one major line.
 
+## Visual evidence
+
+A report about something visible that shows no picture of it is not evidence —
+it is a claim about a screen the reader cannot see. When the work produced or
+could produce a capture, the artifact embeds it: a UI change carries before and
+after, a rendered output carries the render, a broken state carries the break.
+Describing the pixels in prose and skipping the image is the failure this rule
+exists to stop.
+
+Capture the whole page, not the fold. A viewport-sized capture cuts the content
+off wherever the window ended, so a screenshot proving a fixed layout can end
+mid-row and prove nothing about the rest. Use an element crop only when the
+judgment is about that one element, and say so in the alt text.
+
+Reference each image by a relative path from the artifact, and keep the files
+in `screenshots/`, `assets/`, or `evidence/` beside it. An absolute path such as
+`/Users/you/...` resolves under `file://` on the machine that wrote it and
+breaks the moment the artifact is moved, served, or shared. Give every image
+`alt` text that states what it proves, not what it depicts.
+
+Check the saved artifact before presenting it:
+
+```bash
+node <resolved-vs-internal-shared-skill-directory>/scripts/check-visual-evidence.mjs "$ARTIFACT_PATH"
+```
+
+It reports references that do not resolve, absolute paths, evidence saved
+beside the artifact that the artifact never shows, and captures whose exact
+dimensions match a standard viewport — the shape of a shot cut off at the fold.
+Exit `0` is clean, `1` means the artifact fails the contract, and `2` means the
+check never ran. Pass `--require-images` when the report's subject is visual, so
+an artifact that shows nothing fails instead of passing quietly.
+
 ## Security boundary
 
 The HTMDX source cannot execute JavaScript, but the browser runtime is external

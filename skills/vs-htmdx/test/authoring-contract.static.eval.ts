@@ -140,7 +140,15 @@ describe('verification ends at a rendered artifact', () => {
   it('ships the render check as a runnable asset', () => {
     expect(RENDER_CHECK).toMatch(/Failed step: \\w\+/);
     expect(RENDER_CHECK).toMatch(/process\.exit\(failed \? 1 : 0\)/);
-    expect(RENDER_CHECK).toMatch(/ERR_FILE_NOT_FOUND/);
+  });
+
+  it('fails an artifact whose evidence images never loaded', () => {
+    // This check used to filter the load failure out as "a stale path, not a
+    // compile failure", which passed artifacts whose screenshots the reader
+    // never saw. See vs-internal-shared/test/visual-evidence.static.eval.ts.
+    expect(RENDER_CHECK).toMatch(/naturalWidth === 0/);
+    expect(RENDER_CHECK).toMatch(/image\(s\) did not load/);
+    expect(RENDER_CHECK).not.toMatch(/!\/ERR_FILE_NOT_FOUND\/\.test/);
   });
 
   it('fails the render check when an old pin escapes raw tags to text', () => {

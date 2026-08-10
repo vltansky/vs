@@ -76,8 +76,20 @@ for (const file of files) {
   if (await details.count()) await details.click().catch(() => {});
   const body = (await page.locator('body').innerText()).trim();
 
-  // A missing local screenshot is a stale path, not a compile failure.
-  const runtimeErrors = errors.filter((e) => !/ERR_FILE_NOT_FOUND/.test(e));
+  // An image that never loaded leaves the artifact compiling cleanly and the
+  // reader looking at a broken icon, so ask the DOM rather than trusting the
+  // console: naturalWidth is 0 for a stale path, a bad name, and an
+  // unreachable remote source alike.
+  const brokenImages = await page.evaluate(() =>
+    [...document.querySelectorAll('img')]
+      .filter((img) => !img.complete || img.naturalWidth === 0)
+      .map((img) => img.getAttribute('src')),
+  );
+
+  // A resource that fails to load used to be filtered out here as "a stale
+  // path, not a compile failure" — which is exactly how artifacts shipped with
+  // screenshots the reader never saw.
+  const runtimeErrors = errors;
   const diagnostic = body.match(/Failed step: \w+[\s\S]{0,300}/);
 
   // A runtime older than the artifact's markup escapes raw tags to visible text
@@ -88,10 +100,14 @@ for (const file of files) {
   // page blank with no error of its own. Empty is never a rendered artifact.
   const blank = body.length < 40;
 
-  if (diagnostic || runtimeErrors.length || escaped || blank) {
+  if (diagnostic || runtimeErrors.length || escaped || blank || brokenImages.length) {
     failed++;
     console.log(`FAIL  ${file}`);
     if (diagnostic) console.log('  ' + diagnostic[0].split('\n').filter(Boolean).slice(0, 3).join('\n  '));
+    if (brokenImages.length) {
+      console.log(`  ${brokenImages.length} image(s) did not load: ${brokenImages.join(', ')}`);
+      console.log('  The artifact renders; the reader sees a broken image where the evidence should be.');
+    }
     if (escaped) {
       console.log(`  Raw HTML rendered as literal text: ${escaped[0]}`);
       console.log('  The pinned runtime predates the raw-HTML allowlist. Bump the pin.');

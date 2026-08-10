@@ -160,6 +160,17 @@ to the host's browser tooling, or open the `file://` path — no server is neede
 When nothing can render it, report structural validation as such and do not
 claim rendered proof.
 
+4. Check the artifact's visual evidence. A report about something visible that
+   shows none of it renders and lints perfectly, so nothing above catches it:
+
+```bash
+node ../vs-internal-shared/scripts/check-visual-evidence.mjs "$ARTIFACT_PATH"
+```
+
+Add `--require-images` when the subject is visual. See the
+[shared rich-artifact contract](../vs-internal-shared/references/rich-artifacts.md#visual-evidence)
+for the embedding, capture, and path rules it enforces.
+
 ## Handoff
 
 Return:

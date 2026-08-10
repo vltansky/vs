@@ -16,8 +16,8 @@ before writing any script:
 - **Subcommand CLI** (common in current installs): drive it with subcommands —
   `agent-browser open <url>`, `agent-browser eval '<js>'`,
   `agent-browser find text "<t>" click`, `agent-browser errors`,
-  `agent-browser screenshot <path>`. The heredoc examples below do not work on
-  this variant; translate each operation to its subcommand equivalent.
+  `agent-browser screenshot --full <path>`. The heredoc examples below do not
+  work on this variant; translate each operation to its subcommand equivalent.
 - **QuickJS heredoc runtime**: the examples below apply as written. Scripts run
   sandboxed — no `require`, no `fetch`, no `process`; use the `browser` global.
 
@@ -28,6 +28,13 @@ session is.
 
 The QuickJS examples use the harness global `saveScreenshot`. Replace
 `<absolute-run-directory>` with the current QA run directory.
+
+Capture the whole page on both variants — `page.screenshot({ fullPage: true })`
+on the QuickJS runtime, `agent-browser screenshot --full <path>` on the
+subcommand CLI. The default is the viewport, which stops at the fold and
+retains a screenshot that cuts through the content it was taken to prove. Pass
+a selector (`agent-browser screenshot --full '#panel' <path>`) only when the
+judgment is about that one element.
 
 ## Page Names
 
@@ -57,7 +64,7 @@ agent-browser <<'EOF' \
 const page = await browser.getPage("qa-main");
 await page.goto("https://example.com");
 const snap = await page.snapshotForAI();
-const buf = await page.screenshot();
+const buf = await page.screenshot({ fullPage: true });
 const path = await saveScreenshot(buf, "<absolute-run-directory>/screenshots/page-name.png");
 console.log(snap.full);
 console.log(JSON.stringify({ url: page.url(), title: await page.title(), screenshot: path }));
@@ -158,7 +165,7 @@ agent-browser --browser mobile <<'EOF'
 const page = await browser.getPage("qa-mobile");
 await page.goto("https://example.com");
 // Browser starts headless at mobile dimensions
-const buf = await page.screenshot();
+const buf = await page.screenshot({ fullPage: true });
 console.log(await saveScreenshot(buf, "<absolute-run-directory>/screenshots/page-mobile.png"));
 EOF
 ```

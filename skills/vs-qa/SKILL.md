@@ -138,6 +138,13 @@ report, even when no issues are found. Every issue has at least one retained
 screenshot; every verified fix has before/after screenshots. Use relative
 Markdown image references so both Markdown and HTMDX reports render the files.
 
+Capture the full page, not the viewport. A viewport capture is the control
+surface's default and it cuts the page off at the fold, so an "after the fix"
+screenshot can end mid-row and show none of the layout it was taken to prove.
+Use `page.screenshot({ fullPage: true })` or `agent-browser screenshot --full`.
+Capture a single element only when the judgment is about that element, and say
+so in the alt text so the reader knows the frame was chosen, not truncated.
+
 Keep screenshot bytes tool-side or on disk. Prefer a screenshot API that writes
 directly to a filename. If an API returns a buffer, write it to the report's
 `screenshots/` directory inside the persistent browser/tool process and return
@@ -400,7 +407,7 @@ await page.evaluate(() => {
 });
 
 const snap = await page.snapshotForAI();
-const buf = await page.screenshot();
+const buf = await page.screenshot({ fullPage: true });
 const screenshotPath = await saveScreenshot(buf, "<absolute-run-directory>/screenshots/initial.png");
 
 // Map navigation
@@ -461,7 +468,7 @@ await page.evaluate(() => {
     window.__qaErrors.push({ msg: String(event.reason) }));
 });
 const snap = await page.snapshotForAI();
-const buf = await page.screenshot();
+const buf = await page.screenshot({ fullPage: true });
 const path = await saveScreenshot(buf, "<absolute-run-directory>/screenshots/page-NAME.png");
 const controls = await page.$$eval('button, input, select, textarea, a[href]', els =>
   els.slice(0, 20).map(el => ({
@@ -508,7 +515,7 @@ page data without reading the screenshot into model context. Per-page checklist
    agent-browser --browser mobile <<'EOF'
    const page = await browser.getPage("qa-mobile");
    await page.goto("PAGE_URL");
-   const buf = await page.screenshot();
+   const buf = await page.screenshot({ fullPage: true });
    console.log(await saveScreenshot(buf, "<absolute-run-directory>/screenshots/page-NAME-mobile.png"));
    EOF
    ```
@@ -528,7 +535,7 @@ Document each issue **immediately when found** — don't batch.
 # Before
 agent-browser <<'EOF'
 const page = await browser.getPage("qa-main");
-const buf = await page.screenshot();
+const buf = await page.screenshot({ fullPage: true });
 console.log(JSON.stringify({
   screenshotPath: await saveScreenshot(buf, "<absolute-run-directory>/screenshots/issue-001-before.png"),
 }));
@@ -540,7 +547,7 @@ agent-browser <<'EOF' \
   | node "$EVIDENCE_TOOL" capture "$SNAPSHOT_PATH" --json-tail
 const page = await browser.getPage("qa-main");
 await page.click('button#submit');
-const buf = await page.screenshot();
+const buf = await page.screenshot({ fullPage: true });
 const path = await saveScreenshot(buf, "<absolute-run-directory>/screenshots/issue-001-result.png");
 const snap = await page.snapshotForAI({ track: "issue-001" });
 const allErrors = await page.evaluate(() => window.__qaErrors || []);
@@ -625,7 +632,7 @@ agent-browser <<'EOF' \
   | node "$EVIDENCE_TOOL" capture "$SNAPSHOT_PATH" --json-tail
 const page = await browser.getPage("qa-main");
 await page.goto("AFFECTED_URL");
-const buf = await page.screenshot();
+const buf = await page.screenshot({ fullPage: true });
 const path = await saveScreenshot(buf, "<absolute-run-directory>/screenshots/issue-NNN-after.png");
 const snap = await page.snapshotForAI({ track: "fix-NNN" });
 const allErrors = await page.evaluate(() => window.__qaErrors || []);
