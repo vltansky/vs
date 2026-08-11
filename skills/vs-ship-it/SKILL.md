@@ -677,10 +677,15 @@ Ship-it never re-runs QA. It reports what QA found.
 Adaptive per
 [`../vs-internal-shared/references/output-style.md`](../vs-internal-shared/references/output-style.md):
 answer first, and every required action sits in `Your action`.
+The first line says what shipped and whether the user can use it. Translate any
+CI, merge, verification, or rollout status into plain English before including
+the literal status label. Simplification must not erase an evidence boundary:
+when production has not rolled out, say production remains unverified; when a
+platform, route, or QA surface was not tested, name that gap explicitly. Keep
+those facts in `Still unverified` unless the matching `Your action` already owns
+the same gap.
 
 ```markdown
-## Handed back to you
-
 <Outcome sentence: what shipped, current readiness, and the main caveat.>
 
 **Your action**
@@ -742,7 +747,7 @@ each item below.
       stop command, or the precise blocker
 - [ ] The QA report was opened and what was tested is listed, or its absence is
       stated as a blocker
-- [ ] The `## Handed back to you` block emitted every required fact across its
+- [ ] The handback block emitted every required fact across its
       adaptive sections, with the answer first; every required action sits in
       `Your action`
 - [ ] `vs-brief` generated and used as source material (unless trivial diff)

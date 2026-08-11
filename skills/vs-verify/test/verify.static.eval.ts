@@ -23,7 +23,7 @@ describe('verification status contract', () => {
 
   it('propagates verification status through delivery workflows', () => {
     expect(BUILD_IT).toMatch(/handoff verdict inherits the verification status/);
-    expect(BUILD_IT).toMatch(/`WARN`, `FAIL`, or\s+`BLOCKED`[\s\S]+do not describe the outcome as fixed or working/);
+    expect(BUILD_IT).toMatch(/`WARN`, `FAIL`, or\s+`BLOCKED`[\s\S]+do not\s+describe the outcome as fixed or working/);
     expect(BUGFIX).toMatch(/handoff verdict inherits the verification status/);
     expect(BUGFIX).toMatch(/Only `PASS` or `SKIPPED_TRIVIAL` may describe the bug as[\s\S]+fixed or complete/);
     expect(SHIP_IT).toMatch(/carry the WARN wording into[\s\S]+do not describe the change as fixed or\s+verified/);

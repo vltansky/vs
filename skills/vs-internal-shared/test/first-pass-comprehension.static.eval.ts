@@ -1,0 +1,68 @@
+import * as fs from 'fs';
+import * as path from 'path';
+import { describe, expect, it } from 'vitest';
+
+const SKILLS_DIR = path.resolve(__dirname, '..', '..');
+const OUTPUT_STYLE = fs.readFileSync(
+  path.resolve(__dirname, '..', 'references', 'output-style.md'),
+  'utf8',
+);
+const COMMUNICATION = fs.readFileSync(
+  path.resolve(__dirname, '..', 'references', 'communication.md'),
+  'utf8',
+);
+const SHAPE_IT = fs.readFileSync(
+  path.join(SKILLS_DIR, 'vs-shape-it', 'SKILL.md'),
+  'utf8',
+);
+const BUILD_IT = fs.readFileSync(
+  path.join(SKILLS_DIR, 'vs-build-it', 'SKILL.md'),
+  'utf8',
+);
+const BUILD_HANDOFF = fs.readFileSync(
+  path.join(SKILLS_DIR, 'vs-build-it', 'references', 'handoff.md'),
+  'utf8',
+);
+const SHIP_IT = fs.readFileSync(
+  path.join(SKILLS_DIR, 'vs-ship-it', 'SKILL.md'),
+  'utf8',
+);
+
+describe('first-pass comprehension contract', () => {
+  it('applies the vs-wdym repair principles before the first response', () => {
+    expect(OUTPUT_STYLE).toMatch(/as if `\/vs-wdym` had already repaired it/i);
+    expect(OUTPUT_STYLE).toMatch(/missing premise/i);
+    expect(OUTPUT_STYLE).toMatch(/project nouns/i);
+    expect(OUTPUT_STYLE).toMatch(/define.*acronym|acronym.*define/i);
+    expect(OUTPUT_STYLE).toMatch(/decision,\s+caveat,\s+and action/i);
+    expect(OUTPUT_STYLE).toMatch(/translate[\s\S]*workflow status|workflow status[\s\S]*translate/i);
+    expect(OUTPUT_STYLE).toMatch(/When the workflow produced an artifact/i);
+    expect(OUTPUT_STYLE).toMatch(/Otherwise keep the essential evidence/i);
+    expect(COMMUNICATION).toMatch(/first working slice is committed/i);
+    expect(COMMUNICATION).not.toMatch(/guardrails green/i);
+  });
+
+  it('makes shape-it questions and approval easy to answer', () => {
+    expect(SHAPE_IT).toMatch(/state the decision in everyday language/i);
+    expect(SHAPE_IT).toMatch(/what changes for the user/i);
+    expect(SHAPE_IT).toMatch(/one approval request/i);
+    expect(SHAPE_IT).toMatch(/first sentence.*recommendation/i);
+    expect(SHAPE_IT).toMatch(/`Your action`/);
+  });
+
+  it('keeps build-it audit detail out of the chat handoff', () => {
+    expect(BUILD_IT).toMatch(/plain-language outcome/i);
+    expect(BUILD_IT).toMatch(/full audit ledger[\s\S]*report/i);
+    expect(BUILD_HANDOFF).toMatch(/first line\s+is\s+the plain-language outcome/i);
+    expect(BUILD_HANDOFF).toMatch(/full audit ledger[\s\S]*report/i);
+    expect(BUILD_HANDOFF).not.toMatch(/MUST include every section/i);
+    expect(BUILD_HANDOFF).not.toContain('## Build It Complete');
+    expect(BUILD_HANDOFF).toMatch(/report link is required only when this run owed a report/i);
+  });
+
+  it('starts ship-it with what shipped instead of a workflow heading', () => {
+    expect(SHIP_IT).toMatch(/first line.*what shipped/i);
+    expect(SHIP_IT).toMatch(/translate[\s\S]*status/i);
+    expect(SHIP_IT).not.toContain('## Handed back to you');
+  });
+});

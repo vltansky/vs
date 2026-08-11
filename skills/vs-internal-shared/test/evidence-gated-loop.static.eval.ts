@@ -34,25 +34,25 @@ describe('shape-it names the evidence before building starts', () => {
 });
 
 describe('build-it may not claim an outcome it cannot show', () => {
-  it('heads the handoff UNPROVEN when a named surface produced no evidence', () => {
-    expect(BUILD_IT).toMatch(/## Build It — UNPROVEN/);
+  it('leads with the missing proof when a named surface produced no evidence', () => {
+    expect(BUILD_IT).toMatch(/say in the first sentence that the result is not yet proven/);
     expect(BUILD_IT).toMatch(
       /Evidence plan named a surface and no evidence[\s\S]{0,160}was captured/,
     );
     expect(BUILD_IT).toMatch(/Implemented and\s+proven are different claims/);
   });
 
-  it('requires an evidence table and links the run report in the handoff', () => {
-    expect(HANDOFF).toContain('### Evidence');
-    expect(HANDOFF).toMatch(/\| Claim \| Surface \| Proof \| Status \|/);
-    expect(HANDOFF).toMatch(/proven \/ UNPROVEN/);
+  it('keeps claim-to-proof evidence in the report and links it from chat', () => {
+    expect(HANDOFF).toMatch(/full audit ledger lives in the report/);
+    expect(HANDOFF).toMatch(/claim-to-proof evidence/);
+    expect(HANDOFF).toMatch(/claim with\s+no proof is `UNPROVEN`/);
     expect(HANDOFF).toMatch(/~\/\.vs\/\$PROJECT_ID\/build-it\//);
     expect(BUILD_IT).toMatch(/build-it\/YYYY-MM-DD-<slug>\.html/);
   });
 
   it('reports progress at phase boundaries without asking anything', () => {
     expect(BUILD_IT).toMatch(/Build-it is autonomous, not silent/);
-    expect(BUILD_IT).toMatch(/\[3\/7\] Execute/);
+    expect(BUILD_IT).toMatch(/\[3\/7\] The first working slice is committed/);
     expect(BUILD_IT).toMatch(
       /phase start and phase end only — not per file edit/,
     );
@@ -153,7 +153,7 @@ describe('ship-it hands the user something to try', () => {
   });
 
   it('emits a compact, adaptive handback', () => {
-    const block = SHIP_IT.slice(SHIP_IT.indexOf('## Handed back to you'));
+    const block = SHIP_IT.slice(SHIP_IT.indexOf('### The handback block'));
     for (const fact of [
       '**Preview**',
       '**Your action**',
@@ -176,6 +176,8 @@ describe('ship-it hands the user something to try', () => {
       /Do\s+not repeat a manual check under `Still unverified`/i,
     );
     expect(block).toMatch(/Omit `Still unverified` when/i);
+    expect(block).toMatch(/production remains unverified/i);
+    expect(block).toMatch(/platform, route, or QA surface was not tested/i);
     expect(SHIP_IT).toMatch(
       /answer first.*required action sits in `Your action`/is,
     );

@@ -54,7 +54,7 @@ describe('shape-it: pushback always runs at the end', () => {
 
   it('folds findings into the design and surfaces the verdict at the closing gate', () => {
     expect(SKILL).toMatch(/fold supported findings into the design/i);
-    expect(SKILL).toMatch(/Pushback: READY_WITH_RISKS/);
+    expect(SKILL).toMatch(/design\s+is ready to build[\s\S]+READY_WITH_RISKS/);
     expect(SKILL).toMatch(/NOT_READY.*verdict does not block the approval gate/i);
   });
 
