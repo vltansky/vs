@@ -50,6 +50,12 @@ describe('first-pass comprehension contract', () => {
     expect(SHAPE_IT).toMatch(/`Your action`/);
   });
 
+  it('preserves the sharpest supported risk explanation', () => {
+    expect(SHAPE_IT).toMatch(/sharpest supported reason/i);
+    expect(SHAPE_IT).toMatch(/cause and user consequence/i);
+    expect(SHAPE_IT).toMatch(/generic risk label is not enough/i);
+  });
+
   it('keeps build-it audit detail out of the chat handoff', () => {
     expect(BUILD_IT).toMatch(/plain-language outcome/i);
     expect(BUILD_IT).toMatch(/full audit ledger[\s\S]*report/i);
@@ -58,6 +64,17 @@ describe('first-pass comprehension contract', () => {
     expect(BUILD_HANDOFF).not.toMatch(/MUST include every section/i);
     expect(BUILD_HANDOFF).not.toContain('## Build It Complete');
     expect(BUILD_HANDOFF).toMatch(/report link is required only when this run owed a report/i);
+  });
+
+  it('preserves the exact missing observation when proof is blocked', () => {
+    expect(BUILD_HANDOFF).toMatch(/exact observation that did not happen/i);
+    expect(BUILD_HANDOFF).toMatch(/surface or environment\s+was unavailable is not enough/i);
+  });
+
+  it('keeps an explicit release gate when required evidence is missing', () => {
+    expect(BUILD_HANDOFF).toMatch(/state the release gate explicitly/i);
+    expect(BUILD_HANDOFF).toMatch(/do not ship, merge, or roll out until/i);
+    expect(BUILD_HANDOFF).toMatch(/can move to shipping\s+is not an equivalent gate/i);
   });
 
   it('starts ship-it with what shipped instead of a workflow heading', () => {

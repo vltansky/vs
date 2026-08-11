@@ -454,6 +454,11 @@ is ready to build, with one open rollout risk (READY_WITH_RISKS).` Include only
 the surviving high and medium findings. Report it as the state of the design,
 not as a separate review to read.
 
+Compression must preserve the sharpest supported reason the recommendation can
+fail. State its cause and user consequence so the user can judge the tradeoff.
+A generic risk label is not enough, even when the literal verdict remains
+visible.
+
 A `NOT_READY` verdict does not block the approval gate, but it changes what is
 being approved. Lead with the blocking finding and recommend reworking it before
 `/vs-build-it`. Offer a full interactive `/vs-pushback` when the user wants to

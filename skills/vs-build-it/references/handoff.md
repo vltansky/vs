@@ -26,6 +26,16 @@ Report: `~/.vs/$PROJECT_ID/build-it/YYYY-MM-DD-<slug>.html`
 Next: `/vs-ship-it` with branch `<branch-name>`.
 ```
 
+When proof is blocked, name the exact observation that did not happen, not only
+the prerequisite that was unavailable. Saying only that a surface or environment
+was unavailable is not enough; state the missing event, interaction, or output
+the next run must observe.
+
+When that proof gates release, state the release gate explicitly in `Your
+action`: `Do not ship, merge, or roll out until <evidence> passes.` A softer
+future-state sentence is insufficient: saying the branch can move to shipping
+is not an equivalent gate because it leaves the prohibited action implicit.
+
 The full audit ledger lives in the report: branch and commits, phase results,
 claim-to-proof evidence, Codex goal state, decision records and whether each was
 written before implementation, every auto-resolved decision, final guardrails,
