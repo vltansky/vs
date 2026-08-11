@@ -1,6 +1,6 @@
 {
   "name": "vs",
-  "version": "1.5.2",
+  "version": "1.5.3",
   "description": "Plan-to-ship workflow skills for shaping ideas, building autonomously, reviewing code, and shipping PRs with agent discipline.",
   "author": {
     "name": "Vlad Tansky",
@@ -12,7 +12,7 @@
     "./skills/vs-manage-threads",
     "./skills/vs-baby-sit",
     "./skills/vs-brief",
-    "./skills/vs-bro",
+    "./skills/vs-wdym",
     "./skills/vs-orchestrate",
     "./skills/vs-bugfix",
     "./skills/vs-build-it",

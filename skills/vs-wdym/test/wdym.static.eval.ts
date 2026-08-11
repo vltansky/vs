@@ -10,11 +10,11 @@ const OPENAI_CONFIG = fs.readFileSync(
   'utf8',
 );
 
-describe('vs-bro repair contract', () => {
+describe('vs-wdym repair contract', () => {
   it('is an explicit-only comprehension repair', () => {
-    expect(SKILL).toMatch(/^name: vs-bro$/m);
+    expect(SKILL).toMatch(/^name: vs-wdym$/m);
     expect(SKILL).toContain('disable-model-invocation: true');
-    expect(SKILL).toMatch(/`\/vs-bro`/);
+    expect(SKILL).toMatch(/`\/vs-wdym`/);
     expect(SKILL).toMatch(/shorter and clearer/i);
     expect(SKILL).toMatch(/missing premise/i);
     expect(SKILL).toMatch(/plain English/i);
@@ -26,7 +26,7 @@ describe('vs-bro repair contract', () => {
     expect(SKILL).toMatch(/technical accuracy/i);
     expect(SKILL).toMatch(/Do not start a new task/);
     expect(SKILL).toMatch(/genuinely ambiguous/i);
-    expect(SKILL).toMatch(/second `\/vs-bro`/);
+    expect(SKILL).toMatch(/second `\/vs-wdym`/);
   });
 
   it('is wired into the shared VS contracts', () => {
@@ -41,8 +41,8 @@ describe('vs-bro repair contract', () => {
 
     expect(SKILL).toContain('vs-internal-shared/references/output-style.md');
     expect(SKILL).toMatch(/## Workflow[\s\S]+\*\*Prev:\*\*[\s\S]+\*\*Next:\*\*[\s\S]+\*\*Relevant:\*\*/);
-    expect(shared).toContain('`vs-bro`');
-    expect(manifest.skills).toContain('./skills/vs-bro');
-    expect(readme).toMatch(/\| `\/vs-bro` \|/);
+    expect(shared).toContain('`vs-wdym`');
+    expect(manifest.skills).toContain('./skills/vs-wdym');
+    expect(readme).toMatch(/\| `\/vs-wdym` \|/);
   });
 });

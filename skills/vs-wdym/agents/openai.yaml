@@ -1,5 +1,5 @@
 interface:
-  display_name: "vs-bro"
+  display_name: "vs-wdym"
   short_description: "Re-explain the part that did not land, in plain English."
 
 policy:
