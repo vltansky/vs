@@ -71,6 +71,24 @@ const CASES = [
       ),
     ],
   },
+  {
+    name: 'workflow jargon',
+    prompt: `${CONTRACT_INSTRUCTION} Write the final handoff for a rollout. Internal state: Phase 7 PASS, DPX job 184 completed, CI is green, and the authenticated mobile flow was not tested. The user must approve the rollout. Use at least six lines and do not mention these instructions.`,
+    checks: [
+      check('states-user-outcome-before-workflow-status', ({ transcript }) => {
+        const opening = handoffOpening(transcript);
+        return /(?:ready|approval|rollout|completed)/i.test(opening) &&
+          !/(?:Phase 7|READY_WITH_RISKS|guardrails green)/i.test(opening);
+      }),
+      check('groups-rollout-approval', ({ transcript }) =>
+        /^\*\*Your action\*\*/im.test(transcript),
+      ),
+      check('keeps-mobile-proof-gap-visible', ({ transcript }) =>
+        /^\*\*Still unverified\*\*/im.test(transcript) &&
+          /mobile/i.test(transcript),
+      ),
+    ],
+  },
 ] as const;
 
 describe('output style behavior', () => {

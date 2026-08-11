@@ -26,9 +26,9 @@ Pipeline Execution (0-0.4):
 - Did guardrails (tsc, bun test) pass at the end?
 
 Handoff Quality (0-0.3):
-- Does the output include a pipeline summary table (phases + results)?
-- Is there a decision log showing auto-resolved decisions?
-- Are final guardrail results shown (types, tests, build)?
+- Does the first line state the user-visible outcome in plain language?
+- Are the strongest behavioral proof and final guardrails easy to find?
+- Is full audit detail linked or clearly separated from the compact chat summary?
 - Does it suggest the next step (ship-it or fixes needed)?
 
 Code Quality (0-0.3):
@@ -154,9 +154,9 @@ describe('build-it', () => {
           return exitCode === 0;
         }),
 
-        // Has handoff summary?
+        // Has a readable handoff summary?
         check('has-handoff', ({ transcript }) =>
-          /pipeline|handoff|build-it complete|decision log/i.test(transcript),
+          /verified|tests? pass|works|complete|ship-it|still unverified/i.test(transcript),
         ),
 
         // LLM judge for overall quality
@@ -345,9 +345,10 @@ describe('build-it', () => {
           ),
         ),
 
-        // Has decision log mentioning the auto-generation
-        check('decision-log', ({ transcript }) =>
-          /decision.*log|decision.*#|auto.*resolv/i.test(transcript),
+        // Keeps the auto-generation outcome readable instead of exposing the ledger
+        check('readable-auto-generation', ({ transcript }) =>
+          /auto.generat|generat.*plan|plan.*generat/i.test(transcript) &&
+          !/decision log|auto-resolved/i.test(transcript),
         ),
 
         // Feature branch

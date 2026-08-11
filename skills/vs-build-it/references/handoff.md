@@ -1,73 +1,55 @@
 ## Phase 7: Handoff
 
-The handoff summary is the user's only window into what build-it decided.
-You MUST include every section below. Do not abbreviate or skip sections.
+The report is the audit record. Chat is the readable handoff. Its first line is
+the plain-language outcome: what now works for the user, or exactly what remains
+unproven. Do not lead with a phase name, score, or workflow status.
 
-Present the result to the user:
+Use this adaptive shell and omit every empty section:
 
-```
-## Build It Complete
+```markdown
+<What now works, who it helps, and the main caveat if one remains.>
 
-### Branch
-`{branch-name}` — [N] commits
+**Your action**
 
-### Commits
-- `<hash>` `<message>`
-- `<hash>` `<message>`
+- <Only the action the user must take now.>
 
-### Pipeline
-| Phase | Result |
-|-------|--------|
-| Roast | [N]/100, [X] issues fixed |
-| Execute | [N] steps, guardrails pass/fail |
-| Review | [N] found, [M] fixed |
-| QA | [N]/100 health / blocked by `<exact prerequisite>` |
+**Verified**
 
-### Evidence
-| Claim | Surface | Proof | Status |
-|---|---|---|---|
-| ... | route / command | screenshot, output, or test | proven / UNPROVEN |
+- <The strongest behavioral proof, in plain English.>
+- <Tests or checks that materially increase confidence.>
+
+**Still unverified**
+
+- <Material claim> — <exact blocker>.
 
 Report: `~/.vs/$PROJECT_ID/build-it/YYYY-MM-DD-<slug>.html`
-Previews started: `<command>` PID `<pid>` port `<port>` — stopped in Phase 6
-
-Every claim the handoff makes appears here with the thing that proves it. A
-claim with no proof is `UNPROVEN` and names its blocker. Omit the report line
-only for a trivial run that owed no artifact; omit the previews line only when
-the run started none.
-
-### Codex Goal
-[created/reused/completed/unavailable/not created pending shape-it/left active because ...]
-
-### Decision Records
-[`adr/<slug>.md` — one-line decision, written before implementation | honored
-existing `adr/<slug>.md` | superseded `adr/<old>.md` — why | none — no
-repo-level decision]
-
-### Decision Log
-| # | Phase | Decision | Principle | Rationale |
-|---|-------|----------|-----------|-----------|
-| 1 | ... | ... | ... | ... |
-
-Every auto-resolved decision MUST appear here. If no decisions were logged
-during execution, that is a bug — go back and reconstruct the log from
-the work you did.
-
-### Final Guardrails
-- Types: pass/fail
-- Tests: pass/fail ([N] passed, [M] failed)
-- Build: pass/fail
-
-### Flagged for human review
-[Anything borderline or debatable — or "None"]
+Next: `/vs-ship-it` with branch `<branch-name>`.
 ```
+
+When proof is blocked, name the exact observation that did not happen, not only
+the prerequisite that was unavailable. Saying only that a surface or environment
+was unavailable is not enough; state the missing event, interaction, or output
+the next run must observe.
+
+When that proof gates release, state the release gate explicitly in `Your
+action`: `Do not ship, merge, or roll out until <evidence> passes.` A softer
+future-state sentence is insufficient: saying the branch can move to shipping
+is not an equivalent gate because it leaves the prohibited action implicit.
+
+The full audit ledger lives in the report: branch and commits, phase results,
+claim-to-proof evidence, Codex goal state, decision records and whether each was
+written before implementation, every auto-resolved decision, final guardrails,
+flagged review items, diff stat, and any preview process cleanup. A claim with
+no proof is `UNPROVEN` there and names its blocker.
+For a trivial run that owes no report, include only the few audit facts needed
+to support the chat claim.
 
 Load and run `../../vs-brief/SKILL.md` when the change touches more than 3 files,
 records a durable design decision, the user asks for PR orientation, or there is
 meaningful before-and-after evidence. Include the comparison even when the diff
 is small. Pass the current branch diff, decision log, flagged items, and captured
-comparison evidence. Otherwise the pipeline summary and minimal diff stat are
-the handoff.
+comparison evidence. Otherwise put the minimal pipeline summary and diff stat in
+the report; for a trivial run with no report, keep them to one compact chat line.
 
 If not found: append a minimal fallback using the resolved default branch:
 
@@ -80,7 +62,11 @@ done
 git diff --stat "$BASE"..HEAD
 ```
 
-Before sending the final response, audit it against the Phase 7 shell. If any required heading, commit list, decision row, guardrail result, or explicit next step is missing, revise before sending. Do not assume the user can infer the workflow from git history alone.
+Before sending the final response, audit the report for the complete ledger and
+the chat response for first-pass comprehension. If the outcome, required
+action, material gap, required report link, or explicit next step is missing,
+revise it. A report link is required only when this run owed a report.
+Do not make the user infer the result from git history or phase names.
 
 Suggest next step based on results:
 - All green → `/vs-ship-it`

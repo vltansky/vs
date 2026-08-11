@@ -10,6 +10,27 @@ Two rules sit underneath everything else:
 2. **Everything the user must do now appears in one optional `Your action`
    section; nothing required appears outside it.**
 
+## First-pass comprehension
+
+Write every message as if `/vs-wdym` had already repaired it. The user should
+not need a second turn to recover the premise or decode the workflow.
+
+- Make the missing premise explicit before relying on it. Say why the result or
+  decision matters in the user's situation, not only what the workflow did.
+- Prefer project nouns the user already knows. Do not replace them with invented
+  framework language, agent vocabulary, or generic abstractions.
+- Define an unfamiliar acronym or specialist term on first use. Omit internal
+  terms when they do not change the user's decision or action.
+- Use short sentences with one main idea. Keep the necessary decision, caveat,
+  and action; clarity is not permission to erase conditions.
+- Translate a workflow status into its user meaning before showing the literal
+  label. Say `The design is usable, with one open rollout risk` before an
+  optional `READY_WITH_RISKS` label.
+- When the workflow produced an artifact, put the audit trail, phase ledger,
+  raw checks, and decision history there. Otherwise keep the essential evidence
+  and decisions in chat. Chat always carries the outcome, the reason, the
+  required action, and the material evidence gap.
+
 ## Adaptive handoff
 
 Most replies need only the opening sentence. Longer handoffs may add these

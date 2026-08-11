@@ -39,7 +39,7 @@ Emit one line at each phase boundary while a long autonomous run is in flight,
 so the user can see movement without asking:
 
 ```text
-[3/7] Execute — 4 of 6 steps committed · guardrails green
+[3/7] The first working slice is committed; 4 of 6 steps are done and tests still pass.
 ```
 
 Emit when a phase starts and when it ends. Do not emit per file edit, per tool

@@ -50,11 +50,16 @@ Build-it is autonomous, not silent. Follow
 Emit one line at each phase boundary so the user can see the run moving:
 
 ```text
-[3/7] Execute — 4 of 6 steps committed · guardrails green
+[3/7] The first working slice is committed; 4 of 6 steps are done and tests still pass.
 ```
 
 Emit at phase start and phase end only — not per file edit or per tool call.
 Keep the detail out of chat; it belongs in the run report.
+
+Write progress and handoffs in plain language. State what changed for the user
+and what proves it before phase names, scores, or internal statuses. Use the
+shared first-pass comprehension rules so the user never has to invoke
+`/vs-wdym` just to understand a build update.
 
 Progress emissions stay one line and skip sections. When a phase boundary
 carries something the user must clear, format the message per
@@ -82,7 +87,7 @@ use it as the run-level progress contract for build-it:
 - Load [`../vs-internal-shared/references/subagents.md`](../vs-internal-shared/references/subagents.md) before delegating any work.
 - Ensure vague intent is shaped into a Codex-goal-ready objective before calling
   `create_goal`.
-- Keep goal state as bookkeeping only; the handoff still needs commits,
+- Keep goal state as bookkeeping only; the run record still needs commits,
   guardrails, decision log, review findings, and the explicit next step.
 
 ## Decision Principles
@@ -115,9 +120,13 @@ These are the behaviors evals punish hardest; prioritize them during autonomous 
 
 1. **Commit as you go.** Every real implementation run should add at least one descriptive commit; multi-step work usually produces multiple commits. For a tiny single-bug TDD fix, one self-contained green commit is fine after the red failure is proven.
 2. **Auto-generated plans choose concrete destination files.** Name target files up front; for new utilities, prefer a dedicated module and export from a barrel secondarily.
-3. **Use the Phase 7 handoff shell.** End with `## Build It Complete`, the pipeline table, decision log, guardrail results, flagged review items, and an explicit next step.
+3. **Use the Phase 7 handoff shell.** Lead with the plain-language outcome,
+   required user action, strongest evidence, material gaps, and an explicit next
+   step. Put the full audit ledger in the linked report.
 4. **Make red/green evidence explicit.** When you claim TDD, name the failing test command (red) and the passing re-run (green) in the handoff or decision log — do not rely on commit order alone.
-5. **Make atomic commits visible.** If commit quality matters to the work, list the commit hashes/messages in the handoff so the reviewer can see the sequence, not just infer it.
+5. **Make atomic commits visible.** If commit quality matters to the work, list
+   the commit hashes and messages in the report. Mention the commit count in chat
+   only when it helps the user choose the next action.
 
 ---
 
@@ -351,8 +360,8 @@ the ADR question here rather than at the end of the run.
   clause and move on. Tactical implementation choices are not ADR material.
 
 Emit a short transition summary:
-> **Phase 1-2 complete.** Roast score: [N]/100. Fixed [X] high, [Y] medium issues.
-> [Z] items noted as known risks. Proceeding to execution with [N] steps.
+> The plan is safe enough to build. I fixed [X] blocking issues and kept [Z]
+> risks visible; implementation now has [N] steps.
 
 ---
 
@@ -624,18 +633,19 @@ Load and run `../vs-verify/SKILL.md` when available and include its
 `## Verification Result` in the handoff. If unavailable, record the final
 guardrail commands and results manually.
 
-The handoff verdict inherits the verification status. Use `## Build It
-Complete` only for `PASS` or `SKIPPED_TRIVIAL`. For `WARN`, `FAIL`, or
-`BLOCKED`, head the handoff `## Build It — <STATUS>`, state exactly what was
-not proven, and do not describe the outcome as fixed or working. When the work
-fixes a reported bug, completion additionally requires the original
-reproduction to pass — local guardrails alone do not earn "fixed".
+The handoff verdict inherits the verification status, but the first sentence
+translates it into the user's outcome. Describe the work as complete only for
+`PASS` or `SKIPPED_TRIVIAL`. For `WARN`, `FAIL`, or `BLOCKED`, state exactly
+what was not proven in plain language before the literal status, and do not
+describe the outcome as fixed or working. When the work fixes a reported bug,
+completion additionally requires the original reproduction to pass — local
+guardrails alone do not earn "fixed".
 
 One further verdict applies independently of verification status: when the
 Goal Contract's Evidence plan named a surface and no evidence from that surface
-was captured, head the handoff `## Build It — UNPROVEN`, name the surface, name
-the exact blocker, and do not describe the outcome as working. Implemented and
-proven are different claims; UNPROVEN says the first without the second.
+was captured, say in the first sentence that the result is not yet proven. Name
+the surface and exact blocker before the optional `UNPROVEN` label, and do not
+describe the outcome as working. Implemented and proven are different claims.
 
 For text output captured in Phase 0, rerun the same command and representative
 input after final validation and retain the exact after output. For UI output,
@@ -643,8 +653,10 @@ use the paired images captured before implementation and during QA. Pass the
 comparison evidence to `vs-brief`; if a required capture was blocked, pass the
 blocker instead of inventing evidence.
 
-Use the required shell in [references/handoff.md](./references/handoff.md) and
-include a minimal diff stat. If the user asked build-it to also ship, load and
+Use the required shell in [references/handoff.md](./references/handoff.md). Its
+chat response stays compact; the full audit ledger, decision log, commits,
+guardrails, and minimal diff stat belong in the report. If the user asked
+build-it to also ship, load and
 follow `../vs-ship-it/SKILL.md`; if the host cannot resolve it, say to type
 `/vs-ship-it` and stop — do not hand-roll a PR flow in its place. Load `../vs-brief/SKILL.md` only when the change is
 non-trivial (more than 3 files, a durable design decision, user-requested PR

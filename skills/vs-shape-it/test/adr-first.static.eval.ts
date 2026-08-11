@@ -87,8 +87,8 @@ describe('build-it: honors the record before it writes code', () => {
   });
 
   it('reports the record in the handoff', () => {
-    expect(HANDOFF).toMatch(/### Decision Records/);
-    expect(HANDOFF).toMatch(/written before implementation/i);
+    expect(HANDOFF).toMatch(/full audit ledger lives in the report/);
+    expect(HANDOFF).toMatch(/decision records[\s\S]+written before implementation/i);
   });
 });
 
