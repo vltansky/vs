@@ -22,14 +22,18 @@ Infer the route; do not ask the user to choose a mode.
 
 - **Explore:** vague idea, open question, or no chosen approach. This is the
   default; follow the workflow below.
+- **Guided Explore:** the user says `interview me`, `ask me questions`,
+  `question me`, or `grill me` and wants to work through their own idea. Follow
+  Explore, but use the adaptive interview cadence in the opening interaction.
 - **Challenge:** formed plan, spec, or RFC, or an explicit request to grill,
-  challenge, or stress-test. Delegate to `/vs-pushback`; do not duplicate its
-  scoring and verdict workflow here.
+  challenge, or stress-test the proposal itself. Delegate to `/vs-pushback`; do
+  not duplicate its scoring and verdict workflow here. `Grill this plan` is
+  Challenge; `grill me — question me` is Guided Explore.
 
 If the initial route was wrong, pivot immediately.
 
-Both routes end in pushback. Explore runs it as the last step of independent
-shaping; Challenge hands the whole session to it.
+All routes end in pushback. Explore and Guided Explore run it as the last step
+of independent shaping; Challenge hands the whole session to it.
 
 For Explore, use the shared
 [`context-docs.md`](../vs-internal-shared/references/context-docs.md) protocol
@@ -86,10 +90,17 @@ and current directory. Ask for an evidence location only when it cannot be
 discovered or accessed and choosing the wrong one would materially change the
 design; ordinary navigation is not a strategic question.
 
-If intent, constraints, success criteria, or an expensive-to-reverse choice is
-still unclear, ask up to 3 high-leverage strategic questions in one round. If
-the request already settles those decisions, reflect the settled direction and
-move directly into independent shaping.
+Every Explore session crosses an explicit alignment checkpoint before
+independent shaping. In the default route, ask up to 3 high-leverage strategic
+questions in one round. Even when the direction sounds settled, ask one
+question about the least-supported expensive-to-reverse assumption instead of
+silently treating the agent's interpretation as alignment.
+
+Skip the question only when the user explicitly asks for no questions, or the
+current conversation already contains explicit answers for the outcome,
+boundary, and proof of success. In that case, reflect those settled decisions
+in one short alignment statement before independent shaping. Repository facts
+and ordinary navigation never count as user alignment.
 
 When choosing questions, use only the lenses that remain unresolved:
 
@@ -100,11 +111,37 @@ When choosing questions, use only the lenses that remain unresolved:
 Do not ask all three by rote or spend a slot on a lens the evidence already
 settles.
 
-- Render the round through the host's structured question tool when available
+#### Guided Explore interview
+
+Use this cadence only for Guided Explore. It is deliberately more interactive
+than the default batched checkpoint:
+
+1. Start with a brief assessment of what is known, what remains undecided, and
+   the likely decision areas. Do not invent confidence percentages or time
+   estimates.
+2. Ask one consequential strategic question at a time. Give a recommended
+   answer first, explain the consequence, and wait for the user's answer.
+3. Branch from each answer: skip decisions it settles and inspect the code or
+   named evidence yourself when a fact can answer the next question.
+4. Accept `done`, `skip`, and `back`. If the user says `done`, preserve remaining
+   uncertainty as explicit open decisions with recommendations.
+5. Stop interviewing once outcome, boundary, success proof, and the
+   expensive-to-reverse choices are clear. Summarize the aligned contract, then
+   enter the uninterrupted independent beat.
+
+Do not turn Guided Explore into a fixed questionnaire. Progress means resolved
+decisions, not a target question count. The user supplies priorities and
+trade-offs; the agent supplies facts, code reading, and recommendations.
+
+For either cadence, render questions through the host's structured question
+tool when available
   (`request_user_input` in Codex, `AskUserQuestion` in Claude Code); see
   [internal-shared](../vs-internal-shared/SKILL.md) Structured questions. Fall
   back to the Markdown format below otherwise. In Codex, when
   `request_user_input` is listed, call it rather than rendering the fallback.
+
+For the default batched checkpoint:
+
 - Batch only independent questions; every question in the round must be
   answerable without the others' answers. If a question depends on an earlier
   answer, state the dependency inline or infer a reversible default later.
@@ -120,6 +157,10 @@ settles.
 - Spend one of the three questions on external research only when the design
   could proceed without it and the lookup would cost real time. When the need is
   clear, run it in the independent beat instead of asking.
+
+Guided Explore calls the structured tool once per question and waits for the
+answer. It does not use the batched-reply shortcut or the multi-question
+fallback below.
 
 ```markdown
 ## Decisions needed

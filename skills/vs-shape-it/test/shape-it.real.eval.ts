@@ -25,6 +25,10 @@ const REAL_PROMPT =
   'Start from brainstorm and adr writing. i think hooks can be useful, ' +
   'we can auto update once in a day - maybe not silent..';
 
+const REAL_ORCHESTRATOR_PROMPT =
+  'right now we have a Slack integration that uses serverless then runs BCA. ' +
+  'I want it to use our orchestrator agent instead. Shape it.';
+
 describe('shape-it (real prompt)', () => {
   it('explore-mode: asks before designing, does not jump to code', async () => {
     const agent = await createAgent({
@@ -64,6 +68,44 @@ Score 0.0: It skipped questions and jumped straight to a design dump or code.`,
             ),
           { weight: 1 },
         ),
+      ],
+      { failFast: false, onScorerError: 'skip' },
+    );
+
+    expect(result.score).toBeGreaterThan(0.5);
+    await agent.dispose();
+  });
+
+  it('explore-mode: checks the runtime boundary before shaping a migration', async () => {
+    const agent = await createAgent({
+      agent: EVAL_AGENT,
+      timeout: 300,
+      skillDir: SKILL_DIR,
+      workspace: FIXTURE_DIR,
+      debug: true,
+    });
+
+    await promptAllowingAskUserInterrupt(agent, REAL_ORCHESTRATOR_PROMPT);
+
+    const result = await evaluate(
+      agent,
+      [
+        check(
+          'asks-via-tool-or-markdown',
+          (ctx) => askedClarifyingQuestion(ctx),
+          { weight: 2 },
+        ),
+        judge('aligns-before-migration-design', {
+          rubric: `The user wants to replace a one-shot Slack -> serverless -> BCA path with an orchestrator agent, but has not said whether they want a new conversational session, a one-shot preset, generic tasks, or only the existing automation scope.
+
+Look at the FIRST agent response and any ask_user / AskUserQuestion tool events.
+
+Score 1.0: Before proposing a concrete migration, the agent asks at least one strategic question that distinguishes the intended runtime or scope (for example conversational session vs one-shot invocation, bidirectional Slack replies, generic tasks vs automation-only, or which Slack path is in scope).
+Score 0.5: It asks a relevant question but also commits to a concrete architecture in the same response.
+Score 0.0: It silently picks an interpretation and starts research or presents a design without an alignment question.`,
+          weight: 3,
+          includeToolEvents: true,
+        }),
       ],
       { failFast: false, onScorerError: 'skip' },
     );
