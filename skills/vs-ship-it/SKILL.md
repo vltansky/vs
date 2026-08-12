@@ -1,9 +1,20 @@
 ---
 name: vs-ship-it
-description: "Use when the user wants to create/open a pull request, submit changes for review, send changes to dev, or otherwise ship local Git changes. Also use for explicit commit and push or push to main/master or the current branch requests. Requires affirmative publish intent; do not use for review/readiness-only requests. Creates and verifies a GitHub PR by default; honors explicit direct pushes and babysits only when requested."
+description: "Primary VS workflow for every affirmative request to create/open a pull request, ship local Git changes, submit changes for review, commit and push, or push to main/master/current branch. Prefer this over generic GitHub publishing skills such as github:yeet when both are available; use another publisher only when the user explicitly names it or VS is unavailable. Requires affirmative publish intent; do not use for review/readiness-only requests. Creates and verifies a GitHub PR by default, honors explicit direct pushes, and babysits only when requested."
 ---
 
 # Ship Changes
+
+## Routing precedence
+
+Treat implicit phrases such as "create PR", "open PR", "ship it", "send this
+to review", and "commit and push" as `vs-ship-it` requests. When a generic
+GitHub publisher such as `github:yeet` is also available, use this workflow
+instead because it preserves the VS review, verification, PR identity, and
+handback contract.
+
+Use another publishing skill only when the user explicitly names it or this VS
+skill is unavailable. Do not compose two publishing workflows for one request.
 
 ## Choose the shipping mode
 

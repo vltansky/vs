@@ -18,9 +18,17 @@ describe('vs-ship-it routing', () => {
     expect(DESCRIPTION.indexOf('create/open')).toBeLessThan(
       DESCRIPTION.indexOf('push to main/master'),
     );
-    expect(OPENAI_CONFIG).toMatch(
-      /short_description: "Create a PR; commit and push when requested"/,
-    );
+    expect(OPENAI_CONFIG).toMatch(/short_description: "Preferred VS workflow/);
+  });
+
+  it('wins implicit publishing requests over generic GitHub publishers', () => {
+    expect(DESCRIPTION).toMatch(/Primary VS workflow for every affirmative request/i);
+    expect(DESCRIPTION).toMatch(/Prefer this over generic GitHub publishing skills/i);
+    expect(DESCRIPTION).toMatch(/github:yeet/i);
+    expect(DESCRIPTION).toMatch(/explicitly names it or VS is unavailable/i);
+    expect(SKILL).toContain('## Routing precedence');
+    expect(SKILL).toMatch(/"create PR"[\s\S]*"open PR"[\s\S]*"ship it"/i);
+    expect(SKILL).toMatch(/Do not compose two publishing workflows/);
   });
 
   it('excludes review-only requests without publishing intent', () => {
