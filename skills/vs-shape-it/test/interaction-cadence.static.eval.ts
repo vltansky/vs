@@ -46,8 +46,38 @@ describe('shape-it: interaction cadence', () => {
     expect(routing).toMatch(/grill this plan.*Challenge/is);
     expect(routing).toMatch(/grill me.*question me.*Guided Explore/is);
     expect(interview).toMatch(/one consequential strategic question at a time/i);
-    expect(interview).toMatch(/Accept `done`, `skip`, and `back`/i);
+    expect(interview).toMatch(/Accept `done`, `skip`, `back`, and `\?`/i);
     expect(interview).toMatch(/agent supplies facts, code reading, and recommendations/i);
+  });
+
+  it('gives guided exploration compact orientation without progress theater', () => {
+    const interview = SKILL.slice(
+      SKILL.indexOf('#### Guided Explore interview'),
+      SKILL.indexOf('For either cadence'),
+    );
+
+    expect(interview).toMatch(
+      /Align.*Evidence.*Design.*Challenge.*Handoff/is,
+    );
+    expect(interview).toMatch(/resolved.*open decisions/i);
+    expect(interview).toMatch(/Do not show.*percentage.*time.*question count/is);
+    expect(interview).toMatch(/Accept `done`, `skip`, `back`, and `\?`/i);
+  });
+
+  it('confirms the mental model before autonomy and ends with handoff readiness', () => {
+    const opening = SKILL.slice(
+      SKILL.indexOf('### 1. Opening interaction'),
+      SKILL.indexOf('### 2. Independent shaping'),
+    );
+    const closing = SKILL.slice(
+      SKILL.indexOf('### 3. Closing interaction'),
+      SKILL.indexOf('## Confusion'),
+    );
+
+    expect(opening).toMatch(/mental model/i);
+    expect(opening).toMatch(/no more than three bullets/i);
+    expect(opening).toMatch(/fundamental.*ambiguous.*single confirmation/is);
+    expect(closing).toMatch(/Goal Contract.*ready.*open decisions/is);
   });
 
   it('returns for approval with completed work and explicit strategic uncertainty', () => {

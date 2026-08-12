@@ -117,17 +117,26 @@ Use this cadence only for Guided Explore. It is deliberately more interactive
 than the default batched checkpoint:
 
 1. Start with a brief assessment of what is known, what remains undecided, and
-   the likely decision areas. Do not invent confidence percentages or time
-   estimates.
+   the likely decision areas. Show the compact phase map
+   `Align → Evidence → Design → Challenge → Handoff`, with the current phase
+   and the number of resolved and open decisions. Do not show a percentage,
+   time estimate, target question count, or empty progress bar.
 2. Ask one consequential strategic question at a time. Give a recommended
    answer first, explain the consequence, and wait for the user's answer.
 3. Branch from each answer: skip decisions it settles and inspect the code or
    named evidence yourself when a fact can answer the next question.
-4. Accept `done`, `skip`, and `back`. If the user says `done`, preserve remaining
-   uncertainty as explicit open decisions with recommendations.
+4. Accept `done`, `skip`, `back`, and `?`. `skip` accepts the stated reversible
+   default for the current question; `?` defers it as an open decision; `back`
+   revisits the previous answer and updates dependent decisions. If the user
+   says `done`, preserve remaining uncertainty as explicit open decisions with
+   recommendations.
 5. Stop interviewing once outcome, boundary, success proof, and the
-   expensive-to-reverse choices are clear. Summarize the aligned contract, then
-   enter the uninterrupted independent beat.
+   expensive-to-reverse choices are clear. Reflect the agreed mental model in
+   no more than three bullets. If a fundamental part of that model remains
+   ambiguous, ask a single confirmation question; otherwise state the aligned
+   model and enter the uninterrupted independent beat without another gate.
+6. Update progress only when a decision changes state. During alignment, show
+   resolved and open decisions; do not turn progress into a fixed questionnaire.
 
 Do not turn Guided Explore into a fixed questionnaire. Progress means resolved
 decisions, not a target question count. The user supplies priorities and
@@ -480,6 +489,10 @@ interaction.
 
 Return with the complete recommendation, evidence-driven changes from the
 stress test, the Goal Contract, any drafted ADR, and any execution blueprint.
+Switch the progress signal from decision resolution to handoff readiness:
+`Handoff: Goal Contract ready | <N> open decisions`. When it is not ready, name
+the missing Goal Contract field or strategic decision instead of showing a
+percentage.
 The first sentence states the recommendation in plain English and why it is the
 best fit. Translate internal verdicts, execution classes, and agent terms into
 what changes for the user before naming their literal labels.

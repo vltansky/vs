@@ -29,7 +29,59 @@ const REAL_ORCHESTRATOR_PROMPT =
   'right now we have a Slack integration that uses serverless then runs BCA. ' +
   'I want it to use our orchestrator agent instead. Shape it.';
 
+const GUIDED_PROGRESS_PROMPT =
+  'I want to improve our planning workflow so it gives me a clearer sense of ' +
+  'progress and asks one question at a time, but still ends with a build-ready ' +
+  'handoff. Interview me to work through the design.';
+
 describe('shape-it (real prompt)', () => {
+  it('guided explore: orients with decision progress and asks one real question', async () => {
+    const agent = await createAgent({
+      agent: EVAL_AGENT,
+      timeout: 300,
+      skillDir: SKILL_DIR,
+      workspace: FIXTURE_DIR,
+      debug: true,
+    });
+
+    await promptAllowingAskUserInterrupt(agent, GUIDED_PROGRESS_PROMPT);
+
+    const result = await evaluate(
+      agent,
+      [
+        check(
+          'shows-compact-phase-map',
+          ({ transcript }) =>
+            /align[\s\S]*evidence[\s\S]*design[\s\S]*challenge[\s\S]*handoff/i.test(
+              transcript,
+            ),
+          { weight: 2 },
+        ),
+        check(
+          'avoids-progress-theater',
+          ({ transcript }) =>
+            !/\b\d+%|\b\d+\s*(?:-|–|to)\s*\d+\s*(?:min|minutes|questions)|\[□+\]/i.test(
+              transcript,
+            ),
+          { weight: 2 },
+        ),
+        judge('one-consequential-question', {
+          rubric: `Review the FIRST agent response and any ask_user / AskUserQuestion tool event.
+
+Score 1.0: It briefly orients the user, then asks exactly one consequential design question with a recommendation and meaningful trade-offs. It does not ask a process-only question such as whether to skip a section.
+Score 0.5: It asks one useful question but provides weak orientation or no recommendation.
+Score 0.0: It asks multiple questions, asks only a process-control question, invents progress percentages/time/question counts, or presents a full design before the answer.`,
+          weight: 3,
+          includeToolEvents: true,
+        }),
+      ],
+      { failFast: false, onScorerError: 'skip' },
+    );
+
+    expect(result.score).toBeGreaterThan(0.65);
+    await agent.dispose();
+  });
+
   it('explore-mode: asks before designing, does not jump to code', async () => {
     const agent = await createAgent({
       agent: EVAL_AGENT,
