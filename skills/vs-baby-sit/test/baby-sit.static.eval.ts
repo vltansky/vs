@@ -50,7 +50,8 @@ describe('vs-baby-sit remote-first validation', () => {
     expect(SKILL).toMatch(/fresh-context watcher/i);
     expect(SKILL).toMatch(/fork_turns=["`]none["`]/);
     expect(SKILL).toMatch(/parent.*wait.*once|wait once.*parent/is);
-    expect(SKILL).toMatch(/routine.*lower-cost model|lower-cost model.*routine/is);
+    expect(SKILL).toMatch(/gpt-5\.6-luna/);
+    expect(SKILL).toMatch(/routine lower-cost\s+model or inherit/is);
     expect(SKILL).not.toMatch(/Prefer babysitting\s+in a fresh thread/);
   });
 

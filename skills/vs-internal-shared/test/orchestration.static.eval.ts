@@ -43,6 +43,28 @@ const IMPROVE = fs.readFileSync(
   path.resolve(SHARED_DIR, '..', 'vs-improve', 'SKILL.md'),
   'utf8',
 );
+const BABY_SIT = fs.readFileSync(
+  path.resolve(SHARED_DIR, '..', 'vs-baby-sit', 'SKILL.md'),
+  'utf8',
+);
+const MANAGE_THREADS = fs.readFileSync(
+  path.resolve(SHARED_DIR, '..', 'vs-manage-threads', 'SKILL.md'),
+  'utf8',
+);
+const TRY_SKILL = fs.readFileSync(
+  path.resolve(SHARED_DIR, '..', 'vs-try-skill', 'SKILL.md'),
+  'utf8',
+);
+const ROAST_UI_CRITIQUE = fs.readFileSync(
+  path.resolve(
+    SHARED_DIR,
+    '..',
+    'vs-roast-ui',
+    'references',
+    'critique.md',
+  ),
+  'utf8',
+);
 const README = fs.readFileSync(
   path.resolve(SHARED_DIR, '..', '..', 'README.md'),
   'utf8',
@@ -97,6 +119,23 @@ describe('subagent budget', () => {
     expect(SUBAGENTS).toMatch(/model-backed advisor, reviewer, or CLI session/is);
     expect(SUBAGENTS).toMatch(/counts toward the same child\s+budget/is);
     expect(SUBAGENTS).toMatch(/deterministic.*before delegating/is);
+  });
+
+  it('routes bounded deterministic Codex children to Luna without weakening judgment lanes', () => {
+    expect(SUBAGENTS).toMatch(/gpt-5\.6-luna/);
+    expect(SUBAGENTS).toMatch(/fork_turns[=:] ["`]none["`]/);
+    expect(SUBAGENTS).toMatch(/bounded.*deterministic/is);
+    expect(SUBAGENTS).toMatch(/architecture.*security.*final/is);
+    expect(SUBAGENTS).toMatch(/unavailable.*inherit|inherit.*unavailable/is);
+    expect(BABY_SIT).toMatch(/gpt-5\.6-luna/);
+    expect(MANAGE_THREADS).toMatch(/gpt-5\.6-luna/);
+  });
+
+  it('uses the current Codex fresh-context field at child call sites', () => {
+    expect(TRY_SKILL).toMatch(/fork_turns[=:] ["`]none["`]/);
+    expect(ROAST_UI_CRITIQUE).toMatch(/fork_turns[=:] ["`]none["`]/);
+    expect(TRY_SKILL).not.toContain('fork_context');
+    expect(ROAST_UI_CRITIQUE).not.toContain('fork_context');
   });
 
   it('is applied by build and review workflows', () => {

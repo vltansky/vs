@@ -40,7 +40,7 @@ The fixture cannot expose real Codex task tools. Return a concise action plan na
             /wait_threads[\s\S]*(afterCursor|cursor)[\s\S]*(300000|600000|five minutes|ten minutes|longest supported)/i.test(transcript),
           ),
           check('no-minute-poll-loop', ({ transcript }) =>
-            !/(every|each|at most)\s+60\s*(seconds|s)|timeoutMs\s*[:=]\s*60000/i.test(transcript),
+            !/(every|each|at most)\s+60\s*(seconds|s)|timeoutMs\s*[:=]\s*60000\b/i.test(transcript),
           ),
           check('timeout-is-unknown', ({ transcript }) =>
             /(Auth|timeout)[\s\S]*unknown/i.test(transcript) &&

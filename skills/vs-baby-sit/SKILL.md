@@ -104,9 +104,10 @@ implementation history:
    output, spawn one fresh-context watcher with `fork_turns="none"`.
 2. Give it only the repository, PR number, target, current external-write mode,
    stop conditions, and the watcher command. Do not copy the parent transcript.
-3. Use a routine lower-cost model for the waiting lane when model selection is
-   available. Escalate difficult diagnosis or code changes back to the owning
-   task after an attention event.
+3. In Codex, use `model: "gpt-5.6-luna"` with `fork_turns: "none"` for the
+   waiting lane when Luna is available. Otherwise use a routine lower-cost
+   model or inherit the current model. Escalate difficult diagnosis or code
+   changes back to the owning task after an attention event.
 4. Have the parent wait once for completion or attention. Do not repeatedly
    poll `wait_agent` or `list_agents` while the child is running.
 

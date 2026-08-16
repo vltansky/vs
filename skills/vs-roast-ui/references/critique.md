@@ -41,7 +41,7 @@ Codex sub-agent gate:
 - If allowed, spawn A and B. If declined, run sequentially and report `Assessment independence: degraded (sub-agents declined by user)`.
 - If `spawn_agent` is not exposed, do not ask; run sequentially and report `Assessment independence: degraded (spawn_agent unavailable in this session)`.
 - If spawning fails after permission, run sequentially and report `Assessment independence: degraded (sub-agent spawn failed: <exact error>)`.
-Prefer `fork_context: false` with self-contained prompts containing cwd, target, live URL, references, product context, and output contract. If using `fork_context: true`, omit `agent_type`, `model`, and `reasoning_effort`.
+Prefer `fork_turns: "none"` with self-contained prompts containing cwd, target, live URL, references, product context, and output contract. If using `fork_turns: "all"`, omit `model` and `reasoning_effort`.
 </codex>
 
 If browser automation is available, each assessment creates its own new tab. Never reuse an existing tab, even if it is already at the right URL.

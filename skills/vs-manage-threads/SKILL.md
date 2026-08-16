@@ -182,9 +182,10 @@ implementation transcript through an expensive model.
   coordinator subagent with `fork_turns="none"`. Give it only `(hostId,
   threadId)` targets, current cursors, classification rules, granted authority,
   and stop conditions.
-- Use a routine lower-cost model for that coordinator when the host supports
-  model selection. The owning task remains responsible for difficult domain
-  work after an attention event.
+- In Codex, use `model: "gpt-5.6-luna"` with `fork_turns: "none"` for that
+  coordinator when Luna is available. Otherwise use a routine lower-cost model
+  or inherit the current model. The owning task remains responsible for
+  difficult domain work after an attention event.
 - The parent should wait once for the coordinator's completion or attention
   message. Do not poll `wait_agent`, call `list_agents` for progress, or mirror
   the coordinator with a second `wait_threads` loop.

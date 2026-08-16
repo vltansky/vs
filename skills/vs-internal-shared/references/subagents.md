@@ -63,6 +63,21 @@ full-history forks are for genuine continuation threads, not scoped workers. A
 long-running parent that forks its whole transcript into every worker multiplies
 its own context cost by the worker count.
 
+## Model selection
+
+When Codex exposes model selection, use `model: "gpt-5.6-luna"` with
+`fork_turns: "none"` for a bounded, deterministic lane whose result the parent
+can verify directly. Good fits include watchers, coordinators, inventory and
+pattern searches, typed research probes, focused test runs, and narrow edits
+with exact acceptance checks.
+
+Do not force Luna onto architecture, security, product judgment, ambiguous
+integration, independent criticism, or final review and synthesis. Those lanes
+inherit the parent model or use a stronger model selected for their risk. If
+Luna is unavailable, inherit the current model instead of failing the workflow.
+The parent still verifies every child claim against the real files, commands, or
+external state.
+
 ## Ownership
 
 The parent owns user communication, goal state, integration, and final

@@ -9,7 +9,7 @@ Exercise a skill through a fresh subagent that has **no knowledge of what you ex
 
 **Mechanism:** a nested fresh agent spawned through whichever primitive the current harness provides:
 - **Claude Code:** `Agent` tool with `subagent_type: "general-purpose"` — child inherits the same skill registry automatically.
-- **Codex:** `spawn_agent` with `fork_context: false` + `wait_agent` — child does NOT automatically see repo-local skills; point it at the project root (or an `AGENTS.md` that routes to the target skill) so it can discover the skill on its own.
+- **Codex:** `spawn_agent` with `fork_turns: "none"` + `wait_agent` — child does NOT automatically see repo-local skills; point it at the project root (or an `AGENTS.md` that routes to the target skill) so it can discover the skill on its own.
 - **Fallback:** fresh subprocess (`codex exec` or `claude -p`) — only if no native primitive is available; note the harness used in the report.
 
 Use `skill-test` for scripted offline regression runs; use this skill for live mid-iteration dogfooding.
