@@ -65,3 +65,161 @@ should own the request and why. Reply in exactly two lines beginning with
     });
   }
 });
+
+describe('vs-ship-it reviewer evidence', () => {
+  it('ships independently without auto-running review', async () => {
+    const agent = await createAgent({
+      agent: EVAL_AGENT,
+      timeout: 300,
+      skillDir: SKILL_DIR,
+    });
+
+    try {
+      await promptOnce(
+        agent,
+        `/vs-ship-it
+
+Read and follow the current staged vs-ship-it SKILL.md as the authority; do not
+substitute a remembered or generic shipping workflow.
+
+The implementation is complete and the user says only: "ship it". Review has
+not run in this session, and the user has not approved or declined it. Local
+before/after screenshots exist. This fixture blocks file uploads and GitHub
+writes, so describe what vs-ship-it would do. Reply in exactly four lines
+beginning with "Review:", "Description:", "Media:", and "Create:".`,
+      );
+
+      const result = await evaluate(
+        agent,
+        [
+          check('offers-but-does-not-auto-run-review', ({ transcript }) =>
+            /^Review:.*(?:offer|propose|ask|say)/im.test(transcript) &&
+            /^Review:.*(?:skip|not run|no explicit yes|unless.*approve)/im.test(
+              transcript,
+            ) &&
+            /^Review:.*(?:not block|without wait|continue|proceed)/im.test(
+              transcript,
+            ),
+          ),
+          check('prepares-description-and-media', ({ transcript }) =>
+            /^Description:.*(?:prepare|write|draft)/im.test(transcript) &&
+            /^Media:.*(?:upload|attach|embed).*screenshot/im.test(transcript),
+          ),
+          check('creates-and-verifies-pr', ({ transcript }) =>
+            (/^Create:.*(?:create|open).*PR/im.test(transcript) ||
+              /^Create:.*gh pr create/im.test(transcript)) &&
+            /^Create:.*(?:verif|re-resolve|assert.*(?:match|state))/im.test(
+              transcript,
+            ),
+          ),
+        ],
+        { failFast: false, onScorerError: 'zero' },
+      );
+
+      expect(result.score).toBe(1);
+    } finally {
+      await agent.dispose();
+    }
+  });
+
+  it('runs review only after explicit approval', async () => {
+    const agent = await createAgent({
+      agent: EVAL_AGENT,
+      timeout: 300,
+      skillDir: SKILL_DIR,
+    });
+
+    try {
+      await promptOnce(
+        agent,
+        `/vs-ship-it
+
+Read and follow the current staged vs-ship-it SKILL.md as the authority; do not
+substitute a remembered or generic shipping workflow.
+
+The implementation is complete. The user says: "ship it, and yes run review
+first." Review has not run in this session. This fixture blocks file and GitHub
+writes. State whether review would run and what happens afterward. Reply in
+exactly two lines beginning with "Review:" and "Then:".`,
+      );
+
+      const result = await evaluate(
+        agent,
+        [
+          check('runs-approved-review', ({ transcript }) =>
+            /^Review:.*(?:run|yes|vs-roast-code)/im.test(transcript),
+          ),
+          check('continues-to-pr', ({ transcript }) =>
+            /^Then:.*(?:description|media|PR|create)/im.test(transcript),
+          ),
+        ],
+        { failFast: false, onScorerError: 'zero' },
+      );
+
+      expect(result.score).toBe(1);
+    } finally {
+      await agent.dispose();
+    }
+  });
+
+  it('drafts the problem-first format and handles video as hosted proof', async () => {
+    const agent = await createAgent({
+      agent: EVAL_AGENT,
+      timeout: 300,
+      skillDir: SKILL_DIR,
+    });
+
+    try {
+      await promptOnce(
+        agent,
+        `/vs-ship-it
+
+Read and follow the current staged vs-ship-it SKILL.md as the authority; do not
+substitute a remembered or generic shipping workflow.
+
+The user says: "Create the PR for this UI fix." Dragging a split pane used to make the
+transcript jump; it now remains anchored. Matched local recordings exist at
+/tmp/before.webm and /tmp/after.webm, but neither is hosted yet.
+
+The fixture blocks files, uploads, and GitHub access, so describe the actions
+instead of executing them. Following vs-ship-it, draft the PR-body outline with
+its exact top-level headings, then explain in at most five lines how it would
+host and embed those recordings.`,
+      );
+
+      const result = await evaluate(
+        agent,
+        [
+          check('uses-problem-first-headings', ({ transcript }) =>
+            /## What Problem This Solves[\s\S]*## Why This Change Was Made[\s\S]*## User Impact[\s\S]*## Evidence/i.test(
+              transcript,
+            ),
+          ),
+          check('keeps-matched-before-after-proof', ({ transcript }) =>
+            /before[\s\S]*after/i.test(transcript) &&
+            /same|matched|identical/i.test(transcript),
+          ),
+          check('uses-user-attachments-endpoint', ({ transcript }) =>
+            (transcript.includes('uploads.github.com/user-attachments/assets') &&
+              /video(?:\/|%2F)(?:webm|mp4)/i.test(transcript)) ||
+            /uploads\.github\.com\/user-attachments\/assets/i.test(transcript) &&
+            /video\/webm|video\/mp4/i.test(transcript),
+          ),
+          check('embeds-video-as-bare-url', ({ transcript }) =>
+            (transcript.includes('own bare line') &&
+              transcript.includes('no `![]()`')) ||
+            /bare (?:returned )?URL|URL on its own (?:bare )?line/i.test(transcript) &&
+            /(?:not|never)\s+!?\[|not image syntax|not `?!\[\]\(\)`?|!\[\]\(\).*suppress/i.test(
+              transcript,
+            ),
+          ),
+        ],
+        { failFast: false, onScorerError: 'zero' },
+      );
+
+      expect(result.score).toBe(1);
+    } finally {
+      await agent.dispose();
+    }
+  });
+});

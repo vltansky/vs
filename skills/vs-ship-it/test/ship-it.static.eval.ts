@@ -8,288 +8,165 @@ const OPENAI_CONFIG = fs.readFileSync(
   'utf8',
 );
 const DESCRIPTION = SKILL.match(/^description: "([^"]+)"$/m)?.[1] ?? '';
-const IMMEDIATE_PR_PATH =
-  SKILL.split('### Immediate PR path')[1]?.split('### Mechanical PR fast path')[0] ?? '';
+const REVIEW_STEP =
+  SKILL.split('### Step 0: Offer review without blocking')[1]?.split(
+    '### Step 1:',
+  )[0] ?? '';
+const PR_WORKFLOW = SKILL.split('## PR workflow')[1]?.split('## Handoff')[0] ?? '';
 
 describe('vs-ship-it routing', () => {
-  it('prioritizes PR creation while retaining explicit direct-push routing', () => {
-    expect(DESCRIPTION).toMatch(/create\/open a (?:pull request|PR)/i);
-    expect(DESCRIPTION).toMatch(/push to main\/master/i);
-    expect(DESCRIPTION.indexOf('create/open')).toBeLessThan(
-      DESCRIPTION.indexOf('push to main/master'),
-    );
-    expect(OPENAI_CONFIG).toMatch(/short_description: "Preferred VS workflow/);
-  });
-
-  it('wins implicit publishing requests over generic GitHub publishers', () => {
-    expect(DESCRIPTION).toMatch(/Primary VS workflow for every affirmative request/i);
-    expect(DESCRIPTION).toMatch(/Prefer this over generic GitHub publishing skills/i);
-    expect(DESCRIPTION).toMatch(/github:yeet/i);
-    expect(DESCRIPTION).toMatch(/explicitly names it or VS is unavailable/i);
-    expect(SKILL).toContain('## Routing precedence');
-    expect(SKILL).toMatch(/"create PR"[\s\S]*"open PR"[\s\S]*"ship it"/i);
-    expect(SKILL).toMatch(/Do not compose two publishing workflows/);
-  });
-
-  it('excludes review-only requests without publishing intent', () => {
+  it('owns affirmative PR publishing requests', () => {
+    expect(DESCRIPTION).toMatch(/Primary VS publishing workflow/i);
+    expect(DESCRIPTION).toMatch(/Handles every affirmative request/i);
+    expect(DESCRIPTION).toMatch(/create\/open a pull request/i);
     expect(DESCRIPTION).toMatch(/affirmative publish intent/i);
     expect(DESCRIPTION).toMatch(/review\/readiness-only requests/i);
-  });
-
-  it('allows implicit invocation for commit, push, and PR requests', () => {
-    expect(SKILL).not.toContain('disable-model-invocation: true');
-    expect(SKILL).toMatch(/commit and push/);
-    expect(SKILL).toMatch(/push to main\/master/);
     expect(OPENAI_CONFIG).toContain('allow_implicit_invocation: true');
   });
 
-  it('keeps explicit direct pushes out of the PR workflow', () => {
-    expect(SKILL).toContain('### Direct-push path');
-    expect(SKILL).toContain(
-      'Do not create a feature branch or PR in direct-push mode.',
-    );
-    expect(SKILL).toMatch(/verify the local and remote SHAs\s+match/);
+  it('wins over generic publishers without composing them', () => {
+    expect(DESCRIPTION).toMatch(/github:yeet/i);
+    expect(SKILL).toMatch(/Prefer this workflow over a\s+generic publisher/);
+    expect(SKILL).toMatch(/do not compose two publishers/i);
   });
 
-  it('does not silently map a missing destination branch', () => {
-    expect(SKILL).toMatch(/does not exist,[\s\S]*do not silently create or map/);
+  it('keeps explicit direct pushes separate', () => {
+    expect(SKILL).toContain('### Direct-push path');
+    expect(SKILL).toMatch(/verify local and remote SHAs match/i);
+    expect(SKILL).toContain('Do not create a feature branch or PR in direct-push mode.');
+  });
+
+  it('routes bare ship-it to the single PR workflow', () => {
+    expect(SKILL).toMatch(/says bare `ship it` without naming a push destination/);
+    expect(SKILL).toContain('## PR workflow');
+    expect(SKILL).not.toContain('Immediate PR path');
+    expect(SKILL).not.toContain('Mechanical PR fast path');
   });
 });
 
-describe('vs-ship-it PR association handshake', () => {
-  it('re-resolves complete PR identity after creation', () => {
-    expect(SKILL).toContain(
+describe('vs-ship-it optional review consent', () => {
+  it('separates publishing authorization from review consent', () => {
+    expect(SKILL).toContain('## Non-negotiable consent boundary');
+    expect(SKILL).toMatch(/authorize the scoped\s+commit, push, and PR creation/i);
+    expect(SKILL).toMatch(/They do \*\*not\*\* authorize running code review/i);
+    expect(SKILL).toMatch(/without an explicit "run review" instruction,\s+skip it/i);
+    expect(SKILL).toMatch(/never\s+hold PR creation for review confirmation/i);
+  });
+
+  it('reuses review evidence and honors explicit decisions', () => {
+    expect(REVIEW_STEP).toMatch(/Review already ran:[\s\S]*reuse it/i);
+    expect(REVIEW_STEP).toMatch(/explicitly requested review or approved it/i);
+    expect(REVIEW_STEP).toMatch(/explicitly declined or said to skip review/i);
+  });
+
+  it('offers review without blocking PR preparation', () => {
+    expect(REVIEW_STEP).toMatch(/short, non-blocking commentary (?:offer|statement)/i);
+    expect(REVIEW_STEP).toContain('Say “run review” if you want it first');
+    expect(REVIEW_STEP).toMatch(/Continue gathering PR facts(?: and creating the PR)? immediately/i);
+    expect(REVIEW_STEP).toMatch(/Do not call `request_user_input`, wait\s+for a response/i);
+  });
+
+  it('never runs review without explicit approval', () => {
+    expect(REVIEW_STEP).toMatch(/Only an explicit affirmative review instruction authorizes/i);
+    expect(REVIEW_STEP).toMatch(/infer review approval from “ship it,” “create PR,” silence/i);
+    expect(REVIEW_STEP).toMatch(/If none exists, skip\s+review and continue/i);
+    expect(REVIEW_STEP).not.toMatch(/run it now/i);
+    expect(REVIEW_STEP).not.toMatch(/auto-select/i);
+  });
+
+  it('reports the review decision in the handoff', () => {
+    expect(SKILL).toContain('Review: reused');
+    expect(SKILL).toContain('Review: ran with approval');
+    expect(SKILL).toContain('Review: skipped — not explicitly approved');
+  });
+});
+
+describe('vs-ship-it independent PR preparation', () => {
+  it('prepares reviewer-facing copy without asking for wording approval', () => {
+    expect(PR_WORKFLOW).toMatch(/Write the description directly from the live conversation/i);
+    expect(PR_WORKFLOW).toMatch(/Do not ask the user to write or approve PR\s+copy/i);
+    expect(PR_WORKFLOW).toContain('## What Problem This Solves');
+    expect(PR_WORKFLOW).toContain('## Why This Change Was Made');
+    expect(PR_WORKFLOW).toContain('## User Impact');
+    expect(PR_WORKFLOW).toContain('## Evidence');
+    expect(PR_WORKFLOW).toContain('## Review focus');
+  });
+
+  it('does not make ceremony part of default PR creation', () => {
+    expect(PR_WORKFLOW).toMatch(/Do not add\s+brief generation, broad verification, reviewer discovery, preview startup, QA,\s+or CI waiting unless the user explicitly requested/i);
+    expect(PR_WORKFLOW).toMatch(/do not introduce `vs-brief`, `vs-verify`/i);
+    expect(PR_WORKFLOW).toMatch(/Do not suggest reviewers, watch\s+CI, wait for automated review, start a preview, or run QA by default/i);
+  });
+
+  it('uses body files for create and edit', () => {
+    expect(PR_WORKFLOW).toContain('gh pr create --title "<title>" --body-file "$BODY_FILE"');
+    expect(PR_WORKFLOW).toMatch(/never pass[\s\S]*inline `--body`/i);
+    expect(PR_WORKFLOW).toContain('gh pr edit --body-file');
+  });
+});
+
+describe('vs-ship-it media preparation', () => {
+  it('handles screenshots and video before PR creation', () => {
+    expect(PR_WORKFLOW).toMatch(/Before creating the PR, inspect/i);
+    expect(PR_WORKFLOW).toMatch(/matched screenshots for static visual states/i);
+    expect(PR_WORKFLOW).toMatch(/matched recordings for motion/i);
+    expect(PR_WORKFLOW).toMatch(/Insert the URLs into the body file before `gh pr create`/i);
+  });
+
+  it('does not block when media is unavailable', () => {
+    expect(PR_WORKFLOW).toMatch(/If no valid media exists, continue without asking/i);
+    expect(PR_WORKFLOW).toMatch(/state\s+the exact visual-proof gap under Evidence/i);
+    expect(PR_WORKFLOW).toMatch(/On upload failure, continue creating the PR/i);
+  });
+
+  it('uploads through GitHub user attachments', () => {
+    expect(PR_WORKFLOW).toContain('https://uploads.github.com/user-attachments/assets');
+    expect(PR_WORKFLOW).toContain('gh auth token');
+    expect(PR_WORKFLOW).toContain('--data-binary @<absolute-file-path>');
+    expect(PR_WORKFLOW).toMatch(/inherits repository\s+visibility/i);
+    expect(PR_WORKFLOW).toMatch(/needs no browser, Computer Use, draft comment, or vision tool/i);
+  });
+
+  it('embeds images and video correctly', () => {
+    expect(PR_WORKFLOW).toContain('image/png');
+    expect(PR_WORKFLOW).toContain('video/mp4');
+    expect(PR_WORKFLOW).toContain('video/webm');
+    expect(PR_WORKFLOW).toContain(
+      'ffmpeg -i in.webm -c:v libx264 -pix_fmt yuv420p out.mp4',
+    );
+    expect(PR_WORKFLOW).toMatch(/Embed images as `!\[concise caption\]/i);
+    expect(PR_WORKFLOW).toMatch(/videos as the\s+returned URL on its own bare line/i);
+    expect(PR_WORKFLOW).toMatch(/every uploaded image renders and\s+every video exposes a player/i);
+  });
+
+  it('keeps proof assets out of the product branch', () => {
+    expect(PR_WORKFLOW).toMatch(/HTTP 422.*unsupported media type/i);
+    expect(PR_WORKFLOW).toMatch(/HTTP 404.*bad repository ID/i);
+    expect(PR_WORKFLOW).toMatch(/Never commit proof assets to the product\s+branch/i);
+    expect(PR_WORKFLOW).toContain('.github/pr-assets');
+  });
+});
+
+describe('vs-ship-it PR association and stopping point', () => {
+  it('verifies open state, branch, and exact head', () => {
+    expect(PR_WORKFLOW).toContain(
       'gh pr view --json number,url,title,state,headRefName,headRefOid',
     );
-    expect(SKILL).toMatch(/PR_NUM=.*\.number/);
-    expect(SKILL).toMatch(/PR_URL=.*\.url/);
-    expect(SKILL).toMatch(/REPO=.*gh repo view/);
+    expect(PR_WORKFLOW).toContain('.state == "OPEN"');
+    expect(PR_WORKFLOW).toContain('.headRefName == $branch');
+    expect(PR_WORKFLOW).toContain('.headRefOid == $head');
+    expect(PR_WORKFLOW).toMatch(/Do not switch branches before this succeeds/i);
   });
 
-  it('verifies open state, branch, and HEAD before the turn ends', () => {
-    expect(SKILL).toContain('.state == "OPEN"');
-    expect(SKILL).toContain('.headRefName == $branch');
-    expect(SKILL).toContain('.headRefOid == $head');
-    expect(SKILL).toContain('Do not switch branches or end the turn');
+  it('returns immediately unless monitoring was requested', () => {
+    expect(SKILL).toMatch(/Return immediately after PR verification unless monitoring was requested/i);
+    expect(SKILL).toMatch(/monitoring was requested|explicitly requested\s+(?:continued )?monitoring/i);
+    expect(SKILL).toContain('`vs-baby-sit`');
   });
 
-  it('uses the verified URL and stops on failed verification', () => {
-    expect(SKILL).toContain('printf \'%s\\n\' "$PR_URL"');
-    expect(SKILL).toMatch(/On failure,[\s\S]*report the mismatch, and stop/);
-  });
-
-  it('prints the verified PR link before visibly starting babysitting', () => {
-    expect(SKILL).toContain('## PR created and verified');
-    expect(SKILL).toContain('**PR:** [#<N> — <title>](<PR_URL>)');
-    expect(SKILL).toMatch(/---\n\n## Babysitting PR #<N>/);
-    expect(SKILL).toContain('I’ll report only state changes');
-  });
-});
-
-describe('vs-ship-it optional browser image upload', () => {
-  it('gets explicit approval through the ask-user-question tool', () => {
-    expect(SKILL).toContain('request_user_input');
-    expect(SKILL).toMatch(/ask-user-question tool/i);
-    expect(SKILL).toMatch(/exact local image paths/i);
-    expect(SKILL).toMatch(/verified `PR_URL`/);
-    expect(SKILL).toMatch(/affirmative/i);
-    expect(SKILL).not.toMatch(/autoResolutionMs/);
-  });
-
-  it('uses the browser only for approved GitHub uploads', () => {
-    expect(SKILL).toMatch(/authenticated browser/i);
-    expect(SKILL).toMatch(/approved image paths/i);
-    expect(SKILL).toMatch(/do not submit (?:the )?comment/i);
-    expect(SKILL).toMatch(/`gh pr edit` with\s+`--body-file`/);
-  });
-
-  it('keeps image hosting optional', () => {
-    expect(SKILL).toMatch(/Skip upload/);
-    expect(SKILL).toMatch(/declines? or skips?/i);
-    expect(SKILL).toMatch(/continue shipping without browser access/i);
-  });
-});
-
-describe('vs-ship-it mechanical PR fast path', () => {
-  it('honors explicit requests to skip shipping ceremony', () => {
-    expect(SKILL).toMatch(/just create (?:the\s+)?PR/);
-    expect(SKILL).toMatch(/skip review/);
-    expect(SKILL).toMatch(/do not run `vs-roast-code`/);
-    expect(SKILL).toMatch(/do not spawn review agents/);
-  });
-
-  it('recognizes conservative trivial documentation diffs', () => {
-    expect(SKILL).toMatch(/exactly one documentation or instruction file/);
-    expect(SKILL).toMatch(/50\s+changed lines or fewer/);
-    expect(SKILL).toMatch(
-      /dependencies, CI, security,\s+permissions, ownership, schemas, migrations/,
-    );
-  });
-
-  it('keeps the fast path focused and bounded', () => {
-    expect(SKILL).toMatch(/repository-required checks/);
-    expect(SKILL).toMatch(/requested PR modifiers/);
-    expect(SKILL).toMatch(
-      /Skip the brief, review map, reviewer suggestions, and CI watch/,
-    );
-    expect(SKILL).toMatch(/verify the PR association/);
-    expect(SKILL).toMatch(/Verify\s+each requested modifier took effect/);
-  });
-});
-
-describe('vs-ship-it immediate PR path', () => {
-  it('routes a bare ship-it request to immediate PR creation', () => {
-    expect(SKILL).toMatch(
-      /bare `ship it` request without a named destination means\s+create a PR immediately/,
-    );
-    expect(IMMEDIATE_PR_PATH).toMatch(/publish-first path/);
-    expect(IMMEDIATE_PR_PATH).toMatch(/create the PR as soon as the scoped changes are pushed/);
-  });
-
-  it('skips validation and workflow ceremony before creating the PR', () => {
-    expect(IMMEDIATE_PR_PATH).toMatch(/Do not run tests, linters, builds, review agents/);
-    expect(IMMEDIATE_PR_PATH).toMatch(/`vs-brief`,\s+or `vs-verify`/);
-    expect(IMMEDIATE_PR_PATH).toMatch(/Create the PR immediately after the push/);
-    expect(IMMEDIATE_PR_PATH).toMatch(/Do not wait for CI or automated review/);
-    expect(IMMEDIATE_PR_PATH).toMatch(/Do not run repository-required checks/);
-  });
-
-  it('reports skipped checks and leaves modifiers and monitoring opt-in', () => {
-    expect(IMMEDIATE_PR_PATH).toMatch(/local checks, review, and CI\s+watching were skipped/);
-    expect(IMMEDIATE_PR_PATH).toMatch(/Do not apply modifiers or start monitoring unless/);
-    expect(IMMEDIATE_PR_PATH).toMatch(/Stop after the PR handoff/);
-  });
-});
-
-describe('vs-ship-it CI watching', () => {
-  it('waits with the shared PR watcher instead of a streaming check table', () => {
-    expect(SKILL).toContain('scripts/watch_pr.py');
-    expect(SKILL).toMatch(/emits compact JSONL only when the state changes/);
-    expect(SKILL).toMatch(/Exit `10` carries an `attention` event/);
-    expect(SKILL).toMatch(/smallest output budget the runtime supports/);
-    expect(SKILL).toMatch(/fresh-context watcher/i);
-    expect(SKILL).not.toContain('an unchanged CI run costs nothing');
-  });
-
-  it('bans busy-wait CI polling', () => {
-    expect(SKILL).toMatch(/Do not wait with `gh pr checks \$PR_NUM --watch`/);
-    expect(SKILL).toMatch(/a `sleep` poll loop/);
-    expect(SKILL).toMatch(/dominant token cost of a long CI wait/);
-    expect(SKILL).not.toMatch(/^gh pr checks \$PR_NUM --watch$/m);
-  });
-
-  it('still fetches reviewer findings on a non-SUCCESS conclusion', () => {
-    expect(SKILL).toMatch(/`NEUTRAL` or `FAILURE` to signal "I posted findings"/);
-    expect(SKILL).toMatch(/bailing on the first non-success would skip the findings fetch/);
-  });
-
-  it('points at a watcher that actually ships', () => {
-    expect(
-      fs.existsSync(
-        path.resolve(__dirname, '..', '..', 'vs-baby-sit', 'scripts', 'watch_pr.py'),
-      ),
-    ).toBe(true);
-  });
-});
-
-describe('vs-ship-it reviewer guide', () => {
-  it('uses vs-write for dense, complete reviewer-facing copy', () => {
-    expect(SKILL).toContain('[`vs-write`](../vs-write/SKILL.md)');
-    expect(SKILL).toMatch(/`vs-write`\]\([^)]*\) in direct mode/);
-    expect(SKILL).toMatch(/comprehension per line/i);
-    expect(SKILL).toMatch(/Do not enforce a global word budget/);
-    expect(SKILL).toMatch(/short sentences and concrete verbs/);
-  });
-
-  it('shows matched visual evidence and verification in the main body', () => {
-    expect(SKILL).toContain('## Before / after');
-    expect(SKILL).toContain('## How to verify');
-    expect(SKILL).toContain('## Review focus');
-    expect(SKILL).toMatch(/matched screenshots from the same state/i);
-    expect(SKILL).toMatch(/actual hosted attachments/i);
-    expect(SKILL).toMatch(/direct PR preview/i);
-    expect(SKILL).toMatch(/new\s+feature with no\s+honest baseline, show Demo/);
-    expect(SKILL).toMatch(/internal\s+refactor with no\s+observable output,\s+omit this section/);
-    expect(SKILL).toMatch(
-      /Keep Why, Before \/ after or Demo, How it works, How to verify, and\s+Review focus visible/,
-    );
-    expect(SKILL).not.toContain('<summary>Before / after</summary>');
-    expect(SKILL).not.toContain('<summary>How to verify</summary>');
-    expect(SKILL).not.toContain('<summary>Review focus</summary>');
-  });
-
-  it('keeps the change logic visible and collapses only secondary detail', () => {
-    expect(SKILL).toContain('## How it works');
-    expect(SKILL).toContain('### Behavior examples');
-    expect(SKILL).not.toContain('<summary>How it works</summary>');
-    expect(SKILL).toMatch(
-      /Collapse only raw test logs and\s+supporting detail/,
-    );
-    expect(SKILL).toMatch(/logic needed to understand the change visible/);
-  });
-
-  it('uses a review map only when several meaningful layers need ordering', () => {
-    expect(SKILL).toContain('| Order | Area | Why it matters | Risk | Start here |');
-    expect(SKILL).toMatch(
-      /core behavior, public contracts, risky boundaries,\s+consumers, and tests/,
-    );
-    expect(SKILL).toMatch(/only when several meaningful layers/i);
-    expect(SKILL).toMatch(/fold the paths into Review focus/i);
-    expect(SKILL).toMatch(/Never use\s+the map to hide executable code/);
-    expect(SKILL).toMatch(/Do not include AI session history/);
-    expect(SKILL).not.toContain('<summary>AI Session Context');
-    expect(SKILL).not.toContain('<summary>Change Brief');
-  });
-});
-
-describe('vs-ship-it remote-first validation', () => {
-  it('sends a PR preview deployment when GitHub exposes one', () => {
-    expect(SKILL).toMatch(/preview deployment/i);
-    expect(SKILL).toMatch(/send the\s+direct preview URL/i);
-    expect(SKILL).toMatch(/do not send a provider dashboard or log URL/i);
-  });
-
-  it('validates generic preview links exposed in PR comments', () => {
-    expect(SKILL).toMatch(/preview links?\s+in PR\s+comments/i);
-    expect(SKILL).toMatch(/authenticated browser.*network/i);
-    expect(SKILL).toMatch(/send only .*working app URL/i);
-    expect(SKILL).toMatch(/current PR head/i);
-    expect(SKILL).toMatch(/do not encode provider-specific\s+URL\s+rewrites/i);
-  });
-
-  it('starts PR feedback before broad local validation', () => {
-    expect(SKILL).toMatch(/focused test or smallest relevant validation/);
-    expect(SKILL).toMatch(/create the PR promptly/);
-    expect(SKILL).toContain('Running locally and in CI');
-    expect(SKILL).toContain(
-      'Step 2 → Step 3/3b → Step 5/5b → Step 4/4b → Step 5c → update the PR body → Step 6/7',
-    );
-    expect(SKILL).toMatch(
-      /Run `vs-brief` and `vs-verify` after PR creation while CI and automated review\s+run/,
-    );
-    expect(SKILL).toMatch(
-      /Do not run Step 4 or Step 4b before Step 5 unless repository policy requires it/,
-    );
-  });
-
-  it('requires local and remote evidence before readiness', () => {
-    expect(SKILL).toMatch(
-      /local verification and remote checks both\s+pass/,
-    );
-    expect(SKILL).toMatch(/repository policy requires pre-push validation/);
-  });
-});
-
-describe('vs-ship-it finite goal boundary', () => {
-  it('finishes shipping before optional monitoring starts', () => {
-    expect(SKILL).toMatch(/complete the shipping goal before/);
-    expect(SKILL).toMatch(/only when the user explicitly requested/);
-    expect(SKILL).toMatch(/separate monitoring goal/);
-    expect(OPENAI_CONFIG).not.toContain('and babysit it');
-  });
-
-  it('stops at a verified initial readiness snapshot by default', () => {
-    expect(SKILL).toMatch(/stop after the verified initial readiness snapshot/);
-    expect(SKILL).not.toMatch(/automatically continue with `vs-baby-sit`/);
+  it('keeps evidence boundaries honest', () => {
+    expect(SKILL).toMatch(/Do not describe CI, deployment, preview behavior, or production as verified/i);
+    expect(SKILL).toMatch(/Review: <reused \| ran with approval \| skipped/);
+    expect(SKILL).toMatch(/Media: <N screenshots, N videos attached/);
   });
 });

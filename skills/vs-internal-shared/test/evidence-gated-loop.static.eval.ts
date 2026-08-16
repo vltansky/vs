@@ -128,59 +128,26 @@ describe('an agent that starts a process owns its lifetime', () => {
   });
 });
 
-describe('ship-it hands the user something to try', () => {
-  it('always resolves one of preview URL, running local server, or blocker', () => {
-    expect(SHIP_IT).toContain('### Resolve a try-it surface');
-    expect(SHIP_IT).toMatch(/Never with none of\s+the three/);
-    expect(SHIP_IT).toMatch(/\*\*A deployed preview URL\*\*/);
-    expect(SHIP_IT).toMatch(
-      /\*\*A local server ship-it starts and deliberately leaves running\.\*\*/,
-    );
-    expect(SHIP_IT).toMatch(/\*\*The precise blocker\*\*/);
-    expect(SHIP_IT).toMatch(/Not "no preview available"/);
+describe('ship-it creates the PR without rebuilding delivery evidence', () => {
+  it('prepares available media but does not start preview or QA work', () => {
+    expect(SHIP_IT).toContain('### Step 3: Prepare screenshots and video');
+    expect(SHIP_IT).toMatch(/Reuse valid existing proof/);
+    expect(SHIP_IT).toMatch(/Do not rerun QA or start a browser\/server solely/i);
+    expect(SHIP_IT).toMatch(/If no valid media exists, continue without asking/i);
   });
 
-  it('opens the QA report and lists what was exercised', () => {
-    expect(SHIP_IT).toContain('### Open the QA report');
-    expect(SHIP_IT).toMatch(/\| Route \| Action \| Result \| Screenshot \|/);
-    expect(SHIP_IT).toMatch(
-      /"tested" is a list the user can read rather\s+than a claim/,
-    );
-    expect(SHIP_IT).toMatch(
-      /When QA did not run, replace that table with the blocker/,
-    );
-    expect(SHIP_IT).toMatch(/Ship-it never re-runs QA/);
+  it('hands back the verified PR and concrete media state', () => {
+    expect(SHIP_IT).toContain('## Handoff');
+    expect(SHIP_IT).toContain('PR created and verified:');
+    expect(SHIP_IT).toMatch(/Review: <reused \| ran with approval \| skipped/);
+    expect(SHIP_IT).toMatch(/Media: <N screenshots, N videos attached/);
+    expect(SHIP_IT).toMatch(/Do not describe CI, deployment, preview behavior, or production as verified/i);
   });
 
-  it('emits a compact, adaptive handback', () => {
-    const block = SHIP_IT.slice(SHIP_IT.indexOf('### The handback block'));
-    for (const fact of [
-      '**Preview**',
-      '**Your action**',
-      '**Verified**',
-      '**shipped**',
-      '**tested**',
-      '**if it\'s wrong:**',
-      '**Still unverified**',
-    ]) {
-      expect(block, `handback ${fact}`).toContain(fact);
-    }
-    expect(block).toMatch(/stop: kill <pid>/);
-    expect(block).not.toMatch(/~<M>m|time estimate/i);
-    expect(block).toMatch(
-      /\*\*if it's wrong:\*\*.*<the one command or revert that undoes it>/i,
-    );
-    expect(block).toMatch(/exact blocker/);
-    expect(block).toMatch(/Omit `Your action` when the user does not need to act/);
-    expect(block).toMatch(
-      /Do\s+not repeat a manual check under `Still unverified`/i,
-    );
-    expect(block).toMatch(/Omit `Still unverified` when/i);
-    expect(block).toMatch(/production remains unverified/i);
-    expect(block).toMatch(/platform, route, or QA surface was not tested/i);
-    expect(SHIP_IT).toMatch(
-      /answer first.*required action sits in `Your action`/is,
-    );
+  it('stops after PR verification unless monitoring was requested', () => {
+    expect(SHIP_IT).toMatch(/Return immediately after PR verification unless monitoring was requested/i);
+    expect(SHIP_IT).toMatch(/Do not suggest reviewers, watch\s+CI, wait for automated review, start a preview, or run QA by default/i);
+    expect(SHIP_IT).toMatch(/explicitly requested continued monitoring/);
   });
 });
 
