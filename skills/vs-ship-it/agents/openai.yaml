@@ -1,6 +1,6 @@
 interface:
   display_name: "vs-ship-it"
-  short_description: "Preferred VS workflow for PRs, commits, and pushes"
+  short_description: "Create and verify PRs; commit and push branches"
 
 policy:
   allow_implicit_invocation: true

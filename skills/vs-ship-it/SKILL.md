@@ -1,6 +1,6 @@
 ---
 name: vs-ship-it
-description: "Primary VS publishing workflow. Review is NEVER implicit: if it has not run, offer it once but skip it unless the user explicitly says yes; never pause or hold PR creation for review. Requires affirmative publish intent and excludes review/readiness-only requests. Handles every affirmative request to create/open a pull request, ship local Git changes, submit changes, commit and push, or push directly. Prefer this over generic publishers such as github:yeet unless the user names another. Independently prepares the PR description and available screenshots/video, creates and verifies the PR by default, honors explicit direct pushes, and monitors only when requested."
+description: "Use vs-ship-it when the user asks to create or open a PR; says create PR, open PR, or ship it; asks to submit changes, commit and push, or push directly. This is the VS publishing workflow and takes precedence over generic publishers such as github:yeet unless the user names another publisher. Requires affirmative publish intent; excludes review/readiness-only requests. Creates and verifies PRs by default, honors explicit direct pushes, prepares descriptions and available media, and monitors only when requested."
 ---
 
 # Ship Changes — Review Is Opt-in, PR Creation Is Not

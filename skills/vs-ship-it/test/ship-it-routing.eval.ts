@@ -1,3 +1,4 @@
+import * as fs from 'fs';
 import * as path from 'path';
 import { check, createAgent, evaluate } from '@wix/pathgrade';
 import { describe, expect, it } from 'vitest';
@@ -8,8 +9,11 @@ const EVAL_AGENT = (process.env.PATHGRADE_AGENT ?? 'claude') as
   | 'claude'
   | 'codex';
 
+const SKILL = fs.readFileSync(path.join(SKILL_DIR, 'SKILL.md'), 'utf8');
+const VS_DESCRIPTION = SKILL.match(/^description: "([^"]+)"$/m)?.[1] ?? '';
+const VS_PUBLISHER = `vs-ship-it — ${VS_DESCRIPTION}`;
 const GENERIC_PUBLISHER =
-  'github:yeet — Publish local changes by committing, pushing, and opening a draft PR.';
+  'github:yeet — Publish local changes to GitHub by confirming scope, committing intentionally, pushing the branch, and opening a draft PR through the GitHub app from this plugin, with gh used only as a fallback where connector coverage is insufficient.';
 
 describe('vs-ship-it routing collision', () => {
   for (const request of [
@@ -31,7 +35,7 @@ describe('vs-ship-it routing collision', () => {
           `The implementation is complete. The user now says: "${request}".
 
 The host exposes both publishing skills:
-- vs-ship-it — the primary VS workflow for PRs, commits, pushes, verification, and handback.
+- ${VS_PUBLISHER}
 - ${GENERIC_PUBLISHER}
 
 Do not modify files or contact GitHub in this fixture. State which single skill

@@ -16,11 +16,15 @@ const PR_WORKFLOW = SKILL.split('## PR workflow')[1]?.split('## Handoff')[0] ?? 
 
 describe('vs-ship-it routing', () => {
   it('owns affirmative PR publishing requests', () => {
-    expect(DESCRIPTION).toMatch(/Primary VS publishing workflow/i);
-    expect(DESCRIPTION).toMatch(/Handles every affirmative request/i);
-    expect(DESCRIPTION).toMatch(/create\/open a pull request/i);
+    expect(DESCRIPTION).toMatch(
+      /^Use vs-ship-it when the user asks to create or open a PR/i,
+    );
+    expect(DESCRIPTION).toMatch(/says create PR, open PR, or ship it/i);
     expect(DESCRIPTION).toMatch(/affirmative publish intent/i);
     expect(DESCRIPTION).toMatch(/review\/readiness-only requests/i);
+    expect(DESCRIPTION.indexOf('create or open a PR')).toBeLessThan(
+      DESCRIPTION.indexOf('review'),
+    );
     expect(OPENAI_CONFIG).toContain('allow_implicit_invocation: true');
   });
 
