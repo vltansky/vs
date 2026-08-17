@@ -1,0 +1,7 @@
+interface:
+  display_name: "vs-architect"
+  short_description: "Find evidence-backed architecture improvements"
+  default_prompt: "Use $vs-architect to find and compare deepening opportunities in this codebase."
+
+policy:
+  allow_implicit_invocation: true

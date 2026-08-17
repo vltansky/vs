@@ -29,11 +29,21 @@ describe('architecture depth skill guards', () => {
   });
 
   it('defines concrete architecture vocabulary and deletion-test pressure', () => {
-    for (const term of ['Module', 'Interface', 'Seam', 'Depth', 'Leverage', 'Locality']) {
+    for (const term of [
+      'Module',
+      'Interface',
+      'Implementation',
+      'Seam',
+      'Depth',
+      'Adapter',
+      'Leverage',
+      'Locality',
+    ]) {
       expect(ARCH_REF).toContain(`**${term}**`);
     }
     expect(ARCH_REF).toMatch(/Deletion test/);
     expect(ARCH_REF).toMatch(/test surface/i);
+    expect(ARCH_REF).toMatch(/One adapter is a hypothetical seam/);
   });
 
   it('forces roast architecture findings to be deepening opportunities', () => {

@@ -97,6 +97,7 @@ verification—you can invoke `/vs-debug-mode` or `/vs-verify` directly.
 
 | Skill | Use it to |
 |---|---|
+| `/vs-architect` | Find and compare evidence-backed ways to deepen a codebase's modules |
 | `/vs-improve` | Audit a repo and write prioritized implementation plans without editing source |
 | `/vs-bugfix` | Reproduce, fix, verify, and review a bug end to end |
 | `/vs-fix-pr` | Evaluate and address PR feedback with approval before replies or resolution |
