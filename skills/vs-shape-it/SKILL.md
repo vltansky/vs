@@ -233,6 +233,27 @@ such as one bounded evidence inventory and one fresh adversarial critique. The
 parent keeps user alignment, decisions, synthesis, and goal ownership. Do not
 delegate the interview or ask several agents to design the same whole solution.
 
+#### Architecture evidence
+
+Before Design, load and follow
+[`../vs-architect/SKILL.md`](../vs-architect/SKILL.md) in composed mode when all
+of these are true:
+
+- an existing implementation is in scope;
+- the design changes module responsibilities, interfaces, seams, coupling, or
+  consolidation;
+- the recommendation depends on understanding current callers and tests;
+- no current architect result already covers the scoped area.
+
+Scope architect to the affected flow or package. It returns evidence and vetted
+candidates to shape-it; it does not open its standalone candidate-selection gate.
+Use the top candidate as evidence, preserve credible alternatives, and surface
+only strategic candidate choice through shape-it's normal interaction.
+
+Skip architect for greenfield work, local implementation choices, and an
+already approved design or spec. A recorded design is the source of truth until
+the user requests a revision or implementation evidence invalidates it.
+
 #### Research prior art
 
 Repository evidence answers how this codebase works; it cannot tell you whether

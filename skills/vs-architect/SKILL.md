@@ -51,7 +51,8 @@ labels when one of these terms is precise.
 - **Inputs:** repository or scoped area, optional `quick` or `deep` effort
 - **Outputs:** zero to five vetted deepening candidates and one top recommendation
 - **Status:** `CANDIDATES_READY | NO_CANDIDATE | BLOCKED`
-- **Consumers:** direct human selection, `/vs-shape-it`, `/vs-improve`, `/vs-roast-code`
+- **Consumers:** direct human selection, `/vs-improve`, `/vs-shape-it`,
+  `/vs-build-it`, `/vs-roast-code`
 - **Skip conditions:** use `/vs-improve` for a broad multi-category audit; use
   `/vs-roast-code` for architecture findings limited to a diff
 

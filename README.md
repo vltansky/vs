@@ -110,7 +110,13 @@ verification—you can invoke `/vs-debug-mode` or `/vs-verify` directly.
 Find direction:       /vs-improve next -> /vs-shape-it -> /vs-build-it
 Specify one concern:  /vs-improve plan <thing> -> /vs-build-it
 Before shipping:      /vs-improve branch -> /vs-ship-it
+Architecture:         /vs-architect -> /vs-shape-it -> /vs-build-it
 ```
+
+`/vs-improve` uses architect for its architecture lens. `/vs-shape-it` uses it
+before designing changes to existing module seams, while `/vs-build-it` invokes
+it only before an unplanned architecture refactor. Approved designs are not
+reopened during or after implementation.
 
 ### Building blocks
 

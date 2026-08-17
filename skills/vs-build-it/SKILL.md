@@ -171,6 +171,21 @@ distinct exploration lane that benefits from fresh context. Use one planning
 subagent, give it exact paths and the expected plan shape, then verify its plan
 against the code before adopting it.
 
+For an unplanned request whose primary outcome is architecture, refactoring,
+module consolidation, or a new seam, first load and follow
+[`../vs-architect/SKILL.md`](../vs-architect/SKILL.md) in composed mode over the
+narrow affected area. Use a single strong candidate as evidence for the
+auto-generated plan only when it matches the user's stated direction and does
+not conflict with an ADR. If several viable candidates remain, an ADR must be
+reopened, or the choice changes the product/system boundary, stop and route the
+decision through `/vs-shape-it` instead of choosing tactically.
+
+Skip architect when build-it received an approved shape-it spec or another
+formed plan with architecture evidence. That artifact is the source of truth;
+do not reopen it during execution. Do not run architect after implementation:
+Phase 5 `/vs-roast-code` owns diff-scoped architecture review, and verification
+owns proof of the implemented behavior.
+
 Log whether the plan was produced inline or delegated and why.
 
 This replaces the need for the user to run `/vs-shape-it` or write a plan manually.

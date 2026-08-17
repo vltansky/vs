@@ -64,6 +64,19 @@ If the repo has no working verification command (no tests, broken build), record
 
 Audit the codebase across the categories in [references/audit-playbook.md](references/audit-playbook.md) — read it now. Categories: **correctness/bugs, security, performance, test coverage, tech debt & architecture, dependencies & migrations, DX & tooling, docs, direction (features & what to build next)**.
 
+For the **tech debt & architecture** category, load and follow
+[`../vs-architect/SKILL.md`](../vs-architect/SKILL.md) in composed mode. Use its
+vetted candidates as architecture findings instead of running a second generic
+architecture sweep. Improve still owns the combined findings table, user
+selection, prioritization, and implementation plans; do not emit architect's
+standalone candidate-selection question inside improve.
+
+When the invocation focuses only on architecture, run Recon and then architect
+in composed mode. Convert its candidates into improve findings and continue
+through improve's normal selection and planning phases. `quick` still audits
+only correctness, security, and tests unless the user explicitly names
+architecture.
+
 For repos of real size, delegate only distinct category clusters that benefit
 from independent context. Follow the selected shared effort budget and audit
 remaining categories directly or in later batches. If the host cannot spawn
