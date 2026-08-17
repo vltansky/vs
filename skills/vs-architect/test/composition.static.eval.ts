@@ -11,6 +11,10 @@ const IMPROVE = readSkill('vs-improve');
 const SHAPE = readSkill('vs-shape-it');
 const BUILD = readSkill('vs-build-it');
 const README = fs.readFileSync(path.resolve(SKILLS_DIR, '..', 'README.md'), 'utf8');
+const IMPACT_EVAL = fs.readFileSync(
+  path.join(SKILLS_DIR, 'vs-architect', 'test', 'architecture-impact.eval.ts'),
+  'utf8',
+);
 
 describe('vs-architect composition', () => {
   it('supplies improve architecture findings without stealing its plan workflow', () => {
@@ -46,5 +50,14 @@ describe('vs-architect composition', () => {
     expect(README).toMatch(
       /Architecture:\s+\/vs-architect -> \/vs-shape-it -> \/vs-build-it/,
     );
+  });
+
+  it('measures the composed behavior against the pre-composition baseline', () => {
+    expect(IMPACT_EVAL).toMatch(/type Arm = 'baseline' \| 'treatment'/);
+    expect(IMPACT_EVAL).toMatch(/currentImprove\.replace\(COMPOSITION_BLOCK/);
+    expect(IMPACT_EVAL).toMatch(/const PROMPT =/);
+    expect(IMPACT_EVAL).toMatch(/architectureScorers\(\)/);
+    expect(IMPACT_EVAL).toMatch(/before = mean[\s\S]+after = mean[\s\S]+delta = after - before/);
+    expect(IMPACT_EVAL).toMatch(/expect\(delta\)\.toBeGreaterThanOrEqual\(MIN_DELTA\)/);
   });
 });
