@@ -10,9 +10,14 @@ const ARCHITECT = readSkill('vs-architect');
 const IMPROVE = readSkill('vs-improve');
 const SHAPE = readSkill('vs-shape-it');
 const BUILD = readSkill('vs-build-it');
+const ROAST = readSkill('vs-roast-code');
 const README = fs.readFileSync(path.resolve(SKILLS_DIR, '..', 'README.md'), 'utf8');
 const IMPACT_EVAL = fs.readFileSync(
   path.join(SKILLS_DIR, 'vs-architect', 'test', 'architecture-impact.eval.ts'),
+  'utf8',
+);
+const WORKFLOW_IMPACT_EVAL = fs.readFileSync(
+  path.join(SKILLS_DIR, 'vs-architect', 'test', 'workflow-impact.eval.ts'),
   'utf8',
 );
 
@@ -42,6 +47,13 @@ describe('vs-architect composition', () => {
     expect(BUILD).toMatch(/route the\s+decision through `\/vs-shape-it`/i);
   });
 
+  it('deepens confirmed roast findings without broadening the review', () => {
+    expect(ROAST).toMatch(/Architecture[\s\S]+vs-architect\/SKILL\.md/i);
+    expect(ROAST).toMatch(/diff-scoped\s+composed\s+mode/i);
+    expect(ROAST).toMatch(/do not open its standalone[\s\S]+candidate-selection gate/i);
+    expect(ROAST).toMatch(/Roast Code still owns severity, fixes, and the verdict/i);
+  });
+
   it('keeps architect available as a public building block', () => {
     expect(ARCHITECT).toMatch(/\*\*Kind:\*\* Building block/);
     expect(ARCHITECT).toMatch(/\/vs-improve/);
@@ -59,5 +71,15 @@ describe('vs-architect composition', () => {
     expect(IMPACT_EVAL).toMatch(/architectureScorers\(\)/);
     expect(IMPACT_EVAL).toMatch(/before = mean[\s\S]+after = mean[\s\S]+delta = after - before/);
     expect(IMPACT_EVAL).toMatch(/expect\(delta\)\.toBeGreaterThanOrEqual\(MIN_DELTA\)/);
+  });
+
+  it('measures downstream shape, build, and roast checkpoints independently', () => {
+    for (const workflow of ['shape-it', 'build-it', 'roast-code']) {
+      expect(WORKFLOW_IMPACT_EVAL).toContain(`workflow: '${workflow}'`);
+    }
+    expect(WORKFLOW_IMPACT_EVAL).toMatch(/SHAPE_COMPOSITION/);
+    expect(WORKFLOW_IMPACT_EVAL).toMatch(/BUILD_COMPOSITION/);
+    expect(WORKFLOW_IMPACT_EVAL).toMatch(/ROAST_COMPOSITION/);
+    expect(WORKFLOW_IMPACT_EVAL).toMatch(/expect\(summary\.delta, summary\.workflow\)/);
   });
 });

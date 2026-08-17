@@ -116,7 +116,8 @@ Architecture:         /vs-architect -> /vs-shape-it -> /vs-build-it
 `/vs-improve` uses architect for its architecture lens. `/vs-shape-it` uses it
 before designing changes to existing module seams, while `/vs-build-it` invokes
 it only before an unplanned architecture refactor. Approved designs are not
-reopened during or after implementation.
+reopened during implementation. `/vs-roast-code` uses architect only to deepen
+confirmed, diff-scoped structural findings after implementation.
 
 ### Building blocks
 

@@ -247,6 +247,13 @@ Gather intel first: imports/exports, callers, tests. Then sweep all scan lenses 
 - **Architecture** — structural regressions, god objects, circular deps, mixed concerns
 - **Error handling** — swallowed exceptions, silent failures, empty catches
 
+For the **Architecture** lens, when changed code suggests a structural
+regression, load and follow
+[`../vs-architect/SKILL.md`](../vs-architect/SKILL.md) in diff-scoped composed
+mode. Use it to deepen confirmed structural findings; do not open its standalone
+candidate-selection gate, broaden beyond the review scope, or design an
+interface. Roast Code still owns severity, fixes, and the verdict.
+
 For every meaningful change, ask whether there is a structural simplification
 that would make the implementation smaller, more direct, and easier to explain.
 Look for ways to delete whole branches, helpers, modes, wrappers, layers, or
