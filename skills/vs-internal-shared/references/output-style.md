@@ -12,7 +12,7 @@ Two rules sit underneath everything else:
 
 ## First-pass comprehension
 
-Write every message as if `/vs-wdym` had already repaired it. The user should
+Write every message as if `/vs-tldr` had already repaired it. The user should
 not need a second turn to recover the premise or decode the workflow.
 
 - Make the missing premise explicit before relying on it. Say why the result or

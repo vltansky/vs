@@ -59,7 +59,7 @@ Keep the detail out of chat; it belongs in the run report.
 Write progress and handoffs in plain language. State what changed for the user
 and what proves it before phase names, scores, or internal statuses. Use the
 shared first-pass comprehension rules so the user never has to invoke
-`/vs-wdym` just to understand a build update.
+`/vs-tldr` just to understand a build update.
 
 Progress emissions stay one line and skip sections. When a phase boundary
 carries something the user must clear, format the message per

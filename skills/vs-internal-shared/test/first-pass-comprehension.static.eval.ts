@@ -29,8 +29,8 @@ const SHIP_IT = fs.readFileSync(
 );
 
 describe('first-pass comprehension contract', () => {
-  it('applies the vs-wdym repair principles before the first response', () => {
-    expect(OUTPUT_STYLE).toMatch(/as if `\/vs-wdym` had already repaired it/i);
+  it('applies the vs-tldr repair principles before the first response', () => {
+    expect(OUTPUT_STYLE).toMatch(/as if `\/vs-tldr` had already repaired it/i);
     expect(OUTPUT_STYLE).toMatch(/missing premise/i);
     expect(OUTPUT_STYLE).toMatch(/project nouns/i);
     expect(OUTPUT_STYLE).toMatch(/define.*acronym|acronym.*define/i);
