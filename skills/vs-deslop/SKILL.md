@@ -33,7 +33,15 @@ Inspect the requested scope for:
 - inconsistent naming or one-off conventions that fight the codebase
 - ad-hoc conditionals bolted into busy flows where a typed model, dispatcher,
   policy object, or canonical helper would make the path easier to reason about
-- cast-heavy or optionality-heavy boundaries that hide the real invariant
+- cast-heavy or optionality-heavy boundaries that hide the real invariant,
+  in particular:
+  - `unknown` or `object` in a signature where the caller already knows the type
+  - `Record<string, unknown>` and equivalents standing in for an owned contract
+  - chained assertions (`value as object as User`) that fabricate evidence
+  - widening a known value and asserting it back later
+  - a broad annotation where `satisfies` would preserve the inferred keys
+  - ad-hoc `typeof` narrowing where the value should be parsed once at the
+    boundary
 
 ## Procedure
 
