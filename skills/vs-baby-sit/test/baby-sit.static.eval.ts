@@ -55,6 +55,36 @@ describe('vs-baby-sit remote-first validation', () => {
     expect(SKILL).not.toMatch(/Prefer babysitting\s+in a fresh thread/);
   });
 
+  it('reuses one Codex watcher task across repair cycles', () => {
+    expect(SKILL).toMatch(/reuse that same watcher\s+task/i);
+    expect(SKILL).toMatch(/exact JSONL line and exit code/i);
+    expect(SKILL).toMatch(/Do not create a new watcher task/i);
+  });
+
+  it('does not end babysitting on non-terminal attention', () => {
+    expect(SKILL).toMatch(/exit `10` ends only the current watcher wait/i);
+    expect(SKILL).toMatch(/does not end the babysitting\s+workflow/i);
+    expect(SKILL).toMatch(/`ci-failure` or `review-feedback`[\s\S]*resume/i);
+    expect(SKILL).toMatch(/final response only after[\s\S]*stop condition/i);
+  });
+
+  it('routes external CI through an available provider integration', () => {
+    expect(SKILL).toMatch(/provider-specific skill or tool/i);
+    expect(SKILL).toMatch(/before concluding.*logs.*unavailable/is);
+    expect(SKILL).toMatch(/prove.*failure.*belongs to the PR/is);
+  });
+
+  it('isolates PR mutations from the configured checkout', () => {
+    expect(SKILL).toMatch(/configured checkout.*read-only/is);
+    expect(SKILL).toMatch(/temporary isolated\s+worktree/i);
+    expect(SKILL).toMatch(/remove only.*worktree.*created/is);
+  });
+
+  it('treats a host heartbeat as recovery rather than another poller', () => {
+    expect(SKILL).toMatch(/host-provided heartbeat/i);
+    expect(SKILL).toMatch(/recovery mechanism.*not.*polling loop/is);
+  });
+
   it('forbids narrating an unchanged wait', () => {
     expect(SKILL).toMatch(/Never send a message whose\s+only content is that nothing changed/);
     expect(SKILL).toMatch(/`CI is still running` are not state changes/);

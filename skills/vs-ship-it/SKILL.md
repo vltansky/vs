@@ -1,6 +1,6 @@
 ---
 name: vs-ship-it
-description: "Use vs-ship-it when the user asks to create or open a PR; says create PR, open PR, or ship it; asks to submit changes, commit and push, or push directly. This is the VS publishing workflow and takes precedence over generic publishers such as github:yeet unless the user names another publisher. Requires affirmative publish intent; excludes review/readiness-only requests. Creates and verifies PRs by default, honors explicit direct pushes, prepares descriptions and available media, and monitors only when requested."
+description: "Use vs-ship-it when the user asks to create or open a PR; says create PR, open PR, or ship it; asks to submit changes, commit and push, or push directly. This is the VS publishing workflow and takes precedence over generic publishers such as github:yeet unless the user names another publisher. Requires affirmative publish intent; excludes review/readiness-only requests. Creates and verifies PRs, then babysits them by default; honors explicit direct pushes and requests not to watch."
 ---
 
 # Ship Changes — Review Is Opt-in, PR Creation Is Not
@@ -64,14 +64,16 @@ ask only when the intended destination remains ambiguous.
 4. Fetch the destination and stop on remote-ahead or non-fast-forward state.
 5. Push exactly the requested branch and verify local and remote SHAs match.
 
-Do not create a feature branch or PR in direct-push mode.
+Do not create a feature branch or PR in direct-push mode. Direct-push mode does
+not start `vs-baby-sit`.
 
 ## PR workflow
 
-The default PR path has four outcomes: decide optional review, prepare the PR
-description, prepare available media, and create plus verify the PR. Do not add
-brief generation, broad verification, reviewer discovery, preview startup, QA,
-or CI waiting unless the user explicitly requested that work.
+The default PR path has five outcomes: decide optional review, prepare the PR
+description, prepare available media, create plus verify the PR, and hand it to
+`vs-baby-sit`. Do not add brief generation, broad verification, reviewer
+discovery, preview startup, or QA unless the user explicitly requested that
+work. Babysitting is the default after PR verification unless the user opts out.
 
 ### Step 0: Offer review without blocking
 
@@ -267,14 +269,15 @@ Re-open the PR description read-only and verify every uploaded image renders and
 every video exposes a player. If rendering fails, remove or correct only the
 broken embed with `gh pr edit --body-file`; do not claim the proof is attached.
 
-Apply only explicitly requested PR modifiers. Do not suggest reviewers, watch
-CI, wait for automated review, start a preview, or run QA by default. If the user
-explicitly requested continued monitoring, hand the verified PR to
-`vs-baby-sit` after the creation handoff.
+Apply only explicitly requested PR modifiers. Do not suggest reviewers, start a
+preview, or run QA by default. Hand the verified PR to `vs-baby-sit` after the
+creation handoff unless the user explicitly says not to watch. Ship-it does not
+duplicate that skill's CI or automated-review loop.
 
 ## Handoff
 
-Return immediately after PR verification unless monitoring was requested:
+After PR verification, emit the creation handoff and start a visibly separate
+babysitting phase unless the user explicitly says not to watch:
 
 The first line says what shipped in plain language. Translate literal check,
 review, or PR status into the user-visible meaning before naming the status.
@@ -303,8 +306,8 @@ to the handoff; the installed behavior remains stale until reinstalled.
 
 Create a Codex goal only when the user explicitly requested one. Complete the
 finite shipping goal after the branch is pushed and the PR association plus
-media rendering are verified. Continued monitoring, when explicitly requested,
-belongs to a separate `vs-baby-sit` goal.
+media rendering are verified. Babysitting remains a separate phase; create a
+separate `vs-baby-sit` goal only when the user explicitly requested a Codex goal.
 
 ## Verification contract
 
@@ -315,8 +318,9 @@ belongs to a separate `vs-baby-sit` goal.
 - [ ] Available screenshots/video were uploaded before PR creation and render,
       or the exact media gap is visible in Evidence.
 - [ ] PR state, branch, and head SHA were re-resolved successfully.
-- [ ] No brief, broad verify, reviewer lookup, preview, QA, CI wait, or monitoring
-      ran without an explicit request or repository requirement.
+- [ ] No brief, broad verify, reviewer lookup, preview, or QA ran without an
+      explicit request or repository requirement.
+- [ ] `vs-baby-sit` started after PR verification unless the user explicitly opted out.
 - [ ] The handoff reports PR URL, head, review decision, media, and checks.
 
 Before the final handoff, apply

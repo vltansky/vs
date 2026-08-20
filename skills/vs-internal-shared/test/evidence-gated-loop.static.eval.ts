@@ -144,10 +144,10 @@ describe('ship-it creates the PR without rebuilding delivery evidence', () => {
     expect(SHIP_IT).toMatch(/Do not describe CI, deployment, preview behavior, or production as verified/i);
   });
 
-  it('stops after PR verification unless monitoring was requested', () => {
-    expect(SHIP_IT).toMatch(/Return immediately after PR verification unless monitoring was requested/i);
-    expect(SHIP_IT).toMatch(/Do not suggest reviewers, watch\s+CI, wait for automated review, start a preview, or run QA by default/i);
-    expect(SHIP_IT).toMatch(/explicitly requested continued monitoring/);
+  it('hands verified PRs to babysitting without duplicating its loop', () => {
+    expect(SHIP_IT).toMatch(/Hand the verified PR to `vs-baby-sit`/i);
+    expect(SHIP_IT).toMatch(/unless the user explicitly says not to watch/i);
+    expect(SHIP_IT).toMatch(/does not\s+duplicate that skill's CI or automated-review loop/i);
   });
 });
 

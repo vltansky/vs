@@ -10,6 +10,22 @@ Keep one PR healthy until it is merge-ready, or until it is merged when the
 user explicitly asks to wait that long. Resolve actionable review feedback and
 CI failures, then return to one stateful watcher process.
 
+## Loop invariant
+
+Keep this order across every repair cycle:
+
+1. The watcher reports the first attention or terminal event.
+2. The parent retrieves provider or review evidence and classifies ownership.
+3. Only a confirmed PR-owned repair gets an isolated mutation workspace.
+4. The parent fixes, validates, commits, and pushes.
+5. The parent reuses the same watcher task or process on the new head.
+6. An approval-only event stops the watcher and any host heartbeat; hand control
+   back to the user instead of continuing to babysit.
+
+Do not create or inspect a repair worktree before causal evidence shows that a
+code change is needed. Repository state inspection required to resolve the PR
+is separate from preparing a mutation workspace.
+
 ## Policies
 
 Resolve external-write policy once before starting:
@@ -29,6 +45,12 @@ Unchanged polls produce no user message. A coarse heartbeat is acceptable at
 most every 10 minutes when the host requires one. Never send a message whose
 only content is that nothing changed; `still waiting`, `head unchanged`, and
 `CI is still running` are not state changes.
+
+Treat a host-provided heartbeat as a recovery mechanism, not another polling
+loop. When one is already attached, do not add a second heartbeat or use its
+wakeups to re-poll GitHub while the watcher is healthy. Pause it when the
+workflow reaches a terminal or user-attention stop condition if the host
+supports that action.
 
 ## Codex goals
 
@@ -108,8 +130,12 @@ implementation history:
    waiting lane when Luna is available. Otherwise use a routine lower-cost
    model or inherit the current model. Escalate difficult diagnosis or code
    changes back to the owning task after an attention event.
-4. Have the parent wait once for completion or attention. Do not repeatedly
-   poll `wait_agent` or `list_agents` while the child is running.
+4. Have the watcher return the exact JSONL line and exit code, then have the
+   parent wait once for completion or attention. Do not repeatedly poll
+   `wait_agent` or `list_agents` while the child is running.
+5. After a handled failure or feedback fix is pushed, reuse that same watcher
+   task with a follow-up on the new head. Do not create a new watcher task for
+   each repair cycle.
 
 If this is already a short, dedicated babysitting task, run the watcher here;
 another subagent would add overhead without shrinking context. In either case,
@@ -144,6 +170,12 @@ and emits compact JSONL only for:
   remaining merge-readiness gate is review approval; exit `10`
 - `terminal` — merge-ready, merged, or closed; exit `0`
 
+Exit `10` ends only the current watcher wait; it does not end the babysitting
+workflow. After `ci-failure` or `review-feedback`, handle the attention and
+resume the same watcher task or process. Emit a final response only after a
+listed stop condition is reached. `review-approval` is the deliberate
+user-attention exception.
+
 No output means no state change. Do not interrupt the watcher to perform a
 redundant manual check. If the watcher itself fails, report its exact stderr;
 missing evidence is not a passing state.
@@ -166,6 +198,18 @@ skill. Keep repository-private discovery details out of public PR bodies,
 comments, documentation, and examples.
 
 ## 3. Handle attention
+
+### Mutation workspace
+
+Treat the configured checkout as read-only when it contains unrelated work or
+the host supplied it only for inspection. Do not switch its branch, clean it,
+reset it, or commit from it. First retrieve the causal review or CI evidence and
+prove that a code change belongs to the PR. Only then create a temporary isolated
+worktree at the verified remote PR head for the repair. A current checkout that
+is already a clean isolated task worktree at that exact head may be used directly.
+
+After pushing, remove only a temporary worktree you created, and only when it has
+no uncommitted work. Never remove a user-owned worktree.
 
 ### Review feedback
 
@@ -211,7 +255,10 @@ means no actionable failure remains; restart the watcher once instead of
 inventing a code change. If the same mismatch repeats, report the inconsistent
 GitHub state and stop.
 
-- `provider: external` — report the check and URL; do not guess its logs.
+- `provider: external` — use an installed provider-specific skill or tool for
+  that check or URL before concluding its logs are unavailable. If no matching
+  integration exists or access fails, report the exact gap and URL; do not guess
+  the logs.
 - `status: log_pending` — restart the watcher; there is no stable failure yet.
 - `status: log_unavailable` — report the retrieval error and URL.
 - `status: ok` — diagnose from `logSnippet`, using `logTail` only for context.
@@ -221,9 +268,11 @@ gate. If the evidence does not identify a code defect, report the exact gate
 and request only the authority needed to unblock it. Do not force it through a
 regression-and-code-fix path.
 
-Confirm the failure belongs to the PR before editing. For an actionable failure,
-add or update the focused regression, make the smallest fix, run the focused
-check, commit `fix: resolve CI failure in <check-name>`, and push immediately.
+Prove from the provider evidence that the failure belongs to the PR and current
+head before editing. Do not change code for an unrelated failure, infrastructure
+outage, or unconfirmed flake. For an actionable PR-owned failure, add or update
+the focused regression, make the smallest fix, run the focused check, commit
+`fix: resolve CI failure in <check-name>`, and push immediately.
 
 ### Review approval gate
 
@@ -256,8 +305,10 @@ feedback; it is not enough to declare merge readiness. If repository policy
 requires pre-push validation, follow it and report that parallelism was not
 available.
 
-Restart the same watcher command after each handled attention event. Do not
-manually poll between the push and watcher restart.
+Restart the same watcher command after each handled CI or review-feedback event;
+in Codex, reuse the same watcher task. Do not manually poll between the push and
+watcher restart. Never restart it after a `review-approval` event: approval-only
+is a user-attention stop condition, not another watch cycle.
 
 ## Stop conditions
 

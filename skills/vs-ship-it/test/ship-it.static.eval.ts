@@ -38,6 +38,7 @@ describe('vs-ship-it routing', () => {
     expect(SKILL).toContain('### Direct-push path');
     expect(SKILL).toMatch(/verify local and remote SHAs match/i);
     expect(SKILL).toContain('Do not create a feature branch or PR in direct-push mode.');
+    expect(SKILL).toMatch(/Direct-push mode does\s+not start `vs-baby-sit`/i);
   });
 
   it('routes bare ship-it to the single PR workflow', () => {
@@ -97,9 +98,9 @@ describe('vs-ship-it independent PR preparation', () => {
   });
 
   it('does not make ceremony part of default PR creation', () => {
-    expect(PR_WORKFLOW).toMatch(/Do not add\s+brief generation, broad verification, reviewer discovery, preview startup, QA,\s+or CI waiting unless the user explicitly requested/i);
+    expect(PR_WORKFLOW).toMatch(/Do not add\s+brief generation, broad verification, reviewer\s+discovery, preview startup, or QA unless the user explicitly requested/i);
     expect(PR_WORKFLOW).toMatch(/do not introduce `vs-brief`, `vs-verify`/i);
-    expect(PR_WORKFLOW).toMatch(/Do not suggest reviewers, watch\s+CI, wait for automated review, start a preview, or run QA by default/i);
+    expect(PR_WORKFLOW).toMatch(/Do not suggest reviewers, start a\s+preview, or run QA by default/i);
   });
 
   it('uses body files for create and edit', () => {
@@ -162,10 +163,11 @@ describe('vs-ship-it PR association and stopping point', () => {
     expect(PR_WORKFLOW).toMatch(/Do not switch branches before this succeeds/i);
   });
 
-  it('returns immediately unless monitoring was requested', () => {
-    expect(SKILL).toMatch(/Return immediately after PR verification unless monitoring was requested/i);
-    expect(SKILL).toMatch(/monitoring was requested|explicitly requested\s+(?:continued )?monitoring/i);
-    expect(SKILL).toContain('`vs-baby-sit`');
+  it('starts babysitting after PR verification unless declined', () => {
+    expect(DESCRIPTION).toMatch(/babysits them by default/i);
+    expect(SKILL).toMatch(/Hand the verified PR to `vs-baby-sit`/i);
+    expect(SKILL).toMatch(/unless the user explicitly says not to watch/i);
+    expect(SKILL).toMatch(/visibly separate\s+babysitting phase/i);
   });
 
   it('keeps evidence boundaries honest', () => {
