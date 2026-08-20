@@ -1,8 +1,9 @@
 ## Phase 7: Handoff
 
-The report is the audit record. Chat is the readable handoff. Its first line is
-the plain-language outcome: what now works for the user, or exactly what remains
-unproven. Do not lead with a phase name, score, or workflow status.
+The visual report is the explanation, not the audit record. Chat is the tiny
+handoff. Its first line is the plain-language outcome: what now works for the
+user, or exactly what remains unproven. Do not lead with a phase name, score, or
+workflow status.
 
 Use this adaptive shell and omit every empty section:
 
@@ -36,20 +37,28 @@ action`: `Do not ship, merge, or roll out until <evidence> passes.` A softer
 future-state sentence is insufficient: saying the branch can move to shipping
 is not an equivalent gate because it leaves the prohibited action implicit.
 
-The full audit ledger lives in the report: branch and commits, phase results,
-claim-to-proof evidence, Codex goal state, decision records and whether each was
-written before implementation, every auto-resolved decision, final guardrails,
-flagged review items, diff stat, and any preview process cleanup. A claim with
-no proof is `UNPROVEN` there and names its blocker.
-For a trivial run that owes no report, include only the few audit facts needed
-to support the chat claim.
+For a non-trivial run, write a machine audit Markdown sidecar beside the visual
+report as `YYYY-MM-DD-<slug>-audit.md`. The full audit ledger lives there:
+branch and commits, phase results, claim-to-proof evidence, Codex goal state,
+decision records and whether each was written before implementation, every
+auto-resolved decision, final guardrails, flagged review items, diff stat, and
+preview process cleanup. A claim with no proof is `UNPROVEN` there and names its
+blocker. Do not expose this ledger as the visual report's main content.
+
+The visual report follows the problem-first recipe: concrete problem, one to
+three before-and-after examples, one-sentence proposal, three to five rules, and
+the next review action. Remove alternatives, long acceptance lists, process
+history, and repeated evidence unless the current decision needs them. For a
+trivial run that owes no report, include only the few audit facts needed to
+support the chat claim.
 
 Load and run `../../vs-brief/SKILL.md` when the change touches more than 3 files,
 records a durable design decision, the user asks for PR orientation, or there is
 meaningful before-and-after evidence. Include the comparison even when the diff
 is small. Pass the current branch diff, decision log, flagged items, and captured
 comparison evidence. Otherwise put the minimal pipeline summary and diff stat in
-the report; for a trivial run with no report, keep them to one compact chat line.
+the machine audit sidecar; for a trivial run with no report, keep them to one
+compact chat line.
 
 If not found: append a minimal fallback using the resolved default branch:
 
@@ -62,10 +71,11 @@ done
 git diff --stat "$BASE"..HEAD
 ```
 
-Before sending the final response, audit the report for the complete ledger and
-the chat response for first-pass comprehension. If the outcome, required
-action, material gap, required report link, or explicit next step is missing,
-revise it. A report link is required only when this run owed a report.
+Before sending the final response, audit the sidecar for the complete ledger,
+the visual report for the problem-first recipe, and chat for first-pass
+comprehension. If the outcome, required action, material gap, required report
+link, or explicit next step is missing, revise it. A report link is required
+only when this run owed a report.
 Do not make the user infer the result from git history or phase names.
 
 Suggest next step based on results:

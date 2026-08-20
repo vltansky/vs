@@ -42,8 +42,8 @@ describe('build-it may not claim an outcome it cannot show', () => {
     expect(BUILD_IT).toMatch(/Implemented and\s+proven are different claims/);
   });
 
-  it('keeps claim-to-proof evidence in the report and links it from chat', () => {
-    expect(HANDOFF).toMatch(/full audit ledger lives in the report/);
+  it('keeps claim-to-proof evidence in a machine audit sidecar', () => {
+    expect(HANDOFF).toMatch(/machine audit[\s\S]*sidecar/i);
     expect(HANDOFF).toMatch(/claim-to-proof evidence/);
     expect(HANDOFF).toMatch(/claim with\s+no proof is `UNPROVEN`/);
     expect(HANDOFF).toMatch(/~\/\.vs\/\$PROJECT_ID\/build-it\//);

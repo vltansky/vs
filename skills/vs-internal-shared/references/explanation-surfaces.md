@@ -36,6 +36,23 @@ Machine-consumed specs, plans, issue drafts, and `GOALS.md` may remain Markdown.
 Link them from the visual artifact; do not turn them into a second human-facing
 report or paste them into chat.
 
+## Use a problem-first recipe
+
+An explanation artifact is a decision surface, not an audit dump. Start with the
+concrete problem in the user's world, then let examples do most of the teaching:
+
+1. Use a title that states the decision or change.
+2. Name the concrete problem in one short section.
+3. Show one to three real before-and-after examples.
+4. State the proposal in one sentence, followed by three to five boundary rules.
+5. End with the pilot, next steps, or review decision.
+
+Normally keep the main story to four or five sections. Link supporting evidence
+instead of narrating its collection. Remove alternatives, acceptance lists,
+architecture tours, implementation logs, and repeated caveats unless one is
+necessary for the current decision. Verification and audit detail belong in a
+machine-facing sidecar, not in the explanation.
+
 If HTMDX cannot be created, validated, rendered, or opened, keep the chat TLDR
 usable. Name the exact artifact gap in one line. Fall back to a small Mermaid
 diagram or concise Markdown only when it materially improves understanding.

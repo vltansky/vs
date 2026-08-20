@@ -58,12 +58,14 @@ describe('first-pass comprehension contract', () => {
 
   it('keeps build-it audit detail out of the chat handoff', () => {
     expect(BUILD_IT).toMatch(/plain-language outcome/i);
-    expect(BUILD_IT).toMatch(/full audit ledger[\s\S]*report/i);
+    expect(BUILD_IT).toMatch(/machine audit[\s\S]*sidecar/i);
     expect(BUILD_HANDOFF).toMatch(/first line\s+is\s+the plain-language outcome/i);
-    expect(BUILD_HANDOFF).toMatch(/full audit ledger[\s\S]*report/i);
+    expect(BUILD_HANDOFF).toMatch(/machine audit[\s\S]*sidecar/i);
+    expect(BUILD_HANDOFF).toMatch(/visual report[\s\S]*problem[\s\S]*before.*after/is);
+    expect(BUILD_HANDOFF).not.toMatch(/full audit ledger lives in the report/i);
     expect(BUILD_HANDOFF).not.toMatch(/MUST include every section/i);
     expect(BUILD_HANDOFF).not.toContain('## Build It Complete');
-    expect(BUILD_HANDOFF).toMatch(/report link is required only when this run owed a report/i);
+    expect(BUILD_HANDOFF).toMatch(/report\s+link is required\s+only when this run owed a report/i);
   });
 
   it('preserves the exact missing observation when proof is blocked', () => {

@@ -71,10 +71,14 @@ state the blocker's cause first, then put every required step in `Your action`.
 Non-trivial runs write one portable HTMDX report to
 `~/.vs/$PROJECT_ID/build-it/YYYY-MM-DD-<slug>.html` via
 [`../vs-htmdx/SKILL.md`](../vs-htmdx/SKILL.md), and the handoff links it. The
-report carries `ExecutiveSummary` (what now works), `Compare` for each changed
-surface, QA results with screenshots, a `DataTable` of commits, the decision
-log, and a `RiskTable` of claims the run could not prove. Chat gets the summary
-and the path, not the wall of markdown.
+visual report follows the problem-first recipe in the shared explanation
+contract: concrete problem, real before-and-after examples, one-sentence
+proposal, a few rules, and the next review action. It is not an audit dump.
+
+Write the complete machine audit to a Markdown sidecar beside it as
+`YYYY-MM-DD-<slug>-audit.md`. The sidecar carries commits, decision log,
+claim-to-proof evidence, guardrails, gaps, and diff metadata. Chat gets the
+summary and visual report path, not the sidecar or a wall of Markdown.
 
 Skip the report only for trivial runs — a single documentation or comment
 change with no observable behavior, no captured evidence, and no durable
@@ -124,11 +128,11 @@ These are the behaviors evals punish hardest; prioritize them during autonomous 
 2. **Auto-generated plans choose concrete destination files.** Name target files up front; for new utilities, prefer a dedicated module and export from a barrel secondarily.
 3. **Use the Phase 7 handoff shell.** Lead with the plain-language outcome,
    required user action, strongest evidence, material gaps, and an explicit next
-   step. Put the full audit ledger in the linked report.
+   step. Put the full machine audit in its sidecar, not in the visual report.
 4. **Make red/green evidence explicit.** When you claim TDD, name the failing test command (red) and the passing re-run (green) in the handoff or decision log — do not rely on commit order alone.
 5. **Make atomic commits visible.** If commit quality matters to the work, list
-   the commit hashes and messages in the report. Mention the commit count in chat
-   only when it helps the user choose the next action.
+   the commit hashes and messages in the audit sidecar. Mention the commit count
+   in chat only when it helps the user choose the next action.
 
 ---
 
@@ -671,8 +675,9 @@ comparison evidence to `vs-brief`; if a required capture was blocked, pass the
 blocker instead of inventing evidence.
 
 Use the required shell in [references/handoff.md](./references/handoff.md). Its
-chat response stays compact; the full audit ledger, decision log, commits,
-guardrails, and minimal diff stat belong in the report. If the user asked
+chat response stays compact; the machine audit sidecar carries the full audit
+ledger, decision log, commits, guardrails, and minimal diff stat. The visual
+report explains the change with the problem-first recipe. If the user asked
 build-it to also ship, load and
 follow `../vs-ship-it/SKILL.md`; if the host cannot resolve it, say to type
 `/vs-ship-it` and stop — do not hand-roll a PR flow in its place. Load `../vs-brief/SKILL.md` only when the change is

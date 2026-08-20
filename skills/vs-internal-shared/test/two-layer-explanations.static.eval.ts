@@ -17,6 +17,10 @@ const RICH_ARTIFACTS = fs.readFileSync(
   path.join(REFERENCES_DIR, 'rich-artifacts.md'),
   'utf8',
 );
+const EXPLANATION_SURFACES = fs.readFileSync(
+  path.join(REFERENCES_DIR, 'explanation-surfaces.md'),
+  'utf8',
+);
 const SEARCH_THREADS = fs.readFileSync(
   path.resolve(SHARED_DIR, '..', 'vs-search-threads', 'SKILL.md'),
   'utf8',
@@ -52,6 +56,14 @@ describe('two-layer explanation contract', () => {
     expect(RICH_ARTIFACTS).toMatch(/screenshots?.*visible.*behavior/is);
     expect(RICH_ARTIFACTS).toMatch(/generated images?.*mental model/is);
     expect(RICH_ARTIFACTS).toMatch(/never.*technical evidence/is);
+  });
+
+  it('uses the proven problem-first explanation recipe', () => {
+    expect(EXPLANATION_SURFACES).toMatch(/start with.*concrete problem/is);
+    expect(EXPLANATION_SURFACES).toMatch(/before.*after.*examples/is);
+    expect(EXPLANATION_SURFACES).toMatch(/one-sentence.*proposal|proposal.*one sentence/is);
+    expect(EXPLANATION_SURFACES).toMatch(/three to five.*rules/is);
+    expect(EXPLANATION_SURFACES).toMatch(/remove.*alternatives.*acceptance lists/is);
   });
 
   it('checks understanding without adding approval ceremony', () => {
