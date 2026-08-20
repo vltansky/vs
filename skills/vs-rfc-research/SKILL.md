@@ -51,6 +51,11 @@ Do NOT claim GitHub-backed research without one of the two Octocode routes.
 
 Apply the [shared output style](../vs-internal-shared/references/output-style.md)
 to every user-facing message.
+Before presenting the RFC, apply
+[`../vs-internal-shared/references/explanation-surfaces.md`](../vs-internal-shared/references/explanation-surfaces.md).
+The Markdown RFC remains the machine-readable source of truth. For a complex
+RFC, create one visual HTMDX review surface that links the RFC; chat contains
+only the TLDR, artifact path, and decision that remains.
 
 ## Workflow
 

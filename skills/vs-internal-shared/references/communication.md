@@ -30,8 +30,13 @@ step in one optional `Your action` section.
 - Detail — tables, screenshots, before/after, decision logs, command output —
   goes into the artifact, not into chat.
 - Never paste a wall of markdown that duplicates a file the user can open.
-- The final handoff shell of each workflow is exempt; it is the contract, not
-  progress narration.
+- Final handoffs obey the same chat budget. Required detail that does not fit
+  belongs in the artifact; the handoff keeps only the outcome, action, material
+  evidence gap, and artifact link.
+
+For explanations and review results, also apply
+[`explanation-surfaces.md`](./explanation-surfaces.md): simple answers stay in
+chat, while complex answers use a chat TLDR plus one visual HTMDX review surface.
 
 ## Progress emissions
 

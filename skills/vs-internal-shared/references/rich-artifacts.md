@@ -1,19 +1,29 @@
 # Rich human-facing artifacts
 
 Decision rationale:
-[Use HTMDX for rich human-facing artifacts](../../../adr/use-htmdx-for-rich-human-facing-artifacts.md).
+[Use HTMDX for rich human-facing artifacts](../../../adr/use-htmdx-for-rich-human-facing-artifacts.md),
+partly superseded by
+[Deliver complex explanations in two layers](../../../adr/deliver-complex-explanations-in-two-layers.md).
 
-Markdown is the default. Choose HTMDX only when visual structure materially
-changes how a person reviews the result or makes a decision, such as:
+Markdown remains the default for machine-consumed state and simple answers.
+Choose HTMDX for a complex human-facing explanation when understanding depends
+on any one of these structures:
 
-- comparing several entities across several axes;
+- three or more interacting components, owners, states, or dependencies;
+- a comparison across multiple choices and criteria;
+- a causal, lifecycle, or ownership flow with at least three meaningful steps;
 - reviewing multiple screenshots, before/after states, charts, or timelines;
-- navigating dense, cross-linked evidence.
+- essential evidence or caveats that would push chat beyond one short screen.
 
-Length or complexity alone is not a reason to use HTMDX. Keep routine prose,
-short reports, implementation plans, and machine-consumed state in Markdown.
+Poor editing is not complexity: shorten repetition, narration, and loose prose
+instead of creating an artifact to preserve them. Keep routine prose, short
+reports, implementation plans, and machine-consumed state in Markdown.
 Use bespoke HTML/JavaScript instead when the artifact needs custom behavior that
 the HTMDX component catalog cannot express.
+
+Follow
+[`explanation-surfaces.md`](./explanation-surfaces.md) for the synchronized chat
+TLDR, visual choice, useful-question gate, and artifact failure fallback.
 
 ## Mermaid in Markdown
 
@@ -28,6 +38,11 @@ nodes, one idea per node, quoted labels when they contain punctuation, and prose
 immediately before it stating the conclusion. Skip Mermaid for a single fact, a
 simple file list, or a linear two-step change. Mermaid complements the Markdown
 explanation; it does not trigger HTMDX or replace the source-of-truth artifact.
+
+For claims about visible product behavior, use screenshots rather than a
+diagram. Use generated images only for a mental model or metaphor that Mermaid
+or factual components cannot teach cleanly; never use them as technical evidence
+or proof that a product state exists.
 
 ## Artifact contract
 

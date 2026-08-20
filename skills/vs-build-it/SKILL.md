@@ -46,6 +46,8 @@ worker briefs.
 
 Build-it is autonomous, not silent. Follow
 [`../vs-internal-shared/references/communication.md`](../vs-internal-shared/references/communication.md).
+For the final explanation and review artifact, also follow
+[`../vs-internal-shared/references/explanation-surfaces.md`](../vs-internal-shared/references/explanation-surfaces.md).
 
 Emit one line at each phase boundary so the user can see the run moving:
 

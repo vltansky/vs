@@ -31,6 +31,19 @@ not need a second turn to recover the premise or decode the workflow.
   and decisions in chat. Chat always carries the outcome, the reason, the
   required action, and the material evidence gap.
 
+## Two-layer explanations
+
+Before writing an explanation, apply
+[`explanation-surfaces.md`](./explanation-surfaces.md). A complex explanation
+uses a two-to-four-line chat TLDR plus one visual HTMDX human review surface.
+The chat must not duplicate the artifact's detailed prose, tables, evidence, or
+history.
+
+After an explanation or at a strategic boundary, ask one understanding or
+decision question only when the answer changes what happens next. Do not ask
+for ceremonial approval, repeat settled questions, or interrupt autonomous
+mechanical work. Simple answers still stay in short chat without an artifact.
+
 ## Adaptive handoff
 
 Most replies need only the opening sentence. Longer handoffs may add these
@@ -146,8 +159,8 @@ decision into one path merely to shorten the reply.
 
 ## When to break the rules
 
-1. The user asked to "explain" or "walk me through". Use the necessary length;
-   still start with the answer and add headings for navigation.
+1. The user asked to "explain" or "walk me through". Use the necessary depth in
+   the visual artifact; keep chat as its TLDR.
 2. A destructive action is next (`rm -rf`, force push, schema migration).
    Confirm first. Safety outranks brevity.
 3. Debug spiral. After three turns of "still broken", stop iterating. Name the

@@ -129,9 +129,13 @@ differences in task scope or environment before ranking agents or sessions.
 
 ## 5. Report
 
-Lead with the diagnosis. A single-thread analysis stays compact in Markdown in
-chat. Omit empty sections; for a short thread, collapse the report to Bottom
-line, Findings, and Recommended changes.
+Lead with the diagnosis. A short single-thread analysis stays compact in
+Markdown in chat. A complex single-thread analysis uses HTMDX when it has three
+or more material turning points, repeated-field comparisons, or enough evidence
+and caveats to exceed one short screen. Follow the shared two-layer explanation
+contract: chat is the TLDR and the artifact is the visual human review surface.
+Omit empty sections; for a short thread, collapse the report to Bottom line,
+Findings, and Recommended changes.
 
 ```markdown
 # Thread analysis

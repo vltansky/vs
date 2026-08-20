@@ -78,6 +78,13 @@ and `Still unverified` sections, plus the procedural sentence constraints that
 apply to any step the user executes. Communication decides what reaches chat;
 this decides how it is arranged once there.
 
+## Explanation surfaces
+
+Use [`references/explanation-surfaces.md`](./references/explanation-surfaces.md)
+before writing a human-facing explanation. It decides whether the result stays
+in short chat or uses the two-layer chat TLDR plus visual HTMDX contract, how to
+choose a trustworthy visual, and when one useful question belongs.
+
 ## Agent-owned previews
 
 Use [`references/preview.md`](./references/preview.md) when a skill needs a

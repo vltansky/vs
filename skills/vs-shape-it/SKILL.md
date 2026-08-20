@@ -508,6 +508,12 @@ interaction.
 
 ### 3. Closing interaction
 
+Before composing the closing interaction, follow
+[`../vs-internal-shared/references/explanation-surfaces.md`](../vs-internal-shared/references/explanation-surfaces.md).
+For a complex design, keep the Markdown spec as the machine source of truth and
+create a visual HTMDX review surface that links it. Chat carries only the TLDR,
+the artifact link, and the approval or remaining strategic decision.
+
 Return with the complete recommendation, evidence-driven changes from the
 stress test, the Goal Contract, any drafted ADR, and any execution blueprint.
 Switch the progress signal from decision resolution to handoff readiness:

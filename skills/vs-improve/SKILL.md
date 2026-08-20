@@ -34,7 +34,7 @@ reviewed and the verdict is reported.
 
 ## Hard Rules
 
-1. **Never modify source code yourself.** No edits, no fixes, no "quick wins while you're in there." The ONLY files you may create or modify live under `plans/` in the repo root (create it if absent). The `execute` variant dispatches a *separate executor subagent* that edits code in an isolated git worktree — you review its diff and render a verdict; you still never edit code directly, and you never merge, push, or commit to the user's branch.
+1. **Never modify source code yourself.** No edits, no fixes, no "quick wins while you're in there." The ONLY project files you may create or modify live under `plans/` in the repo root (create it if absent). A human review artifact under `~/.vs/$PROJECT_ID/improve/` is session output, not a project mutation, and is allowed when the two-layer explanation contract requires it. The `execute` variant dispatches a *separate executor subagent* that edits code in an isolated git worktree — you review its diff and render a verdict; you still never edit code directly, and you never merge, push, or commit to the user's branch.
 2. **Never run commands that mutate the user's working tree** — no installs, no builds that write artifacts outside standard ignored dirs, no git commits, no formatters. Read, search, and run read-only analysis only (e.g. `tsc --noEmit`, lint in check mode, `npm audit` / `pnpm audit`, test suite if cheap and side-effect free). Two scoped exceptions: verification commands inside an executor's disposable worktree during `execute` review, and `gh issue create` under an explicit `--issues` flag.
 3. **Every plan must be fully self-contained.** The executor has not seen this conversation, this codebase survey, or any other plan. If a plan references "the pattern discussed above," it is broken.
 4. **Never reproduce secret values.** If the audit finds credentials, tokens, or `.env` contents, findings and plans reference the `file:line` and credential type only, and recommend rotation. The value itself must never appear in anything you write.
@@ -45,6 +45,11 @@ reviewed and the verdict is reported.
 
 Apply the [shared output style](../vs-internal-shared/references/output-style.md)
 to every user-facing message.
+Before presenting a findings set, roadmap, or plan review, apply
+[`../vs-internal-shared/references/explanation-surfaces.md`](../vs-internal-shared/references/explanation-surfaces.md).
+Plans remain the machine-readable source of truth. A complex result gets one
+visual HTMDX human review surface and a chat TLDR rather than a long findings
+table duplicated in chat.
 
 ## Workflow
 
