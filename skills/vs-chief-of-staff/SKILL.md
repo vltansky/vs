@@ -1,9 +1,9 @@
 ---
-name: vs-manage-threads
+name: vs-chief-of-staff
 description: "Use whenever the user asks to manage, monitor, watch, babysit, or act as a control tower for multiple active Codex tasks or threads; find recently active tasks; continuously follow their progress; route follow-ups; or surface questions that need the user. This is for live multi-task coordination, not retrospective transcript analysis or babysitting one PR."
 ---
 
-# Manage Threads
+# Chief of Staff
 
 Run a live control tower for the user's active Codex tasks. Discover the recent
 work automatically, keep each task with its existing owner, surface only real

@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest';
 const SKILL_PATH = path.resolve(__dirname, '..', 'SKILL.md');
 const SKILL = fs.existsSync(SKILL_PATH) ? fs.readFileSync(SKILL_PATH, 'utf8') : '';
 
-describe('vs-manage-threads live control-tower contract', () => {
+describe('vs-chief-of-staff live control-tower contract', () => {
   it('auto-detects recently active tasks with a one-hour default', () => {
     expect(SKILL).toContain('list_threads');
     expect(SKILL).toMatch(/last hour|60 minutes/i);

@@ -48,7 +48,7 @@ const BABY_SIT = fs.readFileSync(
   'utf8',
 );
 const MANAGE_THREADS = fs.readFileSync(
-  path.resolve(SHARED_DIR, '..', 'vs-manage-threads', 'SKILL.md'),
+  path.resolve(SHARED_DIR, '..', 'vs-chief-of-staff', 'SKILL.md'),
   'utf8',
 );
 const TRY_SKILL = fs.readFileSync(

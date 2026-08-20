@@ -1,5 +1,5 @@
 interface:
-  display_name: "vs-manage-threads"
+  display_name: "vs-chief-of-staff"
   short_description: "Control tower for active Codex tasks"
 
 policy:

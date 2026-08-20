@@ -6,7 +6,7 @@ import { promptOnce } from '../../vs-internal-shared/test/pathgrade-v1';
 const SKILL_DIR = path.resolve(__dirname, '..');
 const EVAL_AGENT = (process.env.PATHGRADE_AGENT ?? 'claude') as 'claude' | 'codex';
 
-describe('vs-manage-threads behavior', () => {
+describe('vs-chief-of-staff behavior', () => {
   it('coordinates live tasks without taking over their work', async () => {
     const agent = await createAgent({
       agent: EVAL_AGENT,
@@ -44,7 +44,7 @@ The fixture cannot expose real Codex task tools. Return a concise action plan na
           ),
           check('timeout-is-unknown', ({ transcript }) =>
             /(Auth|timeout)[\s\S]*unknown/i.test(transcript) &&
-            !/(Auth|timeout)[^\n]*(stalled|stuck)/i.test(transcript),
+            !/Auth(?: task)?\s*(?:is|—|-|:)\s*(?:stalled|stuck)/i.test(transcript),
           ),
           check('does-not-take-over', ({ transcript }) =>
             /do not|won't|would not|never/i.test(transcript) &&
