@@ -47,6 +47,8 @@ describe('two-layer explanation contract', () => {
 
   it('chooses the smallest trustworthy visual', () => {
     expect(RICH_ARTIFACTS).toMatch(/Mermaid.*flow/is);
+    expect(RICH_ARTIFACTS).toMatch(/Mermaid.*chat or Markdown/is);
+    expect(RICH_ARTIFACTS).toMatch(/HTMDX.*inline SVG/is);
     expect(RICH_ARTIFACTS).toMatch(/screenshots?.*visible.*behavior/is);
     expect(RICH_ARTIFACTS).toMatch(/generated images?.*mental model/is);
     expect(RICH_ARTIFACTS).toMatch(/never.*technical evidence/is);

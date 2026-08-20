@@ -43,7 +43,9 @@ screen. A long answer caused only by poor editing does not qualify; shorten it.
 
 Choose the smallest factual visual that fits:
 
-- use a simple Mermaid diagram for flows, ownership, dependencies, and state;
+- use a simple Mermaid diagram in chat or Markdown for flows, ownership,
+  dependencies, and state; use HTMDX components or inline SVG for the same
+  relationships inside an HTMDX artifact;
 - use HTMDX comparison, timeline, metric, evidence, and risk components for
   structured review;
 - use screenshots for claims about visible product behavior;

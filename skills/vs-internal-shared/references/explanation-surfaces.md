@@ -42,11 +42,13 @@ diagram or concise Markdown only when it materially improves understanding.
 
 ## Choose the smallest trustworthy visual
 
-- **Mermaid:** flows, ownership, dependencies, sequences, and state changes.
-  Keep it simple, normally no more than eight nodes and one relationship per
-  edge. Put it in the artifact when HTMDX is the review surface.
-- **HTMDX components:** comparisons, timelines, metrics, evidence, risks, and
-  structured decision briefs.
+- **Mermaid in chat or Markdown:** flows, ownership, dependencies, sequences,
+  and state changes. Keep it simple, normally no more than eight nodes and one
+  relationship per edge.
+- **HTMDX components or inline SVG:** express those same relationships inside
+  an HTMDX artifact. HTMDX does not render Mermaid source directly, so do not
+  paste an unrendered Mermaid fence into it. Use components for comparisons,
+  timelines, metrics, evidence, risks, and structured decision briefs.
 - **Screenshots:** claims about visible product behavior. A diagram cannot
   replace observed UI evidence.
 - **Generated images:** use rarely, only for a mental model or metaphor that a

@@ -25,7 +25,7 @@ Follow
 [`explanation-surfaces.md`](./explanation-surfaces.md) for the synchronized chat
 TLDR, visual choice, useful-question gate, and artifact failure fallback.
 
-## Mermaid in Markdown
+## Mermaid in chat or Markdown
 
 Use a small Mermaid diagram inside ordinary Markdown when relationships are the
 main thing the user needs to understand: three or more interacting components,
@@ -38,6 +38,11 @@ nodes, one idea per node, quoted labels when they contain punctuation, and prose
 immediately before it stating the conclusion. Skip Mermaid for a single fact, a
 simple file list, or a linear two-step change. Mermaid complements the Markdown
 explanation; it does not trigger HTMDX or replace the source-of-truth artifact.
+
+HTMDX does not render Mermaid source directly. When HTMDX is the review
+surface, express the same relationship with the smallest fitting HTMDX
+component or an inline SVG. Do not paste an unrendered Mermaid fence into the
+artifact.
 
 For claims about visible product behavior, use screenshots rather than a
 diagram. Use generated images only for a mental model or metaphor that Mermaid
