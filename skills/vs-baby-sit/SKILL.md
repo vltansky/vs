@@ -277,18 +277,25 @@ the focused regression, make the smallest fix, run the focused check, commit
 ### Review approval gate
 
 After `reason: review-approval`, stop the watcher and hand control back to the
-user immediately. Do not keep polling an external human gate. Say explicitly
-that the PR is **waiting for approval**, and include the verified final SHA, CI
-state, mergeability, and unresolved-thread count so it is clear that approval is
-the remaining gate rather than a hung task.
+user immediately. Do not keep polling an external human gate. This stop applies
+even when auto-merge is armed, the requested target is `merged`, or a larger
+workflow plans to merge, deploy, or verify production afterward. Those later
+phases resume only after a new user turn reports or requests progress beyond the
+approval gate.
 
-Suggest one person to ping when the evidence supports it. Prefer, in order, the
-first login in `approvalCandidates` (requested reviewers first, then the most
-recent prior approver), a current requested reviewer, or a user owner from
-changed-file `CODEOWNERS`. State why that person is the best candidate. Never
-invent an owner, treat a team as a user, or send the ping automatically. If no
-specific user can be identified, say so and point to the requested-reviewer or
-CODEOWNERS surface the user can choose from.
+Make the handoff concise and lead with `Review needed: @<user-or-team>`. Prefer,
+in order, the first login in `approvalCandidates` (requested reviewers first,
+then the most recent prior approver), the first slug in `approvalTeams`, a
+current requested reviewer or team, or a user/team owner from changed-file
+`CODEOWNERS`. Add one short reason for the choice and say that watching stopped.
+Do not send interim `still waiting` updates, keep a heartbeat alive, or continue
+watching because auto-merge is armed. Never invent an owner.
+Never send the ping automatically. If no target can be identified, say
+`Review needed: unknown` and
+point to the requested-reviewer or CODEOWNERS surface the user can choose from.
+Keep SHA, CI, mergeability, and unresolved-thread details secondary and include
+them only when they explain ambiguity; the reviewer target is the primary user
+action.
 
 ## 4. Validate while remote feedback runs
 
@@ -318,8 +325,9 @@ is a user-attention stop condition, not another watch cycle.
   stop as unrecoverable.
 - Only ambiguous review threads remain: report them explicitly and stop.
 - Review approval is the only remaining merge-readiness gate: report
-  **waiting for approval**, suggest a grounded user to ping when available, and
-  stop instead of leaving the watcher running.
+  `Review needed: @<user-or-team>`, say watching stopped, and stop instead of
+  leaving the watcher running. Auto-merge and downstream release work do not
+  override this stop.
 - User interrupts the watcher: preserve the last emitted snapshot and stop.
 
 If the PR merges before local fix commits are pushed, branch from the fresh
@@ -340,7 +348,7 @@ the next step.
 **CI:** pass / fail (<check>)
 
 **Needs attention:**
-- <ambiguous thread or external blocker; for approval use "Waiting for approval — suggested ping: @user (reason)">
+- <ambiguous thread or external blocker; for approval use "Review needed: @user-or-team — watching stopped (reason)">
 ```
 
 Before claiming completion, verify clear feedback was fixed and pushed, CI

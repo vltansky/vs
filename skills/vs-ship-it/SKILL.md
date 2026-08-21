@@ -274,6 +274,12 @@ preview, or run QA by default. Hand the verified PR to `vs-baby-sit` after the
 creation handoff unless the user explicitly says not to watch. Ship-it does not
 duplicate that skill's CI or automated-review loop.
 
+When the composed babysitter reaches `reason: review-approval`, return its
+concise `Review needed: @<user-or-team>` handoff and end the workflow turn. Do
+not resume watching because auto-merge is armed or because merge, deployment,
+or production verification is planned afterward. Those phases require a new
+user turn after the human review gate clears.
+
 ## Handoff
 
 After PR verification, emit the creation handoff and start a visibly separate

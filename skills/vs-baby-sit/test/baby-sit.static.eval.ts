@@ -92,9 +92,12 @@ describe('vs-baby-sit remote-first validation', () => {
 
   it('stops and hands off an approval-only gate with a grounded ping suggestion', () => {
     expect(SKILL).toMatch(/After `reason: review-approval`, stop the watcher/);
-    expect(SKILL).toMatch(/waiting for approval/i);
+    expect(SKILL).toMatch(/Review needed: @<user-or-team>/i);
     expect(SKILL).toMatch(/first login in `approvalCandidates`/);
-    expect(SKILL).toMatch(/Never\s+invent an owner/);
+    expect(SKILL).toMatch(/first slug in `approvalTeams`/);
+    expect(SKILL).toMatch(/auto-merge.*do not\s+override this stop/is);
+    expect(SKILL).toMatch(/Do not send interim `still waiting` updates/);
+    expect(SKILL).toMatch(/Never invent an owner/);
     expect(SKILL).toMatch(/Never\s+.*send the ping automatically/);
   });
 
@@ -452,6 +455,25 @@ print(watcher.fetch_approval_candidates("owner/repo", 42, pull))
 
     expect(result.status).toBe(0);
     expect(result.stdout.trim()).toBe("['requested-reviewer', 'prior-approver']");
+  });
+
+  it('surfaces requested review teams for an approval gate', () => {
+    const code = `
+import importlib.util
+import sys
+spec = importlib.util.spec_from_file_location("watch_pr", sys.argv[1])
+watcher = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(watcher)
+pull = {"requested_teams": [{"slug": "platform-reviewers"}, {"slug": "platform-reviewers"}]}
+print(watcher.fetch_approval_teams(pull))
+`;
+    const result = spawnSync('python3', ['-c', code, WATCHER], {
+      encoding: 'utf8',
+      env: { ...process.env, PYTHONDONTWRITEBYTECODE: '1' },
+    });
+
+    expect(result.status).toBe(0);
+    expect(result.stdout.trim()).toBe("['platform-reviewers']");
   });
 
   it('wakes with review-feedback once a reviewer bot posts findings', () => {

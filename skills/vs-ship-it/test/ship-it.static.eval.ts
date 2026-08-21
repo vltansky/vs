@@ -170,6 +170,12 @@ describe('vs-ship-it PR association and stopping point', () => {
     expect(SKILL).toMatch(/visibly separate\s+babysitting phase/i);
   });
 
+  it('ends the composed workflow at a human review gate', () => {
+    expect(SKILL).toMatch(/`Review needed: @<user-or-team>`/);
+    expect(SKILL).toMatch(/Do\s+not resume watching because auto-merge is armed/i);
+    expect(SKILL).toMatch(/require a new\s+user turn after the human review gate clears/i);
+  });
+
   it('keeps evidence boundaries honest', () => {
     expect(SKILL).toMatch(/Do not describe CI, deployment, preview behavior, or production as verified/i);
     expect(SKILL).toMatch(/Review: <reused \| ran with approval \| skipped/);

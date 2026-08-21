@@ -194,6 +194,18 @@ def fetch_approval_candidates(repo: str, pr: int, pull_request: Snapshot) -> lis
     return candidates
 
 
+def fetch_approval_teams(pull_request: Snapshot) -> list[str]:
+    teams: list[str] = []
+    seen: set[str] = set()
+    for team in pull_request.get("requested_teams") or []:
+        slug = team.get("slug")
+        if not isinstance(slug, str) or not slug or slug in seen:
+            continue
+        seen.add(slug)
+        teams.append(slug)
+    return teams
+
+
 def fetch_preview_urls(repo: str, head_sha: str) -> list[str]:
     try:
         deployments = gh_json(
@@ -310,6 +322,9 @@ def fetch_snapshot(repo: str, pr: int, previous: Snapshot | None) -> Snapshot:
         approval_candidates = fetch_approval_candidates(repo, pr, pull_request)
         if approval_candidates:
             snapshot["approvalCandidates"] = approval_candidates
+        approval_teams = fetch_approval_teams(pull_request)
+        if approval_teams:
+            snapshot["approvalTeams"] = approval_teams
     if preview_urls:
         snapshot["previewUrls"] = preview_urls
     if preview_candidates:

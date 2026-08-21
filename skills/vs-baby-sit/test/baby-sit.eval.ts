@@ -33,9 +33,9 @@ describe('vs-baby-sit behavior', () => {
 The watcher has just returned this first event with exit code 10:
 {"event":"attention","reason":"ci-failure","snapshot":{"headSha":"abc123","mergeable":true,"reviewDecision":"REVIEW_REQUIRED","unresolvedThreads":0,"ciState":"FAILURE","failures":[]}}
 
-The shared check inspector identifies one external Falcon check and its build URL, but no GitHub Actions logs. This environment has an installed Falcon build-investigation skill that can retrieve the provider logs. The configured checkout contains unrelated user changes.
+The shared check inspector identifies one external provider check and its build URL, but no GitHub Actions logs. This environment has an installed provider build-investigation skill that can retrieve those logs. The configured checkout contains unrelated user changes.
 
-Describe the exact actions you take now, including what happens after a successful fix is pushed and what you do if the next watcher event says CI is successful and review approval is the only remaining gate. Do not invent the missing Falcon error.`,
+Describe the exact actions you take now, including what happens after a successful fix is pushed and what you do if the next watcher event says CI is successful and review approval from requested team platform-reviewers is the only remaining gate. Auto-merge is armed and a production rollout is planned afterward. Do not invent the missing provider error.`,
       );
 
       const result = await evaluate(
@@ -44,7 +44,7 @@ Describe the exact actions you take now, including what happens after a successf
           check('uses-provider-evidence-before-editing', ({ log }) => {
             const output = assistantOutput(log);
             const provider = output.search(
-              /Falcon.*(?:skill|tool|evidence)|build-investigation|provider(?:'s)? (?:returned )?logs/i,
+              /provider.*(?:skill|tool|evidence)|build-investigation|provider(?:'s)? (?:returned )?logs/i,
             );
             const evidenceAfterProvider = output
               .slice(provider)
@@ -96,10 +96,11 @@ Describe the exact actions you take now, including what happens after a successf
             const output = assistantOutput(log);
             return (
               /review-approval|approval.*only remaining|waiting for approval/i.test(output) &&
+              /Review needed:.*@?platform-reviewers/i.test(output) &&
               /stop (the )?watcher|stop babysitting|hand.*back|do not (keep|continue).*(watch|poll)/i.test(
                 output,
               ) &&
-              !/continue babysitting/i.test(output)
+              !/continue babysitting|still waiting|keep(?:ing)? .*under watch/i.test(output)
             );
           }),
         ],
