@@ -1,11 +1,13 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { describe, it, expect } from 'vitest';
-import { createAgent, check, score, judge, evaluate } from '@wix/pathgrade';
+import { check, score, judge, evaluate } from '@wix/pathgrade';
 import { promptOnce } from '../../vs-internal-shared/test/pathgrade-v1';
 
+import { createAgent } from '../../vs-internal-shared/test/pathgrade-agent';
+
 const SKILL_DIR = path.resolve(__dirname, '..');
-const EVAL_AGENT = (process.env.PATHGRADE_AGENT ?? 'claude') as 'claude' | 'codex';
+const EVAL_AGENT = (process.env.PATHGRADE_AGENT ?? 'codex') as 'claude' | 'codex';
 const COPY_FROM_HOME = EVAL_AGENT === 'codex' ? ['.codex'] : undefined;
 
 // ──────────────────────────────────────────────────────────────────
@@ -142,8 +144,8 @@ async function createRoastAgent(workspace: string) {
     agent: EVAL_AGENT,
     timeout: 420,
     skillDir: SKILL_DIR,
-    workspace,
     copyFromHome: COPY_FROM_HOME,
+    workspace,
     debug: true,
   });
 }

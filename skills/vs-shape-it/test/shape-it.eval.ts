@@ -1,7 +1,6 @@
 import * as path from 'path';
 import { describe, it, expect } from 'vitest';
 import {
-  createAgent,
   check,
   judge,
   evaluate,
@@ -14,10 +13,12 @@ import {
   withAskUserSupport,
 } from '../../vs-internal-shared/test/pathgrade-v1';
 
+import { createAgent } from '../../vs-internal-shared/test/pathgrade-agent';
+
 const SKILL_DIR = path.resolve(__dirname, '..');
 const FIXTURE_DIR = path.join(__dirname, 'fixtures', 'caching-project');
 const PERF_FIXTURE_DIR = path.join(__dirname, 'fixtures', 'perf-project');
-const EVAL_AGENT = (process.env.PATHGRADE_AGENT ?? 'claude') as 'claude' | 'codex';
+const EVAL_AGENT = (process.env.PATHGRADE_AGENT ?? 'codex') as 'claude' | 'codex';
 
 describe('shape-it', () => {
   it('explore-mode: vague idea triggers clarifying questions, not grilling', async () => {

@@ -1,11 +1,13 @@
 import * as path from 'node:path';
-import { check, createAgent, evaluate, judge } from '@wix/pathgrade';
+import { check, evaluate, judge } from '@wix/pathgrade';
 import { describe, expect, it } from 'vitest';
 import { promptOnce } from '../../vs-internal-shared/test/pathgrade-v1';
 
+import { createAgent } from '../../vs-internal-shared/test/pathgrade-agent';
+
 const SKILL_DIR = path.resolve(__dirname, '..');
 const FIXTURE_DIR = path.join(__dirname, 'fixtures', 'dispatch');
-const EVAL_AGENT = (process.env.PATHGRADE_AGENT ?? 'claude') as 'claude' | 'codex';
+const EVAL_AGENT = (process.env.PATHGRADE_AGENT ?? 'codex') as 'claude' | 'codex';
 
 describe('vs-architect behavior', () => {
   it('finds the Dispatch deepening without designing it prematurely', async () => {

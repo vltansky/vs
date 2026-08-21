@@ -2,7 +2,6 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { describe, it, expect } from 'vitest';
 import {
-  createAgent,
   check,
   judge,
   toolUsage,
@@ -12,9 +11,11 @@ import {
   hasAskUserEvent,
   promptAllowingAskUserInterrupt,
 } from '../../vs-internal-shared/test/pathgrade-v1';
+import { createAgent } from '../../vs-internal-shared/test/pathgrade-agent';
+
 const SKILL_DIR = path.resolve(__dirname, '..');
 const FIXTURE_DIR = path.join(__dirname, 'fixtures', 'review-thread-gates');
-const EVAL_AGENT = (process.env.PATHGRADE_AGENT ?? 'claude') as 'claude' | 'codex';
+const EVAL_AGENT = (process.env.PATHGRADE_AGENT ?? 'codex') as 'claude' | 'codex';
 const COPY_FROM_HOME = EVAL_AGENT === 'codex' ? ['.codex'] : undefined;
 const SKILL = fs.readFileSync(path.join(SKILL_DIR, 'SKILL.md'), 'utf8');
 const OPENAI_CONFIG = fs.readFileSync(

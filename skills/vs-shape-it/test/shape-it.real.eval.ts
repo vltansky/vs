@@ -1,6 +1,6 @@
 import * as path from 'path';
 import { describe, it, expect } from 'vitest';
-import { createAgent, check, judge, evaluate } from '@wix/pathgrade';
+import { check, judge, evaluate } from '@wix/pathgrade';
 import {
   askedClarifyingQuestion,
   CONVERSE_ASK_USER_DEFAULTS,
@@ -16,9 +16,11 @@ import {
 // the durable mechanism decision. Exercises shape-it's explore mode AND the
 // ADR-recommendation behavior.
 
+import { createAgent } from '../../vs-internal-shared/test/pathgrade-agent';
+
 const SKILL_DIR = path.resolve(__dirname, '..');
 const FIXTURE_DIR = path.join(__dirname, 'fixtures', 'auto-update-project');
-const EVAL_AGENT = (process.env.PATHGRADE_AGENT ?? 'claude') as 'claude' | 'codex';
+const EVAL_AGENT = (process.env.PATHGRADE_AGENT ?? 'codex') as 'claude' | 'codex';
 
 const REAL_PROMPT =
   'lets start brainstorming auto update functionality for user scope. ' +

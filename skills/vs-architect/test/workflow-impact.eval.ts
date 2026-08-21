@@ -2,14 +2,16 @@ import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
 import type { Agent, Scorer } from '@wix/pathgrade';
-import { createAgent, evaluate, judge, score } from '@wix/pathgrade';
+import { evaluate, judge, score } from '@wix/pathgrade';
 import { describe, expect, it } from 'vitest';
 import { promptOnce } from '../../vs-internal-shared/test/pathgrade-v1';
+
+import { createAgent } from '../../vs-internal-shared/test/pathgrade-agent';
 
 const SKILLS_DIR = path.resolve(__dirname, '..', '..');
 const ARCHITECT_DIR = path.resolve(__dirname, '..');
 const FIXTURE_DIR = path.join(__dirname, 'fixtures', 'dispatch');
-const EVAL_AGENT = (process.env.PATHGRADE_AGENT ?? 'claude') as 'claude' | 'codex';
+const EVAL_AGENT = (process.env.PATHGRADE_AGENT ?? 'codex') as 'claude' | 'codex';
 const MIN_DELTA = Number.parseFloat(process.env.VS_ARCHITECT_WORKFLOW_MIN_DELTA ?? '0.03');
 const SLICE = process.env.VS_ARCHITECT_WORKFLOW_SLICE as Workflow | undefined;
 

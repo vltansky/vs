@@ -1,6 +1,6 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
-import { check, createAgent, evaluate, judge, score } from '@wix/pathgrade';
+import { check, evaluate, judge, score } from '@wix/pathgrade';
 import { describe, expect, it } from 'vitest';
 import { promptOnce } from '../../vs-internal-shared/test/pathgrade-v1';
 import {
@@ -11,8 +11,10 @@ import {
   type WriteCase,
 } from './cases';
 
+import { createAgent } from '../../vs-internal-shared/test/pathgrade-agent';
+
 const SKILL_DIR = path.resolve(__dirname, '..');
-const EVAL_AGENT = (process.env.PATHGRADE_AGENT ?? 'claude') as
+const EVAL_AGENT = (process.env.PATHGRADE_AGENT ?? 'codex') as
   | 'claude'
   | 'codex';
 

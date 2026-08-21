@@ -1,11 +1,13 @@
 import * as path from 'path';
 import { describe, it, expect } from 'vitest';
-import { createAgent, check, judge, evaluate } from '@wix/pathgrade';
+import { check, judge, evaluate } from '@wix/pathgrade';
 import { promptOnce } from '../../vs-internal-shared/test/pathgrade-v1';
+
+import { createAgent } from '../../vs-internal-shared/test/pathgrade-agent';
 
 const SKILL_DIR = path.resolve(__dirname, '..');
 const FIXTURE_DIR = path.join(__dirname, 'fixtures', 'caching-decision');
-const EVAL_AGENT = (process.env.PATHGRADE_AGENT ?? 'claude') as 'claude' | 'codex';
+const EVAL_AGENT = (process.env.PATHGRADE_AGENT ?? 'codex') as 'claude' | 'codex';
 
 // Ground truth:
 //   - The fixture has a working SQLite KV cache in src/cache/kv.ts with

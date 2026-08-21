@@ -1,12 +1,10 @@
 import { defineConfig } from 'vitest/config';
 import { pathgrade } from '@wix/pathgrade/adapters/vitest';
 
-// Pathgrade drives a real coding agent (Claude or Codex) per eval, so each test
-// can take minutes. On macOS no API key is needed: pathgrade reuses the Claude
-// Code OAuth login from the Keychain for both the agent under test and the judge
-// scorers, without copying ~/.claude.json or enabling Claude.ai MCP connectors.
-// Elsewhere set ANTHROPIC_API_KEY (or CLAUDE_CODE_OAUTH_TOKEN); Codex needs
-// OPENAI_API_KEY. Pick the agent with PATHGRADE_AGENT=claude|codex.
+// PathGrade drives a real coding agent per behavior eval, so each test can take
+// minutes. The repository default is Codex on gpt-5.6-luna. Override the agent
+// with PATHGRADE_AGENT=claude|codex and the Codex model with
+// PATHGRADE_CODEX_MODEL. Codex can use OPENAI_API_KEY or its cached CLI login.
 export default defineConfig({
   test: {
     hookTimeout: 180_000,

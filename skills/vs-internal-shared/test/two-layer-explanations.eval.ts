@@ -1,12 +1,14 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import { check, createAgent, evaluate } from '@wix/pathgrade';
+import { check, evaluate } from '@wix/pathgrade';
 import { describe, expect, it } from 'vitest';
 import { promptOnce } from './pathgrade-v1';
 
+import { createAgent } from './pathgrade-agent';
+
 const SKILL_DIR = path.resolve(__dirname, '..');
 const FIXTURE = path.join(__dirname, 'fixtures', 'explanation-surface');
-const EVAL_AGENT = (process.env.PATHGRADE_AGENT ?? 'claude') as
+const EVAL_AGENT = (process.env.PATHGRADE_AGENT ?? 'codex') as
   | 'claude'
   | 'codex';
 const COPY_FROM_HOME = EVAL_AGENT === 'codex' ? ['.codex'] : undefined;

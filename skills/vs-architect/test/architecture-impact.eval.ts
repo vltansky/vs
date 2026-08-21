@@ -1,14 +1,16 @@
 import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
-import { check, createAgent, evaluate, judge, score } from '@wix/pathgrade';
+import { check, evaluate, judge, score } from '@wix/pathgrade';
 import { describe, expect, it } from 'vitest';
 import { promptOnce } from '../../vs-internal-shared/test/pathgrade-v1';
+
+import { createAgent } from '../../vs-internal-shared/test/pathgrade-agent';
 
 const ARCHITECT_DIR = path.resolve(__dirname, '..');
 const IMPROVE_DIR = path.resolve(__dirname, '..', '..', 'vs-improve');
 const FIXTURE_DIR = path.join(__dirname, 'fixtures', 'dispatch');
-const EVAL_AGENT = (process.env.PATHGRADE_AGENT ?? 'claude') as 'claude' | 'codex';
+const EVAL_AGENT = (process.env.PATHGRADE_AGENT ?? 'codex') as 'claude' | 'codex';
 const TRIALS = Math.max(1, Number.parseInt(process.env.VS_ARCHITECT_AB_TRIALS ?? '1', 10));
 const MIN_DELTA = Number.parseFloat(process.env.VS_ARCHITECT_AB_MIN_DELTA ?? '0.03');
 

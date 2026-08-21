@@ -1,6 +1,8 @@
 import * as path from 'path';
 import { describe, expect, it } from 'vitest';
-import { check, createAgent, evaluate } from '@wix/pathgrade';
+import { check, evaluate } from '@wix/pathgrade';
+
+import { createAgent } from '../../vs-internal-shared/test/pathgrade-agent';
 
 const SKILL_DIR = path.resolve(__dirname, '..');
 

@@ -1,6 +1,6 @@
 import * as path from 'path';
 import { describe, it, expect } from 'vitest';
-import { createAgent, check, judge, evaluate } from '@wix/pathgrade';
+import { check, judge, evaluate } from '@wix/pathgrade';
 import { promptOnce } from '../../vs-internal-shared/test/pathgrade-v1';
 
 // Grounded in a real prompt from the author's Codex history:
@@ -11,9 +11,11 @@ import { promptOnce } from '../../vs-internal-shared/test/pathgrade-v1';
 // surface the simpler collapse-to-one-skill alternative, and not rubber-stamp
 // the existing architecture.
 
+import { createAgent } from '../../vs-internal-shared/test/pathgrade-agent';
+
 const SKILL_DIR = path.resolve(__dirname, '..');
 const FIXTURE_DIR = path.join(__dirname, 'fixtures', 'layered-review');
-const EVAL_AGENT = (process.env.PATHGRADE_AGENT ?? 'claude') as 'claude' | 'codex';
+const EVAL_AGENT = (process.env.PATHGRADE_AGENT ?? 'codex') as 'claude' | 'codex';
 
 const REAL_PROMPT =
   "im not buying the need of a separate 'review report' step — why? " +

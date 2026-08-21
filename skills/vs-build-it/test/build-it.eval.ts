@@ -2,7 +2,6 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { describe, it, expect } from 'vitest';
 import {
-  createAgent,
   check,
   score,
   judge,
@@ -11,10 +10,12 @@ import {
 } from '@wix/pathgrade';
 import { promptOnce } from '../../vs-internal-shared/test/pathgrade-v1';
 
+import { createAgent } from '../../vs-internal-shared/test/pathgrade-agent';
+
 const SKILL_DIR = path.resolve(__dirname, '..');
 const TS_FIXTURE = path.join(__dirname, 'fixtures', 'ts-project');
 const BUG_FIXTURE = path.join(__dirname, 'fixtures', 'ts-project-with-bug');
-const EVAL_AGENT = (process.env.PATHGRADE_AGENT ?? 'claude') as 'claude' | 'codex';
+const EVAL_AGENT = (process.env.PATHGRADE_AGENT ?? 'codex') as 'claude' | 'codex';
 const COPY_FROM_HOME = EVAL_AGENT === 'codex' ? ['.codex'] : undefined;
 
 const HAPPY_PATH_RUBRIC = `Evaluate whether the build-it skill correctly implemented a plan end-to-end.
