@@ -14,6 +14,8 @@ describe('vs-chief-of-staff behavior', () => {
       agent: EVAL_AGENT,
       timeout: 300,
       skillDir: SKILL_DIR,
+      copyFromHome:
+        EVAL_AGENT === 'codex' ? ['.codex/auth.json'] : undefined,
     });
 
     try {
@@ -26,7 +28,7 @@ describe('vs-chief-of-staff behavior', () => {
 - Flights task: I just told this control task "also compare Heathrow" and that instruction belongs to the Flights task.
 - Auth task: read_thread timed out at the thread-service layer.
 
-The fixture cannot expose real Codex task tools. Return a concise action plan naming the exact host tools you would call next. Show how continuous waiting and the user question work. Do not perform SEO, flight, auth, or CloudStore work yourself.`,
+This environment cannot execute the host's task controls. Return a concise action plan naming the exact host calls you would make next. Do not perform SEO, flight, auth, or CloudStore work yourself.`,
       );
 
       const result = await evaluate(
@@ -39,7 +41,7 @@ The fixture cannot expose real Codex task tools. Return a concise action plan na
             /send_message_to_thread[\s\S]*(Flights|Heathrow)/i.test(transcript),
           ),
           check('stateful-wait', ({ transcript }) =>
-            /wait_threads[\s\S]*(afterCursor|cursor)[\s\S]*(300000|600000|five minutes|ten minutes|longest supported)/i.test(transcript),
+            /wait_threads[\s\S]*(afterCursor|cursor)[\s\S]*(300000|600000|five minutes|ten minutes|(?:host|longest|maximum) (?:maximum|supported))/i.test(transcript),
           ),
           check('no-minute-poll-loop', ({ transcript }) =>
             !/(every|each|at most)\s+60\s*(seconds|s)|timeoutMs\s*[:=]\s*60000\b/i.test(transcript),

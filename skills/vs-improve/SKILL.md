@@ -111,6 +111,11 @@ Every finding needs: evidence (`file:line` references), impact, effort estimate 
 
 ### Phase 3 — Vet, prioritize, confirm
 
+Apply the shared
+[`minimum-solution` gate](../vs-internal-shared/references/minimum-solution.md)
+to each surviving proposal. Prefer the smallest independently useful plan that
+fixes the evidenced problem; do not minimize its proof or safety constraints.
+
 **Vet before presenting — subagents over-report.** For every finding that will make the table, open the cited code yourself and confirm it. Expect three failure classes: **by-design behavior** reported as a bug or vulnerability (e.g. honoring `https_proxy` flagged as SSRF — it's the standard proxy convention; or a tradeoff explicitly recorded in an ADR / decision doc from recon — that's settled, not a finding); **mis-attributed evidence** (real finding, wrong file or line); and duplicates across subagents. Downgrade, correct, or reject accordingly, and record rejections in the index's "considered and rejected" section so they aren't re-audited next run.
 
 Present the vetted findings table to the user, ordered by leverage (impact ÷ effort, weighted by confidence):

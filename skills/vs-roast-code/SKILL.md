@@ -13,6 +13,8 @@ Second pass roasts what's left.
 Roast Code is a building-block review tool. It consumes:
 
 - `vs-deslop` semantics during Pass 1: simplify working code while preserving behavior.
+- The shared [`minimum-solution` gate](../vs-internal-shared/references/minimum-solution.md)
+  when judging whether new machinery is necessary.
 - [independent-advisors](../vs-internal-shared/references/independent-advisors.md)
   during Pass 2: Codex or another model is an independent signal, not the final
   judge.

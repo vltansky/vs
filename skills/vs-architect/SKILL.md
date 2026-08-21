@@ -74,6 +74,12 @@ Stop recon when more reading is unlikely to change the candidate set.
 
 ## 2. Explore friction
 
+Apply the shared
+[`minimum-solution` gate](../vs-internal-shared/references/minimum-solution.md)
+while vetting candidates. Prefer deletion, reuse, and a smaller existing seam;
+reject a candidate whose new architecture costs more than the caller complexity
+it removes. Do not use the gate to reduce evidence or the deletion test.
+
 Follow understanding friction, not a fixed smell checklist. Look for:
 
 - one domain concept that requires bouncing through many shallow modules;

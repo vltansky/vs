@@ -286,6 +286,12 @@ prior-art finding you deliberately rejected as a decision with its rationale.
 
 #### Design
 
+Load and apply the shared
+[`minimum-solution` gate](../vs-internal-shared/references/minimum-solution.md).
+Use it to minimize concepts, interfaces, dependencies, and coordination in the
+first slice; never use it to reduce evidence, verification, safety, or an
+explicit requirement.
+
 Lead with the recommended approach and why. Keep the core chat design under
 about 450 words, excluding a justified orchestration appendix, and include:
 

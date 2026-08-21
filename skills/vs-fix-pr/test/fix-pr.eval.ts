@@ -10,13 +10,20 @@ import {
 import {
   hasAskUserEvent,
   promptAllowingAskUserInterrupt,
+  promptOnce,
 } from '../../vs-internal-shared/test/pathgrade-v1';
 import { createAgent } from '../../vs-internal-shared/test/pathgrade-agent';
 
 const SKILL_DIR = path.resolve(__dirname, '..');
 const FIXTURE_DIR = path.join(__dirname, 'fixtures', 'review-thread-gates');
+const CI_REVIEW_FIXTURE_DIR = path.join(
+  __dirname,
+  'fixtures',
+  'ci-and-review',
+);
 const EVAL_AGENT = (process.env.PATHGRADE_AGENT ?? 'codex') as 'claude' | 'codex';
-const COPY_FROM_HOME = EVAL_AGENT === 'codex' ? ['.codex'] : undefined;
+const COPY_FROM_HOME =
+  EVAL_AGENT === 'codex' ? ['.codex/auth.json'] : undefined;
 const SKILL = fs.readFileSync(path.join(SKILL_DIR, 'SKILL.md'), 'utf8');
 const OPENAI_CONFIG = fs.readFileSync(
   path.join(SKILL_DIR, 'agents', 'openai.yaml'),
@@ -91,6 +98,73 @@ function getAskUserPayload(toolEvents: Array<{ action: string; arguments?: Recor
 }
 
 describe('fix-pr', () => {
+  it('repairs PR-owned CI and review-body feedback in one cycle', async () => {
+    const agent = await createAgent({
+      agent: EVAL_AGENT,
+      timeout: 480,
+      skillDir: SKILL_DIR,
+      workspace: CI_REVIEW_FIXTURE_DIR,
+      copyFromHome: COPY_FROM_HOME,
+      debug: true,
+    });
+
+    try {
+      await agent.exec('git init -q');
+      await agent.exec('git config user.name "Pathgrade"');
+      await agent.exec('git config user.email "pathgrade@example.invalid"');
+      await agent.exec('git add .');
+      await agent.exec('git commit -qm "fixture: initial state"');
+
+      await promptOnce(
+        agent,
+        'Use fix-pr and continue from handoff.md. Fix every PR-owned CI failure and actionable feedback already recorded there. Do not fetch GitHub again, do not start a dev server, and do not post or resolve feedback without approval.',
+      );
+
+      const result = await evaluate(
+        agent,
+        [
+          check('focused-tests-pass', async ({ runCommand }) => {
+            const { exitCode } = await runCommand('npm test');
+            return exitCode === 0;
+          }),
+          check('fallback-is-implemented', async ({ runCommand }) => {
+            const { stdout } = await runCommand('node -e "import(\'./src/slug.js\').then(({slugify}) => console.log(slugify(\'!!!\')))"');
+            return stdout.trim() === 'untitled';
+          }),
+          check('review-body-is-addressed', ({ workspace }) => {
+            const docs = fs.readFileSync(
+              path.join(workspace, 'docs', 'behavior.md'),
+              'utf8',
+            );
+            return /punctuation|empty|fallback/i.test(docs) &&
+              /untitled/i.test(docs);
+          }),
+          check('does-not-add-a-dependency', async ({ runCommand }) => {
+            const { stdout } = await runCommand(
+              'git diff HEAD -- package.json package-lock.json',
+            );
+            return stdout.trim() === '';
+          }),
+          check('recognizes-both-work-surfaces', ({ transcript }) =>
+            /CI|unit|test failure/i.test(transcript) &&
+            /review (submission )?body|feedback|document/i.test(transcript),
+          ),
+          check('preserves-reply-approval', ({ transcript, toolEvents }) =>
+            hasAskUserEvent(toolEvents, /reply|resolve|post|approval/i) ||
+            /approval.*(reply|resolve|post)|(reply|resolve|post).*approval/i.test(
+              transcript,
+            ),
+          ),
+        ],
+        { failFast: false, onScorerError: 'zero' },
+      );
+
+      expect(result.score).toBeGreaterThanOrEqual(5 / 6);
+    } finally {
+      await agent.dispose();
+    }
+  });
+
   it('uses ask-user tool for the inline-thread reply approval gate', async () => {
     const agent = await createFixPrAgent(360);
 

@@ -1,0 +1,31 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|resume|clear|compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/minimum-solution.mjs\"",
+            "timeout": 5,
+            "additionalContextLimit": 500,
+            "statusMessage": "Loading minimum-solution guidance..."
+          }
+        ]
+      }
+    ],
+    "SubagentStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PLUGIN_ROOT}/hooks/minimum-solution.mjs\"",
+            "timeout": 5,
+            "additionalContextLimit": 500,
+            "statusMessage": "Loading minimum-solution guidance..."
+          }
+        ]
+      }
+    ]
+  }
+}

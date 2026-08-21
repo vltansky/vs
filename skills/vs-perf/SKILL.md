@@ -45,8 +45,10 @@ and frame the work as cleanup or architecture, not proven performance.
 3. **Record the baseline.** Run the evaluator before edits and capture the result.
 4. **Set the pass contract.** Example: "PASS when p95 improves by 20% and tests
    still pass."
-5. **Optimize in small patches.** Re-run the evaluator after each meaningful
-   change.
+5. **Optimize in small patches.** Apply the shared
+   [`minimum-solution` gate](../vs-internal-shared/references/minimum-solution.md)
+   and stop at the first change that meets the pass contract. Re-run the
+   evaluator after each meaningful change.
 6. **Guard correctness.** Pair performance checks with relevant regression tests.
 
 ## Output

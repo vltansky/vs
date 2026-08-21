@@ -93,6 +93,25 @@ You do not need to run that chain yourself. Use the core workflow by default.
 When you want only one part—for example, a root-cause investigation or a final
 verification—you can invoke `/vs-debug-mode` or `/vs-verify` directly.
 
+### Minimum solutions by default
+
+vs looks for the smallest complete solution after it understands the affected
+code and the requested outcome. It checks, in order, whether it can avoid new
+code, reuse the repository, use the standard library or native platform, reuse
+an installed dependency, express the change clearly in one line, or write the
+smallest new implementation.
+
+This gate reduces machinery, not quality. It does not relax requirements,
+security, accessibility, error handling, tests, research, or verification.
+
+`/vs-shape-it`, `/vs-architect`, `/vs-build-it`, and other workflows that decide
+solution size apply the gate explicitly. Claude Code and Codex also load it for
+sessions and subagents through plugin hooks, so it still applies when you work
+outside `/vs-build-it`. Set `VS_MINIMUM_SOLUTION=off` only when you need to
+disable that global hook for testing or troubleshooting; explicit workflow
+guidance remains active. Cursor receives the guidance through the workflows it
+loads rather than through a plugin hook.
+
 ### Advanced workflows
 
 | Skill | Use it to |
@@ -273,6 +292,7 @@ without copying `~/.claude.json` or enabling Claude.ai MCP connectors.
 
 vs builds on ideas from
 [superpowers](https://github.com/obra/superpowers),
+[Ponytail](https://github.com/dietrichgebert/ponytail),
 [Matt Pocock's skills](https://github.com/mattpocock/skills),
 [oh-my-claudecode](https://github.com/yeachan-heo/oh-my-claudecode),
 [gstack](https://github.com/garrytan/gstack),

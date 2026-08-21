@@ -32,6 +32,11 @@ assumption.
 
 ## Choose the easiest seam
 
+Apply the shared
+[`minimum-solution` gate](../vs-internal-shared/references/minimum-solution.md)
+after inspecting the relevant code. The first rung that answers the prototype's
+one question is the prototype; do not climb further for production resemblance.
+
 In an existing project, optimize for **time to a useful comparison**, not maximum
 reuse. After inspecting the relevant route and its runtime dependencies, choose:
 

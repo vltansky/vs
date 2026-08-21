@@ -7,6 +7,7 @@
     "url": "https://github.com/vltansky"
   },
   "homepage": "https://github.com/vltansky/vs",
+  "hooks": "./hooks/hooks.json",
   "skills": [
     "./skills/vs-search-threads",
     "./skills/vs-chief-of-staff",

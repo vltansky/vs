@@ -267,6 +267,11 @@ Stop. Present findings.
 
 ## Phase 4: Fix
 
+Load and apply the shared
+[`minimum-solution` gate](../vs-internal-shared/references/minimum-solution.md)
+after the root cause is proven. Prefer one fix at the shared cause over smaller
+symptom patches, then preserve the reproduction and safety guardrails.
+
 Apply the minimal fix. Follow the TDD skill's Phase 3 (Green) methodology.
 
 1. Write the minimum code to make the failing test pass. Nothing more.

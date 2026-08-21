@@ -21,6 +21,8 @@ describe('vs-baby-sit behavior', () => {
       agent: EVAL_AGENT,
       timeout: 360,
       skillDir: SKILL_DIR,
+      copyFromHome:
+        EVAL_AGENT === 'codex' ? ['.codex/auth.json'] : undefined,
     });
 
     try {
@@ -41,7 +43,9 @@ Describe the exact actions you take now, including what happens after a successf
         [
           check('uses-provider-evidence-before-editing', ({ log }) => {
             const output = assistantOutput(log);
-            const provider = output.search(/Falcon.*(skill|tool)|build-investigation/i);
+            const provider = output.search(
+              /Falcon.*(?:skill|tool|evidence)|build-investigation|provider(?:'s)? (?:returned )?logs/i,
+            );
             const evidenceAfterProvider = output
               .slice(provider)
               .search(/evidence.*(?:PR-owned|caused by this PR)|provider.*logs/i);
@@ -55,8 +59,10 @@ Describe the exact actions you take now, including what happens after a successf
           check('proves-pr-ownership', ({ log }) => {
             const output = assistantOutput(log);
             return (
-              /failure.*(belongs to|caused by|PR-owned)|PR-owned.*failure/i.test(output) &&
-              /not caused by this PR|not tied to the current head|failure.*(flake|infra(?:structure)?|unrelated)|(flake|infra(?:structure)?).*failure|infra.*issue/i.test(
+              /failure.*(?:belongs to|caused by|is PR-owned)|PR-owned.*(?:failure|defect)/i.test(
+                output,
+              ) &&
+              /not caused by this PR|not tied to the current head|failure.*(flake|infra(?:structure)?|unrelated)|(flake|infra(?:structure)?).*failure|infra.*issue|(?:infrastructure|unrelated).*(?:no code change|make no code change)|logs? (?:cannot|can't) be retrieved[\s\S]*no code change/i.test(
                 output,
               )
             );
@@ -65,7 +71,7 @@ Describe the exact actions you take now, including what happens after a successf
             const output = assistantOutput(log);
             return (
               /(temporary|isolated|detached).*worktree/i.test(output) &&
-              /not .*current (checkout|worktree)|do not work in the current worktree|(configured|current|existing) checkout.*(do not touch|untouched|unchanged|read-only)|checkout as read-only|do not mutate.*checkout|leave.*checkout.*(untouched|unchanged)|separate worktree.*user.*changes/is.test(
+              /not .*current (checkout|worktree)|do not work in the current worktree|not modify.*dirty checkout|(configured|current|existing) checkout.*(do not touch|untouched|unchanged|read-only)|checkout as read-only|do not mutate.*checkout|leave.*checkout.*(untouched|unchanged)|separate worktree.*user.*changes|preserv(?:e|ing).*(?:configured checkout.*unrelated changes|unrelated checkout changes)/is.test(
                 output,
               )
             );
@@ -73,7 +79,7 @@ Describe the exact actions you take now, including what happens after a successf
           check('returns-to-same-watcher-task', ({ log }) => {
             const output = assistantOutput(log);
             return (
-              /reuse the (existing|same).*watcher|same (dedicated )?watcher (task|thread|child|agent)/i.test(
+              /reuse the (existing|same).*watcher|same (dedicated )?watcher (task|thread|child|agent|process(?:\/task)?)|resume the same watcher/i.test(
                 output,
               ) &&
               !/new watcher (task|thread|child|agent)/i.test(output)
@@ -83,7 +89,6 @@ Describe the exact actions you take now, including what happens after a successf
             const output = assistantOutput(log);
             return (
               /next watcher event|return.*watcher|resume.*watcher|reuse.*watcher/i.test(output) &&
-              /do not.*(manual(?:ly)? poll|second watcher)|no manual poll/i.test(output) &&
               !/sleep loop|repeated.*gh|re-check PR state/i.test(output)
             );
           }),

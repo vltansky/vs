@@ -100,6 +100,10 @@ use it as the run-level progress contract for build-it:
 
 These apply the shared `vs-decide-for-me` contract to every question that would normally go to the user. A decision recorded in an ADR read during Phase 0 outranks all of them:
 
+Load and apply the shared
+[`minimum-solution` gate](../vs-internal-shared/references/minimum-solution.md)
+during planning, implementation, review, and cleanup.
+
 1. **Outcome completeness** — ship the smallest complete observable outcome.
    Do not implement every capability in a plan when a narrower vertical slice
    satisfies the stated goal; defer non-blocking depth explicitly.

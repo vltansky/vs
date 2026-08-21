@@ -267,6 +267,11 @@ Is the reviewer's latest ask valid feedback?
 
 ### 4b. Decide Action
 
+For an accepted code change, apply the shared
+[`minimum-solution` gate](../vs-internal-shared/references/minimum-solution.md)
+after confirming the feedback is PR-owned. Prefer the smallest root-cause fix
+that satisfies the comment and CI; do not minimize the approval boundary.
+
 | Confidence | Action | Next |
 |------------|--------|------|
 | **High (agree)** | Implement the fix | 4c (fix → reply → resolve) |

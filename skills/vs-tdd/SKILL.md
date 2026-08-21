@@ -83,6 +83,10 @@ Do not write all tests first and then all implementation. That is specification-
 
 ## Phase 3: Green (Implement)
 
+Apply the shared
+[`minimum-solution` gate](../vs-internal-shared/references/minimum-solution.md)
+after the failing behavior is understood.
+
 Write the minimum code to make the test pass. Nothing more.
 
 1. Implement the fix or feature.
