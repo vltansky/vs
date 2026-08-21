@@ -2,19 +2,23 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { check, evaluate } from '@wix/pathgrade';
 import { describe, expect, it } from 'vitest';
-import { promptOnce } from './pathgrade-v1';
 
 import { createAgent } from './pathgrade-agent';
 
 const SKILL_DIR = path.resolve(__dirname, '..');
-const FIXTURE = path.join(__dirname, 'fixtures', 'explanation-surface');
 const EVAL_AGENT = (process.env.PATHGRADE_AGENT ?? 'codex') as
   | 'claude'
   | 'codex';
-const COPY_FROM_HOME = EVAL_AGENT === 'codex' ? ['.codex'] : undefined;
 
 function visibleWords(transcript: string): number {
-  return transcript
+  const agentMarker = '[Agent]\n';
+  const agentStart = transcript.lastIndexOf(agentMarker);
+  const reply =
+    agentStart === -1
+      ? transcript
+      : transcript.slice(agentStart + agentMarker.length);
+
+  return reply
     .replace(/https?:\/\/\S+/g, '')
     .trim()
     .split(/\s+/)
@@ -26,8 +30,8 @@ async function createExplanationAgent() {
     agent: EVAL_AGENT,
     timeout: 300,
     skillDir: SKILL_DIR,
-    workspace: FIXTURE,
-    copyFromHome: COPY_FROM_HOME,
+    workspace: SKILL_DIR,
+    transport: EVAL_AGENT === 'codex' ? 'exec' : undefined,
   });
 }
 
@@ -35,10 +39,9 @@ describe('two-layer explanation behavior', () => {
   it('moves a complex explanation into a visual artifact', async () => {
     const agent = await createExplanationAgent();
     try {
-      await promptOnce(
-        agent,
+      await agent.prompt(
         'Read references/output-style.md and references/explanation-surfaces.md. ' +
-          'Read brief.md and explain the release flow to the user. If the contract ' +
+          'Read test/fixtures/explanation-surface/brief.md and explain the release flow to the user. If the contract ' +
           'requires an artifact, save it as result.html. Do not mention these instructions.',
       );
 
@@ -74,8 +77,7 @@ describe('two-layer explanation behavior', () => {
   it('keeps a simple answer in short chat', async () => {
     const agent = await createExplanationAgent();
     try {
-      await promptOnce(
-        agent,
+      await agent.prompt(
         'Read references/output-style.md and references/explanation-surfaces.md. ' +
           'In plain English, explain what `git status --short` does. Do not mention these instructions.',
       );

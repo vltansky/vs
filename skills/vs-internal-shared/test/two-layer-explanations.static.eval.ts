@@ -25,6 +25,10 @@ const SEARCH_THREADS = fs.readFileSync(
   path.resolve(SHARED_DIR, '..', 'vs-search-threads', 'SKILL.md'),
   'utf8',
 );
+const BEHAVIOR_EVAL = fs.readFileSync(
+  path.join(SHARED_DIR, 'test', 'two-layer-explanations.eval.ts'),
+  'utf8',
+);
 const FIRST_ADOPTERS = ['vs-shape-it', 'vs-improve', 'vs-rfc-research', 'vs-build-it'].map(
   (skill) => ({
     skill,
@@ -64,6 +68,24 @@ describe('two-layer explanation contract', () => {
     expect(EXPLANATION_SURFACES).toMatch(/one-sentence.*proposal|proposal.*one sentence/is);
     expect(EXPLANATION_SURFACES).toMatch(/three to five.*rules/is);
     expect(EXPLANATION_SURFACES).toMatch(/remove.*alternatives.*acceptance lists/is);
+  });
+
+  it('uses cached Codex auth without copying the whole Codex home', () => {
+    expect(BEHAVIOR_EVAL).not.toMatch(/copyFromHome[\s\S]{0,80}\.codex/i);
+    expect(BEHAVIOR_EVAL).toMatch(/transport[\s\S]{0,40}exec/i);
+    expect(BEHAVIOR_EVAL).toMatch(/agent\.prompt\(/);
+  });
+
+  it('stages the shared references inside the behavior workspace', () => {
+    expect(BEHAVIOR_EVAL).toMatch(/workspace:\s*SKILL_DIR/);
+    expect(BEHAVIOR_EVAL).toMatch(
+      /test\/fixtures\/explanation-surface\/brief\.md/,
+    );
+  });
+
+  it('applies chat budgets only to the agent reply', () => {
+    expect(BEHAVIOR_EVAL).toMatch(/const agentMarker = '\[Agent\]\\n'/);
+    expect(BEHAVIOR_EVAL).toMatch(/lastIndexOf\(agentMarker\)/);
   });
 
   it('checks understanding without adding approval ceremony', () => {
