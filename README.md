@@ -18,19 +18,28 @@ review, and follow through on CI.
 
 ### 1. Install vs
 
-Run the installer. It installs vs into every supported coding agent it finds:
+Install vs through your agent's marketplace so future releases are picked up
+automatically.
+
+For Codex:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/vltansky/vs/master/install.sh | bash
+codex plugin marketplace add vltansky/vs
+codex plugin add vs@vs
 ```
 
-On Windows, run the PowerShell installer instead:
+Codex refreshes Git marketplaces and installed plugins automatically at startup.
 
-```powershell
-irm https://raw.githubusercontent.com/vltansky/vs/master/install.ps1 | iex
+For Claude Code:
+
+```text
+/plugin marketplace add vltansky/vs
+/plugin install vs@vs
 ```
 
-Restart your agent session after installation.
+Third-party Claude Code marketplaces do not auto-update by default. Open
+`/plugin`, select **Marketplaces → vs → Enable auto-update**, then restart your
+agent session. Cursor installation options are below.
 
 ### 2. Shape the change
 
@@ -195,7 +204,8 @@ load the same `SKILL.md` files under `skills/`.
 
 ### GitHub CLI
 
-This uses your existing `gh` authentication and also works for private clones:
+This one-time installer uses your existing `gh` authentication and also works
+for private clones:
 
 ```bash
 gh api repos/vltansky/vs/contents/install.sh -H "Accept: application/vnd.github.raw" | bash
@@ -210,12 +220,18 @@ gh api repos/vltansky/vs/contents/install.ps1 -H "Accept: application/vnd.github
 From a clone, run `./install.sh` or `npm run install-plugin` (Windows:
 `./install.ps1` or `npm run install-plugin:windows`).
 
+Re-run the installer to update every detected agent. For automatic updates, use
+the native Codex or Claude Code marketplace installation below.
+
 ### Claude Code
 
 ```text
 /plugin marketplace add vltansky/vs
 /plugin install vs@vs
 ```
+
+Open `/plugin`, select **Marketplaces → vs → Enable auto-update**. Claude Code
+then refreshes the marketplace and installed plugin at startup.
 
 ### Codex
 
@@ -224,10 +240,13 @@ codex plugin marketplace add vltansky/vs
 codex plugin add vs@vs
 ```
 
+Codex refreshes Git marketplaces and installed plugins automatically at startup.
+
 ### Cursor
 
-Cursor 2.5+ has no plugin-install CLI. Import `vltansky/vs` through your team
-marketplace, or clone the plugin locally and reload Cursor:
+Cursor 2.5+ has no plugin-install CLI. For automatic updates, import
+`vltansky/vs` through a team marketplace and turn on **Enable Auto Refresh**.
+Otherwise, clone the plugin locally and reload Cursor:
 
 ```bash
 git clone https://github.com/vltansky/vs ~/.cursor/plugins/local/vs
