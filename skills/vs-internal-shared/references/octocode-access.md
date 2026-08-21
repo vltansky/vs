@@ -41,9 +41,8 @@ npx -y octocode-cli@latest --tool githubSearchCode \
   (`octocode-cli login` or `gh auth login`).
 - Independent calls should be issued in one message so they run concurrently.
   One process start per call is the CLI's main cost; do not loop sequentially.
-- If `npx` resolves against an internal registry (Wix machines default to
-  `npm.dev.wixpress.com`), add `--registry https://registry.npmjs.org` or
-  connect the VPN.
+- If `npx` resolves against a private registry, add
+  `--registry https://registry.npmjs.org` or connect the required VPN.
 
 Say in the report that Octocode ran through the CLI rather than MCP, and that
 the host may need to reload or reinstall plugin MCP config.
