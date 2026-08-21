@@ -220,7 +220,7 @@ responses = iter([
         {"state": "success", "environment_url": "https://preview.example/old"},
     ],
 ])
-watcher.gh_json = lambda *args: next(responses)
+watcher.gh_json = lambda *args, **kwargs: next(responses)
 print(watcher.fetch_preview_urls("owner/repo", "abc123"))
 `;
     const result = spawnSync('python3', ['-c', code, WATCHER], {
@@ -353,6 +353,55 @@ esac
     ]);
   });
 
+  it('survives a transient GitHub API failure before the baseline snapshot', () => {
+    const fakeBin = fs.mkdtempSync(path.join(os.tmpdir(), 'baby-sit-retry-gh-'));
+    const fakeGh = path.join(fakeBin, 'gh');
+    const failOnceState = path.join(fakeBin, 'failed-once');
+    fs.writeFileSync(
+      fakeGh,
+      `#!/bin/sh
+case "$*" in
+  *"pulls/42"*)
+    if [ ! -f "$FAIL_ONCE_STATE" ]; then
+      : > "$FAIL_ONCE_STATE"
+      echo 'temporary GitHub API failure' >&2
+      exit 1
+    fi
+    echo '{"state":"open","merged":false,"mergeable":true,"head":{"sha":"abc123"}}'
+    ;;
+  *"check-runs"*) echo '{"check_runs":[{"name":"test","status":"in_progress","conclusion":null}]}' ;;
+  *"commits/abc123/status"*) echo '{"state":"pending","statuses":[]}' ;;
+  *"deployments?sha=abc123"*) echo '[]' ;;
+  *"issues/42/comments"*) echo '[]' ;;
+  *"api graphql"*) echo '{"data":{"repository":{"pullRequest":{"reviewDecision":"APPROVED","reviewThreads":{"nodes":[]}}}}}' ;;
+  *) exit 1 ;;
+esac
+`,
+      { mode: 0o755 },
+    );
+
+    const result = spawnSync(
+      'python3',
+      [WATCHER, '--repo', 'owner/repo', '--pr', '42', '--max-polls', '1'],
+      {
+        encoding: 'utf8',
+        env: {
+          ...process.env,
+          FAIL_ONCE_STATE: failOnceState,
+          PATH: `${fakeBin}:${process.env.PATH}`,
+        },
+      },
+    );
+    fs.rmSync(fakeBin, { recursive: true });
+
+    expect(result.status, result.stderr).toBe(0);
+    expect(result.stderr).toBe('');
+    expect(JSON.parse(result.stdout)).toMatchObject({
+      event: 'baseline',
+      snapshot: { headSha: 'abc123', ciState: 'PENDING' },
+    });
+  });
+
   it('stops with an attention event when CI fails', () => {
     const fixturePath = path.join(os.tmpdir(), `baby-sit-failure-${process.pid}.jsonl`);
     const snapshot = {
@@ -441,7 +490,7 @@ import sys
 spec = importlib.util.spec_from_file_location("watch_pr", sys.argv[1])
 watcher = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(watcher)
-watcher.gh_json = lambda *args: [
+watcher.gh_json = lambda *args, **kwargs: [
     {"state": "APPROVED", "user": {"login": "prior-approver"}},
     {"state": "COMMENTED", "user": {"login": "commenter"}},
 ]

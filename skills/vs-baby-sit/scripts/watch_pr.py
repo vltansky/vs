@@ -12,6 +12,8 @@ from typing import Any
 from urllib.parse import urlparse
 
 Snapshot = dict[str, Any]
+GH_API_ATTEMPTS = 3
+GH_API_RETRY_DELAY = 1.0
 FAILURE_CONCLUSIONS = {
     "action_required",
     "cancelled",
@@ -116,14 +118,22 @@ def replay(path: Path) -> Iterable[Snapshot]:
                 yield json.loads(line)
 
 
-def gh_json(*args: str) -> Snapshot:
-    result = subprocess.run(
-        ["gh", *args],
-        check=True,
-        capture_output=True,
-        text=True,
-    )
-    return json.loads(result.stdout)
+def gh_json(*args: str, attempts: int = GH_API_ATTEMPTS) -> Snapshot:
+    for attempt in range(attempts):
+        try:
+            result = subprocess.run(
+                ["gh", *args],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+            return json.loads(result.stdout)
+        except subprocess.CalledProcessError:
+            if attempt + 1 == attempts:
+                raise
+            time.sleep(GH_API_RETRY_DELAY * (attempt + 1))
+
+    raise AssertionError("unreachable")
 
 
 def ci_state(checks: Snapshot, combined: Snapshot) -> tuple[str, list[Snapshot]]:
@@ -185,7 +195,9 @@ def fetch_approval_candidates(repo: str, pr: int, pull_request: Snapshot) -> lis
         add(reviewer.get("login"))
 
     try:
-        reviews = gh_json("api", f"repos/{repo}/pulls/{pr}/reviews?per_page=100")
+        reviews = gh_json(
+            "api", f"repos/{repo}/pulls/{pr}/reviews?per_page=100", attempts=1
+        )
     except subprocess.CalledProcessError:
         return candidates
     for review in reversed(reviews):
@@ -209,7 +221,9 @@ def fetch_approval_teams(pull_request: Snapshot) -> list[str]:
 def fetch_preview_urls(repo: str, head_sha: str) -> list[str]:
     try:
         deployments = gh_json(
-            "api", f"repos/{repo}/deployments?sha={head_sha}&per_page=100"
+            "api",
+            f"repos/{repo}/deployments?sha={head_sha}&per_page=100",
+            attempts=1,
         )
     except subprocess.CalledProcessError:
         return []
@@ -229,7 +243,7 @@ def fetch_preview_urls(repo: str, head_sha: str) -> list[str]:
         statuses_url = str(deployment["statuses_url"])
         statuses_endpoint = urlparse(statuses_url).path.lstrip("/")
         try:
-            statuses = gh_json("api", statuses_endpoint)
+            statuses = gh_json("api", statuses_endpoint, attempts=1)
         except subprocess.CalledProcessError:
             continue
         if not statuses:
@@ -267,7 +281,9 @@ def extract_preview_candidates(body: str) -> list[str]:
 
 def fetch_preview_candidates(repo: str, pr: int) -> list[str]:
     try:
-        comments = gh_json("api", f"repos/{repo}/issues/{pr}/comments?per_page=100")
+        comments = gh_json(
+            "api", f"repos/{repo}/issues/{pr}/comments?per_page=100", attempts=1
+        )
     except subprocess.CalledProcessError:
         return []
     candidates: list[str] = []

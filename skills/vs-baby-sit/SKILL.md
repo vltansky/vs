@@ -161,8 +161,11 @@ limited to the PR contract above. A long implementation history must not become
 the waiting context.
 
 The watcher polls pending work every 60 seconds and a merge-ready PR every five
-minutes. It uses REST for ordinary CI polls, refreshes review state when needed,
-and emits compact JSONL only for:
+minutes. Snapshot-critical GitHub API requests get three bounded attempts inside
+that same process, so a transient CLI or network failure does not discard the
+watcher before its baseline snapshot. Best-effort preview and reviewer
+enrichment remains single-attempt. It uses REST for ordinary CI polls, refreshes
+review state when needed, and emits compact JSONL only for:
 
 - `baseline` — initial state
 - `change` — head SHA, CI, review, or PR state changed
