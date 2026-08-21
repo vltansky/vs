@@ -30,6 +30,14 @@ This workflow owns coordination, not the work inside managed tasks.
   creation, review requests, deployment, or other mutations. Those require an
   explicit request or authority already granted for that exact action.
 
+Apply
+[`../vs-internal-shared/references/bounded-collaboration.md`](../vs-internal-shared/references/bounded-collaboration.md)
+once to the managed set. Preserve each task's outcome, owner, granted authority,
+and stop condition. For a task whose outcome crosses delivery boundaries, use
+the shared relevant-gate ledger to classify the current gate and next blocker;
+do not display irrelevant or already-settled gates. Reassess only on a state
+change, repeated service failure, scope expansion, or a real user decision.
+
 ## 1. Auto-detect the managed set
 
 Call `list_threads` at startup. Unless the user specifies another window, use

@@ -21,6 +21,17 @@ evidence.
 - **Consumers:** `vs:build-it`, `vs:bugfix`, `vs:fix-pr`, `vs:ship-it`, standalone pre-handoff checks
 - **Skip conditions:** Do not skip for non-trivial changes. For docs-only or trivial diffs, record `SKIPPED_TRIVIAL` with the reason.
 
+## Delivery gates
+
+Follow
+[`../vs-internal-shared/references/bounded-collaboration.md`](../vs-internal-shared/references/bounded-collaboration.md)
+when the claimed outcome spans more than one delivery boundary. Add a compact
+ledger containing only required gates, and keep code, tests, review, merge,
+deployment, live behavior, and monitoring or analytics distinct. Mark each
+included gate `proven`, `pending`, `failed`, or `blocked`; omit irrelevant gates.
+The overall status inherits the weakest required gate. A single bounded check
+keeps the normal result below without an empty ledger.
+
 ## Verification Ladder
 
 Use the cheapest check that proves the behavior. Stop when the proof is strong
@@ -83,6 +94,16 @@ Consumers repeat the verify status; they do not soften it:
   - <anything not proven, or "none">
 - Next action:
   - <ship / fix / run QA / ask user / unblock environment>
+```
+
+For a multi-boundary claim, insert this before `Gaps` and include only relevant
+rows:
+
+```markdown
+- Delivery gates:
+  - Merge: proven — <evidence>
+  - Deployment: pending — <next proof>
+  - Live behavior: pending — <next proof>
 ```
 
 ## Output style

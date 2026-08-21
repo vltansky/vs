@@ -49,6 +49,14 @@ Build-it is autonomous, not silent. Follow
 For the final explanation and review artifact, also follow
 [`../vs-internal-shared/references/explanation-surfaces.md`](../vs-internal-shared/references/explanation-surfaces.md).
 
+Apply
+[`../vs-internal-shared/references/bounded-collaboration.md`](../vs-internal-shared/references/bounded-collaboration.md)
+to the run. An approved Goal Contract supplies the bounded work contract; infer
+missing fields for direct requests without printing a second contract. Treat
+phase boundaries, repeated failures, scope or authority expansion, and an
+unproven next delivery gate as evidence events. Continue safe in-scope work
+without asking; checkpoint only when the next action changes.
+
 Emit one line at each phase boundary so the user can see the run moving:
 
 ```text

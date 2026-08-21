@@ -7,7 +7,8 @@ import { createAgent } from '../../vs-internal-shared/test/pathgrade-agent';
 
 const SKILL_DIR = path.resolve(__dirname, '..');
 const EVAL_AGENT = (process.env.PATHGRADE_AGENT ?? 'codex') as 'claude' | 'codex';
-const COPY_FROM_HOME = EVAL_AGENT === 'codex' ? ['.codex'] : undefined;
+const COPY_FROM_HOME =
+  EVAL_AGENT === 'codex' ? ['.codex/auth.json'] : undefined;
 
 async function verify(prompt: string) {
   const agent = await createAgent({
@@ -73,6 +74,26 @@ describe('verify behavior', () => {
         check('fail-status', () => /Status:\s*FAIL/i.test(response)),
         check('preserves-failure', () =>
           /exited 1|expected total 42|received 41/i.test(response),
+        ),
+      ]);
+
+      expect(result.score).toBe(1);
+    } finally {
+      await agent.dispose();
+    }
+  });
+
+  it.concurrent('keeps later delivery gates unproven after merge', async () => {
+    const { agent, response } = await verify(
+      'The PR merged and CI passed. Deployment has not run, live behavior was not checked, and monitoring has no new data. Verify the overall delivery outcome.',
+    );
+    try {
+      const result = await evaluate(agent, [
+        check('warn-status', () => /Status:\s*WARN/i.test(response)),
+        check('merge-is-proven', () => /merge[^\n]*(proven|passed|complete)/i.test(response)),
+        check('later-gates-are-open', () =>
+          /deploy[^\n]*(pending|unproven|not run|not proven)/i.test(response) &&
+          /live[^\n]*(pending|unproven|not checked|not proven)/i.test(response),
         ),
       ]);
 

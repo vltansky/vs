@@ -142,6 +142,13 @@ Use [`references/phase-boundaries.md`](./references/phase-boundaries.md) when a
 workflow finishes a phase or hands off. It separates the semantic next workflow
 from the session action: continue, subagent, handoff, compact, clear, or stop.
 
+## Bounded collaboration
+
+Use [`references/bounded-collaboration.md`](./references/bounded-collaboration.md)
+for non-trivial owning work. It defines the inferred outcome, scope, proof,
+authority, evidence-triggered reassessment, stopping choices, and relevant
+delivery gates without adding visible ceremony to simple work.
+
 ## Structured questions
 
 When the host exposes a structured question tool — Codex's

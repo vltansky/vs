@@ -24,6 +24,16 @@ transcript contract.
 - Quote only the smallest useful evidence fragment and identify its source and
   turn. Prefer paraphrase when a quote may contain private data.
 
+## Bound the investigation
+
+Apply
+[`../vs-internal-shared/references/bounded-collaboration.md`](../vs-internal-shared/references/bounded-collaboration.md)
+before widening transcript collection. Infer the requested outcome, source
+scope, proof, artifact, authority, and stop triggers from the request. Reassess
+when acquisition fails at the same boundary again, the source set would expand,
+or the report cannot support its next claim. Resolve answerable facts yourself;
+ask only when the user must choose the session set, authority, or outcome.
+
 ## 1. Resolve scope
 
 Use explicit transcript paths, thread IDs, pasted text, or the current
