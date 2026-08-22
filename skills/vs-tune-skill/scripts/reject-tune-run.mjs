@@ -73,21 +73,30 @@ const gradedAllNoPicker =
     text,
   ) && !/NEED_SKILL/i.test(text);
 const needSkillAsk =
-  /NEED_SKILL/i.test(text) &&
-  /ask(ed)? which/i.test(text) &&
-  /stop/i.test(text);
+  /status:\s*NEED_SKILL/i.test(text) &&
+  /asked which/i.test(text) &&
+  /stopped/i.test(text);
 const namedOne =
   /named skill:\s*[a-z0-9-]+/i.test(text) &&
   /skills_graded"?\s*:\s*1|exactly one skill|one named skill/i.test(text);
+const autoOpened =
+  /auto-opened(?: the)? (?:html|review) page/i.test(text) ||
+  /(?:^|\n)\s*(?:xdg-open|open)\s+\S+\.html/im.test(text);
+const usedLayoutVs =
+  /(?:used|composed with|wrote)\s+`?layout:\s*vs`?/i.test(text) ||
+  /(?:^|\n)\s*layout:\s*vs\s*$/im.test(text);
+const unnamedNoNeed =
+  /named skill:\s*none/i.test(text) && !/status:\s*NEED_SKILL/i.test(text);
 
 if (looksLikeSkillDoc) {
-  if (exclusiveHits >= 5) process.exit(0);
   if (slogans && exclusiveHits < 4) {
     console.error('reject-tune-run: slogan-only skill');
     process.exit(1);
   }
-  console.error('Cannot classify skill');
-  process.exit(2);
+  if (exclusiveHits < 5) {
+    console.error('Cannot classify skill');
+    process.exit(2);
+  }
 }
 
 if (uploaded) {
@@ -96,6 +105,18 @@ if (uploaded) {
 }
 if (mutated) {
   console.error('reject-tune-run: mutated repo skills');
+  process.exit(1);
+}
+if (autoOpened) {
+  console.error('reject-tune-run: auto-opened review page');
+  process.exit(1);
+}
+if (usedLayoutVs) {
+  console.error('reject-tune-run: used layout: vs');
+  process.exit(1);
+}
+if (unnamedNoNeed) {
+  console.error('reject-tune-run: unnamed without NEED_SKILL');
   process.exit(1);
 }
 if (gradedAllNoPicker) {
@@ -112,12 +133,19 @@ if (mentioned && !inventory && !proposed && !zeroSessions && !needSkillAsk) {
 if (inventory && (proposed || zeroSessions) && namedOne && !uploaded && !mutated) {
   process.exit(0);
 }
+if (looksLikeSkillDoc) {
+  process.exit(0);
+}
 
 console.error('Cannot classify tune-skill run');
 process.exit(2);
 
 function hasInventory(body) {
-  return /skills_found|sessions_sampled|"skills"\s*:/.test(body);
+  return (
+    /skills_found"?\s*:?\s*\d+/.test(body) ||
+    /sessions_sampled"?\s*:?\s*\d+/.test(body) ||
+    /"skills"\s*:\s*\[/.test(body)
+  );
 }
 
 function hasProposedDiff(body) {

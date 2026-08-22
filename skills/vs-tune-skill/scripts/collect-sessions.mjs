@@ -7,7 +7,13 @@ import { dirname, join, resolve } from 'node:path';
 const args = parseArgs(process.argv.slice(2));
 if (!args.out) {
   console.error(
-    'Usage: node collect-sessions.mjs --out <dir> [--repo PATH] [--days N] [--max-sessions N] [--skills-dir PATH] [--cursor-export PATH] [--grok-jsonl PATH] [--claude-home PATH] [--codex-home PATH] [--skill NAME]',
+    'Usage: node collect-sessions.mjs --out <dir> --skill NAME [--repo PATH] [--days N] [--max-sessions N] [--skills-dir PATH] [--cursor-export PATH] [--grok-jsonl PATH] [--claude-home PATH] [--codex-home PATH]',
+  );
+  process.exit(2);
+}
+if (!String(args.skill || '').trim()) {
+  console.error(
+    'collect-sessions: --skill NAME is required. If the user did not name a skill, emit NEED_SKILL and stop. Do not inventory every skill.',
   );
   process.exit(2);
 }

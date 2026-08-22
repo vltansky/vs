@@ -58,8 +58,6 @@ Warp text, scripts, HTML, report chrome, or a factories CTA.
   continue: creating skills is the finding.
 - Never write into the real skill tree on a default run. Scratch only.
   Ask whether to apply. Apply only after the user says to.
-- Do not edit PathGrade: not wix-private/pathgrade, not `@wix/pathgrade`,
-  not `.pathgrade` internals.
 - Do not auto-open the HTML page unless the user asks.
 
 Let `SKILL_ROOT` be the directory containing this `SKILL.md`.
@@ -78,9 +76,9 @@ grades everything.
 node "$SKILL_ROOT/scripts/collect-sessions.mjs" --repo "$TARGET_REPO" --skill "$SKILL_NAME" --out "$REPORT_DIR"
 ```
 
-Useful flags: `--days`, `--max-sessions`, `--skills-dir` (repeatable),
-`--cursor-export`, `--grok-jsonl`, `--claude-home`, `--codex-home`,
-`--skill`.
+`--skill` is required. Optional flags: `--days`, `--max-sessions`,
+`--skills-dir` (repeatable), `--cursor-export`, `--grok-jsonl`,
+`--claude-home`, `--codex-home`.
 
 You may compose `/vs-search-threads` to list candidate sessions, then
 pass only the repo-matching paths into the collector. Print paths and
@@ -151,16 +149,11 @@ path. Do not paste the page body.
 
 Ask whether to apply the scratch diffs. Default is no.
 
-Direct: emit **Next** only after that question. Composed: return the
-TLDR and the scratch path to the caller.
-
 ## Output style
 
 Apply the shared output style at
 ../vs-internal-shared/references/output-style.md to every user-facing
 message.
-
-Compose `/vs-eval` | `/vs-htmdx` | `/vs-search-threads` when those jobs apply.
 
 ## Workflow
 
