@@ -123,4 +123,17 @@ describe('shape-it: interaction cadence', () => {
     expect(opening).toMatch(/Do not open it unless they\s+pick Drill/i);
     expect(opening).toMatch(/Compose `\/vs-eli5` on that question's tradeoff only if they pick it/i);
   });
+
+  it('stops Guided Explore after one expensive call, not every expensive choice', () => {
+    const interview = SKILL.slice(
+      SKILL.indexOf('#### Guided Explore interview'),
+      SKILL.indexOf('For either cadence'),
+    );
+    expect(interview).toMatch(/outcome, boundary, and one expensive-to-reverse\s+call/i);
+    expect(interview).toMatch(/stated reversible default in the spec/i);
+    expect(interview).toMatch(/Keep Why \+\s+Drill as the last option/i);
+    expect(interview).not.toMatch(/expensive-to-reverse choices are clear/i);
+    expect(interview).not.toMatch(/Stop interviewing once outcome, boundary, success proof/i);
+    expect(interview).toMatch(/Do not keep grilling until all expensive choices are clear/i);
+  });
 });
