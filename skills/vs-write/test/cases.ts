@@ -190,7 +190,14 @@ export const SLOP = [
   /we'?re excited/i,
   /ensur\w+ (reliability|consistency|scalability)/i,
   /\p{Extended_Pictographic}/u,
+  /\bIn conclusion\b/i,
+  /the future looks bright/i,
+  /not X but Y/i,
+  /if you'?re coming from/i,
 ];
+
+/** Slop-reject fixtures scored by scripts/reject-slop.mjs, not PathGrade. */
+export const SLOP_FIXTURES = ['bad-closer.md', 'comparison-crutch.md'] as const;
 
 const STOPWORDS = new Set([
   'a', 'an', 'and', 'are', 'as', 'at', 'be', 'but', 'by', 'for', 'from', 'has',

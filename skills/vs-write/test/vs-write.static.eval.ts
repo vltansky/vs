@@ -1,7 +1,8 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { CASES, FIXTURE_DIR } from './cases';
+import { spawnSync } from 'node:child_process';
+import { CASES, FIXTURE_DIR, SLOP_FIXTURES } from './cases';
 
 const ROOT = path.resolve(__dirname, '..', '..', '..');
 const SKILL_PATH = path.resolve(ROOT, 'skills', 'vs-write', 'SKILL.md');
@@ -17,6 +18,18 @@ const NOTICES = fs.readFileSync(
   path.resolve(ROOT, 'THIRD_PARTY_NOTICES.md'),
   'utf8',
 );
+const REJECT = path.resolve(
+  ROOT,
+  'skills',
+  'vs-write',
+  'scripts',
+  'reject-slop.mjs',
+);
+const REJECT_SRC = fs.readFileSync(REJECT, 'utf8');
+
+function reject(file: string) {
+  return spawnSync(process.execPath, [REJECT, file], { encoding: 'utf8' });
+}
 
 describe('vs-write: fidelity outranks concision', () => {
   it('states that tightening may not buy a fact', () => {
@@ -65,9 +78,29 @@ describe('vs-write: prose unslop pins', () => {
     expect(SKILL).toMatch(/generic uplift, recap, or chatbot send-off/i);
   });
 
-  it('requires a self-audit of remaining AI tells', () => {
-    expect(SKILL).toMatch(/self-audit/i);
-    expect(SKILL).toMatch(/obviously AI generated/i);
+  it('names reject-slop.mjs as the audit and rejects the closer fixture', () => {
+    const closer = path.join(FIXTURE_DIR, 'bad-closer.md');
+    const closerText = fs.readFileSync(closer, 'utf8');
+    expect(closerText).toMatch(/In conclusion/);
+    expect(closerText).toMatch(/Overall/);
+    expect(closerText).toMatch(/the future looks bright/);
+    expect(REJECT_SRC.length).toBeGreaterThan(200);
+    expect(REJECT_SRC).toMatch(/In conclusion/);
+    expect(REJECT_SRC).toMatch(/the future looks bright/);
+    expect(REJECT_SRC).toMatch(/process\.exit\(1\)/);
+    expect(reject(closer).status).toBe(1);
+    expect(
+      reject(path.join(FIXTURE_DIR, 'clean-deploy-note.md')).status,
+    ).toBe(0);
+    expect(SKILL).toMatch(/skills\/vs-write\/scripts\/reject-slop\.mjs/);
+    expect(SKILL).toMatch(/end the artifact on the last concrete fact/i);
+    expect(SKILL).not.toMatch(/self-audit/i);
+    expect(SKILL).not.toMatch(
+      /a draft that matches test\/fixtures\/bad-closer\.md fails the audit/i,
+    );
+    expect(SKILL).not.toMatch(/In conclusion/);
+    expect(SKILL).not.toMatch(/Overall/);
+    expect(SKILL).not.toMatch(/the future looks bright/);
   });
 
   it('pairs the audit with preserve meaning and match tone', () => {
@@ -129,6 +162,9 @@ describe('vs-write: lineage and fixtures', () => {
   it('ships every fixture the case table references', () => {
     for (const caseSpec of CASES) {
       expect(fs.existsSync(path.join(FIXTURE_DIR, caseSpec.fixture))).toBe(true);
+    }
+    for (const fixture of SLOP_FIXTURES) {
+      expect(fs.existsSync(path.join(FIXTURE_DIR, fixture))).toBe(true);
     }
   });
 
