@@ -48,3 +48,13 @@ describe('shape-it: design quality', () => {
     expect(reviewText).toMatch(/ambiguity check/i);
   });
 });
+
+  it('closes with an auto-opened vs-eli5 approval artifact', () => {
+    const closing = SKILL.slice(SKILL.indexOf('### 3. Closing interaction'));
+    expect(closing).toMatch(/Always compose/);
+    expect(closing).toMatch(/\/vs-eli5/);
+    expect(closing).toMatch(/open that `\.html` immediately/i);
+    expect(closing).toMatch(/open "\$ARTIFACT_PATH"/);
+    expect(closing).toMatch(/Do not skip the eli5/);
+    expect(SKILL).toMatch(/\*\*Relevant:\*\*.*\/vs-eli5/);
+  });

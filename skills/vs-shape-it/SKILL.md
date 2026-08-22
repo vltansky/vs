@@ -12,8 +12,10 @@ conversation short and decision-focused; the human makes strategic calls.
 Do NOT write code, scaffold projects, create GitHub issues, or start
 implementation workers. Planning-only research or critique subagents are
 allowed for complex work. Output is questions, evidence, design, stress-test,
-a decision record when one is warranted, and a goal-ready execution blueprint.
-Writing an ADR is a decision record, not implementation, and is allowed.
+a decision record when one is warranted, a goal-ready execution blueprint,
+and a closing `/vs-eli5` HTMDX approval artifact. Writing an ADR is a decision
+record, not implementation, and is allowed. The eli5 is the approval surface,
+not implementation.
 </HARD-GATE>
 
 ## Route the input
@@ -516,9 +518,21 @@ interaction.
 
 Before composing the closing interaction, follow
 [`../vs-internal-shared/references/explanation-surfaces.md`](../vs-internal-shared/references/explanation-surfaces.md).
-For a complex design, keep the Markdown spec as the machine source of truth and
-create a visual HTMDX review surface that links it. Chat carries only the TLDR,
-the artifact link, and the approval or remaining strategic decision.
+
+Always compose [`/vs-eli5`](../vs-eli5/SKILL.md) on the recommendation, including
+a `NOT_READY` close — the pictures should show the block. Do not skip the eli5
+for a small or routine shape. The Markdown spec, Goal Contract, and any ADR stay
+the machine source of truth and are linked from the eli5. Chat carries only the
+TLDR, the opened artifact, and the approval or remaining strategic decision.
+
+After `/vs-eli5` returns `Saved:`, open that `.html` immediately. Do not wait
+for the user to click the path:
+
+```bash
+open "$ARTIFACT_PATH" 2>/dev/null || xdg-open "$ARTIFACT_PATH"
+```
+
+If open fails, say so in one line and still give the `file://` path.
 
 Return with the complete recommendation, evidence-driven changes from the
 stress test, the Goal Contract, any drafted ADR, and any execution blueprint.
@@ -652,4 +666,4 @@ Direct: emit **Next** only. Composed: return to caller.
 
 **Prev:** idea, rough plan, or question
 **Next:** `/vs-build-it`
-**Relevant:** `/vs-improve`
+**Relevant:** `/vs-improve` | `/vs-eli5`
