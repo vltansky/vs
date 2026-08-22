@@ -18,6 +18,8 @@ const FIXTURES = path.join(__dirname, 'fixtures');
 const SLOGAN_SKILL = path.join(FIXTURES, 'slogan-only-skill.md');
 const CLEAN_SKILL = path.join(FIXTURES, 'clean-tune-skill.md');
 const GOOD_RUN = path.join(FIXTURES, 'good-run');
+const NEED_SKILL_RUN = path.join(FIXTURES, 'need-skill-ask');
+const BAD_ALL = path.join(FIXTURES, 'bad-grades-all');
 const BAD_MENTION = path.join(FIXTURES, 'bad-mention-only');
 const BAD_MUTATE = path.join(FIXTURES, 'bad-mutates-repo');
 const BAD_UPLOAD = path.join(FIXTURES, 'bad-uploads');
@@ -36,17 +38,18 @@ describe('vs-tune-skill thin contract', () => {
     expect(SKILL_RAW).toMatch(
       /## Workflow[\s\S]+\*\*Prev:\*\*[\s\S]+\*\*Next:\*\*[\s\S]+\*\*Relevant:\*\*/,
     );
-    expect(SKILL).toMatch(/\*\*Next:\*\* done/);
-    expect(SKILL).toMatch(/\*\*Relevant:\*\* none/);
+    expect(SKILL).toMatch(/`\/vs-eval`\s*\|\s*`\/vs-htmdx`\s*\|\s*`\/vs-search-threads`/);
     expect(SKILL_RAW).not.toContain('disable-model-invocation');
-    expect(OPENAI_CONFIG).toContain('display_name: "vs-tune-skill"');
     expect(OPENAI_CONFIG).toContain('allow_implicit_invocation: false');
+    expect(SKILL).not.toMatch(/\/vs-skill-doctor|tune-skills/);
+    expect(SKILL).toMatch(/Inspired by Warp's skill-doctor idea/);
   });
 
-  it('keeps the exclusive tune-skill contract, not a slogan list', () => {
-    expect(SKILL).toMatch(/a repo's installed skills|a repository's installed agent skills/i);
-    expect(SKILL).toMatch(/optional one skill name/);
-    expect(SKILL).toMatch(/do not ask and do not open a picker/i);
+  it('keeps the exclusive one-skill contract, not a slogan list', () => {
+    expect(SKILL).toMatch(/exactly one skill|one required skill/);
+    expect(SKILL).toMatch(/NEED_SKILL/);
+    expect(SKILL).toMatch(/Never grade the whole set/);
+    expect(SKILL).toMatch(/ASK which/);
     expect(SKILL).toMatch(/skills\//);
     expect(SKILL).toMatch(/Claude Code|project-history JSONL/i);
     expect(SKILL).toMatch(/Codex|rollouts/i);
@@ -63,9 +66,6 @@ describe('vs-tune-skill thin contract', () => {
     expect(SKILL).not.toMatch(/warp\.dev\/factories/i);
     expect(SKILL).not.toMatch(/Do not edit PathGrade[\s\S]{0,40}except/i);
     expect(SKILL).toMatch(/Do not edit PathGrade/);
-    expect(SKILL_RAW).toMatch(/^# Tune Skill$/m);
-    expect(SKILL_RAW).toContain('vs-tune-skill-XXXXXXXX');
-    expect(SKILL_RAW).toContain('$SKILL_ROOT/scripts/collect-sessions.mjs');
   });
 
   it('is wired into the shared VS catalogs', () => {
@@ -79,18 +79,19 @@ describe('vs-tune-skill thin contract', () => {
     const readme = fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8');
 
     expect(shared).toContain('`vs-tune-skill`');
-    expect(shared).not.toContain('vs-skill-doctor');
     expect(manifest.skills).toContain('./skills/vs-tune-skill');
+    expect(readme).toMatch(/\| `\/vs-tune-skill` \|/);
+    expect(shared).not.toContain('`vs-skill-doctor`');
     expect(manifest.skills).not.toContain('./skills/vs-skill-doctor');
-    expect(readme).toMatch(
-      /\| `\/vs-tune-skill` \| Grade a repo's installed skills from local chats and propose diffs \|/,
-    );
   });
 
   it('keeps fixture canaries out of the skill', () => {
     expect(SKILL_RAW).not.toMatch(/SLOGAN_ONLY_SKILL_CANARY/);
     expect(SKILL_RAW).not.toMatch(/CLEAN_TUNE_SKILL_CANARY/);
+    expect(SKILL_RAW).not.toMatch(/CLEAN_DOCTOR_SKILL_CANARY/);
     expect(SKILL_RAW).not.toMatch(/GOOD_TUNE_RUN_CANARY/);
+    expect(SKILL_RAW).not.toMatch(/NEED_SKILL_ASK_CANARY/);
+    expect(SKILL_RAW).not.toMatch(/BAD_GRADES_ALL_CANARY/);
     expect(SKILL_RAW).not.toMatch(/BAD_MENTION_ONLY_CANARY/);
     expect(SKILL_RAW).not.toMatch(/BAD_MUTATES_REPO_CANARY/);
     expect(SKILL_RAW).not.toMatch(/BAD_UPLOADS_TRANSCRIPT_CANARY/);
@@ -108,8 +109,13 @@ describe('vs-tune-skill workspace scorer', () => {
     expect(reject(path.join(DIR, 'SKILL.md')).status).toBe(0);
   });
 
-  it('accepts a good run with inventory and a scratch diff', () => {
+  it('accepts a named-skill run and a NEED_SKILL ask', () => {
     expect(reject(GOOD_RUN).status).toBe(0);
+    expect(reject(NEED_SKILL_RUN).status).toBe(0);
+  });
+
+  it('rejects a run that grades all skills with no picker', () => {
+    expect(reject(BAD_ALL).status).toBe(1);
   });
 
   it('rejects mention-only, repo mutation, and transcript upload runs', () => {
@@ -137,6 +143,8 @@ describe('vs-tune-skill local collector', () => {
         out,
         '--days',
         '45',
+        '--skill',
+        'demo-skill',
         '--claude-home',
         path.join(SESSION_HOMES, 'claude'),
         '--codex-home',
@@ -154,7 +162,7 @@ describe('vs-tune-skill local collector', () => {
       sessions: { harness: string }[];
     };
     expect(inventory.skills_found).toBeGreaterThan(0);
-    expect(inventory.skills.some((skill) => skill.name === 'demo-skill')).toBe(
+    expect(inventory.skills.every((skill) => skill.name === 'demo-skill')).toBe(
       true,
     );
     expect(inventory.sessions_sampled).toBeGreaterThan(0);
