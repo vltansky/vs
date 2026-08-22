@@ -138,10 +138,10 @@ than the default batched checkpoint:
 5. Stop interviewing once outcome, boundary, and one expensive-to-reverse
    call are clear. Do not keep grilling until all expensive choices are clear.
    Everything else is a stated reversible default in the spec. Keep Why +
-   Drill as the last option. Reflect the agreed mental model in no more than three bullets.
-   If a fundamental part of that model remains ambiguous, ask
-   a single confirmation question; otherwise state the aligned model and enter
-   the uninterrupted independent beat without another gate.
+   Drill as the last option. Reflect the agreed mental model in no more than three bullets,
+   then state the aligned model and enter the uninterrupted independent beat
+   without another question. Do not add a fourth interview question after that
+   expensive-to-reverse call.
 6. Update progress only when a decision changes state. During alignment, show
    resolved and open decisions; do not turn progress into a fixed questionnaire.
 
@@ -533,9 +533,8 @@ interaction.
 Explore and Guided Explore only. Challenge does not compose `/vs-eli5` here;
 pushback does that close.
 
-Before composing the closing interaction, follow
-[`../vs-internal-shared/references/explanation-surfaces.md`](../vs-internal-shared/references/explanation-surfaces.md)
-for chat TLDR vs artifact. The close-time eli5 is required even when that
+Cite [`../vs-internal-shared/references/explanation-surfaces.md`](../vs-internal-shared/references/explanation-surfaces.md)
+only for chat TLDR vs artifact, not its opener. The close-time eli5 is required even when that
 complexity test would keep the answer in chat: the user is confirming a spec.
 
 On Explore and Guided Explore, always compose [`/vs-eli5`](../vs-eli5/SKILL.md) on the spec or plan, including
@@ -546,16 +545,13 @@ the thing they approve and the machine source of truth; link them from the
 eli5. Do not treat the eli5 as a replacement contract.
 
 After `/vs-eli5` returns `Saved:`, always produce the eli5 HTML and the chat
-TLDR. Close item 2 is the file path (or “eli5 saved”), a link, not a
-required-to-show open. Do not auto-open the HTML. Do not run `open` or `xdg-open` unless the
-user picked Drill mid-session or later asks to open the file. Do not
-follow the shared artifact opener at close.
+TLDR. Display: save the eli5 HTML and put its path (or “eli5 saved”) in close item 2 as a link; do not auto-open, and do not run `open` or `xdg-open` unless the user picked Drill mid-session or later asks to open the file.
 
 Chat is only this exclusive 4-item close, in this order:
 
 1. The first sentence is the TLDR returned by composed `/vs-eli5` (two to four short lines): the recommendation in plain English and why it is the best fit. Do not write a second TLDR.
 2. The eli5 file path (or “eli5 saved”).
-3. `Handoff: Goal Contract ready | <N> open decisions` (or the missing field).
+3. Verdict-honest Handoff. READY or READY_WITH_RISKS: `Handoff: Goal Contract ready | <N> open decisions` (or the missing field). NOT_READY: `Handoff: Goal Contract blocked — not ready, rework` (or the missing field). Never write `Goal Contract ready` on a NOT_READY close.
 4. One `Your action` line. READY or READY_WITH_RISKS: approval, plus the shortest exact reply that accepts. NOT_READY: rework only — do not offer approve or `/vs-build-it`.
 
 Do not paste the Goal Contract, ADR, pushback report, execution blueprint, or
@@ -588,7 +584,8 @@ is rework. If an unresolved strategic decision remains on a READY or
 READY_WITH_RISKS close and each option is already shaped, combine it with
 this gate. If their pick needs redesign, return a revised complete design.
 
-Default to the approved spec, then `/vs-build-it`. Extra coordination follows
+On READY or READY_WITH_RISKS only, default to the approved spec, then `/vs-build-it`.
+On NOT_READY, skip that default. Extra coordination follows
 the execution class written in the spec, not in chat:
 
 - **Durability:** propose issues when work spans sessions or people, needs a
@@ -635,7 +632,7 @@ Before finishing, check:
 - pushback ran in composed mode over the finished design and returned a verdict
   and score, and its supported findings were folded into the design
 - the cadence was opening interaction, uninterrupted independent shaping, then closing interaction
-- the design has one approval gate and a behavioral verification seam
+- READY or READY_WITH_RISKS: the design has one approval gate and a behavioral verification seam; NOT_READY has no approval gate
 - the completed design passed placeholder, consistency, scope, and ambiguity review
 - the first delivery is the smallest complete vertical slice, with later
   capabilities explicitly deferred

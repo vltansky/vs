@@ -76,7 +76,8 @@ describe('shape-it: interaction cadence', () => {
 
     expect(opening).toMatch(/mental model/i);
     expect(opening).toMatch(/no more than three bullets/i);
-    expect(opening).toMatch(/fundamental.*ambiguous.*single confirmation/is);
+    expect(opening).not.toMatch(/fundamental.*ambiguous.*single confirmation/is);
+    expect(opening).toMatch(/Do not add a fourth interview question/i);
     expect(closing).toMatch(/Goal Contract.*ready.*open decisions/is);
   });
 

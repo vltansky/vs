@@ -68,8 +68,20 @@ describe('shape-it: design quality', () => {
     expect(closing).toMatch(/Chat is only this exclusive 4-item close, in this order/);
     expect(closing).toMatch(/1\. The first sentence is the TLDR/);
     expect(closing).toMatch(/Do not write a second TLDR/);
-    expect(closing).toMatch(/3\. `Handoff: Goal Contract ready/);
+    expect(closing).toMatch(/3\. Verdict-honest Handoff/);
+    expect(closing).toMatch(
+      /READY or READY_WITH_RISKS:\s*`Handoff: Goal Contract ready \| <N> open decisions`/,
+    );
+    const notReadyHandoff = closing.match(/NOT_READY:\s*`Handoff:[^`]+`/)?.[0] ?? '';
+    expect(notReadyHandoff).toMatch(/Handoff: Goal Contract blocked/i);
+    expect(notReadyHandoff).not.toMatch(/Goal Contract ready/i);
+    expect(closing).toMatch(/Never write `Goal Contract ready` on a NOT_READY close/);
     expect(closing).toMatch(/4\. One `Your action`/);
+    expect(closing).not.toMatch(/follow\s+explanation-surfaces/i);
+    expect(closing).toMatch(
+      /Display: save the eli5 HTML and put its path \(or .eli5 saved.\) in close item 2 as a link; do not auto-open, and do not run `open` or `xdg-open` unless the user picked Drill mid-session or later asks to open the file\./,
+    );
+    expect(closing).toMatch(/Cite .*explanation-surfaces\.md.*only for chat TLDR vs artifact/s);
     expect(closing).not.toMatch(/Chat carries only the TLDR, the opened artifact, and the confirm/);
     expect(closing).not.toMatch(/the close leads with the blocking finding/);
     expect(closing).toMatch(/Do not print it in chat/);
