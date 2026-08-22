@@ -46,6 +46,34 @@ leave later capabilities as follow-ups.
   Execution Strategy describes lanes *within* a milestone; GOALS.md tracks state
   *across* milestones.
 
+
+## Loop contract
+
+Name the observable done-predicate for the active milestone (merge-ready
+evidence on a shipped PR, or the milestone's Evidence required) BEFORE the
+first watch or `/vs-build-it` delegate. Write it in GOALS.md and as the first
+`decisions.tsv` row. A run that starts a watcher or delegates without that
+predicate has failed this contract.
+
+Two gates that find the same unfinished evidence → stop for the user. Do not
+activate the next milestone, re-delegate, or relax the predicate. Never loop
+a third time on the same unfinished proof.
+
+### Pause and off-context resume
+
+Pause writes a resume file (predicate, last SHA, last decision, trail path)
+next to GOALS.md or at `/tmp/<project>-orch-resume.md`. Resume reads that
+file and does not re-derive the trail. Missing resume file → stop; do not
+reconstruct from chat.
+
+### Decision trail
+
+Orchestrate owns the append-only trail: GOALS.md Decisions plus
+`decisions.tsv` next to it (columns `ts`, `phase`, `decision`, `why`,
+`evidence`, `result`). Hand that path to `/vs-baby-sit` when a milestone
+ships as a PR. Picture-show-me / eli5 is not this trail. Do not invent a
+new skill.
+
 ## Codex goal integration
 
 When running in Codex, use
@@ -150,6 +178,7 @@ re-checks.
   the roadmap cannot resolve → report it and stop for the user.
 - The spec's premise no longer holds (discovery invalidated it) → stop and route
   back to `/vs-shape-it`; do not quietly redesign.
+- Two gates find the same unfinished evidence → report and stop for the user.
 
 ## Verification
 
@@ -163,6 +192,8 @@ Before finishing, check:
 - every milestone passed a lightweight reality audit; full review and verify ran
   at the relevant risk, integration, deployment, or acceptance boundaries
 - no milestone was marked done without its evidence
+- the done-predicate was written before the first delegate or watch
+- two same-unfinished gates stopped instead of looping
 - no implementation happened in this thread; each milestone went to build-it
 - reports were change-only; blockers are explicit
 - non-trivial roadmap topology was explained with Mermaid when first shown or changed
