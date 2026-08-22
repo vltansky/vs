@@ -84,6 +84,8 @@ describe("vs-verify user path and observable end state", () => {
     expect(SKILL_RAW).toMatch(/do not add an Expo agent-device skill/);
     expect(SKILL_RAW).toMatch(/named command/);
     expect(SKILL_RAW).toMatch(/real screenshot or baseline file/);
+    expect(SKILL_RAW).toMatch(/image magic/);
+    expect(SKILL_RAW).toMatch(/this rejector/);
     expect(reject(CLEAN_SHOT).status).toBe(0);
     expect(reject(CLEAN_NO_VISUAL).status).toBe(0);
     expect(reject(path.join(DIR, "SKILL.md")).status).toBe(0);

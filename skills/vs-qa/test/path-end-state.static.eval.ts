@@ -82,6 +82,8 @@ describe("vs-qa user path, end state, and visual baseline", () => {
     expect(reject(path.join(FIX, "clean-path-end-shot")).status).toBe(1);
     expect(reject(path.join(FIX, "clean-path-end-baseline")).status).toBe(1);
     expect(reject(path.join(FIX, "clean-expo-shot")).status).toBe(1);
+    expect(reject(path.join(FIX, "verify-pass-no-command")).status).toBe(1);
+    expect(reject(path.join(FIX, "verify-pass-no-command")).stderr).toMatch(/pass with no named command/);
   });
 
   it("accepts shipped table fields plus real shot, Expo file on disk, no-visual pass, and this skill", () => {
@@ -90,6 +92,9 @@ describe("vs-qa user path, end state, and visual baseline", () => {
     expect(SKILL_RAW).toMatch(/Do not\s+invent a show-me skill/);
     expect(SKILL_RAW).toMatch(/Do not add an Expo agent-device skill/);
     expect(SKILL_RAW).toMatch(/file on disk/);
+    expect(SKILL_RAW).toMatch(/named command/);
+    expect(SKILL_RAW).toMatch(/image magic/);
+    expect(SKILL_RAW).toMatch(/this rejector/);
     expect(reject(CLEAN_TABLE).status).toBe(0);
     expect(reject(CLEAN_EXPO).status).toBe(0);
     expect(reject(CLEAN_NO_VISUAL).status).toBe(0);

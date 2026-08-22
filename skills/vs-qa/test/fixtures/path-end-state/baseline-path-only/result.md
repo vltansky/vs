@@ -3,6 +3,7 @@ BASELINE_PATH_ONLY_QA_CANARY
 ## QA Report
 
 - Status: PASS
+- Command: vitest run qa
 - User path: Open Settings, tap Profile, type a name, tap Save
 - Observable end state: Profile shows the new name
 - Visual in scope: yes

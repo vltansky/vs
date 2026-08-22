@@ -6,8 +6,10 @@
 // Exit 0 clean. Exit 1 reject. Exit 2 cannot check. Treat 2 as not a pass.
 import { spawnSync } from 'node:child_process';
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
-import { dirname, isAbsolute, join } from 'node:path';
-import { homedir } from 'node:os';
+import { dirname, isAbsolute, join, relative, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const SELF = fileURLToPath(import.meta.url);
 
 const target = process.argv[2];
 if (!target) {
@@ -58,7 +60,7 @@ for (const file of files) {
   text += `\n${read(file)}`;
 }
 
-const runRoot = stat.isDirectory() ? target : dirname(target);
+const runRoot = resolve(stat.isDirectory() ? target : dirname(target));
 
 const looksLikeSkill =
   files.length === 1 &&
@@ -67,31 +69,70 @@ const looksLikeSkill =
   /^# /m.test(text);
 
 const slogans = /user path/i.test(text) && /observable end state/i.test(text);
+const exclusiveSkill =
+  slogans &&
+  /reject-verify-path\.mjs/.test(text) &&
+  /test\/fixtures\/path-end-state/.test(text) &&
+  /this rejector/i.test(text) &&
+  /image magic/i.test(text) &&
+  /named command/i.test(text);
+
+const BAD = [
+  'slogan-only-skill.md',
+  'copy-phrases-skill.md',
+  'stub-rejector',
+  'structure-paste',
+  'bad-clean-no-path',
+  'bad-clean-no-end-state',
+  'four-word-path',
+  'ui-no-baseline-verify',
+  'verify-pass-no-command',
+  'md-image-no-file',
+  'baseline-path-only',
+  'clean-path-end-state',
+  'clean-path-end-baseline',
+];
+const CLEAN = ['clean-command-shot', 'clean-no-visual'];
 
 function wiredExclusive(skillFile) {
+  if (process.env.VS_PATH_WIRED_CHECK === '1') return false;
   const root = dirname(skillFile);
   const rejector = join(root, 'scripts', 'reject-verify-path.mjs');
   const fixtures = join(root, 'test', 'fixtures', 'path-end-state');
   if (!existsSync(rejector) || !existsSync(fixtures)) return false;
   if (!statSync(rejector).isFile() || !statSync(fixtures).isDirectory()) return false;
-  const names = readdirSync(fixtures);
-  if (names.length === 0) return false;
-  // A shebang plus process.exit is not exclusive: a stub that always
-  // exits 0 satisfies that and still accepts every run.
-  if (process.env.VS_PATH_WIRED_CHECK === '1') return false;
-  let rejected = 0;
-  for (const name of names) {
-    const child = spawnSync(process.execPath, [rejector, join(fixtures, name)], {
+  let selfBytes;
+  let siblingBytes;
+  try {
+    selfBytes = readFileSync(SELF);
+    siblingBytes = readFileSync(rejector);
+  } catch {
+    return false;
+  }
+  if (selfBytes.length === 0 || !selfBytes.equals(siblingBytes)) return false;
+  for (const name of BAD) {
+    const item = join(fixtures, name);
+    if (!existsSync(item)) return false;
+    const child = spawnSync(process.execPath, [SELF, item], {
       encoding: 'utf8',
       env: { ...process.env, VS_PATH_WIRED_CHECK: '1' },
     });
-    if (child.status === 1) rejected += 1;
+    if (child.status !== 1) return false;
   }
-  return rejected > 0;
+  for (const name of CLEAN) {
+    const item = join(fixtures, name);
+    if (!existsSync(item)) return false;
+    const child = spawnSync(process.execPath, [SELF, item], {
+      encoding: 'utf8',
+      env: { ...process.env, VS_PATH_WIRED_CHECK: '1' },
+    });
+    if (child.status !== 0) return false;
+  }
+  return true;
 }
 
 if (looksLikeSkill) {
-  if (!wiredExclusive(files[0]) || !slogans) {
+  if (!wiredExclusive(files[0]) || !exclusiveSkill) {
     console.error('reject-verify-path: slogan-only skill');
     process.exit(1);
   }
@@ -142,27 +183,67 @@ function hasEndState(body) {
   return true;
 }
 
+function insideRun(candidate) {
+  const rel = relative(runRoot, resolve(candidate));
+  return rel !== '' && !rel.startsWith('..') && !isAbsolute(rel);
+}
+
+function hasImageMagic(buf) {
+  if (
+    buf.length >= 8 &&
+    buf[0] === 0x89 &&
+    buf[1] === 0x50 &&
+    buf[2] === 0x4e &&
+    buf[3] === 0x47 &&
+    buf[4] === 0x0d &&
+    buf[5] === 0x0a &&
+    buf[6] === 0x1a &&
+    buf[7] === 0x0a
+  ) {
+    return true;
+  }
+  if (buf.length >= 3 && buf[0] === 0xff && buf[1] === 0xd8 && buf[2] === 0xff) {
+    return true;
+  }
+  if (
+    buf.length >= 12 &&
+    buf[0] === 0x52 &&
+    buf[1] === 0x49 &&
+    buf[2] === 0x46 &&
+    buf[3] === 0x46 &&
+    buf[8] === 0x57 &&
+    buf[9] === 0x45 &&
+    buf[10] === 0x42 &&
+    buf[11] === 0x50
+  ) {
+    return true;
+  }
+  return false;
+}
+
 function resolveExisting(raw) {
   const cleaned = raw.replace(/^["'<\[]+|["'>\]]+$/g, '').replace(/^`+|`+$/g, '');
-  if (!cleaned || /[\s*]/.test(cleaned) && !/\.(png|webp|jpe?g|json)$/i.test(cleaned)) {
-    if (!/\.(png|webp|jpe?g|json)\b/i.test(cleaned)) return '';
-  }
+  if (!/\.(png|webp|jpe?g|json)\b/i.test(cleaned)) return '';
   const pathOnly = cleaned.replace(/^.*?\s+(?=\S+\.(?:png|webp|jpe?g|json)\b)/i, '').split(/\s/)[0];
   if (!/\.(png|webp|jpe?g|json)\b/i.test(pathOnly)) return '';
-  const candidates = [];
-  if (pathOnly.startsWith('~/')) candidates.push(join(homedir(), pathOnly.slice(2)));
-  if (isAbsolute(pathOnly)) candidates.push(pathOnly);
-  candidates.push(join(runRoot, pathOnly));
-  for (const candidate of candidates) {
-    try {
-      const info = statSync(candidate);
-      if (info.isFile() && info.size > 0) return candidate;
-    } catch {
-      // try next
+  if (pathOnly.startsWith('~/') || isAbsolute(pathOnly)) return '';
+  if (pathOnly.split(/[\\/]/).includes('..')) return '';
+  const candidate = join(runRoot, pathOnly);
+  if (!insideRun(candidate)) return '';
+  try {
+    const info = statSync(candidate);
+    if (!info.isFile() || info.size === 0) return '';
+    const buf = readFileSync(candidate);
+    if (/\.(png|webp|jpe?g)$/i.test(pathOnly)) {
+      return hasImageMagic(buf) ? candidate : '';
     }
+    JSON.parse(buf.toString('utf8'));
+    return candidate;
+  } catch {
+    return '';
   }
-  return '';
 }
+
 
 function hasShotOrBaseline(body) {
   const paths = [];
@@ -170,7 +251,7 @@ function hasShotOrBaseline(body) {
   if (realValue(baseline)) paths.push(baseline);
   for (const match of body.matchAll(/!\[[^\]]*\]\(([^)\s]+)/g)) paths.push(match[1]);
   for (const match of body.matchAll(
-    /(?:^|[\s`:(])((?:~\/|\/|\.\/)?[\w./~-]+\.(?:png|webp|jpe?g|json))\b/gi,
+    /(?:^|[\s`:(])((?:\.\/)?[\w.\/-]+\.(?:png|webp|jpe?g|json))\b/gi,
   )) {
     paths.push(match[1]);
   }
@@ -193,17 +274,24 @@ function claimsPass(body) {
   return /\b(?:qa|verify)\s+pass\b/i.test(body) || /\ball tests passed\b/i.test(body);
 }
 
+function isNamedCommand(value) {
+  const token = value.trim();
+  if (!token || token.length < 2) return false;
+  if (/^(pass|warn|fail|blocked|clean|proven|pending)$/i.test(token)) return false;
+  if (/^\/vs-/.test(token)) return false;
+  if (!/[A-Za-z]{2,}/.test(token)) return false;
+  return /^[A-Za-z0-9_./-]/.test(token);
+}
+
 function hasNamedCommand(body) {
   const command = field(body, 'Command');
-  if (realValue(command)) return true;
-  const skip = /^(pass|warn|fail|blocked|clean|proven|pending)$/i;
+  if (realValue(command) && isNamedCommand(command)) return true;
   for (const match of body.matchAll(/`([^`\n]+)`/g)) {
-    const inner = match[1].trim();
-    if (!inner || skip.test(inner) || /^\/vs-/.test(inner)) continue;
-    if (/^[A-Za-z0-9_./-]+/.test(inner)) return true;
+    if (isNamedCommand(match[1])) return true;
   }
   return false;
 }
+
 
 if (!hasUserPath(text) || !hasEndState(text)) {
   console.error('reject-verify-path: missing user path or observable end state');

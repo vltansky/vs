@@ -11,3 +11,5 @@ CLEAN_QA_TABLE_SHOT_CANARY
 | **Visual baseline** | screenshots/billing-after.png |
 
 ![after](screenshots/billing-after.png)
+
+- Command: vitest run billing

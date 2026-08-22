@@ -736,11 +736,10 @@ QA may pin a screenshot or baseline. New shots compare to that pin. Do not
 invent a show-me skill. If the user names an Expo or device screenshot path,
 consume that file as evidence. Do not add an Expo agent-device skill.
 
-When a visual was in scope, a pass with no screenshot or baseline file on disk fails. A markdown image or baseline path string is not evidence.
+A `PASS` without a named command is a fail. When a visual was in scope, a pass with no image magic in a screenshot or baseline file on disk inside the scored run directory (no absolute, `~`, or `..` paths) fails. A markdown image or baseline path string is not evidence.
 
 Score runs with `skills/vs-qa/scripts/reject-qa-path.mjs` (exit 1 is a fail).
-Exclusive cases live under `test/fixtures/path-end-state`. A stub rejector
-that only exits 0 is not exclusive.
+Exclusive is this rejector (same bytes) failing the published bad set and passing the published clean set under `test/fixtures/path-end-state`. A sibling stub or `rejected>0` on any child is not exclusive.
 
 ## Rules
 
