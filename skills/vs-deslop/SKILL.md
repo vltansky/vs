@@ -28,6 +28,8 @@ cleanup abstraction.
 
 Inspect the requested scope for:
 
+- flatten first: delete down to one layer. A new wrapper, helper, file,
+  or mode flag is not a cleanup
 - structural simplifications that delete whole concepts, branches, modes,
   wrappers, or layers instead of merely polishing them
 - duplicate logic or copy-paste with tiny variations
@@ -88,10 +90,11 @@ Do not skip or invert these.
    necessary defense (auth, validation at a trust boundary, required error
    handling). A false positive that deletes a real guard is worse than one
    leftover tell. Discard it and say why.
-4. **Look for the structural delete.** Before extracting a helper, ask whether
-   a simpler state shape, ownership boundary, or default flow would remove the
-   branch/helper/wrapper entirely. One clean delete beats three clumsy
-   rewrites.
+4. **Flatten first.** The first cleanup move is one-layer delete. Before
+   extracting a helper, ask whether a simpler state shape, ownership
+   boundary, or default flow would remove the branch/helper/wrapper
+   entirely. One clean delete beats three clumsy rewrites. Do not clean
+   by adding a wrapper, helper, file, or mode flag.
 5. **Edit in safe, surgical passes.** Take the minimum effective edit.
    Leave strong local code alone. Prefer deletion and simplification over
    abstraction. Do not restructure modules or reorder files for aesthetics
@@ -112,16 +115,13 @@ Do not skip or invert these.
 
 - try/catch around non-throwing work, empty catch, or swallow?
 - `?.` / `?? []` / `?? {}` hiding a required value?
-- ceremony `Manager` / `Factory` / `Utils`, boolean mode flag, or single-use
-  helper?
 - unnecessary `async`/`await` or Promise wrapping?
 - `any` or uncommented type assertion?
 - hand-holding comment or JSDoc restating the signature?
 - `console.log` / stale TODO fossil / dead import?
 - synonym cycling of one domain name?
-- new file or wrapper added by this pass?
-- still cuttable concept left in scope?
-- `skills/vs-deslop/scripts/reject-code-slop.mjs` exit 1?
+- still cuttable concept left in scope after one flatten pass?
+- `skills/vs-deslop/scripts/reject-code-slop.mjs` exit 1 after that pass?
 
 ## Output
 
