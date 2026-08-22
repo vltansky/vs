@@ -75,8 +75,8 @@ function sha256(buf) {
 function identityBytes(buf) {
   return Buffer.from(String(buf).replace(/[a-f0-9]{64}/g, ''));
 }
-const PUBLISHED_REJECTOR_SHA256 = 'ea1de822c5d8d53e330d91e5e9175f2d03f88c40495677fa559f34113ffe15ae';
-const PUBLISHED_SKILL_SHA256 = '70cd1d74b87251c2f927d8b55e98a1074d17ba8efea517e45cba37bf391796da';
+const PUBLISHED_REJECTOR_SHA256 = '4d359f5bf56388522ed69d5c9d051843407635e6410a75abba3723590e54113a';
+const PUBLISHED_SKILL_SHA256 = '14914a72c4d7476bca0c5453150daf9e94881fac1e1d5488d590c7b65e776191';
 function repoSkillPath() {
   let dir = dirname(SELF);
   for (let i = 0; i < 10; i++) {
@@ -133,6 +133,9 @@ const BAD = [
   'vp8x-stub',
   'ihdr-no-idat',
   'empty-json-baseline',
+  'sos-no-scan',
+  'vp8-1byte',
+  'array-json-baseline',
   'command-xx',
   'bad-clean-no-path',
   'bad-clean-no-end-state',
@@ -263,26 +266,68 @@ function isRealPng(buf) {
 }
 function isRealJpeg(buf) {
   if (buf.length < 24) return false;
-  if (buf[0] !== 0xff || buf[1] !== 0xd8 || buf[2] !== 0xff) return false;
+  if (buf[0] !== 0xff || buf[1] !== 0xd8) return false;
+  let i = 2;
   let sof = false;
-  let sos = false;
-  for (let i = 2; i < buf.length - 1; i++) {
-    if (buf[i] !== 0xff) continue;
-    const marker = buf[i + 1];
+  while (i < buf.length) {
+    if (buf[i] !== 0xff) return false;
+    while (i < buf.length && buf[i] === 0xff) i++;
+    if (i >= buf.length) return false;
+    const marker = buf[i++];
+    if (marker === 0xd9) return false;
+    if (marker === 0xd8 || marker === 0x01 || (marker >= 0xd0 && marker <= 0xd7)) {
+      continue;
+    }
+    if (i + 1 >= buf.length) return false;
+    const len = buf.readUInt16BE(i);
+    if (len < 2 || i + len > buf.length) return false;
     if (marker === 0xc0 || marker === 0xc1 || marker === 0xc2) sof = true;
-    if (marker === 0xda) sos = true;
+    if (marker === 0xda) {
+      let entropy = 0;
+      let j = i + len;
+      while (j < buf.length) {
+        if (buf[j] === 0xff) {
+          const nxt = j + 1 < buf.length ? buf[j + 1] : -1;
+          if (nxt === 0x00 || (nxt >= 0xd0 && nxt <= 0xd7)) {
+            entropy += 2;
+            j += 2;
+            continue;
+          }
+          break;
+        }
+        entropy++;
+        j++;
+      }
+      return sof && entropy > 0;
+    }
+    i += len;
   }
-  return sof && sos;
+  return false;
 }
 function isRealWebp(buf) {
   if (buf.length < 20) return false;
   if (buf.subarray(0, 4).toString('ascii') !== 'RIFF') return false;
   if (buf.subarray(8, 12).toString('ascii') !== 'WEBP') return false;
-  const vp8 = buf.indexOf('VP8 ', 12);
-  const vp8l = buf.indexOf('VP8L', 12);
-  const idx = vp8 >= 12 ? vp8 : vp8l >= 12 ? vp8l : -1;
-  if (idx < 12) return false;
-  return buf.length > idx + 8;
+  let off = 12;
+  let payload = false;
+  while (off + 8 <= buf.length) {
+    const type = buf.subarray(off, off + 4).toString('ascii');
+    const size = buf.readUInt32LE(off + 4);
+    if (!Number.isFinite(size) || size < 0 || off + 8 + size > buf.length) return false;
+    if (type === 'VP8 ') {
+      if (size < 10) return false;
+      if (buf[off + 11] !== 0x9d || buf[off + 12] !== 0x01 || buf[off + 13] !== 0x2a) {
+        return false;
+      }
+      payload = true;
+    } else if (type === 'VP8L') {
+      if (size < 5) return false;
+      if (buf[off + 8] !== 0x2f) return false;
+      payload = true;
+    }
+    off += 8 + size + (size & 1);
+  }
+  return payload;
 }
 function hasRealImage(buf, pathOnly) {
   if (/\.png$/i.test(pathOnly)) return isRealPng(buf);
@@ -308,14 +353,10 @@ function resolveExisting(raw) {
       return hasRealImage(buf, pathOnly) ? candidate : '';
     }
     const parsed = JSON.parse(buf.toString('utf8'));
-    if (
-      parsed &&
-      typeof parsed === 'object' &&
-      !Array.isArray(parsed) &&
-      Object.keys(parsed).length === 0
-    ) {
+    if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) {
       return '';
     }
+    if (Object.keys(parsed).length === 0) return '';
     return candidate;
   } catch {
     return '';

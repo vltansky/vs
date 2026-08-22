@@ -64,7 +64,7 @@ Every run names both:
 
 A `PASS` or `CLEAN` that only says tests passed, with no user path and no
 observable end state, is `FAIL`. A `PASS` without a named command is `FAIL`.
-When a visual is in scope, a `PASS` without a real PNG or JPEG (IHDR+IDAT or SOF+SOS, not header-only image magic) in a real screenshot or baseline file inside the scored run directory (no absolute, `~`, or `..` paths) is `FAIL`. An empty `{}` baseline or VP8X fourcc-only WebP is not evidence.
+When a visual is in scope, a `PASS` without a real PNG or JPEG (IHDR+IDAT or SOF+SOS with nonzero entropy after SOS, not header-only image magic) in a real screenshot or baseline file inside the scored run directory (no absolute, `~`, or `..` paths) is `FAIL`. An empty `{}`, `[]`, or non-object baseline, VP8X fourcc-only WebP, or one-byte VP8 chunk is not evidence.
 Score runs with
 `skills/vs-verify/scripts/reject-verify-path.mjs` (exit 1 is a fail). Exclusive is the live skill path when it is the pinned published-rejector hash plus published skill hash. this rejector still fails the published bad set and passes the published clean set under `test/fixtures/path-end-state`. A byte-identical published pair matches those hashes. A phrase-complete SKILL.md beside the live tree, a one-line-changed copy scored by itself, or a sibling stub is not exclusive.
 

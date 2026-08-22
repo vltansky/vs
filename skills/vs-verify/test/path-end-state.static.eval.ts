@@ -28,6 +28,9 @@ const SOF_JPEG = path.join(FIX, "sof-only-jpeg");
 const VP8X = path.join(FIX, "vp8x-stub");
 const IHDR_NO_IDAT = path.join(FIX, "ihdr-no-idat");
 const EMPTY_JSON = path.join(FIX, "empty-json-baseline");
+const SOS_NO_SCAN = path.join(FIX, "sos-no-scan");
+const VP8_1BYTE = path.join(FIX, "vp8-1byte");
+const ARRAY_JSON = path.join(FIX, "array-json-baseline");
 const PUBLISHED = path.join(FIX, "published-pair", "SKILL.md");
 
 function reject(target: string) {
@@ -59,6 +62,9 @@ describe("vs-verify user path and observable end state", () => {
     expect(SKILL_RAW).not.toMatch(/VP8X_STUB_VERIFY_CANARY/);
     expect(SKILL_RAW).not.toMatch(/IHDR_NO_IDAT_VERIFY_CANARY/);
     expect(SKILL_RAW).not.toMatch(/EMPTY_JSON_BASELINE_VERIFY_CANARY/);
+    expect(SKILL_RAW).not.toMatch(/SOS_NO_SCAN_VERIFY_CANARY/);
+    expect(SKILL_RAW).not.toMatch(/VP8_1BYTE_VERIFY_CANARY/);
+    expect(SKILL_RAW).not.toMatch(/ARRAY_JSON_BASELINE_VERIFY_CANARY/);
     expect(SKILL_RAW).not.toMatch(/SHOW_ME_SKILL_CANARY/);
     expect(SKILL_RAW).not.toMatch(/EXPO_AGENT_DEVICE_CANARY/);
     expect(SKILL_RAW).not.toMatch(/\/vs-show-me|\/vs-expo-device/i);
@@ -102,6 +108,9 @@ describe("vs-verify user path and observable end state", () => {
     expect(reject(VP8X).status).toBe(1);
     expect(reject(IHDR_NO_IDAT).status).toBe(1);
     expect(reject(EMPTY_JSON).status).toBe(1);
+    expect(reject(SOS_NO_SCAN).status).toBe(1);
+    expect(reject(VP8_1BYTE).status).toBe(1);
+    expect(reject(ARRAY_JSON).status).toBe(1);
     expect(reject(COMMAND_XX).status).toBe(1);
     expect(reject(COMMAND_XX).stderr).toMatch(/pass with no named command/);
     const beside = path.join(DIR, "phrase-complete-beside.md");

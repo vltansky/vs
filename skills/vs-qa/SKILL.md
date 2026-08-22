@@ -736,7 +736,7 @@ QA may pin a screenshot or baseline. New shots compare to that pin. Do not
 invent a show-me skill. If the user names an Expo or device screenshot path,
 consume that file as evidence. Do not add an Expo agent-device skill.
 
-A `PASS` without a named command is a fail. When a visual was in scope, a pass without a real PNG or JPEG (IHDR+IDAT or SOF+SOS, not header-only image magic) in a screenshot or baseline file on disk inside the scored run directory (no absolute, `~`, or `..` paths) fails. A markdown image, empty `{}` baseline, VP8X fourcc-only WebP, or baseline path string is not evidence.
+A `PASS` without a named command is a fail. When a visual was in scope, a pass without a real PNG or JPEG (IHDR+IDAT or SOF+SOS with nonzero entropy after SOS, not header-only image magic) in a screenshot or baseline file on disk inside the scored run directory (no absolute, `~`, or `..` paths) fails. A markdown image, empty `{}` or `[]` or non-object baseline, VP8X fourcc-only WebP, one-byte VP8 chunk, or baseline path string is not evidence.
 
 Score runs with `skills/vs-qa/scripts/reject-qa-path.mjs` (exit 1 is a fail).
 Exclusive is the live skill path when it is the pinned published-rejector hash plus published skill hash. this rejector still fails the published bad set and passes the published clean set under `test/fixtures/path-end-state`. A byte-identical published pair matches those hashes. A phrase-complete SKILL.md beside the live tree, a one-line-changed copy scored by itself, or a sibling stub is not exclusive.
