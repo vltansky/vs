@@ -62,7 +62,13 @@ describe('shape-it: design quality', () => {
     expect(closing).toMatch(/so the user can confirm it/);
     expect(closing).toMatch(/Do not treat the eli5 as a replacement contract/);
     expect(closing).toMatch(/Do not paste\s+the Goal Contract/);
-    expect(closing).toMatch(/Chat is only this, in this order/);
+    expect(closing).toMatch(/Chat is only this exclusive 4-item close, in this order/);
+    expect(closing).toMatch(/1\. The first sentence is the TLDR/);
+    expect(closing).toMatch(/2\. The opened eli5/);
+    expect(closing).toMatch(/3\. `Handoff: Goal Contract ready/);
+    expect(closing).toMatch(/4\. One `Your action`/);
+    expect(closing).not.toMatch(/Chat carries only the TLDR, the opened artifact, and the confirm/);
+    expect(closing).not.toMatch(/the close leads with the blocking finding/);
     expect(closing).toMatch(/Do not print it in chat/);
     expect(closing).toMatch(/Write that block in the spec/);
     expect(closing).toMatch(/required even when that\s+complexity test would keep the answer in chat/);

@@ -12,7 +12,8 @@ actually read.
 
 <HARD-GATE>
 Do NOT write code or begin implementation. Output is a stress-test, verdict,
-handoff, and an interactive close-time `/vs-eli5` of that verdict.
+and report file. The interactive close-time `/vs-eli5` of that verdict uses the
+same exclusive 4-item chat as shape-it: TLDR, opened eli5, Handoff, Your action.
 </HARD-GATE>
 
 If the input is raw or unformed, route to `/vs-shape-it` first.
@@ -229,8 +230,10 @@ turns out to be stronger than every objection you have, that is the finding.
 
 ### 3. Take a position
 
-Lead with what you found. The first interactive response opens with a
-`Stress-Test Assessment` and the findings behind it, under about 300 words:
+Lead with what you found. Write the `Stress-Test Assessment` and the findings
+behind it, under about 300 words, to the report file. Chat mid-grill is a
+3-line position only (status, weakest, steelman). Open with the assessment,
+never with questions:
 
 ```text
 Stress-Test Assessment
@@ -337,14 +340,19 @@ label manual, deployment, and served-behavior gaps explicitly.
 
 In interactive mode, including a shape-it Challenge handoff, compose
 [`/vs-eli5`](../vs-eli5/SKILL.md) on the verdict after the report, including
-`NOT_READY`. Open the html. Chat is TLDR + opened artifact + confirm.
-The eli5 is a short review of the verdict so the user can confirm it, not a
-replacement for the report file.
+`NOT_READY`. Open the html. The eli5 is a short review of the verdict so the
+user can confirm it, not a replacement for the report file.
 
-Do not paste the report into chat. Chat is only the TLDR, the opened eli5,
-and the confirm. Write the full report (template below) to disk when durable
-history is useful or the user asks; it may run longer than 500 words in the
-file. Persist it to
+Chat is only this exclusive 4-item close, in this order:
+1. The first sentence is the TLDR: the verdict in plain English and why.
+2. The opened eli5.
+3. `Handoff: <verdict> | <N> open concerns`.
+4. One `Your action` confirm line.
+
+Do not paste the report, `Handoff Context`, or the Stress-Test Assessment
+template into chat. Write the full report (template below) to disk when
+durable history is useful or the user asks; it may run longer than 500 words
+in the file. Persist it to
 `~/.vs/$PROJECT_ID/vs-pushback/YYYY-MM-DD-<topic>.md` only when durable history is
 useful or the user asks for it; do not write it into the project tree. Redact
 secrets and broad private context before persistence.

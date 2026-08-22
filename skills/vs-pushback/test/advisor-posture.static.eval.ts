@@ -171,8 +171,14 @@ describe('pushback: proportional review and verification', () => {
   it('closes interactive review with vs-eli5 and skips it when composed', () => {
     expect(SKILL).toMatch(/interactive close-time `\/vs-eli5` of that verdict/);
     expect(SKILL).toMatch(/including a shape-it Challenge handoff, compose/);
-    expect(SKILL).toMatch(/Chat is TLDR \+ opened artifact \+ confirm/);
-    expect(SKILL).toMatch(/Do not paste the report into chat/);
+    expect(SKILL).toMatch(/Chat is only this exclusive 4-item close, in this order/);
+    expect(SKILL).toMatch(/1\. The first sentence is the TLDR/);
+    expect(SKILL).toMatch(/2\. The opened eli5/);
+    expect(SKILL).toMatch(/4\. One `Your action`/);
+    expect(SKILL).not.toMatch(/Chat is TLDR \+ opened artifact \+ confirm/);
+    expect(SKILL).not.toMatch(/Chat is only the TLDR, the opened eli5,\s+and the confirm/);
+    expect(SKILL).toMatch(/Write the `Stress-Test Assessment`.*to the report file/s);
+    expect(SKILL).toMatch(/Do not paste the report, `Handoff Context`/);
     expect(SKILL).toMatch(/Write the full report \(template below\) to disk/);
     expect(SKILL).toMatch(/skip the saved\s+report, the close-time `\/vs-eli5`/);
   });

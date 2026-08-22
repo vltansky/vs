@@ -542,9 +542,6 @@ for a small or routine shape. The eli5 is a short picture review of that spec
 so the user can confirm it. The Markdown spec, Goal Contract, and any ADR stay
 the thing they approve and the machine source of truth; link them from the
 eli5. Do not treat the eli5 as a replacement contract.
-Chat carries only the TLDR, the opened artifact, and the confirm. Do not paste
-the Goal Contract, ADR, or full recommendation into chat; those live in the
-linked files.
 
 After `/vs-eli5` returns `Saved:`, open that `.html` immediately. Do not wait
 for the user to click the path:
@@ -555,7 +552,7 @@ open "$ARTIFACT_PATH" 2>/dev/null || xdg-open "$ARTIFACT_PATH"
 
 If open fails, say so in one line and still give the `file://` path.
 
-Chat is only this, in this order:
+Chat is only this exclusive 4-item close, in this order:
 
 1. The first sentence is the TLDR: the recommendation in plain English and why it is the
    best fit. Translate verdicts and agent terms into what changes for the user.
@@ -577,7 +574,7 @@ Put the complete recommendation and all of the following in the linked files, no
   surviving high and medium findings (`The design is ready to build, with one
   open rollout risk (READY_WITH_RISKS).`)
 - the sharpest supported reason the recommendation can fail, with cause and user consequence; a generic risk label is not enough
-- a `NOT_READY` verdict does not block the approval gate; the close leads with the blocking finding and recommends rework
+- a `NOT_READY` verdict does not block the approval gate; the spec and eli5 lead with the blocking finding and recommend rework
   before `/vs-build-it`; offer interactive `/vs-pushback` if they want to
   defend it in rounds
 - the smallest handoff that can execute the approved Goal Contract, default
