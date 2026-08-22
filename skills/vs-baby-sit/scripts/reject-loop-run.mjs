@@ -90,23 +90,48 @@ if (watchIdx >= 0 && (predIdx < 0 || predIdx > watchIdx)) {
 }
 
 const resume = /(?:^|\n)\s*resume:\s*yes/im.test(text);
+const paused = /(?:^|\n)\s*paused:\s*yes/im.test(text);
 const resumeFile = /(?:^|\n)\s*resume-file:\s+\S+/im.test(text);
 if (resume && !resumeFile) {
-  console.error('reject-loop-run: resume without trail file');
+  console.error('reject-loop-run: resume without resume-file');
+  process.exit(1);
+}
+if (paused && !resumeFile) {
+  console.error('reject-loop-run: pause without resume-file');
   process.exit(1);
 }
 
 const stuck = [...text.matchAll(/stuck-iteration:\s*(\S+)/gi)].map((m) => m[1]);
 const counts = new Map();
 for (const key of stuck) counts.set(key, (counts.get(key) ?? 0) + 1);
+const continued =
+  /(?:^|\n)\s*continued:\s*yes/im.test(text) ||
+  /started the watcher again/i.test(text) ||
+  /watch_pr\.py/i.test(text);
+const stopped = /(?:^|\n)\s*stopped:\s*yes/im.test(text);
 for (const [key, n] of counts) {
   if (n >= 3) {
     console.error(`reject-loop-run: three stuck iterations of ${key}`);
     process.exit(1);
   }
+  if (n >= 2 && (continued || !stopped)) {
+    console.error(`reject-loop-run: looped past two stuck iterations of ${key}`);
+    process.exit(1);
+  }
 }
 
-if (slogans && predIdx < 0 && watchIdx < 0 && !resume) {
+const hasTsvHeader = /(?:^|\n)ts\tphase\tdecision\twhy\tevidence\tresult(?:\n|$)/.test(
+  text,
+);
+const hasTsvRow = /(?:^|\n)\d{4}-\d{2}-\d{2}T[^\n]*\t[^\n]+\t[^\n]+\t/.test(text);
+const shouldHaveTrail =
+  predIdx >= 0 || watchIdx >= 0 || resume || paused || stuck.length > 0;
+if (shouldHaveTrail && (!hasTsvHeader || !hasTsvRow)) {
+  console.error('reject-loop-run: missing TSV header/row');
+  process.exit(1);
+}
+
+if (slogans && predIdx < 0 && watchIdx < 0 && !resume && !paused) {
   console.error('reject-loop-run: mention-only run');
   process.exit(1);
 }
