@@ -55,7 +55,19 @@ describe('shape-it: pushback always runs at the end', () => {
   it('folds findings into the design and surfaces the verdict at the closing gate', () => {
     expect(SKILL).toMatch(/fold supported findings into the design/i);
     expect(SKILL).toMatch(/design\s+is ready to build[\s\S]+READY_WITH_RISKS/);
-    expect(SKILL).toMatch(/NOT_READY.*verdict does not block the approval gate/i);
+    expect(SKILL).not.toMatch(/does not block the approval gate/i);
+    expect(SKILL).toMatch(/NOT_READY[\s\S]*rework only/i);
+    expect(SKILL).toMatch(/Approval exists only for READY or READY_WITH_RISKS/);
+  });
+
+  it('pins NOT_READY as rework and READY as approve, exclusively', () => {
+    const closing = SKILL.slice(SKILL.indexOf('### 3. Closing interaction'));
+    expect(closing).not.toMatch(/does not block the approval gate/i);
+    expect(closing).toMatch(/NOT_READY: rework only/i);
+    expect(closing).toMatch(/do not offer approve or `\/vs-build-it`/i);
+    expect(closing).toMatch(/READY or READY_WITH_RISKS: approval/i);
+    expect(closing).toMatch(/If the\s+composed pushback verdict is NOT_READY, skip the approval gate/i);
+    expect(closing).toMatch(/Your action\s+is rework/i);
   });
 
   it('checks research and pushback before finishing', () => {

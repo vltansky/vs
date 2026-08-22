@@ -13,7 +13,7 @@ actually read.
 <HARD-GATE>
 Do NOT write code or begin implementation. Output is a stress-test, verdict,
 and report file. The interactive close-time `/vs-eli5` of that verdict uses the
-same exclusive 4-item chat as shape-it: TLDR, opened eli5, Handoff, Your action.
+same exclusive 4-item chat as shape-it: TLDR, eli5 path, Handoff, Your action.
 </HARD-GATE>
 
 If the input is raw or unformed, route to `/vs-shape-it` first.
@@ -326,14 +326,16 @@ label manual, deployment, and served-behavior gaps explicitly.
 
 In interactive mode, including a shape-it Challenge handoff, compose
 [`/vs-eli5`](../vs-eli5/SKILL.md) on the verdict after the report, including
-`NOT_READY`. Open the html. The eli5 is a short review of the verdict so the
-user can confirm it, not a replacement for the report file.
+`NOT_READY`. Always produce the eli5 HTML and the chat TLDR. Do not auto-open
+the HTML. Do not run `open` or `xdg-open` unless the user later asks to open
+the file. The eli5 is a short review of the verdict so the user can confirm
+it, not a replacement for the report file.
 
 Chat is only this exclusive 4-item close, in this order:
 1. The first sentence is the TLDR returned by composed `/vs-eli5` (two to four short lines): the verdict in plain English and why. Do not write a second TLDR.
-2. The opened eli5.
+2. The eli5 file path (or “eli5 saved”).
 3. `Handoff: <verdict> | <N> open concerns`.
-4. One `Your action` confirm line.
+4. One `Your action` line. READY or READY_WITH_RISKS: approve. NOT_READY: rework only — do not offer approve or `/vs-build-it`.
 
 Do not paste the report, `Handoff Context`, or the Stress-Test Assessment
 template into chat. Write the full report (template below) to disk when

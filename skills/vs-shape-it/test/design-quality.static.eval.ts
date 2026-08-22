@@ -47,16 +47,19 @@ describe('shape-it: design quality', () => {
     expect(reviewText).toMatch(/scope check/i);
     expect(reviewText).toMatch(/ambiguity check/i);
   });
-});
 
-  it('closes with an auto-opened vs-eli5 approval artifact', () => {
+  it('closes with a saved vs-eli5, never auto-opened', () => {
     const closing = SKILL.slice(SKILL.indexOf('### 3. Closing interaction'));
     expect(closing).toMatch(/always compose/i);
     expect(SKILL).toMatch(/Challenge hands the whole\s+session to pushback in interactive mode/);
     expect(SKILL).toMatch(/pushback composes the close-time\s+`\/vs-eli5`/);
     expect(closing).toMatch(/\/vs-eli5/);
-    expect(closing).toMatch(/open that `\.html` immediately/i);
-    expect(closing).toMatch(/open "\$ARTIFACT_PATH"/);
+    expect(closing).toMatch(/Do not auto-open/i);
+    expect(closing).toMatch(/Do not run `open` or `xdg-open`/i);
+    expect(closing).not.toMatch(/open that `\.html` immediately/i);
+    expect(closing).not.toMatch(/open "\$ARTIFACT_PATH"/);
+    expect(closing).not.toMatch(/2\. The opened eli5/);
+    expect(closing).toMatch(/2\. The eli5 file path \(or .eli5 saved.\)/);
     expect(closing).toMatch(/Do not skip the eli5/);
     expect(closing).toMatch(/short picture review of that spec/);
     expect(closing).toMatch(/so the user can confirm it/);
@@ -65,7 +68,6 @@ describe('shape-it: design quality', () => {
     expect(closing).toMatch(/Chat is only this exclusive 4-item close, in this order/);
     expect(closing).toMatch(/1\. The first sentence is the TLDR/);
     expect(closing).toMatch(/Do not write a second TLDR/);
-    expect(closing).toMatch(/2\. The opened eli5/);
     expect(closing).toMatch(/3\. `Handoff: Goal Contract ready/);
     expect(closing).toMatch(/4\. One `Your action`/);
     expect(closing).not.toMatch(/Chat carries only the TLDR, the opened artifact, and the confirm/);
@@ -76,3 +78,4 @@ describe('shape-it: design quality', () => {
     expect(SKILL).toMatch(/\*\*Relevant:\*\*.*\/vs-eli5/);
     expect(SKILL).toMatch(/short review of the spec so the user can confirm it/);
   });
+});

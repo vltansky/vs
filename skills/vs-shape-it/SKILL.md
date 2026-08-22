@@ -135,11 +135,13 @@ than the default batched checkpoint:
    for A/B after; `back` revisits the previous answer and updates dependent
    decisions. If the user says `done`, preserve remaining uncertainty as
    explicit open decisions with recommendations.
-5. Stop interviewing once outcome, boundary, success proof, and the
-   expensive-to-reverse choices are clear. Reflect the agreed mental model in
-   no more than three bullets. If a fundamental part of that model remains
-   ambiguous, ask a single confirmation question; otherwise state the aligned
-   model and enter the uninterrupted independent beat without another gate.
+5. Stop interviewing once outcome, boundary, and one expensive-to-reverse
+   call are clear. Do not keep grilling until all expensive choices are clear.
+   Everything else is a stated reversible default in the spec. Keep Why +
+   Drill as the last option. Reflect the agreed mental model in no more than three bullets.
+   If a fundamental part of that model remains ambiguous, ask
+   a single confirmation question; otherwise state the aligned model and enter
+   the uninterrupted independent beat without another gate.
 6. Update progress only when a decision changes state. During alignment, show
    resolved and open decisions; do not turn progress into a fixed questionnaire.
 
@@ -543,21 +545,18 @@ so the user can confirm it. The Markdown spec, Goal Contract, and any ADR stay
 the thing they approve and the machine source of truth; link them from the
 eli5. Do not treat the eli5 as a replacement contract.
 
-After `/vs-eli5` returns `Saved:`, open that `.html` immediately. Do not wait
-for the user to click the path:
-
-```bash
-open "$ARTIFACT_PATH" 2>/dev/null || xdg-open "$ARTIFACT_PATH"
-```
-
-If open fails, say so in one line and still give the `file://` path.
+After `/vs-eli5` returns `Saved:`, always produce the eli5 HTML and the chat
+TLDR. Close item 2 is the file path (or “eli5 saved”), a link, not a
+required-to-show open. Do not auto-open the HTML. Do not run `open` or `xdg-open` unless the
+user picked Drill mid-session or later asks to open the file. Do not
+follow the shared artifact opener at close.
 
 Chat is only this exclusive 4-item close, in this order:
 
 1. The first sentence is the TLDR returned by composed `/vs-eli5` (two to four short lines): the recommendation in plain English and why it is the best fit. Do not write a second TLDR.
-2. The opened eli5.
+2. The eli5 file path (or “eli5 saved”).
 3. `Handoff: Goal Contract ready | <N> open decisions` (or the missing field).
-4. One `Your action` approval line, plus the shortest exact reply that accepts.
+4. One `Your action` line. READY or READY_WITH_RISKS: approval, plus the shortest exact reply that accepts. NOT_READY: rework only — do not offer approve or `/vs-build-it`.
 
 Do not paste the Goal Contract, ADR, pushback report, execution blueprint, or
 the `Execution:` block into chat. Those live in the linked files and the eli5.
@@ -573,17 +572,21 @@ Put the complete recommendation and all of the following in the linked files, no
   surviving high and medium findings (`The design is ready to build, with one
   open rollout risk (READY_WITH_RISKS).`)
 - the sharpest supported reason the recommendation can fail, with cause and user consequence; a generic risk label is not enough
-- a `NOT_READY` verdict does not block the approval gate; the spec and eli5 lead with the blocking finding and recommend rework
-  before `/vs-build-it`; offer interactive `/vs-pushback` if they want to
-  defend it in rounds
+- a `NOT_READY` verdict is rework only: it blocks the approval gate. The spec
+  and eli5 lead with the blocking finding. Your action is rework, not
+  approve and not `/vs-build-it`. Offer interactive `/vs-pushback` if they
+  want to defend it in rounds
 - the smallest handoff that can execute the approved Goal Contract, default
   `/vs-build-it`, plus the execution class below
 
-Keep one approval request. Ask for approval once, after the whole design, Goal Contract, any ADR, and any
-execution blueprint are visible in those files. Approval means ready for
-`/vs-build-it`; it does not start implementation. If an unresolved strategic
-decision remains and each option is already shaped, combine it with this gate.
-If their pick needs redesign, return a revised complete design.
+Approval exists only for READY or READY_WITH_RISKS. Keep one approval request
+in those cases. Ask for approval once, after the whole design, Goal Contract, any ADR, and any
+execution blueprint are visible in those files. Approval
+means ready for `/vs-build-it`; it does not start implementation. If the
+composed pushback verdict is NOT_READY, skip the approval gate: Your action
+is rework. If an unresolved strategic decision remains on a READY or
+READY_WITH_RISKS close and each option is already shaped, combine it with
+this gate. If their pick needs redesign, return a revised complete design.
 
 Default to the approved spec, then `/vs-build-it`. Extra coordination follows
 the execution class written in the spec, not in chat:
