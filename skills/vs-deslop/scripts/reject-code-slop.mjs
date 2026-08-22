@@ -35,13 +35,10 @@ const RULES = [
   { name: "ceremony Service class", re: /class\s+\w*Service\b/ },
   { name: "invented WidgetFactory.ts", re: /WidgetFactory\.ts/ },
   { name: "invented WidgetUtils.ts", re: /WidgetUtils\.ts/ },
-  { name: "second-miss leftover marker", re: /\/\*\s*second-miss\s*\*\// },
   {
     name: "boolean mode flag leftover",
     re: /\bmode\s*(?::|===?)\s*(true|false|'strict'|'loose'|"strict"|"loose")/,
   },
-  { name: "slogan keep-it-flat", re: /keep-it-flat/i },
-  { name: "slogan encode-via-lint", re: /encode via lint/i },
 ];
 
 const hits = RULES.filter((rule) => rule.re.test(source)).map((rule) => rule.name);

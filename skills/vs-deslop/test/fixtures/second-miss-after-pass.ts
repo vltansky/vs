@@ -1,15 +1,8 @@
-// One flatten pass renamed wrap() to run() and left the Manager plus a
-// boolean mode. That leftover is the second miss.
-export class WidgetManager {
-  run(value: number, mode: boolean): number {
-    if (mode === true) {
-      /* second-miss */
-      return value;
-    }
+// One flatten pass inlined wrap() into runWidget. The leftover boolean
+// mode still splits one path — that is the second miss.
+export function runWidget(value: number, mode: boolean): number {
+  if (mode === true) {
     return value;
   }
-}
-
-export function runWidget(value: number): number {
-  return new WidgetManager().run(value, true);
+  return value;
 }
