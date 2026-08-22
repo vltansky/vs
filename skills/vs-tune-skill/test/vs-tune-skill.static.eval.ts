@@ -23,6 +23,9 @@ const BAD_ALL = path.join(FIXTURES, 'bad-grades-all');
 const BAD_MENTION = path.join(FIXTURES, 'bad-mention-only');
 const BAD_MUTATE = path.join(FIXTURES, 'bad-mutates-repo');
 const BAD_UPLOAD = path.join(FIXTURES, 'bad-uploads');
+const BAD_AUTO_OPEN = path.join(FIXTURES, 'bad-auto-open');
+const BAD_LAYOUT_VS = path.join(FIXTURES, 'bad-layout-vs');
+const BAD_UNNAMED = path.join(FIXTURES, 'bad-unnamed-no-need-skill');
 const SESSION_HOMES = path.join(FIXTURES, 'session-homes');
 
 function reject(target: string) {
@@ -95,6 +98,21 @@ describe('vs-tune-skill thin contract', () => {
     expect(SKILL_RAW).not.toMatch(/BAD_MENTION_ONLY_CANARY/);
     expect(SKILL_RAW).not.toMatch(/BAD_MUTATES_REPO_CANARY/);
     expect(SKILL_RAW).not.toMatch(/BAD_UPLOADS_TRANSCRIPT_CANARY/);
+    expect(SKILL_RAW).not.toMatch(/BAD_AUTO_OPEN_CANARY/);
+    expect(SKILL_RAW).not.toMatch(/BAD_LAYOUT_VS_CANARY/);
+    expect(SKILL_RAW).not.toMatch(/BAD_UNNAMED_NO_NEED_SKILL_CANARY/);
+  });
+
+  it('has one Workflow close: Next done, Relevant empty or at most two', () => {
+    expect(SKILL_RAW.match(/Direct: emit \*\*Next\*\*/g) || []).toHaveLength(1);
+    expect(SKILL_RAW).toMatch(/\*\*Next:\*\* done/);
+    const relevant = ((SKILL_RAW.match(/\*\*Relevant:\*\*\s*([^\n]+)/) || [])[1] || '').trim();
+    if (!/^none$/i.test(relevant)) {
+      const items = relevant.split('|').map((item) => item.trim()).filter(Boolean);
+      expect(items.length).toBeGreaterThan(0);
+      expect(items.length).toBeLessThanOrEqual(2);
+    }
+    expect(SKILL).toMatch(/Compose `\/vs-eval`/);
   });
 });
 
@@ -105,6 +123,8 @@ describe('vs-tune-skill workspace scorer', () => {
   });
 
   it('accepts a real tune-skill and this skill file', () => {
+    const clean = fs.readFileSync(CLEAN_SKILL, 'utf8');
+    expect(clean).not.toMatch(/layout|auto-open|generic repo/i);
     expect(reject(CLEAN_SKILL).status).toBe(0);
     expect(reject(path.join(DIR, 'SKILL.md')).status).toBe(0);
   });
@@ -124,15 +144,62 @@ describe('vs-tune-skill workspace scorer', () => {
     expect(reject(BAD_UPLOAD).status).toBe(1);
   });
 
+  it('rejects a run that auto-opens or uses layout: vs', () => {
+    expect(reject(BAD_AUTO_OPEN).status).toBe(1);
+    expect(reject(BAD_LAYOUT_VS).status).toBe(1);
+  });
+
+  it('rejects an unnamed run that skipped NEED_SKILL', () => {
+    expect(reject(BAD_UNNAMED).status).toBe(1);
+  });
+
   it('exits 2 when a target is missing', () => {
     expect(reject(path.join(FIXTURES, 'missing-run.md')).status).toBe(2);
   });
 });
 
+function materializeSessionHomes() {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'vs-tune-sessions-'));
+  const repo = path.join(root, 'repo');
+  fs.cpSync(path.join(SESSION_HOMES, 'repo'), repo, { recursive: true });
+  const claudeSrc = path.join(
+    SESSION_HOMES,
+    'claude',
+    'projects',
+    '-fixture-demo',
+    'chat.jsonl',
+  );
+  const codexSrc = path.join(
+    SESSION_HOMES,
+    'codex',
+    'sessions',
+    '2026',
+    '08',
+    '22',
+    'rollout-demo.jsonl',
+  );
+  const claudeHome = path.join(root, 'claude');
+  const codexHome = path.join(root, 'codex');
+  const claudeDest = path.join(claudeHome, 'projects', '-fixture-demo', 'chat.jsonl');
+  const codexDest = path.join(
+    codexHome,
+    'sessions',
+    '2026',
+    '08',
+    '22',
+    'rollout-demo.jsonl',
+  );
+  fs.mkdirSync(path.dirname(claudeDest), { recursive: true });
+  fs.mkdirSync(path.dirname(codexDest), { recursive: true });
+  fs.writeFileSync(claudeDest, fs.readFileSync(claudeSrc, 'utf8').replaceAll('__REPO_CWD__', repo));
+  fs.writeFileSync(codexDest, fs.readFileSync(codexSrc, 'utf8').replaceAll('__REPO_CWD__', repo));
+  return { repo, claudeHome, codexHome };
+}
+
 describe('vs-tune-skill local collector', () => {
   it('inventories repo skills and cwd-matching local sessions without uploading', () => {
     const out = fs.mkdtempSync(path.join(os.tmpdir(), 'vs-tune-skill-eval-'));
-    const repo = path.join(SESSION_HOMES, 'repo');
+    const { repo, claudeHome, codexHome } = materializeSessionHomes();
     const result = spawnSync(
       process.execPath,
       [
@@ -146,9 +213,9 @@ describe('vs-tune-skill local collector', () => {
         '--skill',
         'demo-skill',
         '--claude-home',
-        path.join(SESSION_HOMES, 'claude'),
+        claudeHome,
         '--codex-home',
-        path.join(SESSION_HOMES, 'codex'),
+        codexHome,
       ],
       { encoding: 'utf8' },
     );
@@ -174,5 +241,30 @@ describe('vs-tune-skill local collector', () => {
     );
     const copies = fs.readdirSync(path.join(out, 'transcripts'));
     expect(copies.length).toBeGreaterThan(0);
+  });
+
+  it('fails closed when --skill is omitted and writes no inventory', () => {
+    const out = fs.mkdtempSync(path.join(os.tmpdir(), 'vs-tune-skill-noskill-'));
+    const { repo, claudeHome, codexHome } = materializeSessionHomes();
+    const result = spawnSync(
+      process.execPath,
+      [
+        COLLECT,
+        '--repo',
+        repo,
+        '--out',
+        out,
+        '--days',
+        '45',
+        '--claude-home',
+        claudeHome,
+        '--codex-home',
+        codexHome,
+      ],
+      { encoding: 'utf8' },
+    );
+    expect(result.status).not.toBe(0);
+    expect(fs.existsSync(path.join(out, 'inventory.json'))).toBe(false);
+    expect(result.stderr).toMatch(/--skill/);
   });
 });

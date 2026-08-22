@@ -78,9 +78,9 @@ grades everything.
 node "$SKILL_ROOT/scripts/collect-sessions.mjs" --repo "$TARGET_REPO" --skill "$SKILL_NAME" --out "$REPORT_DIR"
 ```
 
-Useful flags: `--days`, `--max-sessions`, `--skills-dir` (repeatable),
-`--cursor-export`, `--grok-jsonl`, `--claude-home`, `--codex-home`,
-`--skill`.
+`--skill` is required. Optional flags: `--days`, `--max-sessions`,
+`--skills-dir` (repeatable), `--cursor-export`, `--grok-jsonl`,
+`--claude-home`, `--codex-home`.
 
 You may compose `/vs-search-threads` to list candidate sessions, then
 pass only the repo-matching paths into the collector. Print paths and
@@ -150,9 +150,6 @@ path. Do not paste the page body.
 ## 6. Close
 
 Ask whether to apply the scratch diffs. Default is no.
-
-Direct: emit **Next** only after that question. Composed: return the
-TLDR and the scratch path to the caller.
 
 ## Output style
 
