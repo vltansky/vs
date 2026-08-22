@@ -41,7 +41,9 @@ describe('vs-tune-skill thin contract', () => {
     expect(SKILL_RAW).toMatch(
       /## Workflow[\s\S]+\*\*Prev:\*\*[\s\S]+\*\*Next:\*\*[\s\S]+\*\*Relevant:\*\*/,
     );
-    expect(SKILL).toMatch(/`\/vs-eval`\s*\|\s*`\/vs-htmdx`\s*\|\s*`\/vs-search-threads`/);
+    expect(SKILL).toMatch(/`\/vs-eval`/);
+    expect(SKILL).toMatch(/`\/vs-htmdx`/);
+    expect(SKILL).toMatch(/`\/vs-search-threads`/);
     expect(SKILL_RAW).not.toContain('disable-model-invocation');
     expect(OPENAI_CONFIG).toContain('allow_implicit_invocation: false');
     expect(SKILL).not.toMatch(/\/vs-skill-doctor|tune-skills/);
@@ -61,14 +63,11 @@ describe('vs-tune-skill thin contract', () => {
     expect(SKILL).toMatch(/zero sessions/i);
     expect(SKILL).toMatch(/creating skills is the finding/i);
     expect(SKILL).toMatch(/fire[d]? and follow|fired and was followed/i);
-    expect(SKILL).toMatch(/layout:\s*default/);
-    expect(SKILL).toMatch(/never use\s+`layout:\s*vs`|Never use\s+`layout:\s*vs`/i);
     expect(SKILL).toMatch(/Ask whether to apply/i);
     expect(SKILL).toMatch(/not `\/vs-improve`/);
     expect(SKILL).toMatch(/not `\/vs-search-threads`/);
     expect(SKILL).not.toMatch(/warp\.dev\/factories/i);
-    expect(SKILL).not.toMatch(/Do not edit PathGrade[\s\S]{0,40}except/i);
-    expect(SKILL).toMatch(/Do not edit PathGrade/);
+    expect(SKILL).not.toMatch(/Do not edit PathGrade/);
   });
 
   it('is wired into the shared VS catalogs', () => {
@@ -103,16 +102,11 @@ describe('vs-tune-skill thin contract', () => {
     expect(SKILL_RAW).not.toMatch(/BAD_UNNAMED_NO_NEED_SKILL_CANARY/);
   });
 
-  it('has one Workflow close: Next done, Relevant empty or at most two', () => {
+  it('has one Workflow close: Next done, Relevant none', () => {
     expect(SKILL_RAW.match(/Direct: emit \*\*Next\*\*/g) || []).toHaveLength(1);
     expect(SKILL_RAW).toMatch(/\*\*Next:\*\* done/);
-    const relevant = ((SKILL_RAW.match(/\*\*Relevant:\*\*\s*([^\n]+)/) || [])[1] || '').trim();
-    if (!/^none$/i.test(relevant)) {
-      const items = relevant.split('|').map((item) => item.trim()).filter(Boolean);
-      expect(items.length).toBeGreaterThan(0);
-      expect(items.length).toBeLessThanOrEqual(2);
-    }
-    expect(SKILL).toMatch(/Compose `\/vs-eval`/);
+    expect(SKILL_RAW).toMatch(/\*\*Relevant:\*\* none/);
+    expect(SKILL).not.toMatch(/Compose `\/vs-eval`/);
   });
 });
 

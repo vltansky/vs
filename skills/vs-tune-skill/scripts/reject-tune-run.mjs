@@ -89,13 +89,14 @@ const unnamedNoNeed =
   /named skill:\s*none/i.test(text) && !/status:\s*NEED_SKILL/i.test(text);
 
 if (looksLikeSkillDoc) {
-  if (exclusiveHits >= 5) process.exit(0);
   if (slogans && exclusiveHits < 4) {
     console.error('reject-tune-run: slogan-only skill');
     process.exit(1);
   }
-  console.error('Cannot classify skill');
-  process.exit(2);
+  if (exclusiveHits < 5) {
+    console.error('Cannot classify skill');
+    process.exit(2);
+  }
 }
 
 if (uploaded) {
@@ -130,6 +131,9 @@ if (mentioned && !inventory && !proposed && !zeroSessions && !needSkillAsk) {
   process.exit(1);
 }
 if (inventory && (proposed || zeroSessions) && namedOne && !uploaded && !mutated) {
+  process.exit(0);
+}
+if (looksLikeSkillDoc) {
   process.exit(0);
 }
 

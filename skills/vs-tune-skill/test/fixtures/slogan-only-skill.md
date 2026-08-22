@@ -7,6 +7,5 @@ name: tune-skill
 <!-- SLOGAN_ONLY_SKILL_CANARY -->
 
 Grade chats. Build a scorecard. Propose diffs. Use /vs-tune-skill.
-Use layout: default. Do not auto-open. Never use layout: vs.
 
 This file recites the slogans and stops there.
