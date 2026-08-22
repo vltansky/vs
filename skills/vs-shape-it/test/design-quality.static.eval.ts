@@ -64,6 +64,7 @@ describe('shape-it: design quality', () => {
     expect(closing).toMatch(/Do not paste\s+the Goal Contract/);
     expect(closing).toMatch(/Chat is only this exclusive 4-item close, in this order/);
     expect(closing).toMatch(/1\. The first sentence is the TLDR/);
+    expect(closing).toMatch(/Do not write a second TLDR/);
     expect(closing).toMatch(/2\. The opened eli5/);
     expect(closing).toMatch(/3\. `Handoff: Goal Contract ready/);
     expect(closing).toMatch(/4\. One `Your action`/);

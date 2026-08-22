@@ -7,8 +7,12 @@ description: "Explain a topic like I'm a 5 year old. Use when the user types /vs
 
 Explain like I'm someone who knows nothing about this topic, using an HTML artifact with big pictures and few words. Use `/vs-htmdx` for that artifact, not raw HTML. Start from `../vs-htmdx/assets/artifact.html`
 
-Always put a chat TLDR of that page: two to four short lines with the answer
-and the next action. Direct and composed both do this. Do not call `/vs-tldr`.
+Always produce a chat TLDR of that page: two to four short lines with the
+answer and the next action. Do not call `/vs-tldr`.
+
+Direct: write that TLDR to chat with the opened page. Composed: return those
+2-4 lines to the caller as the single close item-1 TLDR and write nothing else
+to chat.
 
 Topic: $ARGUMENTS
 

@@ -176,6 +176,7 @@ describe('pushback: proportional review and verification', () => {
     expect(SKILL).toMatch(/including a shape-it Challenge handoff, compose/);
     expect(SKILL).toMatch(/Chat is only this exclusive 4-item close, in this order/);
     expect(SKILL).toMatch(/1\. The first sentence is the TLDR/);
+    expect(SKILL).toMatch(/Do not write a second TLDR/);
     expect(SKILL).toMatch(/2\. The opened eli5/);
     expect(SKILL).toMatch(/3\. `Handoff:/);
     expect(SKILL).toMatch(/4\. One `Your action`/);

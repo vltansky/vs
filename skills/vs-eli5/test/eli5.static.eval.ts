@@ -59,9 +59,10 @@ describe('vs-eli5 rendering', () => {
   });
 
   it('always puts a chat TLDR of the page', () => {
-    expect(SKILL).toMatch(/Always put a chat TLDR of that page/);
+    expect(SKILL).toMatch(/Always produce a chat TLDR of that page/);
     expect(SKILL).toMatch(/two to four short lines/);
-    expect(SKILL).toMatch(/Direct and composed both do this/);
+    expect(SKILL).toMatch(/Composed: return those\s+2-4 lines to the caller as the single close item-1 TLDR/);
+    expect(SKILL).toMatch(/write nothing else\s+to chat/);
     expect(SKILL).toMatch(/Do not call `\/vs-tldr`/);
   });
 });

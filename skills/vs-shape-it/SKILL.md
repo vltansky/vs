@@ -554,8 +554,7 @@ If open fails, say so in one line and still give the `file://` path.
 
 Chat is only this exclusive 4-item close, in this order:
 
-1. The first sentence is the TLDR: the recommendation in plain English and why it is the
-   best fit. Translate verdicts and agent terms into what changes for the user.
+1. The first sentence is the TLDR returned by composed `/vs-eli5` (two to four short lines): the recommendation in plain English and why it is the best fit. Do not write a second TLDR.
 2. The opened eli5.
 3. `Handoff: Goal Contract ready | <N> open decisions` (or the missing field).
 4. One `Your action` approval line, plus the shortest exact reply that accepts.

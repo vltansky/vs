@@ -330,7 +330,7 @@ In interactive mode, including a shape-it Challenge handoff, compose
 user can confirm it, not a replacement for the report file.
 
 Chat is only this exclusive 4-item close, in this order:
-1. The first sentence is the TLDR: the verdict in plain English and why.
+1. The first sentence is the TLDR returned by composed `/vs-eli5` (two to four short lines): the verdict in plain English and why. Do not write a second TLDR.
 2. The opened eli5.
 3. `Handoff: <verdict> | <N> open concerns`.
 4. One `Your action` confirm line.
