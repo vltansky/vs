@@ -42,7 +42,7 @@ Before delegating, load and follow
 7. **Security first — redact, never quote** — secrets, keys, credentials get escalated to the top, before anything else. But when reporting them: cite `file:line` and the variable name, and NEVER output the actual secret value in your response. Quote the shape only, with the value masked (e.g., `API_KEY = "sk-live-****"`). The goal is to flag the sin, not to leak the secret into the transcript, the roast, or any follow-up fix plan. This overrides any roast convention about quoting actual code for specificity — for secret values, redact. The ban covers the whole response, not just the finding that flags the secret: masking it once does not license quoting it in a zinger, an aside, or a finding about some other sin. A secret is funniest masked. When committed credentials are present, explicitly tell the user to rotate/revoke them and move them to env vars or a secret manager.
 8. **Punch up not down** — mock patterns, not people.
 9. **Be specific** — cite `file:line`, quote actual code. Generic roasts are lazy.
-10. **Treat review output as advisory** — verify every accepted finding against
+10. **Treat review output as advisory** — verify every Act finding against
    the real code path and adjacent files before fixing or reporting it as true.
 11. **Reject speculative review noise** — skip unrealistic edge cases, vague
     rewrites, and fixes that over-complicate the codebase.
@@ -451,18 +451,17 @@ verifying the finding.
 
 Process selected fixes. Show before/after for major changes. Run linter if available.
 
-For each review finding, decide `accepted`, `rejected`, or `deferred` from
-its bucket:
+For each review finding, act from its bucket:
 
-- `accepted`: Act — confirmed in code, fixed or reported; the PR author /
+- Act — confirmed in code, fixed or reported; the PR author /
   executor owns the change
-- `rejected`: Dismissed — not real, too speculative, intentionally designed, or
+- Dismissed — not real, too speculative, intentionally designed, or
   worse than the code it would replace, plus the one-line why
-- `deferred`: Consider or Noted — judgment call or recorded, no merge block
+- Consider or Noted — judgment call or recorded, no merge block
 
 If a review-triggered fix changes code, rerun the focused tests/checks that cover
 the touched behavior and rerun the relevant review pass. Keep going until there
-are no accepted/actionable findings left in scope. Once a rerun is clean, stop;
+are no Act findings left in scope. Once a rerun is clean, stop;
 do not spend another review cycle just to get nicer closeout wording.
 
 Closeout for STANDARD and HIGH-RISK is one line, not a scorecard block:
@@ -480,7 +479,7 @@ SMALL closes out in one line: `SMALL review: [N] fixed, [N] left — <files>`.
 ## Zero-Finding Gate
 
 Applies in every class. If all applicable review passes produce zero findings —
-no critical, serious, or medium issues across every lens:
+no Act findings across every lens:
 
 1. Verify you read the changed files in full, not just diffstat.
 2. Name at least one specific positive assertion with `file:line` evidence:

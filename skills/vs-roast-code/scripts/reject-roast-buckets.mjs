@@ -60,7 +60,9 @@ const looksLikeSkill =
   /^# /m.test(text);
 
 const hasSlogans = /\bAct\b/.test(text) && /\bConsider\b/.test(text);
-const hasProcedure =
+// Copied bucket slogans are not procedure. The closer is nits-never-Act,
+// crash-level-is-Act, SMALL prefix, STANDARD keeps tiers.
+const copiedPhrases =
   /must change before merge/i.test(text) &&
   /do not block merge/i.test(text) &&
   /recorded,\s+no action/i.test(text) &&
@@ -70,6 +72,12 @@ const hasProcedure =
   /lists findings with no buckets fails/i.test(text) &&
   /puts a nit in Act/i.test(text) &&
   /do not invent a new channel/i.test(text);
+const hasProcedure =
+  copiedPhrases &&
+  /PARKING TICKETS[\s\S]{0,80}never Act/i.test(text) &&
+  /crash-level/i.test(text) &&
+  /SMALL stays flat/i.test(text) &&
+  /keep the Sin Inventory/i.test(text);
 
 if (looksLikeSkill) {
   if (!hasProcedure) {
@@ -143,19 +151,31 @@ const allNits =
   assigned.length >= 2 &&
   assigned.every((item) => NIT.test(item.line)) &&
   assigned.every((item) => !REAL.test(item.line));
+const actNits = assigned.filter(
+  (item) =>
+    item.bucket === 'act' && NIT.test(item.line) && !REAL.test(item.line),
+);
 
 if (allAct && allNits) {
   console.error('reject-roast-buckets: all-Act dump of nits');
   process.exit(1);
 }
 
-const dismissed = assigned.filter((item) => item.bucket === 'dismissed');
-const dismissedWhy =
-  dismissed.some((item) => WHY.test(item.line)) ||
-  (/dismissed/i.test(text) && WHY.test(text));
+if (actNits.length > 0) {
+  console.error('reject-roast-buckets: dismissed-as-Act');
+  process.exit(1);
+}
 
-if (used.size < 2 || dismissed.length === 0 || !dismissedWhy) {
-  console.error('reject-roast-buckets: need mixed buckets + one Dismissed with why');
+if (hasFindings && assigned.length > 0 && !used.has('act')) {
+  console.error('reject-roast-buckets: missing Act');
+  process.exit(1);
+}
+
+const dismissed = assigned.filter((item) => item.bucket === 'dismissed');
+const dismissedWhy = dismissed.every((item) => WHY.test(item.line));
+
+if (dismissed.length > 0 && !dismissedWhy) {
+  console.error('reject-roast-buckets: Dismissed needs a why on that finding');
   process.exit(1);
 }
 
