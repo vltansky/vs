@@ -43,6 +43,8 @@ and frame the work as cleanup or architecture, not proven performance.
 2. **Find or create the evaluator.** Prefer existing benchmarks, profiling
    scripts, integration tests with timing, or bundle analyzers.
 3. **Record the baseline.** Run the evaluator before edits and capture the result.
+   If `/vs-verify` or `/vs-qa` already pinned a visual baseline, point at it;
+   do not re-derive it.
 4. **Set the pass contract.** Example: "PASS when p95 improves by 20% and tests
    still pass."
 5. **Optimize in small patches.** Apply the shared

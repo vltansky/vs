@@ -168,6 +168,7 @@ If using log server: keep instrumentation active, tag verification logs with `ru
 - Specific failing command now passes
 - Full test suite passes
 - Build passes
+- If `/vs-verify` or `/vs-qa` already pinned a visual baseline, point at that artifact; do not re-derive it
 - If log server: compare before/after logs, confirm with evidence
 - If intermittent: run the reproduction loop enough times to report a before/after failure rate
 

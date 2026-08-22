@@ -55,10 +55,28 @@ enough; do not run the entire suite by reflex.
    the built output. Reachability (HTTP 200) alone proves nothing about which
    build is live.
 
+## User path and observable end state
+
+Every run names both:
+
+- **User path** — the click/type sequence a person would do to see the claim
+- **Observable end state** — what they see or have when the claim is true
+
+A `PASS` or `CLEAN` that only says tests passed, with no user path and no
+observable end state, is `FAIL`. Score runs with
+`skills/vs-verify/scripts/reject-verify-path.mjs` (exit 1 is a fail). Exclusive
+cases live under `test/fixtures/path-end-state`.
+
+Verify may pin a screenshot or baseline path. New shots compare to that pin.
+Do not invent a show-me skill. If the user names an Expo or device screenshot
+path, consume that file as evidence; do not add an Expo agent-device skill.
+
 ## Rules
 
 - Never report `PASS` without naming the command, check, or observation that
   proved the claim.
+- Never report `PASS` or `CLEAN` without a user path and an observable end
+  state.
 - If a check fails, report `FAIL` and the smallest useful failure excerpt.
 - If the environment blocks verification, report `BLOCKED` and name exactly what
   is missing.
@@ -88,6 +106,9 @@ Consumers repeat the verify status; they do not soften it:
 
 - Status: PASS | WARN | FAIL | BLOCKED
 - Claim: <what was being proven>
+- User path: <click/type sequence a person would do>
+- Observable end state: <what they see or have>
+- Visual baseline: <pinned screenshot path, or none>
 - Evidence:
   - `<command or observation>` - <result>
 - Gaps:
