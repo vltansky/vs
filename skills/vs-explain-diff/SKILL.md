@@ -124,7 +124,7 @@ Resolve `$PROJECT_ID` with
 slug from the PR title or branch name. When the path already exists, add a
 numeric suffix rather than overwriting.
 
-Use `layout: default` and ordinary `###` sections for the four-section spine —
+Use `layout: vs` and ordinary `###` sections for the four-section spine —
 it is read in order, so it is not a `Tabs` case. Do not produce a Markdown twin.
 
 ## Handoff

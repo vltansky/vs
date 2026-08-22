@@ -85,6 +85,7 @@ uncertainty.
 2. Start from [assets/artifact.html](assets/artifact.html), which carries the
    `vs` artifact metadata the other `vs` report skills share. Copy the complete
    shell; replace the title, frontmatter, and primary source placeholders.
+   Artifacts use `layout: vs` (not default).
 3. Keep `@wix/htmdx@4` pinned in both the renderer metadata and script URL.
    Every `vs` template pins one major line — do not diverge from it for a single
    artifact. The major is the pin: `@wix/htmdx` promises compatibility within a
@@ -205,4 +206,4 @@ Direct: emit **Next** only. Composed: return to caller.
 
 **Prev:** research, analysis, or supplied source material
 **Next:** done
-**Relevant:** `/vs-explain-diff`
+**Relevant:** `/vs-explain-diff` | `/vs-eli5`

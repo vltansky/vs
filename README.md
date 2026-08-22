@@ -166,6 +166,7 @@ confirmed, diff-scoped structural findings after implementation.
 | `/vs-write` | Write or reshape clear prose without losing substance |
 | `/vs-brief` | Turn a git diff into a concise review brief |
 | `/vs-tldr` | Compress the last explanation: shorter and simpler, same meaning |
+| `/vs-eli5` | Explain from zero with big pictures and few words, via `/vs-htmdx` |
 | `/vs-explain-diff` | Explain a code change in depth, with intuition, diagrams, and reader self-check questions |
 | `/vs-perf` | Optimize performance against an explicit evaluator |
 | `/vs-to-issues` | Turn a plan, spec, or RFC into vertical-slice GitHub issues |

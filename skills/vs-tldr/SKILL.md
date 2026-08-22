@@ -34,13 +34,15 @@ Compress and simplify the explanation the user just read.
 - Project nouns replace invented ones.
 - No caveat, condition, or action was lost in the cut.
 - A second `/vs-tldr` compresses again rather than degrading into fragments.
+- After the re-pitch, if a from-zero visual explainer would help, propose `/vs-eli5` in one short line. Do not run it.
 
 ## Boundary
 
 Use `/vs-tldr` at any point, including inside another skill. It compresses one
 explanation after the fact; it does not replace `/vs-recap` for the whole current
-situation, `/vs-write` for editing supplied prose, or `/vs-explain-diff` for a
-deep code-change explainer.
+situation, `/vs-write` for editing supplied prose, `/vs-explain-diff` for a
+deep code-change explainer, or `/vs-eli5` for a from-zero visual explainer.
+This skill stays prose-only. It does not become HTMDX.
 
 Apply the [shared output style](../vs-internal-shared/references/output-style.md)
 to the re-pitch. This skill is intentionally small: the leading signal is that
