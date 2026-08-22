@@ -1,0 +1,6 @@
+interface:
+  display_name: "vs-eval"
+  short_description: "Write PathGrade static pins and live evals with exclusive contracts."
+
+policy:
+  allow_implicit_invocation: false
