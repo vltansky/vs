@@ -4,8 +4,8 @@
 //   node reject-roast-buckets.mjs <skill.md|roast-dir|roast.md>
 //
 // Exit 0 clean. Exit 1 reject. Exit 2 cannot check. Treat 2 as not a pass.
-import { readdirSync, readFileSync, statSync } from 'node:fs';
-import { join } from 'node:path';
+import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
+import { dirname, join } from 'node:path';
 
 const target = process.argv[2];
 if (!target) {
@@ -61,15 +61,23 @@ const looksLikeSkill =
 
 const hasSlogans = /\bAct\b/.test(text) && /\bConsider\b/.test(text);
 // Copied slogans plus the 13-phrase closer are not procedure. A skill
-// exclusive is the wired rejector plus roast fixtures — paste cannot
-// satisfy that.
-const hasProcedure =
-  /^## Review Buckets/m.test(text) &&
-  /skills\/vs-roast-code\/scripts\/reject-roast-buckets\.mjs/.test(text) &&
-  /test\/fixtures\/buckets/.test(text);
+// exclusive is a wired rejector script plus roast fixtures next to
+// SKILL.md — pasted path strings cannot satisfy that.
+function wiredExclusive(skillFile) {
+  const root = dirname(skillFile);
+  const rejector = join(root, 'scripts', 'reject-roast-buckets.mjs');
+  const fixtures = join(root, 'test', 'fixtures', 'buckets');
+  if (!existsSync(rejector) || !existsSync(fixtures)) return false;
+  if (!statSync(rejector).isFile() || !statSync(fixtures).isDirectory()) {
+    return false;
+  }
+  if (readdirSync(fixtures).length === 0) return false;
+  const body = readFileSync(rejector, 'utf8');
+  return /^#!/m.test(body) && /process\.exit/.test(body);
+}
 
 if (looksLikeSkill) {
-  if (!hasProcedure) {
+  if (!wiredExclusive(files[0])) {
     console.error('reject-roast-buckets: slogan-only skill');
     process.exit(1);
   }

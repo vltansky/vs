@@ -10,6 +10,7 @@ const FIX = path.join(__dirname, 'fixtures', 'buckets');
 const SLOGAN = path.join(FIX, 'slogan-only-skill.md');
 const COPIED = path.join(FIX, 'copied-slogans-skill.md');
 const PHRASE = path.join(FIX, 'phrase-copy-skill.md');
+const STRUCTURE = path.join(FIX, 'structure-paste-skill.md');
 const BAD_UNBUCKETED = path.join(FIX, 'bad-unbucketed');
 const BAD_ALL_ACT = path.join(FIX, 'bad-all-act-nits');
 const BAD_SLOGAN_ROAST = path.join(FIX, 'bad-slogan-only-roast');
@@ -27,6 +28,7 @@ describe('vs-roast-code review buckets', () => {
     expect(SKILL_RAW).not.toMatch(/SLOGAN_ONLY_ROAST_BUCKETS_CANARY/);
     expect(SKILL_RAW).not.toMatch(/COPIED_SLOGANS_ROAST_BUCKETS_CANARY/);
     expect(SKILL_RAW).not.toMatch(/PHRASE_COPY_ROAST_BUCKETS_CANARY/);
+    expect(SKILL_RAW).not.toMatch(/STRUCTURE_PASTE_ROAST_BUCKETS_CANARY/);
     expect(SKILL_RAW).not.toMatch(/UNBUCKETED_ROAST_CANARY/);
     expect(SKILL_RAW).not.toMatch(/ALL_ACT_NITS_CANARY/);
     expect(SKILL_RAW).not.toMatch(/SLOGAN_ONLY_ROAST_CANARY/);
@@ -37,13 +39,15 @@ describe('vs-roast-code review buckets', () => {
     expect(SKILL_RAW).not.toMatch(/\/vs-interrogate|\/poteto-mode|\/poteto\b/i);
   });
 
-  it('rejects slogan-only, phrase-copy, missing Act, and dismissed-as-Act', () => {
+  it('rejects slogan-only, phrase-copy, structure-paste, missing Act, and dismissed-as-Act', () => {
     expect(reject(SLOGAN).status).toBe(1);
     expect(reject(SLOGAN).stderr).toMatch(/slogan-only skill/);
     expect(reject(COPIED).status).toBe(1);
     expect(reject(COPIED).stderr).toMatch(/slogan-only skill/);
     expect(reject(PHRASE).status).toBe(1);
     expect(reject(PHRASE).stderr).toMatch(/slogan-only skill/);
+    expect(reject(STRUCTURE).status).toBe(1);
+    expect(reject(STRUCTURE).stderr).toMatch(/slogan-only skill/);
     expect(reject(BAD_UNBUCKETED).status).toBe(1);
     expect(reject(BAD_UNBUCKETED).stderr).toMatch(/unbucketed list/);
     expect(reject(BAD_ALL_ACT).status).toBe(1);
