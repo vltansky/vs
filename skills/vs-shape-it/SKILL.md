@@ -13,8 +13,7 @@ Do NOT write code, scaffold projects, create GitHub issues, or start
 implementation workers. Planning-only research or critique subagents are
 allowed for complex work. Output is questions, evidence, design, stress-test,
 a decision record when one is warranted, a goal-ready execution blueprint,
-and a closing `/vs-eli5` HTMDX approval artifact. Writing an ADR is a decision record, not implementation, and is allowed. The eli5 is the approval surface,
-not implementation.
+and a closing `/vs-eli5` HTMDX of the spec. Writing an ADR is a decision record, not implementation, and is allowed. The eli5 is a short review of the spec so the user can confirm it, not a replacement for the spec and not implementation.
 </HARD-GATE>
 
 ## Route the input
@@ -34,7 +33,9 @@ Infer the route; do not ask the user to choose a mode.
 If the initial route was wrong, pivot immediately.
 
 All routes end in pushback. Explore and Guided Explore run it as the last step
-of independent shaping; Challenge hands the whole session to it.
+of independent shaping, then the close-time eli5. Challenge hands the whole
+session to pushback in interactive mode; pushback composes the close-time
+`/vs-eli5`. Shape-it does not compose a second one.
 
 For Explore, use the shared
 [`context-docs.md`](../vs-internal-shared/references/context-docs.md) protocol
@@ -527,14 +528,23 @@ interaction.
 
 ### 3. Closing interaction
 
-Before composing the closing interaction, follow
-[`../vs-internal-shared/references/explanation-surfaces.md`](../vs-internal-shared/references/explanation-surfaces.md).
+Explore and Guided Explore only. Challenge does not compose `/vs-eli5` here;
+pushback does that close.
 
-Always compose [`/vs-eli5`](../vs-eli5/SKILL.md) on the recommendation, including
+Before composing the closing interaction, follow
+[`../vs-internal-shared/references/explanation-surfaces.md`](../vs-internal-shared/references/explanation-surfaces.md)
+for chat TLDR vs artifact. The close-time eli5 is required even when that
+complexity test would keep the answer in chat: the user is confirming a spec.
+
+On Explore and Guided Explore, always compose [`/vs-eli5`](../vs-eli5/SKILL.md) on the spec or plan, including
 a `NOT_READY` close — the pictures should show the block. Do not skip the eli5
-for a small or routine shape. The Markdown spec, Goal Contract, and any ADR stay
-the machine source of truth and are linked from the eli5. Chat carries only the
-TLDR, the opened artifact, and the approval or remaining strategic decision.
+for a small or routine shape. The eli5 is a short picture review of that spec
+so the user can confirm it. The Markdown spec, Goal Contract, and any ADR stay
+the thing they approve and the machine source of truth; link them from the
+eli5. Do not treat the eli5 as a replacement contract.
+Chat carries only the TLDR, the opened artifact, and the confirm. Do not paste
+the Goal Contract, ADR, or full recommendation into chat; those live in the
+linked files.
 
 After `/vs-eli5` returns `Saved:`, open that `.html` immediately. Do not wait
 for the user to click the path:
@@ -545,8 +555,8 @@ open "$ARTIFACT_PATH" 2>/dev/null || xdg-open "$ARTIFACT_PATH"
 
 If open fails, say so in one line and still give the `file://` path.
 
-Return with the complete recommendation, evidence-driven changes from the
-stress test, the Goal Contract, any drafted ADR, and any execution blueprint.
+Put the complete recommendation, stress-test changes, Goal Contract, any ADR,
+and any execution blueprint in the linked files, not in chat.
 Switch the progress signal from decision resolution to handoff readiness:
 `Handoff: Goal Contract ready | <N> open decisions`. When it is not ready, name
 the missing Goal Contract field or strategic decision instead of showing a

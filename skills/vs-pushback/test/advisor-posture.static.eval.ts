@@ -167,4 +167,12 @@ describe('pushback: proportional review and verification', () => {
     expect(SKILL).toMatch(/Coherence/);
     expect(SKILL).toMatch(/manual, deployment, and served-behavior gaps/i);
   });
+
+  it('closes interactive review with vs-eli5 and skips it when composed', () => {
+    expect(SKILL).toMatch(/interactive close-time `\/vs-eli5` of that verdict/);
+    expect(SKILL).toMatch(/including a shape-it Challenge handoff, compose/);
+    expect(SKILL).toMatch(/Chat is TLDR \+ opened artifact \+ confirm/);
+    expect(SKILL).toMatch(/skip the saved\s+report, the close-time `\/vs-eli5`/);
+  });
 });
+

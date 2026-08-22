@@ -81,7 +81,8 @@ describe('shape-it: interaction cadence', () => {
   });
 
   it('returns for approval with completed work and explicit strategic uncertainty', () => {
-    expect(SKILL).toMatch(/return with the complete recommendation/i);
+    expect(SKILL).toMatch(/Put the complete recommendation/i);
+    expect(SKILL).toMatch(/in the linked files, not in chat/i);
     expect(SKILL).toMatch(/unresolved strategic/i);
     expect(SKILL).toMatch(/approval/i);
   });

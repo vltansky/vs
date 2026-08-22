@@ -11,8 +11,8 @@ before implementation starts, and keep the human-facing output short enough to
 actually read.
 
 <HARD-GATE>
-Do NOT write code or begin implementation. Output is a stress-test, verdict, and
-handoff only.
+Do NOT write code or begin implementation. Output is a stress-test, verdict,
+handoff, and an interactive close-time `/vs-eli5` of that verdict.
 </HARD-GATE>
 
 If the input is raw or unformed, route to `/vs-shape-it` first.
@@ -172,7 +172,8 @@ and drops the questions:
 - label the verdict exactly as in interactive mode; do not convert uncertainty
   into a numeric approval signal
 - return `Verdict` and Top Pushback to the caller; skip the saved
-  report and the `Next` line unless the caller asks for the artifact
+  report, the close-time `/vs-eli5`, and the `Next` line unless the
+  caller asks for the artifact
 
 For SUBSTANTIAL and HIGH-RISK work, Premise Challenge stays mandatory and the
 review covers the risk-relevant dimensions. A composed ROUTINE pass may use the
@@ -333,6 +334,12 @@ proof. Passing tests alone does not prove the user-visible or production claim;
 label manual, deployment, and served-behavior gaps explicitly.
 
 ### 5. Report
+
+In interactive mode, including a shape-it Challenge handoff, compose
+[`/vs-eli5`](../vs-eli5/SKILL.md) on the verdict after the report, including
+`NOT_READY`. Open the html. Chat is TLDR + opened artifact + confirm.
+The eli5 is a short review of the verdict so the user can confirm it, not a
+replacement for the report file.
 
 The chat report is compact by default, under about 500 words unless the user asks
 for the full version. Persist the same report to

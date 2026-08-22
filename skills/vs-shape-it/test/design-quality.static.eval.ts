@@ -51,10 +51,18 @@ describe('shape-it: design quality', () => {
 
   it('closes with an auto-opened vs-eli5 approval artifact', () => {
     const closing = SKILL.slice(SKILL.indexOf('### 3. Closing interaction'));
-    expect(closing).toMatch(/Always compose/);
+    expect(closing).toMatch(/always compose/i);
+    expect(SKILL).toMatch(/Challenge hands the whole\s+session to pushback in interactive mode/);
+    expect(SKILL).toMatch(/pushback composes the close-time\s+`\/vs-eli5`/);
     expect(closing).toMatch(/\/vs-eli5/);
     expect(closing).toMatch(/open that `\.html` immediately/i);
     expect(closing).toMatch(/open "\$ARTIFACT_PATH"/);
     expect(closing).toMatch(/Do not skip the eli5/);
+    expect(closing).toMatch(/short picture review of that spec/);
+    expect(closing).toMatch(/so the user can confirm it/);
+    expect(closing).toMatch(/Do not treat the eli5 as a replacement contract/);
+    expect(closing).toMatch(/Do not paste\s+the Goal Contract/);
+    expect(closing).toMatch(/required even when that\s+complexity test would keep the answer in chat/);
     expect(SKILL).toMatch(/\*\*Relevant:\*\*.*\/vs-eli5/);
+    expect(SKILL).toMatch(/short review of the spec so the user can confirm it/);
   });
