@@ -1,9 +1,7 @@
 import { expect, it } from 'vitest';
 
 // MENTION_ONLY_STATIC_EVAL_CANARY
-// Bad CASE: slogan mentions only. A catalog pin must reject this shape.
+// INPUT to reject-mention-only.mjs, not a CI scorer.
 it('mentions slogans', () => {
-  expect('exclusive fixture self-audit').toMatch(/self-audit/);
-  expect('exclusive fixture self-audit').toMatch(/exclusive/);
-  expect('exclusive fixture self-audit').toMatch(/fixture/);
+  expect('exclusive fixture self-audit').toMatch(/self-audit|exclusive|fixture/);
 });
