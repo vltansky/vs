@@ -24,6 +24,7 @@
     "./skills/vs-deslop",
     "./skills/vs-eli5",
     "./skills/vs-eval",
+    "./skills/vs-skill-doctor",
     "./skills/vs-explain-diff",
     "./skills/vs-fix-pr",
     "./skills/vs-github-research",

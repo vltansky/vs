@@ -1,0 +1,6 @@
+interface:
+  display_name: "vs-skill-doctor"
+  short_description: "Grade installed skills from local chats and propose SKILL.md diffs."
+
+policy:
+  allow_implicit_invocation: false

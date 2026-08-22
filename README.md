@@ -168,6 +168,7 @@ confirmed, diff-scoped structural findings after implementation.
 | `/vs-tldr` | Compress the last explanation: shorter and simpler, same meaning |
 | `/vs-eli5` | Explain from zero with big pictures and few words, via `/vs-htmdx` |
 | `/vs-eval` | Write PathGrade static pins and live evals with exclusive contracts, not slogan mentions |
+| `/vs-skill-doctor` | Grade skills from local chats and propose diffs |
 | `/vs-explain-diff` | Explain a code change in depth, with intuition, diagrams, and reader self-check questions |
 | `/vs-perf` | Optimize performance against an explicit evaluator |
 | `/vs-to-issues` | Turn a plan, spec, or RFC into vertical-slice GitHub issues |
