@@ -1,0 +1,2 @@
+Base: Sidebar
+Graft: none

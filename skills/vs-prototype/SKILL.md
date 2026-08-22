@@ -110,6 +110,8 @@ draft that averages two layouts.
 3. Pick a base. Name one winner. Never average two designs into a mush.
 4. Graft losers. Steal one concrete bit from a loser onto the base, not
    a 50/50 merge.
+   Graft: none is not a graft. Combining or merging both navs under a
+   named Base is still averaging.
 
 The recommended prototype is that named base plus the one graft. Keep
 the isolated files for review. Do not declare a production winner for a
