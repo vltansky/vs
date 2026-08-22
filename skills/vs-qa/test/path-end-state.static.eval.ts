@@ -24,6 +24,11 @@ const PHRASE = path.join(FIX, "phrase-complete-beside", "SKILL.md");
 const MAGIC_PNG = path.join(FIX, "magic-only-png");
 const MAGIC_JPEG = path.join(FIX, "magic-only-jpeg");
 const COMMAND_XX = path.join(FIX, "command-xx");
+const SOF_JPEG = path.join(FIX, "sof-only-jpeg");
+const VP8X = path.join(FIX, "vp8x-stub");
+const IHDR_NO_IDAT = path.join(FIX, "ihdr-no-idat");
+const EMPTY_JSON = path.join(FIX, "empty-json-baseline");
+const PUBLISHED = path.join(FIX, "published-pair", "SKILL.md");
 const TEMPLATE = path.join(DIR, "references", "qa-report-template.md");
 const HTML_TEMPLATE = path.join(DIR, "references", "qa-report-template.html");
 
@@ -54,6 +59,10 @@ describe("vs-qa user path, end state, and visual baseline", () => {
     expect(SKILL_RAW).not.toMatch(/MAGIC_ONLY_PNG_QA_CANARY/);
     expect(SKILL_RAW).not.toMatch(/MAGIC_ONLY_JPEG_QA_CANARY/);
     expect(SKILL_RAW).not.toMatch(/COMMAND_XX_QA_CANARY/);
+    expect(SKILL_RAW).not.toMatch(/SOF_ONLY_JPEG_QA_CANARY/);
+    expect(SKILL_RAW).not.toMatch(/VP8X_STUB_QA_CANARY/);
+    expect(SKILL_RAW).not.toMatch(/IHDR_NO_IDAT_QA_CANARY/);
+    expect(SKILL_RAW).not.toMatch(/EMPTY_JSON_BASELINE_QA_CANARY/);
     expect(SKILL_RAW).not.toMatch(/SHOW_ME_SKILL_CANARY/);
     expect(SKILL_RAW).not.toMatch(/EXPO_AGENT_DEVICE_CANARY/);
     expect(SKILL_RAW).not.toMatch(/\/vs-show-me|\/vs-expo-device/i);
@@ -98,6 +107,10 @@ describe("vs-qa user path, end state, and visual baseline", () => {
     expect(reject(PHRASE).status).toBe(1);
     expect(reject(MAGIC_PNG).status).toBe(1);
     expect(reject(MAGIC_JPEG).status).toBe(1);
+    expect(reject(SOF_JPEG).status).toBe(1);
+    expect(reject(VP8X).status).toBe(1);
+    expect(reject(IHDR_NO_IDAT).status).toBe(1);
+    expect(reject(EMPTY_JSON).status).toBe(1);
     expect(reject(COMMAND_XX).status).toBe(1);
     expect(reject(COMMAND_XX).stderr).toMatch(/pass with no named command/);
     const beside = path.join(DIR, "phrase-complete-beside.md");
@@ -124,6 +137,7 @@ describe("vs-qa user path, end state, and visual baseline", () => {
     expect(reject(CLEAN_TABLE).status).toBe(0);
     expect(reject(CLEAN_EXPO).status).toBe(0);
     expect(reject(CLEAN_NO_VISUAL).status).toBe(0);
+    expect(reject(PUBLISHED).status).toBe(0);
     expect(reject(path.join(DIR, "SKILL.md")).status).toBe(0);
   });
 
