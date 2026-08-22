@@ -5,9 +5,10 @@ description: "Use when code works but feels AI-generated, bloated, repetitive, o
 
 # Deslop
 
-Clean working code without changing behavior. This is the focused cleanup building block:
-remove AI-ish noise, needless abstraction, duplicated logic, stale fallbacks, and
-review-hostile clutter while preserving the product contract.
+Clean working code without changing behavior. This is the focused cleanup
+building block: remove AI-ish noise, needless abstraction, duplicated logic,
+stale fallbacks, and review-hostile clutter while preserving the product
+contract.
 
 Use the shared
 [`minimum-solution` gate](../vs-internal-shared/references/minimum-solution.md)
@@ -30,11 +31,30 @@ Inspect the requested scope for:
 - structural simplifications that delete whole concepts, branches, modes,
   wrappers, or layers instead of merely polishing them
 - duplicate logic or copy-paste with tiny variations
+- one job per unit: do not restate the same logic in many layers
+- unnecessary `async`/`await` or Promise wrapping around sync work
 - pass-through wrappers that add no meaning
+- ceremony types and files (`Manager`, `Service`, `Factory`, `Helper`,
+  `Utils`) that exist for a single call, plus config objects wrapping two
+  or three parameters and boolean mode flags that split one path
+- a single-use extract: a helper with one call site that only moved lines
+- a helper or type that fails the **portability test**: if it could move to
+  another repo unchanged, it is generic filler, not this product's logic
+- synonym cycling of the same domain concept (rotating the name across
+  layers: user / account / customer for one entity)
 - defensive null checks on values proven non-null by types or callers
 - fallback branches that hide primary-path failures
-- comments that narrate obvious code instead of explaining why
-- dead imports, stale flags, temporary debug leftovers, and unused helpers
+- silent defaults and optional chaining that hide missing required data:
+  `?.` on a required field, `?? []`, `?? {}`, or `|| default` that papers
+  over an invariant the caller should have supplied
+- try/catch theater: a try/catch around non-throwing code, an empty catch,
+  or a catch that logs and swallows a real failure
+- `any` and an uncommented type assertion that fabricates evidence
+- comments that narrate obvious code, hand-holding notes, and JSDoc that
+  is only restating the signature
+- dead imports, stale flags, temporary debug leftovers, `console.log` /
+  `console.debug` / `console.info` left in production paths, and a stale
+  TODO fossil
 - inconsistent naming or one-off conventions that fight the codebase
 - ad-hoc conditionals bolted into busy flows where a typed model, dispatcher,
   policy object, or canonical helper would make the path easier to reason about
@@ -50,19 +70,54 @@ Inspect the requested scope for:
 
 ## Procedure
 
+**Exclusive order:** collect → validate/discard FP → surgical delete →
+verify → rescan/density stop. Do not skip or invert these.
+
 1. **Lock behavior first.** Identify the existing tests or direct checks that
    prove behavior. If none exist and cleanup could change behavior, add the
-   narrowest regression test before editing.
-2. **Create a cleanup list.** Name each smell and the file it affects. Do not
-   broaden scope just because adjacent code is ugly.
-3. **Look for the structural delete.** Before extracting a helper, ask whether
+   narrowest regression test before editing. Do not invent types, files,
+   flags, or behavior "for cleanliness."
+2. **Collect candidates. Do not edit yet.** Name each smell, its category,
+   the invariant or call site, and the file it affects. Do not broaden
+   scope just because adjacent code is ugly.
+3. **Validate each candidate.** Keep a change only when it is formula, not a
+   necessary defense (auth, validation at a trust boundary, required error
+   handling). A false positive that deletes a real guard is worse than one
+   leftover tell. Discard it and say why.
+4. **Look for the structural delete.** Before extracting a helper, ask whether
    a simpler state shape, ownership boundary, or default flow would remove the
-   branch/helper/wrapper entirely.
-4. **Edit in safe passes.** Prefer deletion and simplification over abstraction.
-   Preserve public APIs unless the user explicitly asked for a breaking cleanup.
-5. **Verify after cleanup.** Re-run the targeted proof and any required guardrail.
-6. **Report deferred items.** If a cleanup is risky or architectural, leave it as
-   a finding instead of sneaking it into the diff.
+   branch/helper/wrapper entirely. One clean delete beats three clumsy
+   rewrites.
+5. **Edit in safe, surgical passes.** Take the minimum effective edit.
+   Leave strong local code alone. Prefer deletion and simplification over
+   abstraction. Do not restructure modules or reorder files for aesthetics
+   unless a concept disappears. Preserve public APIs unless the user
+   explicitly asked for a breaking cleanup. Preserve local idiom: flattening
+   working house style into a generic house style is a cleanup defect. Cleanup
+   must not add a file, wrapper, interface, flag, or helper that did not
+   exist; do not introduce new slop while removing old.
+6. **Verify after cleanup.** Re-run the targeted proof and any required
+   guardrail.
+7. **Re-scan the catalog, then density-stop.** Walk the cleanup targets and
+   the quick checks again. If a concept, branch, file, or wrapper is still
+   cuttable, delete it or defer it. Do not report `CLEAN` or `CLEANED` while
+   an in-scope tell remains unaddressed. Then report deferred items: if a
+   cleanup is risky or architectural, leave it as a finding instead of
+   sneaking it into the diff.
+
+### Quick checks before reporting `CLEAN` or `CLEANED`
+
+- try/catch around non-throwing work, empty catch, or swallow?
+- `?.` / `?? []` / `?? {}` hiding a required value?
+- ceremony `Manager` / `Factory` / `Utils`, boolean mode flag, or single-use
+  helper?
+- unnecessary `async`/`await` or Promise wrapping?
+- `any` or uncommented type assertion?
+- hand-holding comment or JSDoc restating the signature?
+- `console.log` / stale TODO fossil / dead import?
+- synonym cycling of one domain name?
+- new file or wrapper added by this pass?
+- still cuttable concept left in scope?
 
 ## Output
 
@@ -72,9 +127,9 @@ Inspect the requested scope for:
 - Status: CLEAN | CLEANED | WARN | FAIL | BLOCKED
 - Scope: <files or diff range>
 - Cleaned:
-  - <change and why it preserved behavior>
+  - <change, smell category, and why it preserved behavior>
 - Deferred:
-  - <risky or out-of-scope cleanup>
+  - <risky, false-positive, or out-of-scope cleanup>
 - Evidence:
   - `<command>` - <result>
 ```

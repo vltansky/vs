@@ -105,7 +105,7 @@ The finished piece should read as one coherent voice.
   going forward unless they carry necessary domain meaning.
 - Avoid the vocabulary that marks machine-written prose: delve, multifaceted,
   foster, realm, tapestry, testament, enduring legacy, pivotal, groundbreaking,
-  and cutting-edge. Avoid the reflex openers too — "in today's fast-paced
+  and cutting-edge. Avoid the reflex openers too: "in today's fast-paced
   world," "it's important to note that," and any sentence whose first clause
   announces that a point is about to be made.
 - Address the reader as "you" when appropriate. Use "we" for the authoring
@@ -167,7 +167,22 @@ The finished piece should read as one coherent voice.
 ## Output style
 
 Apply the [shared output style](../vs-internal-shared/references/output-style.md)
-to every user-facing message.
+to every user-facing message. Chat shape (no preamble, no filler closers,
+first line is the answer) lives there. The rules below apply to the copy.
+
+## Cut the AI tells
+
+- Do not use em dashes as a default rhythm. Prefer a period or a comma.
+  Keep an em dash only if the source or requested voice uses them.
+- State the point so it stands without comparison framing. Do not invent
+  a comparison, analogy, or example the source does not support, and do
+  not reach for "not X but Y" or "if you're coming from".
+- Do not close with a generic uplift, recap, or chatbot send-off.
+  End the artifact on the last concrete fact, takeaway, or next action.
+  No "In conclusion" or "Overall".
+- Rewrite, then self-audit, then fix remaining tells. Ask what still
+  makes this obviously AI generated. Preserve meaning and match the
+  intended tone.
 
 ## Workflow
 
@@ -178,7 +193,8 @@ to every user-facing message.
 3. Order the piece so each block relies only on concepts already grounded.
 4. Draft or restructure with the conclusion first unless another opening better
    serves the requested form.
-5. Replace vague, passive, inflated, repetitive, or structurally unearned text.
+5. Rewrite, then self-audit, then fix remaining tells. Replace vague, passive,
+   inflated, repetitive, or structurally unearned text.
 6. Name source gaps; ask, cut, or qualify rather than inventing a bridge.
 7. Check meaning, tone, terminology, English variant, and requested format.
 8. Return the finished copy first. Add notes only for unresolved choices,
@@ -194,6 +210,7 @@ to every user-facing message.
 - Did the edit preserve important nuance and warnings?
 - Does each concept appear before the copy relies on it?
 - Does every paragraph advance the promise made by the opening?
+- Did the self-audit remove leftover AI tells without changing meaning?
 
 ## Output
 

@@ -52,6 +52,29 @@ describe('vs-write: structure rules the blind test evidenced', () => {
   });
 });
 
+describe('vs-write: prose unslop pins', () => {
+  it('forbids default em dashes', () => {
+    expect(SKILL).toMatch(/do not use em dashes as a default/i);
+  });
+
+  it('forbids unsolicited comparisons and examples', () => {
+    expect(SKILL).toMatch(/do not invent a comparison, analogy, or example/i);
+  });
+
+  it('forbids filler closings in the copy', () => {
+    expect(SKILL).toMatch(/generic uplift, recap, or chatbot send-off/i);
+  });
+
+  it('requires a self-audit of remaining AI tells', () => {
+    expect(SKILL).toMatch(/self-audit/i);
+    expect(SKILL).toMatch(/obviously AI generated/i);
+  });
+
+  it('pairs the audit with preserve meaning and match tone', () => {
+    expect(SKILL).toMatch(/preserve meaning and match the intended tone/i);
+  });
+});
+
 describe('vs-write: the eval canaries stay out of the instructions', () => {
   // A canary quoted in SKILL.md measures compliance with the instructions, not
   // fidelity. See adr/gate-writing-concision-on-source-fidelity.md.
