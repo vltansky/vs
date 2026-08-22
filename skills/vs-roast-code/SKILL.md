@@ -46,6 +46,9 @@ Before delegating, load and follow
    the real code path and adjacent files before fixing or reporting it as true.
 11. **Reject speculative review noise** — skip unrealistic edge cases, vague
     rewrites, and fixes that over-complicate the codebase.
+12. **Bucket every finding** — Act, Consider, Noted, or Dismissed. An unbucketed
+    list fails. A nit in Act fails. Advisors stay the shared Codex / compose /
+    independent-advisors lane; they do not invent a new channel.
 
 **Tone:** Senior dev who's seen too much + Gordon Ramsay energy. Not mean, not personal. "I'm roasting because I care."
 
@@ -365,8 +368,10 @@ OFFENSES`, `FELONIES`, `CRIMES`, `MISDEMEANORS`, or `PARKING TICKETS` anywhere
 in a SMALL response; those labels mean the wrong program ran.
 
 - One zinger, and only if the code earned it.
-- A flat list of at most 3 findings, worst first: `**[Sin Name]** — file:line`
-  plus one line on what to do.
+- A flat list of at most 3 findings, worst first:
+  `**Act** — **[Sin Name]** — file:line` (or Consider / Noted / Dismissed)
+  plus one line on what to do. Every finding still carries a bucket; skip empty
+  Act/Consider headers when there are no findings.
 - Fix the confirmed ones directly, then one line on what changed.
 - Nothing wrong? Say so, name the one thing that is specifically right with
   `file:line` evidence, and stop. Do not open a tier to hold a single nitpick.
@@ -395,7 +400,7 @@ no-op and not an escalation trigger.
 Entry guard: if the Phase 1 class is SMALL, stop and return the SMALL Verdict.
 Do not open this section or use any taxonomy tier label.
 
-Group by the fixed 5-tier taxonomy — **CAPITAL OFFENSES / FELONIES / CRIMES / MISDEMEANORS / PARKING TICKETS**. Use these exact labels every time; keep the openers and metaphors fresh, keep the tiers stable. Each sin: `N. **[Sin Name]** — file:line` + one-liner roast; assign tier by impact.
+Group by the fixed 5-tier taxonomy — **CAPITAL OFFENSES / FELONIES / CRIMES / MISDEMEANORS / PARKING TICKETS**. Use these exact labels every time; keep the openers and metaphors fresh, keep the tiers stable. Each sin: `N. **[Sin Name]** — file:line` + bucket + one-liner roast; assign tier by impact. The bucket is actionability, not a sixth tier.
 
 Drop a tier that has nothing in it rather than filling it. A finding that is moot
 by its own admission — a guard that can never fire, a nitpick on a line you just
@@ -413,20 +418,47 @@ noise.
 
 **Worst offender spotlight:** deep dive on the biggest sin — what it does, what it should be, blast radius.
 
-**Fix CAPITAL OFFENSES + FELONIES automatically and proceed.** Do not print a
-tier menu — say which tiers you fixed in one line; the user can interrupt for
-more or less.
+**Fix CAPITAL OFFENSES + FELONIES automatically and proceed** when they are
+Act. Do not print a tier menu — say which tiers you fixed in one line; the user
+can interrupt for more or less.
+
+## Review Buckets
+
+Every finding is bucketed. A roast that lists findings with no buckets fails.
+A roast that puts a nit in Act as if it were blocking fails. Empty Act/Consider
+headers with no findings are slogan-only and fail.
+
+Buckets are actionability, not severity. Keep the sin tiers. Tag each finding
+with exactly one bucket:
+
+- **Act** — must change before merge; owner is the PR author / executor
+- **Consider** — judgment call; do not block merge
+- **Noted** — recorded, no action
+- **Dismissed** — seen and rejected, with one-line why
+
+PARKING TICKETS, preference, and formatting nits are never Act. Confirmed
+correctness, security, or crash-level sins that would block a real PR are Act.
+
+SMALL stays flat: prefix each of the at most 3 findings with the bucket name.
+STANDARD and HIGH-RISK keep the Sin Inventory; each sin still carries its
+bucket.
+
+Advisors still run as today (Codex, compose, the shared independent-advisors
+lane). They do not invent a new channel. The parent assigns the bucket after
+verifying the finding.
 
 ## Fix
 
 Process selected fixes. Show before/after for major changes. Run linter if available.
 
-For each review finding, decide `accepted`, `rejected`, or `deferred`:
+For each review finding, decide `accepted`, `rejected`, or `deferred` from
+its bucket:
 
-- `accepted`: confirmed in code, fixed or reported with a concrete next action
-- `rejected`: not real, too speculative, intentionally designed, or worse than
-  the code it would replace
-- `deferred`: real but outside the requested scope or too risky for this pass
+- `accepted`: Act — confirmed in code, fixed or reported; the PR author /
+  executor owns the change
+- `rejected`: Dismissed — not real, too speculative, intentionally designed, or
+  worse than the code it would replace, plus the one-line why
+- `deferred`: Consider or Noted — judgment call or recorded, no merge block
 
 If a review-triggered fix changes code, rerun the focused tests/checks that cover
 the touched behavior and rerun the relevant review pass. Keep going until there
