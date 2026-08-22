@@ -34,6 +34,8 @@ one-off behavior:
 - `vs-verify` produces the final evidence-backed completion status.
 - `vs-brief` produces the human-readable orientation layer and renders captured
   before-and-after evidence for the handoff.
+- `vs-eval` only when the plan is a vs skill PathGrade contract; skip for
+  product code.
 
 This list is routing metadata, not a preload list. Read a sibling `SKILL.md`
 only when its phase gate fires: pushback in Phase 1, TDD/debugging in Phase 3,

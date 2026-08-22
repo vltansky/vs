@@ -14,6 +14,10 @@ Red → Green → Refactor. No exceptions.
 - **New features** — define the behavior in tests before implementing
 - **Autopilot integration** — build-it can invoke this for each execution step
 
+Compose `/vs-eval` only when the unit under test is a vs skill contract
+(SKILL.md, fixtures, `*.static.eval.ts`, `*.eval.ts`, `scripts/reject-*.mjs`).
+Skip `/vs-eval` for ordinary app unit tests.
+
 ## Phase 1: Understand
 
 Read the code that needs to change. Before writing anything:
@@ -168,4 +172,4 @@ Direct: emit **Next** only. Composed: return to caller.
 
 **Prev:** `/vs-debug-mode` | `/vs-build-it`
 **Next:** `/vs-roast-code`
-**Relevant:** `/vs-verify`
+**Relevant:** `/vs-verify` | `/vs-eval`

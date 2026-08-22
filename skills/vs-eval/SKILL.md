@@ -14,7 +14,7 @@ behavior. Building block.
 - **Inputs:** A skill change, a hypothesized contract, and the existing eval style in this repo
 - **Outputs:** `*.static.eval.ts` and/or `*.eval.ts` plus fixtures that can fail; a `scripts/reject-*.mjs` workspace scorer when the contract is fixture content; status of the pin
 - **Status:** PINNED, LIVE, WARN, or BLOCKED
-- **Consumers:** Skill authors, `/vs-try-skill` dogfood, `/vs-ship-it` before a skill PR
+- **Consumers:** Skill authors; `/vs-tdd`, `/vs-shape-it`, `/vs-build-it` compose only when the unit is a vs skill PathGrade contract (not default phases); `/vs-try-skill` dogfood; `/vs-ship-it` before a skill PR
 - **Skip conditions:** Skip when the change is not a skill or eval contract (plain app code with ordinary unit tests)
 
 ## Workshop first
@@ -124,5 +124,5 @@ Direct: emit **Next** only. Composed: return to caller.
 
 **Prev:** skill change | failing pin
 **Next:** done
-**Relevant:** none
+**Relevant:** `/vs-tdd` | `/vs-ship-it`
 
