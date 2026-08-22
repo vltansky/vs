@@ -64,22 +64,21 @@ const slogans =
   /inherit the trail|do not re-derive|re-prove claims on the artifact/i.test(
     text,
   );
-const exclusiveHits = [
-  /If `GOALS\.md` \/ `decisions\.tsv` \/ a baby-sit resume file \/ prior recap exists,\s*READ it first/i,
-  /Do not re-run research, re-score sessions, or rebuild a roadmap/i,
-  /Every status\/done\/blocked claim must point at a concrete artifact/i,
-  /Missing trail is ok \(say unknown\); inventing one is not/i,
-  /Recap consumes the trail\. Orchestrate owns `decisions\.tsv`/i,
-].filter((re) => re.test(text)).length;
+// Procedure is an example pointer plus an action closer — not four copied
+// contract sentences.
+const hasProcedure =
+  /Possible actions/i.test(text) &&
+  /PR\s*#?\d+/i.test(text) &&
+  /\b[0-9a-f]{7,40}\b/i.test(text);
 
 if (looksLikeSkill) {
-  if (slogans && exclusiveHits < 3) {
+  if (slogans && !hasProcedure) {
     console.error('reject-recap: slogan-only skill');
     process.exit(1);
   }
-  if (exclusiveHits < 4) {
-    console.error('Cannot classify skill');
-    process.exit(2);
+  if (!hasProcedure) {
+    console.error('reject-recap: slogan-only skill');
+    process.exit(1);
   }
   process.exit(0);
 }
@@ -98,6 +97,32 @@ const tsv = byName.has('decisions.tsv')
 const resumeFile = files.find((file) => /resume/i.test(basename(file)));
 const resume = resumeFile ? read(resumeFile) : '';
 const hasTrail = Boolean(goals || tsv || resume);
+const trailText = `${goals}\n${tsv}\n${resume}`;
+
+const trailNames = [];
+if (goals) trailNames.push('GOALS.md');
+if (tsv) trailNames.push('decisions.tsv');
+if (resumeFile) trailNames.push(basename(resumeFile));
+
+const trailPrs = new Set(
+  [...trailText.matchAll(/PR\s*#?(\d+)/gi)].map((m) => m[1]),
+);
+const trailShas = new Set(
+  [...trailText.matchAll(/\b([0-9a-f]{7,40})\b/gi)].map((m) =>
+    m[1].toLowerCase(),
+  ),
+);
+const recapPrs = [...recap.matchAll(/PR\s*#?(\d+)/gi)].map((m) => m[1]);
+const recapShas = [...recap.matchAll(/\b([0-9a-f]{7,40})\b/gi)].map((m) =>
+  m[1].toLowerCase(),
+);
+
+const citesInherited =
+  trailNames.some((name) =>
+    new RegExp(name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i').test(recap),
+  ) ||
+  recapPrs.some((id) => trailPrs.has(id)) ||
+  recapShas.some((sha) => trailShas.has(sha));
 
 const goalIds = goals
   ? new Set(
@@ -107,9 +132,13 @@ const goalIds = goals
 const recapIds = [...recap.matchAll(/\bM\d+\b/g)].map((m) => m[0]);
 const recapIdSet = new Set(recapIds);
 const invented = recapIds.filter((id) => !goalIds.has(id));
-const listsMilestones =
-  recapIds.length >= 2 ||
-  /milestone list|new roadmap|milestones:/i.test(recap);
+const rebuildsList = /milestone list|new roadmap|milestones:/i.test(recap);
+const listsMilestones = recapIds.length >= 2 || rebuildsList;
+
+if (goalIds.size > 0 && rebuildsList) {
+  console.error('reject-recap: re-derived milestone list ignoring GOALS.md');
+  process.exit(1);
+}
 
 if (goalIds.size > 0 && invented.length > 0 && listsMilestones) {
   console.error('reject-recap: re-derived milestone list ignoring GOALS.md');
@@ -131,11 +160,12 @@ if (!hasTrail && listsMilestones && !saysUnknown) {
   process.exit(1);
 }
 
+// File / SHA / PR / row. Bare GOALS.md, any #\d, and any backtick are not enough.
 const POINTER =
-  /(?:PR\s*#?\d+|#\d+|\b[0-9a-f]{7,40}\b|GOALS\.md|decisions\.tsv|`[^`]+`|\/[\w./-]+-resume\.md)/i;
+  /(?:PR\s*#?\d+|\b[0-9a-f]{7,40}\b|GOALS\.md\s+M\d+|decisions\.tsv|\/[\w./-]+-resume\.md)/i;
 
 const CLAIM =
-  /\b(?:is\s+)?(?:done|complete|completed|shipped|merged|blocked)\b/gi;
+  /\b(?:is\s+)?(?:done|complete|completed|shipped|merged|blocked|active)\b/gi;
 const claims = [...recap.matchAll(CLAIM)];
 for (const match of claims) {
   const start = Math.max(0, match.index - 80);
@@ -147,12 +177,12 @@ for (const match of claims) {
   }
 }
 
-if (
-  slogans &&
-  !hasTrail &&
-  !saysUnknown &&
-  !POINTER.test(recap)
-) {
+if (hasTrail && !citesInherited) {
+  console.error('reject-recap: ignored the trail');
+  process.exit(1);
+}
+
+if (slogans && !citesInherited && !saysUnknown) {
   console.error('reject-recap: mention-only run');
   process.exit(1);
 }

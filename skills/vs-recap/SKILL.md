@@ -33,9 +33,10 @@ list while `GOALS.md` exists has failed this contract.
 
 ## Re-prove claims on the artifact
 
-Every status/done/blocked claim must point at a concrete artifact (file, SHA,
-PR, GOALS row, TSV row). A recap that asserts done with no artifact pointer
-has failed this contract.
+Every status/done/blocked/active claim must point at a concrete artifact
+(file + row, SHA, or PR). A bare filename such as `GOALS.md` is not a
+pointer. A recap that asserts done or active with no artifact pointer has
+failed this contract.
 
 ## Gather
 
