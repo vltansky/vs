@@ -1,0 +1,2 @@
+ACTIVE_NO_POINTER_CANARY
+M2 is active.
