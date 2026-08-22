@@ -63,9 +63,13 @@ Every run names both:
 - **Observable end state** — what they see or have when the claim is true
 
 A `PASS` or `CLEAN` that only says tests passed, with no user path and no
-observable end state, is `FAIL`. Score runs with
+observable end state, is `FAIL`. A `PASS` without a named command is `FAIL`.
+When a visual is in scope, a `PASS` without a real screenshot or baseline file
+next to the run (bytes on disk, not a path string or markdown image) is `FAIL`.
+Score runs with
 `skills/vs-verify/scripts/reject-verify-path.mjs` (exit 1 is a fail). Exclusive
-cases live under `test/fixtures/path-end-state`.
+cases live under `test/fixtures/path-end-state`. A stub rejector that only
+exits 0 is not exclusive.
 
 Verify may pin a screenshot or baseline path. New shots compare to that pin.
 Do not invent a show-me skill. If the user names an Expo or device screenshot

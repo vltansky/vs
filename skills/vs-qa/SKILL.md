@@ -736,11 +736,11 @@ QA may pin a screenshot or baseline. New shots compare to that pin. Do not
 invent a show-me skill. If the user names an Expo or device screenshot path,
 consume that file as evidence. Do not add an Expo agent-device skill.
 
-When a visual was in scope, a pass with no retained shot and no baseline
-pointer fails.
+When a visual was in scope, a pass with no screenshot or baseline file on disk fails. A markdown image or baseline path string is not evidence.
 
 Score runs with `skills/vs-qa/scripts/reject-qa-path.mjs` (exit 1 is a fail).
-Exclusive cases live under `test/fixtures/path-end-state`.
+Exclusive cases live under `test/fixtures/path-end-state`. A stub rejector
+that only exits 0 is not exclusive.
 
 ## Rules
 
