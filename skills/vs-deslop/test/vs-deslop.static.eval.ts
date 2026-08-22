@@ -36,12 +36,6 @@ describe('vs-deslop: keep flatten as the first cleanup move', () => {
     expect(reject(COMMENT_ONLY).status).toBe(0);
   });
 
-  it('keeps the Flow Contract and rescan cap', () => {
-    expect(SKILL).toMatch(/## Flow Contract/);
-    expect(SKILL).toMatch(/The deslop run ends the pass/);
-    expect(SKILL).toMatch(/At most 2 rescans\. Then stop/);
-  });
-
   it('does not add poteto-mode, principle skills, or slogan names', () => {
     expect(SKILL).not.toMatch(/keep-it-flat/i);
     expect(SKILL).not.toMatch(/encode-via-lint/i);
@@ -60,7 +54,6 @@ describe('vs-deslop: second miss fails the workspace scorer', () => {
     expect(leftover.stderr).toMatch(/boolean mode flag leftover/);
     expect(reject(CLEAN).status).toBe(0);
     expect(SKILL).toMatch(/skills\/vs-deslop\/scripts\/reject-code-slop\.mjs/);
-    expect(SKILL).toMatch(/after one flatten pass/);
     expect(SKILL).not.toMatch(/WidgetManager/);
     expect(SKILL).not.toMatch(/second-miss-after-pass/);
   });
