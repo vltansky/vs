@@ -1,0 +1,2 @@
+{"cwd":"/workspace/vs-skill-doctor-wt/skills/vs-tune-skill/test/fixtures/session-homes/repo","type":"user","sessionId":"c1","timestamp":"2026-08-20T10:00:00.000Z"}
+{"type":"assistant","message":{"role":"assistant","content":[{"type":"text","text":"I skipped the written preflight and guessed the next command."}]}}

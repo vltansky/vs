@@ -12,12 +12,14 @@ const OPENAI_CONFIG = fs.readFileSync(
   path.join(DIR, 'agents', 'openai.yaml'),
   'utf8',
 );
-const REJECT = path.join(DIR, 'scripts', 'reject-doctor-run.mjs');
+const REJECT = path.join(DIR, 'scripts', 'reject-tune-run.mjs');
 const COLLECT = path.join(DIR, 'scripts', 'collect-sessions.mjs');
 const FIXTURES = path.join(__dirname, 'fixtures');
 const SLOGAN_SKILL = path.join(FIXTURES, 'slogan-only-skill.md');
-const CLEAN_SKILL = path.join(FIXTURES, 'clean-doctor-skill.md');
+const CLEAN_SKILL = path.join(FIXTURES, 'clean-tune-skill.md');
 const GOOD_RUN = path.join(FIXTURES, 'good-run');
+const NEED_SKILL_RUN = path.join(FIXTURES, 'need-skill-ask');
+const BAD_ALL = path.join(FIXTURES, 'bad-grades-all');
 const BAD_MENTION = path.join(FIXTURES, 'bad-mention-only');
 const BAD_MUTATE = path.join(FIXTURES, 'bad-mutates-repo');
 const BAD_UPLOAD = path.join(FIXTURES, 'bad-uploads');
@@ -27,10 +29,10 @@ function reject(target: string) {
   return spawnSync(process.execPath, [REJECT, target], { encoding: 'utf8' });
 }
 
-describe('vs-skill-doctor thin contract', () => {
+describe('vs-tune-skill thin contract', () => {
   it('matches frontmatter, trigger, kind, and implicit invocation', () => {
-    expect(SKILL_RAW).toMatch(/^name: vs-skill-doctor$/m);
-    expect(SKILL).toMatch(/\/vs-skill-doctor/);
+    expect(SKILL_RAW).toMatch(/^name: vs-tune-skill$/m);
+    expect(SKILL).toMatch(/\/vs-tune-skill/);
     expect(SKILL).toMatch(/\*\*Kind:\*\* Building block/);
     expect(SKILL).toContain('vs-internal-shared/references/output-style.md');
     expect(SKILL_RAW).toMatch(
@@ -39,9 +41,15 @@ describe('vs-skill-doctor thin contract', () => {
     expect(SKILL).toMatch(/`\/vs-eval`\s*\|\s*`\/vs-htmdx`\s*\|\s*`\/vs-search-threads`/);
     expect(SKILL_RAW).not.toContain('disable-model-invocation');
     expect(OPENAI_CONFIG).toContain('allow_implicit_invocation: false');
+    expect(SKILL).not.toMatch(/\/vs-skill-doctor|tune-skills/);
+    expect(SKILL).toMatch(/Inspired by Warp's skill-doctor idea/);
   });
 
-  it('keeps the exclusive doctor contract, not a slogan list', () => {
+  it('keeps the exclusive one-skill contract, not a slogan list', () => {
+    expect(SKILL).toMatch(/exactly one skill|one required skill/);
+    expect(SKILL).toMatch(/NEED_SKILL/);
+    expect(SKILL).toMatch(/Never grade the whole set/);
+    expect(SKILL).toMatch(/ASK which/);
     expect(SKILL).toMatch(/skills\//);
     expect(SKILL).toMatch(/Claude Code|project-history JSONL/i);
     expect(SKILL).toMatch(/Codex|rollouts/i);
@@ -70,36 +78,44 @@ describe('vs-skill-doctor thin contract', () => {
     ) as { skills: string[] };
     const readme = fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8');
 
-    expect(shared).toContain('`vs-skill-doctor`');
-    expect(manifest.skills).toContain('./skills/vs-skill-doctor');
-    expect(readme).toMatch(
-      /\| `\/vs-skill-doctor` \| Grade skills from local chats and propose diffs \|/,
-    );
+    expect(shared).toContain('`vs-tune-skill`');
+    expect(manifest.skills).toContain('./skills/vs-tune-skill');
+    expect(readme).toMatch(/\| `\/vs-tune-skill` \|/);
+    expect(shared).not.toContain('`vs-skill-doctor`');
+    expect(manifest.skills).not.toContain('./skills/vs-skill-doctor');
   });
 
   it('keeps fixture canaries out of the skill', () => {
     expect(SKILL_RAW).not.toMatch(/SLOGAN_ONLY_SKILL_CANARY/);
+    expect(SKILL_RAW).not.toMatch(/CLEAN_TUNE_SKILL_CANARY/);
     expect(SKILL_RAW).not.toMatch(/CLEAN_DOCTOR_SKILL_CANARY/);
-    expect(SKILL_RAW).not.toMatch(/GOOD_DOCTOR_RUN_CANARY/);
+    expect(SKILL_RAW).not.toMatch(/GOOD_TUNE_RUN_CANARY/);
+    expect(SKILL_RAW).not.toMatch(/NEED_SKILL_ASK_CANARY/);
+    expect(SKILL_RAW).not.toMatch(/BAD_GRADES_ALL_CANARY/);
     expect(SKILL_RAW).not.toMatch(/BAD_MENTION_ONLY_CANARY/);
     expect(SKILL_RAW).not.toMatch(/BAD_MUTATES_REPO_CANARY/);
     expect(SKILL_RAW).not.toMatch(/BAD_UPLOADS_TRANSCRIPT_CANARY/);
   });
 });
 
-describe('vs-skill-doctor workspace scorer', () => {
+describe('vs-tune-skill workspace scorer', () => {
   it('rejects a slogan-only skill', () => {
     const result = reject(SLOGAN_SKILL);
     expect(result.status).toBe(1);
   });
 
-  it('accepts a real doctor skill and this skill file', () => {
+  it('accepts a real tune-skill and this skill file', () => {
     expect(reject(CLEAN_SKILL).status).toBe(0);
     expect(reject(path.join(DIR, 'SKILL.md')).status).toBe(0);
   });
 
-  it('accepts a good run with inventory and a scratch diff', () => {
+  it('accepts a named-skill run and a NEED_SKILL ask', () => {
     expect(reject(GOOD_RUN).status).toBe(0);
+    expect(reject(NEED_SKILL_RUN).status).toBe(0);
+  });
+
+  it('rejects a run that grades all skills with no picker', () => {
+    expect(reject(BAD_ALL).status).toBe(1);
   });
 
   it('rejects mention-only, repo mutation, and transcript upload runs', () => {
@@ -113,9 +129,9 @@ describe('vs-skill-doctor workspace scorer', () => {
   });
 });
 
-describe('vs-skill-doctor local collector', () => {
+describe('vs-tune-skill local collector', () => {
   it('inventories repo skills and cwd-matching local sessions without uploading', () => {
-    const out = fs.mkdtempSync(path.join(os.tmpdir(), 'vs-skill-doctor-eval-'));
+    const out = fs.mkdtempSync(path.join(os.tmpdir(), 'vs-tune-skill-eval-'));
     const repo = path.join(SESSION_HOMES, 'repo');
     const result = spawnSync(
       process.execPath,
@@ -127,6 +143,8 @@ describe('vs-skill-doctor local collector', () => {
         out,
         '--days',
         '45',
+        '--skill',
+        'demo-skill',
         '--claude-home',
         path.join(SESSION_HOMES, 'claude'),
         '--codex-home',
@@ -144,7 +162,7 @@ describe('vs-skill-doctor local collector', () => {
       sessions: { harness: string }[];
     };
     expect(inventory.skills_found).toBeGreaterThan(0);
-    expect(inventory.skills.some((skill) => skill.name === 'demo-skill')).toBe(
+    expect(inventory.skills.every((skill) => skill.name === 'demo-skill')).toBe(
       true,
     );
     expect(inventory.sessions_sampled).toBeGreaterThan(0);

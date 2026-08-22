@@ -7,7 +7,7 @@ import { dirname, join, resolve } from 'node:path';
 const args = parseArgs(process.argv.slice(2));
 if (!args.out) {
   console.error(
-    'Usage: node collect-sessions.mjs --out <dir> [--repo PATH] [--days N] [--max-sessions N] [--skills-dir PATH] [--cursor-export PATH] [--grok-jsonl PATH] [--claude-home PATH] [--codex-home PATH]',
+    'Usage: node collect-sessions.mjs --out <dir> [--repo PATH] [--days N] [--max-sessions N] [--skills-dir PATH] [--cursor-export PATH] [--grok-jsonl PATH] [--claude-home PATH] [--codex-home PATH] [--skill NAME]',
   );
   process.exit(2);
 }
@@ -18,6 +18,7 @@ const days = Number(args.days ?? 45);
 const maxSessions = Number(args.maxSessions ?? 12);
 const since = Date.now() - days * 24 * 60 * 60 * 1000;
 const skillDirs = (args.skillsDir || []).concat([join(repo, 'skills')]);
+const skillFilter = args.skill || '';
 const claudeHome = resolve(args.claudeHome || join(homeDir(), '.claude'));
 const codexHome = resolve(args.codexHome || join(homeDir(), '.codex'));
 
@@ -27,6 +28,11 @@ mkdirSync(join(outDir, 'transcripts'), { recursive: true });
 const skills = [];
 for (const dir of unique(skillDirs)) {
   skills.push(...discoverSkills(dir));
+}
+if (skillFilter) {
+  const kept = skills.filter((s) => s.name === skillFilter);
+  skills.length = 0;
+  skills.push(...kept);
 }
 
 const sessions = [];
@@ -74,6 +80,7 @@ function parseArgs(argv) {
     else if (key === '--grok-jsonl') out.grokJsonl = val;
     else if (key === '--claude-home') out.claudeHome = val;
     else if (key === '--codex-home') out.codexHome = val;
+    else if (key === '--skill') out.skill = val;
     else continue;
     i += 1;
   }

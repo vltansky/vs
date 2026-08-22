@@ -128,10 +128,10 @@ text is reproduced verbatim.
 ## Warp skill-doctor
 
 - Project: https://github.com/warpdotdev/common-skills
-- Used in: `skills/vs-skill-doctor`
+- Used in: `skills/vs-tune-skill`
 - Source: `.agents/skills/skill-doctor` (inspiration only)
 
-The `vs-skill-doctor` skill is an original rewrite inspired by Warp's
+The `vs-tune-skill` skill is an original rewrite inspired by Warp's
 local-transcript grading idea: collect recent sessions, score them, draft
 skill diffs in scratch, and render one review page. No Warp skill text,
 scripts, HTML, report chrome, or factories CTA is vendored.

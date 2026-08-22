@@ -1,9 +1,9 @@
 ---
-name: vs-skill-doctor
-description: "Use when asked to tune or grade one installed skill from past local chats (any project, not vs itself), or when the user types /vs-skill-doctor."
+name: vs-tune-skill
+description: "Use when asked to tune or grade one installed skill from past local chats (any project, not vs itself), or when the user types /vs-tune-skill."
 ---
 
-# Skill Doctor
+# Tune Skill
 
 Grade exactly one installed agent skill from real local conversation
 history, then propose a mergeable `SKILL.md` diff in scratch. Building
@@ -65,7 +65,7 @@ Warp text, scripts, HTML, report chrome, or a factories CTA.
 Let `SKILL_ROOT` be the directory containing this `SKILL.md`.
 
 ```bash
-REPORT_DIR="$(mktemp -d "${TMPDIR:-/tmp}/vs-skill-doctor-XXXXXXXX")"
+REPORT_DIR="$(mktemp -d "${TMPDIR:-/tmp}/vs-tune-skill-XXXXXXXX")"
 ```
 
 ## 1. Require one skill, then collect
@@ -160,6 +160,8 @@ Apply the shared output style at
 ../vs-internal-shared/references/output-style.md to every user-facing
 message.
 
+Compose `/vs-eval` | `/vs-htmdx` | `/vs-search-threads` when those jobs apply.
+
 ## Workflow
 
 Direct: emit **Next** only. Composed: return to caller.
@@ -167,5 +169,3 @@ Direct: emit **Next** only. Composed: return to caller.
 **Prev:** one named skill plus local chats
 **Next:** done
 **Relevant:** none
-
-Compose `/vs-eval` | `/vs-htmdx` | `/vs-search-threads` when those jobs apply.
