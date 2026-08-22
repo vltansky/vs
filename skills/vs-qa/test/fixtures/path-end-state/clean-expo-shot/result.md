@@ -1,0 +1,10 @@
+CLEAN_QA_EXPO_SHOT_CANARY
+
+## QA Report
+
+- Status: PASS
+- Command: vitest run qa
+- User path: Open checkout on the device, type card, tap Pay
+- Observable end state: Receipt 1842 is on screen
+- Visual in scope: yes
+- Evidence: consumed named Expo screenshot /tmp/device/checkout.png

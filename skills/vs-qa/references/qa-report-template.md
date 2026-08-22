@@ -9,6 +9,9 @@
 | **PR** | {PR_NUMBER} ({PR_URL}) or "—" |
 | **Tier** | Quick / Standard / Exhaustive |
 | **Scope** | {SCOPE or "Full app"} |
+| **User path** | {CLICK_TYPE_SEQUENCE} |
+| **Observable end state** | {WHAT_THEY_SEE_OR_HAVE} |
+| **Visual baseline** | {PINNED_SHOT_OR_NONE} |
 | **Duration** | {DURATION} |
 | **Pages visited** | {COUNT} |
 | **Screenshots** | {COUNT} |
