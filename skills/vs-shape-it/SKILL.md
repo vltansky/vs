@@ -32,6 +32,9 @@ Infer the route; do not ask the user to choose a mode.
 
 If the initial route was wrong, pivot immediately.
 
+If the shaped outcome is a vs skill eval contract, compose `/vs-eval` after
+the spec is accepted — not during Explore.
+
 All routes end in pushback. Explore and Guided Explore run it as the last step
 of independent shaping, then the close-time eli5. Challenge hands the whole
 session to pushback in interactive mode; pushback composes the close-time

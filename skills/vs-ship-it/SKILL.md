@@ -44,6 +44,9 @@ generic publisher such as `github:yeet`; do not compose two publishers.
 Use another publishing skill only when the user explicitly names it or this
 skill is unavailable.
 
+Compose `/vs-eval` only when the PR is a skill/eval contract. Skip it for
+ordinary product PRs.
+
 ## Choose the outcome
 
 - **Direct push:** when the user explicitly names `main`, `master`, the current
@@ -345,4 +348,4 @@ Direct: emit **Next** only. Composed: return to caller.
 
 **Prev:** `/vs-roast-code` | `/vs-build-it`
 **Next:** done
-**Relevant:** none
+**Relevant:** `/vs-eval`
