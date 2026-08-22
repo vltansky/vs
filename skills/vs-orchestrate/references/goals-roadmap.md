@@ -72,3 +72,23 @@ meaning.
 `GOALS.md` remains the source of truth. The dashboard is a derived human view:
 refresh it only when `GOALS.md` changes, and do not create a Markdown dashboard
 twin.
+
+## decisions.tsv (append-only trail)
+
+Orchestrate owns the decision trail. Keep `decisions.tsv` next to GOALS.md.
+One row per decision. Never edit or delete a prior row.
+
+```
+ts	phase	decision	why	evidence	result
+```
+
+`ts` is ISO8601. `evidence` is a pointer (SHA, PR, path), not a paragraph.
+`result` is the predicate state (`advanced`, `unfinished`, `stopped`,
+`resume-written`). Picture-show-me / eli5 is not this file.
+
+Hand this path to `/vs-baby-sit` for CI and review rows. A pause writes a
+resume file that points at this trail; a resume reads the file and does not
+re-derive it.
+
+Two consecutive rows that record the same unfinished evidence with no new
+pointer are a stop, not another gate.

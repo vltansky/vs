@@ -52,6 +52,35 @@ wakeups to re-poll GitHub while the watcher is healthy. Pause it when the
 workflow reaches a terminal or user-attention stop condition if the host
 supports that action.
 
+## Loop contract
+
+Write the observable done-predicate before the first watch or repair loop.
+Default is merge-ready evidence: CI pass on the current head SHA, plus no
+unresolved actionable review threads. Use merged evidence only when the user
+named that target. A run that starts `watch_pr.py` or a repair cycle without
+that predicate written first has failed this contract.
+
+Two stuck iterations of the same repair or milestone with no new evidence
+(same failing check, same unfinished proof) → stop, report, do not loop.
+This generalizes the two-same-CI-failure stop. A third attempt on the same
+stuck evidence fails this contract.
+
+### Pause and off-context resume
+
+Pause writes a resume file (`/tmp/pr-<N>-babysit-resume.md`, or the path
+orchestrate handed) with the predicate, last SHA, last decision, and trail
+path. Do not start new work or leave a mid-edit broken tree. Resume reads
+that file and does not re-derive the trail. Missing resume file → stop and
+say so; do not reconstruct from chat.
+
+### Decision trail
+
+Append-only TSV rows (`ts`, `phase`, `decision`, `why`, `evidence`,
+`result`). If orchestrate handed a trail path (`GOALS.md` or `decisions.tsv`
+next to it), append CI and review decisions there. Otherwise keep a PR-local
+`decisions.tsv`. Picture-show-me / eli5 is not this trail. Do not invent a
+new skill.
+
 ## Codex goals
 
 Invoking this skill does not itself request a Codex goal. Read
@@ -99,6 +128,8 @@ Do not use `[ready]` for attention, blocked, closed-without-merge, failed, or
 interrupted outcomes. If thread renaming is unavailable, continue silently.
 
 ## 2. Start the watcher
+
+Do not run the watcher until the done-predicate is written.
 
 Use the bundled watcher instead of rebuilding REST/GraphQL polling in model
 turns:
@@ -326,6 +357,8 @@ is a user-attention stop condition, not another watch cycle.
 - PR closed without merge: report closed and stop.
 - Same CI failure survives two focused fix attempts: report the evidence and
   stop as unrecoverable.
+- Two stuck iterations of the same repair with no new evidence: report and
+  stop. Do not take a third pass on the same unfinished proof.
 - Only ambiguous review threads remain: report them explicitly and stop.
 - Review approval is the only remaining merge-readiness gate: report
   `Review needed: @<user-or-team>`, say watching stopped, and stop instead of
