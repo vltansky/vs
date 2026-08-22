@@ -108,6 +108,20 @@ subagent budget. The parent verifies every cited file and owns synthesis.
 
 ## 3. Present vetted candidates
 
+Write design candidates as separate sketches or files, not one blended
+draft that averages two layouts.
+
+1. Isolate candidates as separate sketches or files.
+2. Hidden rubric: score after the candidates exist. Do not write the
+   rubric into the first prompt so models converge.
+3. Pick a base. Name one winner. Never average two designs into a mush.
+4. Graft losers. Steal one concrete bit from a loser onto the base, not
+   a 50/50 merge.
+   Graft: none is not a graft. Combining or merging both navs under a
+   named Base is still averaging.
+
+The top recommendation is that named base plus the one graft.
+
 Present at most five candidates, ordered by expected leverage. Use the exact
 candidate shape in the review playbook. Cite concrete files and lines. Separate
 observed evidence from inference.

@@ -100,6 +100,23 @@ Derive the directions problem-first:
 - the others follow the same user intent while challenging the prescribed UI
 - name each direction for the product idea it tests, not a generic pattern
 
+Keep each direction as its own sketch or file. Do not write one blended
+draft that averages two layouts.
+
+1. Isolate candidates as separate sketches or files — N variants, not
+   one combined draft.
+2. Hidden rubric: score after the candidates exist. Do not write the
+   rubric into the first prompt so models converge.
+3. Pick a base. Name one winner. Never average two designs into a mush.
+4. Graft losers. Steal one concrete bit from a loser onto the base, not
+   a 50/50 merge.
+   Graft: none is not a graft. Combining or merging both navs under a
+   named Base is still averaging.
+
+The recommended prototype is that named base plus the one graft. Keep
+the isolated files for review. Do not declare a production winner for a
+taste decision until the human reviews.
+
 Wire variants through a shareable URL parameter such as `?variant=a`. Add a
 small fixed switcher with previous/next controls, current label, and left/right
 keyboard navigation. Do not intercept keys inside inputs, textareas, selects, or

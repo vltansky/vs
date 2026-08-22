@@ -45,7 +45,8 @@ For each option show:
 - behavioral test surface;
 - leverage, locality, and trade-offs.
 
-Recommend one option. Prefer the smallest interface that serves observed callers
-and hides the most repeated knowledge. If a hybrid is stronger, specify exactly
-which pieces combine and why. Return the comparison to `/vs-shape-it`; do not
+Recommend one option as the named base. Prefer the smallest interface that
+serves observed callers and hides the most repeated knowledge. Never average
+two designs into a mush. If a loser has one concrete strength, steal one
+concrete bit onto the base and say exactly what moved. Return the comparison to `/vs-shape-it`; do not
 implement it.
