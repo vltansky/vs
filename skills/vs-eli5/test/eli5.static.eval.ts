@@ -52,17 +52,9 @@ describe('vs-eli5 thin contract', () => {
   });
 });
 
-describe('vs-eli5 layout', () => {
-  it('uses layout: vs, not default or blank', () => {
-    const template = fs.readFileSync(
-      path.join(ROOT, 'skills', 'vs-htmdx', 'assets', 'artifact.html'),
-      'utf8',
-    );
-    expect(SKILL).toMatch(/layout: vs/);
-    expect(SKILL).not.toMatch(/layout: default/);
-    expect(SKILL).not.toMatch(/layout: blank/);
-    expect(template).toMatch(/^layout: vs$/m);
-    expect(template).not.toMatch(/^layout: default$/m);
-    expect(template).not.toMatch(/^layout: blank$/m);
+
+describe('vs-eli5 rendering', () => {
+  it('starts from the shared vs-htmdx artifact', () => {
+    expect(SKILL).toContain('../vs-htmdx/assets/artifact.html');
   });
 });

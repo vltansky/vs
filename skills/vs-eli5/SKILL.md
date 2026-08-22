@@ -5,7 +5,7 @@ description: "Explain a topic like I'm a 5 year old. Use when the user types /vs
 
 # eli5
 
-Explain like I'm someone who knows nothing about this topic, using an HTML artifact with big pictures and few words. Use `/vs-htmdx` for that artifact, not raw HTML. Start from `../vs-htmdx/assets/artifact.html` with `layout: vs`.
+Explain like I'm someone who knows nothing about this topic, using an HTML artifact with big pictures and few words. Use `/vs-htmdx` for that artifact, not raw HTML. Start from `../vs-htmdx/assets/artifact.html`
 
 Topic: $ARGUMENTS
 
