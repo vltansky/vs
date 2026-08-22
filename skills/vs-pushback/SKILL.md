@@ -230,32 +230,18 @@ turns out to be stronger than every objection you have, that is the finding.
 
 ### 3. Take a position
 
-Lead with what you found. Write the `Stress-Test Assessment` and the findings
-behind it, under about 300 words, to the report file. Chat mid-grill is a
-3-line position only (status, weakest, steelman). Open with the assessment,
-never with questions:
+Lead with what you found. Chat mid-grill is only this 3-line position.
+Never open with questions:
 
 ```text
-Stress-Test Assessment
-- Status: READY_WITH_RISKS
-- Weakest: premise, assumptions
-- What holds up: <the steelman in one line>
-
-[High, 75] Premise
-Concern: <the specific failure mode>
-Evidence: <file, number, measurement, or prior art>
-Recommendation: <what I would do instead>
-
-[Medium, 100] Feasibility
-...
-
-[FYI, 50] Maintainability
-...
+Status: READY_WITH_RISKS
+Weakest: premise
+Holds up: <steelman in one line>
 ```
 
-Open with the assessment, never with questions. An assessment with no findings
-under it is as empty as a findings dump with no position — say what you found,
-what it means, and what you would do.
+Write the `Stress-Test Assessment` and the findings behind it, under about
+300 words, to the report file. An assessment file with no findings is as empty as a findings dump with no position — say what you found, what it means, and
+what you would do.
 
 For each finding:
 
@@ -363,6 +349,12 @@ aggregate readiness score as an approval gate.
 
 ```markdown
 Verdict: READY | READY_WITH_RISKS | NOT_READY
+
+## Stress-Test Assessment
+- Status: READY_WITH_RISKS
+- Weakest: premise, assumptions
+- What holds up: <the steelman in one line>
+- [High, 75] Premise — concern, evidence, recommendation
 
 ## Handoff Context
 - Proposal: ...

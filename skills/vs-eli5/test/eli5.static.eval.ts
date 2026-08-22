@@ -57,4 +57,11 @@ describe('vs-eli5 rendering', () => {
   it('starts from the shared vs-htmdx artifact', () => {
     expect(SKILL).toContain('../vs-htmdx/assets/artifact.html');
   });
+
+  it('always puts a chat TLDR of the page', () => {
+    expect(SKILL).toMatch(/Always put a chat TLDR of that page/);
+    expect(SKILL).toMatch(/two to four short lines/);
+    expect(SKILL).toMatch(/Direct and composed both do this/);
+    expect(SKILL).toMatch(/Do not call `\/vs-tldr`/);
+  });
 });

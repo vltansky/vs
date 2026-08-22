@@ -89,8 +89,11 @@ describe('pushback: anti-noise and anti-sycophancy', () => {
   });
 
   it('opens with an assessment and findings, never with questions', () => {
-    expect(SKILL).toMatch(/Stress-Test Assessment/);
-    expect(SKILL).toMatch(/open with the assessment, never with questions/i);
+    expect(SKILL).toMatch(/Write the `Stress-Test Assessment`.*to the report file/s);
+    expect(SKILL).toMatch(/## Stress-Test Assessment/);
+    expect(SKILL).toMatch(/Chat mid-grill is only this 3-line position/);
+    expect(SKILL).toMatch(/Never open with questions/);
+    expect(SKILL).not.toMatch(/Open with the assessment, never with questions/);
     expect(SKILL).toMatch(/as empty as a findings dump with no position/i);
   });
 
@@ -174,6 +177,7 @@ describe('pushback: proportional review and verification', () => {
     expect(SKILL).toMatch(/Chat is only this exclusive 4-item close, in this order/);
     expect(SKILL).toMatch(/1\. The first sentence is the TLDR/);
     expect(SKILL).toMatch(/2\. The opened eli5/);
+    expect(SKILL).toMatch(/3\. `Handoff:/);
     expect(SKILL).toMatch(/4\. One `Your action`/);
     expect(SKILL).not.toMatch(/Chat is TLDR \+ opened artifact \+ confirm/);
     expect(SKILL).not.toMatch(/Chat is only the TLDR, the opened eli5,\s+and the confirm/);
