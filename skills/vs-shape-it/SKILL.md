@@ -13,8 +13,7 @@ Do NOT write code, scaffold projects, create GitHub issues, or start
 implementation workers. Planning-only research or critique subagents are
 allowed for complex work. Output is questions, evidence, design, stress-test,
 a decision record when one is warranted, a goal-ready execution blueprint,
-and a closing `/vs-eli5` HTMDX approval artifact. Writing an ADR is a decision
-record, not implementation, and is allowed. The eli5 is the approval surface,
+and a closing `/vs-eli5` HTMDX approval artifact. Writing an ADR is a decision record, not implementation, and is allowed. The eli5 is the approval surface,
 not implementation.
 </HARD-GATE>
 
@@ -123,15 +122,18 @@ than the default batched checkpoint:
    `Align → Evidence → Design → Challenge → Handoff`, with the current phase
    and the number of resolved and open decisions. Do not show a percentage,
    time estimate, target question count, or empty progress bar.
-2. Ask one consequential strategic question at a time. Give a recommended
-   answer first, explain the consequence, and wait for the user's answer.
+2. Ask one consequential strategic question at a time. Lead with a Why tldr
+   (one line: what the user loses if they pick wrong), then the recommended
+   answer, then wait. Always include Drill (`eli5`) as the last option.
+   Compose `/vs-eli5` on that question's tradeoff only if they pick it.
 3. Branch from each answer: skip decisions it settles and inspect the code or
    named evidence yourself when a fact can answer the next question.
-4. Accept `done`, `skip`, `back`, and `?`. `skip` accepts the stated reversible
-   default for the current question; `?` defers it as an open decision; `back`
-   revisits the previous answer and updates dependent decisions. If the user
-   says `done`, preserve remaining uncertainty as explicit open decisions with
-   recommendations.
+4. Accept `done`, `skip`, `back`, `?`, and `eli5`. `skip` accepts the stated
+   reversible default for the current question; `?` defers it as an open
+   decision; `eli5` drills this question's tradeoff with `/vs-eli5` and waits
+   for A/B after; `back` revisits the previous answer and updates dependent
+   decisions. If the user says `done`, preserve remaining uncertainty as
+   explicit open decisions with recommendations.
 5. Stop interviewing once outcome, boundary, success proof, and the
    expensive-to-reverse choices are clear. Reflect the agreed mental model in
    no more than three bullets. If a fundamental part of that model remains
@@ -160,6 +162,13 @@ For the default batched checkpoint:
 - State the decision in everyday language before presenting options. Make clear
   what changes for the user; do not make them decode architecture or workflow
   labels to answer.
+- Every question has a Why tldr: one line, user-world stake if they pick
+  wrong. It is not a call to `/vs-tldr`.
+- Every question ends with the same Drill option: compose `/vs-eli5` on
+  that question's tradeoff and open the html. Do not open it unless they
+  pick Drill. In the text fallback it is always `D. Drill — /vs-eli5 this
+  tradeoff`. In the structured tool it is the last option, same label.
+  `1D` or `eli5` drills that question, then wait for A/B/C.
 - Recommend a path for every choice; put it first and label it the default. In
   the text fallback, make it option `A`.
 - Accept batched replies like `1A, 2B`; a bare `A` or `yes` accepts every
@@ -178,19 +187,21 @@ fallback below.
 
 ### 1. <short decision title>
 
-<Why this decision belongs to the user.>
+**Why:** <one-line tldr of the user-world stake if they pick wrong>
 
 **Recommended: A — <choice>** — <one-clause rationale>
 
 - A. <choice> — <consequence>
 - B. <choice> — <consequence>
 - C. <choice> — <consequence>
+- D. Drill — `/vs-eli5` this tradeoff
 
 ### 2. <short decision title>
 
 ...
 
-Reply `A` to accept every recommendation, or specify changes such as `1B, 2A`.
+Reply `A` to accept every recommendation, `1D` to drill question 1, or
+specify changes such as `1B, 2A`.
 ```
 
 ### 2. Independent shaping

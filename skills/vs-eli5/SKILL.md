@@ -18,4 +18,4 @@ Direct: emit **Next** only. Composed: return to caller.
 
 **Prev:** user ask or tldr offer
 **Next:** done
-**Relevant:** `/vs-htmdx`
+**Relevant:** `/vs-htmdx` | `/vs-shape-it`

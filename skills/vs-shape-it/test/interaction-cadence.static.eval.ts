@@ -46,7 +46,7 @@ describe('shape-it: interaction cadence', () => {
     expect(routing).toMatch(/grill this plan.*Challenge/is);
     expect(routing).toMatch(/grill me.*question me.*Guided Explore/is);
     expect(interview).toMatch(/one consequential strategic question at a time/i);
-    expect(interview).toMatch(/Accept `done`, `skip`, `back`, and `\?`/i);
+    expect(interview).toMatch(/Accept `done`, `skip`, `back`, `\?`, and `eli5`/i);
     expect(interview).toMatch(/agent supplies facts, code reading, and recommendations/i);
   });
 
@@ -61,7 +61,7 @@ describe('shape-it: interaction cadence', () => {
     );
     expect(interview).toMatch(/resolved.*open decisions/i);
     expect(interview).toMatch(/Do not show.*percentage.*time.*question count/is);
-    expect(interview).toMatch(/Accept `done`, `skip`, `back`, and `\?`/i);
+    expect(interview).toMatch(/Accept `done`, `skip`, `back`, `\?`, and `eli5`/i);
   });
 
   it('confirms the mental model before autonomy and ends with handoff readiness', () => {
@@ -90,5 +90,36 @@ describe('shape-it: interaction cadence', () => {
     expect(SKILL).toMatch(/discover the active workspace, repository, and existing artifacts/i);
     expect(SKILL).toMatch(/ordinary navigation is not a strategic question/i);
     expect(SKILL).toMatch(/does not replace or\s+suppress the closing design/i);
+  });
+
+  it('gives every question a Why tldr of the user-world stake', () => {
+    const opening = SKILL.slice(
+      SKILL.indexOf('### 1. Opening interaction'),
+      SKILL.indexOf('### 2. Independent shaping'),
+    );
+    expect(opening).toMatch(/\*\*Why:\*\*/);
+    expect(opening).toMatch(/user-world stake if they pick\s+wrong/i);
+    expect(opening).toMatch(/not a call to `\/vs-tldr`/);
+  });
+
+  it('ends every question with a stable Drill /vs-eli5 option', () => {
+    const opening = SKILL.slice(
+      SKILL.indexOf('### 1. Opening interaction'),
+      SKILL.indexOf('### 2. Independent shaping'),
+    );
+    expect(opening).toMatch(/D\. Drill — `\/vs-eli5` this\s+tradeoff/);
+    expect(opening).toMatch(/last option, same label/);
+    expect(opening).toMatch(/Always include Drill \(`eli5`\) as the last option/i);
+    expect(opening).toMatch(/`1D` or `eli5` drills that question/);
+    expect(opening).toMatch(/eli5` drills this question's tradeoff with `\/vs-eli5`/);
+  });
+
+  it('does not auto-open eli5 on a question unless they pick Drill', () => {
+    const opening = SKILL.slice(
+      SKILL.indexOf('### 1. Opening interaction'),
+      SKILL.indexOf('### 2. Independent shaping'),
+    );
+    expect(opening).toMatch(/Do not open it unless they\s+pick Drill/i);
+    expect(opening).toMatch(/Compose `\/vs-eli5` on that question's tradeoff only if they pick it/i);
   });
 });
