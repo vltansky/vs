@@ -60,6 +60,13 @@ describe('vs-eval thin contract', () => {
 });
 
 describe('vs-eval workspace scorer', () => {
+  it('rejects a mention-only CASE alone', () => {
+    const result = spawnSync(process.execPath, [REJECT, MENTION_CASE], {
+      encoding: 'utf8',
+    });
+    expect(result.status).toBe(1);
+  });
+
   it('rejects slogan-only skill plus mention-only CASE', () => {
     const result = rejectPair(SLOGAN_SKILL, MENTION_CASE);
     expect(result.status).toBe(1);
