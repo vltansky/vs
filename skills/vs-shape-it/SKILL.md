@@ -555,58 +555,42 @@ open "$ARTIFACT_PATH" 2>/dev/null || xdg-open "$ARTIFACT_PATH"
 
 If open fails, say so in one line and still give the `file://` path.
 
-Put the complete recommendation, stress-test changes, Goal Contract, any ADR,
-and any execution blueprint in the linked files, not in chat.
-Switch the progress signal from decision resolution to handoff readiness:
-`Handoff: Goal Contract ready | <N> open decisions`. When it is not ready, name
-the missing Goal Contract field or strategic decision instead of showing a
-percentage.
-The first sentence states the recommendation in plain English and why it is the
-best fit. Translate internal verdicts, execution classes, and agent terms into
-what changes for the user before naming their literal labels.
-Show the ADR as a path plus its one-line decision, or state in one clause why
-none was warranted; it is part of what the approval gate covers, not a follow-up
-task. Make unresolved
-strategic decisions conspicuous; for each, recommend one path and explain how
-the alternatives change the outcome. Do not restart the interview or expose a
-trail of tactical questions the independent phase already resolved.
+Chat is only this, in this order:
 
-Show the pushback result as one compact sentence in user language — `The design
-is ready to build, with one open rollout risk (READY_WITH_RISKS).` Include only
-the surviving high and medium findings. Report it as the state of the design,
-not as a separate review to read.
+1. The first sentence is the TLDR: the recommendation in plain English and why it is the
+   best fit. Translate verdicts and agent terms into what changes for the user.
+2. The opened eli5.
+3. `Handoff: Goal Contract ready | <N> open decisions` (or the missing field).
+4. One `Your action` approval line, plus the shortest exact reply that accepts.
 
-Compression must preserve the sharpest supported reason the recommendation can
-fail. State its cause and user consequence so the user can judge the tradeoff.
-A generic risk label is not enough, even when the literal verdict remains
-visible.
-
-A `NOT_READY` verdict does not block the approval gate, but it changes what is
-being approved. Lead with the blocking finding and recommend reworking it before
-`/vs-build-it`. Offer a full interactive `/vs-pushback` when the user wants to
-defend the design in rounds; composed mode scored it without their answers.
-
-Ask for approval once, after the whole design, Goal Contract, any ADR, and any
-execution blueprint are visible. Approval means the artifact is ready for
-`/vs-build-it`;
-it does not itself start implementation.
+Do not paste the Goal Contract, ADR, pushback report, execution blueprint, or
+the `Execution:` block into chat. Those live in the linked files and the eli5.
 Routing metadata does not replace or suppress the closing design.
 
-Keep the closing turn easy to answer: make one approval request, put it in
-`Your action`, and include the shortest exact reply that accepts the
-recommendation. Do not make the user reconstruct the requested decision from
-the design or reply to workflow metadata.
+Put the complete recommendation and all of the following in the linked files, not in chat:
 
-If an unresolved strategic decision remains, combine it with this closing gate
-when each option's consequences are already fully shaped: ask the user to
-approve the recommendation or select an alternative. If their selection
-requires redesign, return the revised complete design for approval rather than
-pretending the earlier gate approved unseen work.
+- the complete recommendation, stress-test changes, and any ADR (path plus
+  one-line decision, or one clause why none was warranted)
+- unresolved strategic decisions, each with one recommended path and how
+  alternatives change the outcome
+- the pushback result as the state of the design, one compact sentence plus
+  surviving high and medium findings (`The design is ready to build, with one
+  open rollout risk (READY_WITH_RISKS).`)
+- the sharpest supported reason the recommendation can fail, with cause and user consequence; a generic risk label is not enough
+- a `NOT_READY` verdict does not block the approval gate; the close leads with the blocking finding and recommends rework
+  before `/vs-build-it`; offer interactive `/vs-pushback` if they want to
+  defend it in rounds
+- the smallest handoff that can execute the approved Goal Contract, default
+  `/vs-build-it`, plus the execution class below
 
-Recommend the smallest handoff that can execute the approved Goal Contract.
+Keep one approval request. Ask for approval once, after the whole design, Goal Contract, any ADR, and any
+execution blueprint are visible in those files. Approval means ready for
+`/vs-build-it`; it does not start implementation. If an unresolved strategic
+decision remains and each option is already shaped, combine it with this gate.
+If their pick needs redesign, return a revised complete design.
 
-Default to the approved design or spec, then `/vs-build-it`. Extra coordination
-must follow the execution class and blueprint above:
+Default to the approved spec, then `/vs-build-it`. Extra coordination follows
+the execution class written in the spec, not in chat:
 
 - **Durability:** propose issues when work spans sessions or people, needs a
   shared dependency graph, or must survive chat context. Distinguish unresolved
@@ -631,6 +615,8 @@ Runtime: parent only | parent + subagents | Codex tasks/threads | Claude subagen
 Next: /vs-build-it with implementation objective: <objective>
       (or /vs-orchestrate when the spec is multi-milestone)
 ```
+
+Write that block in the spec. Do not print it in chat.
 
 ## Confusion
 

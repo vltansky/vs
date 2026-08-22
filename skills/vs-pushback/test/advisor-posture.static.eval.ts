@@ -172,6 +172,8 @@ describe('pushback: proportional review and verification', () => {
     expect(SKILL).toMatch(/interactive close-time `\/vs-eli5` of that verdict/);
     expect(SKILL).toMatch(/including a shape-it Challenge handoff, compose/);
     expect(SKILL).toMatch(/Chat is TLDR \+ opened artifact \+ confirm/);
+    expect(SKILL).toMatch(/Do not paste the report into chat/);
+    expect(SKILL).toMatch(/Write the full report \(template below\) to disk/);
     expect(SKILL).toMatch(/skip the saved\s+report, the close-time `\/vs-eli5`/);
   });
 });

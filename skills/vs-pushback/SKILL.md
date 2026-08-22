@@ -341,8 +341,10 @@ In interactive mode, including a shape-it Challenge handoff, compose
 The eli5 is a short review of the verdict so the user can confirm it, not a
 replacement for the report file.
 
-The chat report is compact by default, under about 500 words unless the user asks
-for the full version. Persist the same report to
+Do not paste the report into chat. Chat is only the TLDR, the opened eli5,
+and the confirm. Write the full report (template below) to disk when durable
+history is useful or the user asks; it may run longer than 500 words in the
+file. Persist it to
 `~/.vs/$PROJECT_ID/vs-pushback/YYYY-MM-DD-<topic>.md` only when durable history is
 useful or the user asks for it; do not write it into the project tree. Redact
 secrets and broad private context before persistence.

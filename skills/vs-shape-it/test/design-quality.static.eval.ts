@@ -62,6 +62,9 @@ describe('shape-it: design quality', () => {
     expect(closing).toMatch(/so the user can confirm it/);
     expect(closing).toMatch(/Do not treat the eli5 as a replacement contract/);
     expect(closing).toMatch(/Do not paste\s+the Goal Contract/);
+    expect(closing).toMatch(/Chat is only this, in this order/);
+    expect(closing).toMatch(/Do not print it in chat/);
+    expect(closing).toMatch(/Write that block in the spec/);
     expect(closing).toMatch(/required even when that\s+complexity test would keep the answer in chat/);
     expect(SKILL).toMatch(/\*\*Relevant:\*\*.*\/vs-eli5/);
     expect(SKILL).toMatch(/short review of the spec so the user can confirm it/);
