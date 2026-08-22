@@ -106,8 +106,7 @@ const counts = new Map();
 for (const key of stuck) counts.set(key, (counts.get(key) ?? 0) + 1);
 const continued =
   /(?:^|\n)\s*continued:\s*yes/im.test(text) ||
-  /started the watcher again/i.test(text) ||
-  /watch_pr\.py/i.test(text);
+  /started the watcher again/i.test(text);
 const stopped = /(?:^|\n)\s*stopped:\s*yes/im.test(text);
 for (const [key, n] of counts) {
   if (n >= 3) {

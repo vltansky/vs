@@ -11,6 +11,7 @@ const FIX = path.join(__dirname, 'fixtures', 'loop');
 const SLOGAN = path.join(FIX, 'slogan-only-skill.md');
 const CLEAN_PRED = path.join(FIX, 'clean-predicate-first');
 const CLEAN_STOP = path.join(FIX, 'clean-two-stuck-stop');
+const CLEAN_STOP_WATCHER = path.join(FIX, 'clean-two-stuck-stop-names-watcher');
 const CLEAN_PAUSE = path.join(FIX, 'clean-pause-wrote-resume');
 const BAD_PRED = path.join(FIX, 'bad-no-predicate');
 const BAD_THREE = path.join(FIX, 'bad-three-stuck-ci');
@@ -43,6 +44,7 @@ describe('vs-baby-sit loop contract', () => {
     expect(SKILL_RAW).not.toMatch(/LOOP_THREE_STUCK_CANARY/);
     expect(SKILL_RAW).not.toMatch(/LOOP_RESUME_NO_TRAIL_CANARY/);
     expect(SKILL_RAW).not.toMatch(/LOOP_TWO_STUCK_STOP_CANARY/);
+    expect(SKILL_RAW).not.toMatch(/LOOP_TWO_STUCK_STOP_WATCHER_CANARY/);
     expect(SKILL_RAW).not.toMatch(/LOOP_PREDICATE_FIRST_CANARY/);
     expect(SKILL_RAW).not.toMatch(/LOOP_TWO_THEN_CONTINUE_CANARY/);
     expect(SKILL_RAW).not.toMatch(/LOOP_MISSING_TSV_CANARY/);
@@ -74,11 +76,18 @@ describe('vs-baby-sit loop contract', () => {
     expect(fs.readFileSync(path.join(CLEAN_STOP, 'run.md'), 'utf8')).toMatch(
       /stopped:\s*yes/,
     );
+    expect(fs.readFileSync(path.join(CLEAN_STOP_WATCHER, 'run.md'), 'utf8')).toMatch(
+      /stopped:\s*yes/,
+    );
+    expect(fs.readFileSync(path.join(CLEAN_STOP_WATCHER, 'run.md'), 'utf8')).toMatch(
+      /watch_pr\.py/,
+    );
     expect(fs.readFileSync(path.join(CLEAN_PAUSE, 'run.md'), 'utf8')).toMatch(
       /resume-file:\s+\S+/,
     );
     expect(reject(CLEAN_PRED).status).toBe(0);
     expect(reject(CLEAN_STOP).status).toBe(0);
+    expect(reject(CLEAN_STOP_WATCHER).status).toBe(0);
     expect(reject(CLEAN_PAUSE).status).toBe(0);
     expect(reject(path.join(DIR, 'SKILL.md')).status).toBe(0);
   });
