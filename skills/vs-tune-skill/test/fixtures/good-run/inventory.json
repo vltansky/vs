@@ -1,0 +1,5 @@
+{
+  "skills_found": 1,
+  "sessions_sampled": 2,
+  "skills": [{ "name": "demo-skill", "path": "/tmp/fixture-repo/skills/demo-skill/SKILL.md" }]
+}

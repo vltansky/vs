@@ -124,3 +124,14 @@ questions. The vs implementation adds its own boundary rules, evidence
 discipline, artifact destination, and delegation to `vs-htmdx`, and does not
 adopt the source skill's file-hygiene or HTML-authoring instructions. No source
 text is reproduced verbatim.
+
+## Warp skill-doctor
+
+- Project: https://github.com/warpdotdev/common-skills
+- Used in: `skills/vs-tune-skill`
+- Source: `.agents/skills/skill-doctor` (inspiration only)
+
+The `vs-tune-skill` skill is an original rewrite inspired by Warp's
+local-transcript grading idea: collect recent sessions, score them, draft
+skill diffs in scratch, and render one review page. No Warp skill text,
+scripts, HTML, report chrome, or factories CTA is vendored.

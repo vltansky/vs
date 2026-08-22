@@ -1,0 +1,2 @@
+{"type":"session_meta","payload":{"cwd":"/workspace/vs-skill-doctor-wt/skills/vs-tune-skill/test/fixtures/session-homes/repo","id":"x1"},"timestamp":"2026-08-20T11:00:00.000Z"}
+{"type":"response_item","payload":{"type":"message","role":"user","content":[{"type":"input_text","text":"/demo"}]}}
