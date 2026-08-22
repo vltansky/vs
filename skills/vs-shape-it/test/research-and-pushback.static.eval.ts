@@ -68,11 +68,17 @@ describe('shape-it: pushback always runs at the end', () => {
     expect(closing).toMatch(/READY or READY_WITH_RISKS: approval/i);
     expect(closing).toMatch(/If the\s+composed pushback verdict is NOT_READY, skip the approval gate/i);
     expect(closing).toMatch(/Your action\s+is rework/i);
+    expect(closing).toMatch(/On READY or READY_WITH_RISKS only, default to the approved spec/i);
+    expect(closing).toMatch(/On NOT_READY, skip that default/i);
+    expect(closing).not.toMatch(/^Default to the approved spec, then `\/vs-build-it`/m);
   });
 
   it('checks research and pushback before finishing', () => {
     expect(SKILL).toMatch(/external research either ran with its finding cited, or was skipped/i);
     expect(SKILL).toMatch(/pushback ran in composed mode over the finished design/i);
+    expect(SKILL).toMatch(
+      /READY or READY_WITH_RISKS: the design has one approval gate[\s\S]*NOT_READY has no approval gate/,
+    );
   });
 });
 
