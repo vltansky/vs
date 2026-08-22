@@ -42,15 +42,13 @@ for (const file of files) {
   }
 }
 
-const slogans = /grade[\s\S]{0,120}(skill|chat)|scorecard|propose[d]? diffs?|\/vs-tune-skill/i.test(text);
+const slogans = /grade[\s\S]{0,120}(skill|chat)|scorecard|propose[d]? diffs|\/vs-tune-skill/i.test(text);
 const exclusiveHits = [
   /Flow Contract/,
   /mktemp/,
   /never upload|do not upload/i,
   /ask whether to apply|never mutate|do not modify the user'?s real skill/i,
   /fired|followed|fire and follow/i,
-  /NEED_SKILL/,
-  /exactly one skill|one required skill|never grade the whole set/i,
 ].filter((re) => re.test(text)).length;
 const looksLikeSkillDoc =
   files.length === 1 &&
@@ -68,21 +66,10 @@ const mentioned = /tune-skill|grade[d]? skills|scorecard/i.test(text);
 const inventory = hasInventory(text);
 const proposed = hasProposedDiff(text);
 const zeroSessions = /sessions_sampled"?\s*:\s*0|NO_SESSIONS|zero sessions/i.test(text);
-const gradedAllNoPicker =
-  /graded all installed|grade every installed|no picker|did not ask which skill|skills_graded"?\s*:\s*[2-9]/i.test(
-    text,
-  ) && !/NEED_SKILL/i.test(text);
-const needSkillAsk =
-  /NEED_SKILL/i.test(text) &&
-  /ask(ed)? which/i.test(text) &&
-  /stop/i.test(text);
-const namedOne =
-  /named skill:\s*[a-z0-9-]+/i.test(text) &&
-  /skills_graded"?\s*:\s*1|exactly one skill|one named skill/i.test(text);
 
 if (looksLikeSkillDoc) {
-  if (exclusiveHits >= 5) process.exit(0);
-  if (slogans && exclusiveHits < 4) {
+  if (exclusiveHits >= 4) process.exit(0);
+  if (slogans && exclusiveHits < 3) {
     console.error('reject-tune-run: slogan-only skill');
     process.exit(1);
   }
@@ -98,18 +85,11 @@ if (mutated) {
   console.error('reject-tune-run: mutated repo skills');
   process.exit(1);
 }
-if (gradedAllNoPicker) {
-  console.error('reject-tune-run: graded all skills with no picker');
-  process.exit(1);
-}
-if (needSkillAsk && !uploaded && !mutated && !proposed) {
-  process.exit(0);
-}
-if (mentioned && !inventory && !proposed && !zeroSessions && !needSkillAsk) {
+if (mentioned && !inventory && !proposed && !zeroSessions) {
   console.error('reject-tune-run: mention-only run, no inventory or proposed diff');
   process.exit(1);
 }
-if (inventory && (proposed || zeroSessions) && namedOne && !uploaded && !mutated) {
+if (inventory && (proposed || zeroSessions) && !uploaded && !mutated) {
   process.exit(0);
 }
 

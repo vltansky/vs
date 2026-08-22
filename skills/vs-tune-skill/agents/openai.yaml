@@ -1,6 +1,6 @@
 interface:
-  display_name: "Tune Skill"
-  short_description: "Grade one named skill from local chats and propose a scratch SKILL.md diff."
+  display_name: "vs-tune-skill"
+  short_description: "Grade a repo's installed skills from local chats and propose SKILL.md diffs."
 
 policy:
   allow_implicit_invocation: false
