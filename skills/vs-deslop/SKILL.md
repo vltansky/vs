@@ -68,8 +68,8 @@ Inspect the requested scope for:
   - ad-hoc `typeof` narrowing where the value should be parsed once at the
     boundary
 
-A file that matches test/fixtures/try-catch-theater.ts fails the catalog.
-A file that matches test/fixtures/ceremony-wrapper.ts fails the catalog.
+Run `skills/vs-deslop/scripts/reject-code-slop.mjs` on each in-scope file
+before reporting `CLEAN` or `CLEANED`. Exit 1 is a catalog fail.
 
 ## Procedure
 
@@ -121,6 +121,7 @@ Do not skip or invert these.
 - synonym cycling of one domain name?
 - new file or wrapper added by this pass?
 - still cuttable concept left in scope?
+- `skills/vs-deslop/scripts/reject-code-slop.mjs` exit 1?
 
 ## Output
 

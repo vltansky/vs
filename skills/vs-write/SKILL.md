@@ -176,11 +176,10 @@ first line is the answer) lives there. The rules below apply to the copy.
   Keep an em dash only if the source or requested voice uses them.
 - State the point so it stands without comparison framing. Do not invent
   a comparison, analogy, or example the source does not support.
-  A draft that matches test/fixtures/comparison-crutch.md fails the audit.
 - Do not close with a generic uplift, recap, or chatbot send-off.
   End the artifact on the last concrete fact, takeaway, or next action.
-  A draft that matches test/fixtures/bad-closer.md fails the audit.
-- Rewrite, then self-audit, then fix remaining tells. Ask what leftover
+- Rewrite, then run `skills/vs-write/scripts/reject-slop.mjs` on the
+  draft (exit 1 is a fail), then fix remaining tells. Ask what leftover
   rhythm, closer, or comparison still marks the draft as machine-written.
   Preserve meaning and match the intended tone.
 
@@ -193,7 +192,8 @@ first line is the answer) lives there. The rules below apply to the copy.
 3. Order the piece so each block relies only on concepts already grounded.
 4. Draft or restructure with the conclusion first unless another opening better
    serves the requested form.
-5. Rewrite, then self-audit, then fix remaining tells. Replace vague, passive,
+5. Rewrite, then run `skills/vs-write/scripts/reject-slop.mjs` on the
+   draft, then fix remaining tells. Replace vague, passive,
    inflated, repetitive, or structurally unearned text.
 6. Name source gaps; ask, cut, or qualify rather than inventing a bridge.
 7. Check meaning, tone, terminology, English variant, and requested format.
@@ -210,7 +210,7 @@ first line is the answer) lives there. The rules below apply to the copy.
 - Did the edit preserve important nuance and warnings?
 - Does each concept appear before the copy relies on it?
 - Does every paragraph advance the promise made by the opening?
-- Did the self-audit remove leftover AI tells without changing meaning?
+- Did `skills/vs-write/scripts/reject-slop.mjs` exit 0 on the draft?
 
 ## Output
 

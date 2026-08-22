@@ -1,3 +1,4 @@
+import { spawnSync } from 'node:child_process';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { describe, expect, it } from 'vitest';
@@ -5,10 +6,15 @@ import { describe, expect, it } from 'vitest';
 const DIR = path.resolve(__dirname, '..');
 const SKILL_RAW = fs.readFileSync(path.join(DIR, 'SKILL.md'), 'utf8');
 const SKILL = SKILL_RAW.replace(/\s+/g, ' ');
-const THEATER = fs.readFileSync(
-  path.join(__dirname, 'fixtures', 'try-catch-theater.ts'),
-  'utf8',
-);
+const REJECT = path.join(DIR, 'scripts', 'reject-code-slop.mjs');
+const REJECT_SRC = fs.readFileSync(REJECT, 'utf8');
+const THEATER_PATH = path.join(__dirname, 'fixtures', 'try-catch-theater.ts');
+const CLEAN_PATH = path.join(__dirname, 'fixtures', 'clean-add.ts');
+const THEATER = fs.readFileSync(THEATER_PATH, 'utf8');
+
+function reject(file: string) {
+  return spawnSync(process.execPath, [REJECT, file], { encoding: 'utf8' });
+}
 
 describe('vs-deslop: exclusive code-cleanup pins', () => {
   it('names smell, category, invariant or call site, and file together', () => {
@@ -57,9 +63,18 @@ describe('vs-deslop: exclusive code-cleanup pins', () => {
     expect(SKILL).toMatch(/Do not keep looping/);
   });
 
-  it('ties the theater fixture to a catalog fail without quoting its tokens', () => {
+  it('ties the theater fixture to reject-code-slop without quoting its tokens', () => {
     expect(THEATER).toMatch(/addNonThrowingPair/);
+    expect(REJECT_SRC.length).toBeGreaterThan(200);
+    expect(REJECT_SRC).toMatch(/addNonThrowingPair/);
+    expect(REJECT_SRC).toMatch(/process\.exit\(1\)/);
+    expect(reject(THEATER_PATH).status).toBe(1);
+    expect(reject(CLEAN_PATH).status).toBe(0);
+    expect(SKILL).toMatch(/skills\/vs-deslop\/scripts\/reject-code-slop\.mjs/);
     expect(SKILL).toMatch(
+      /try\/catch theater: a try\/catch around non-throwing code/i,
+    );
+    expect(SKILL).not.toMatch(
       /a file that matches test\/fixtures\/try-catch-theater\.ts fails the catalog/i,
     );
     expect(SKILL).not.toMatch(/addNonThrowingPair/);

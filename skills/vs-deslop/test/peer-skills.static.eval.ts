@@ -1,3 +1,4 @@
+import { spawnSync } from 'node:child_process';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { describe, expect, it } from 'vitest';
@@ -7,14 +8,17 @@ const SKILL_RAW = fs.readFileSync(path.join(DIR, 'SKILL.md'), 'utf8');
 // Hard-wrap must not decide whether a rule is present.
 const SKILL = SKILL_RAW.replace(/\s+/g, ' ');
 const FIXTURE_DIR = path.join(__dirname, 'fixtures');
-const THEATER = fs.readFileSync(
-  path.join(FIXTURE_DIR, 'try-catch-theater.ts'),
-  'utf8',
-);
-const CEREMONY = fs.readFileSync(
-  path.join(FIXTURE_DIR, 'ceremony-wrapper.ts'),
-  'utf8',
-);
+const REJECT = path.join(DIR, 'scripts', 'reject-code-slop.mjs');
+const REJECT_SRC = fs.readFileSync(REJECT, 'utf8');
+const THEATER_PATH = path.join(FIXTURE_DIR, 'try-catch-theater.ts');
+const CEREMONY_PATH = path.join(FIXTURE_DIR, 'ceremony-wrapper.ts');
+const CLEAN_PATH = path.join(FIXTURE_DIR, 'clean-add.ts');
+const THEATER = fs.readFileSync(THEATER_PATH, 'utf8');
+const CEREMONY = fs.readFileSync(CEREMONY_PATH, 'utf8');
+
+function reject(file: string) {
+  return spawnSync(process.execPath, [REJECT, file], { encoding: 'utf8' });
+}
 
 describe('vs-deslop: stays a code-cleanup skill', () => {
   it('keeps the Flow Contract, statuses, consumers, and result template', () => {
@@ -44,22 +48,42 @@ describe('vs-deslop: stays a code-cleanup skill', () => {
 });
 
 describe('vs-deslop: fixture-backed reject classes', () => {
-  it('rejects try-catch theater from the fixture, not a slogan mention', () => {
-    expect(THEATER).toMatch(/addNonThrowingPair/);
-    expect(THEATER).toMatch(/\/\* theater \*\//);
+  it('keeps catalog bullets for theater and ceremony smells', () => {
     expect(SKILL).toMatch(
+      /try\/catch theater: a try\/catch around non-throwing code, an empty catch, or a catch that logs and swallows a real failure/i,
+    );
+    expect(SKILL).toMatch(
+      /ceremony types and files \(`Manager`, `Service`, `Factory`, `Helper`, `Utils`\)/i,
+    );
+    expect(SKILL).toMatch(/skills\/vs-deslop\/scripts\/reject-code-slop\.mjs/);
+    expect(SKILL).not.toMatch(
       /a file that matches test\/fixtures\/try-catch-theater\.ts fails the catalog/i,
     );
+    expect(SKILL).not.toMatch(
+      /a file that matches test\/fixtures\/ceremony-wrapper\.ts fails the catalog/i,
+    );
+  });
+
+  it('rejects try-catch theater by spawning reject-code-slop on the fixture', () => {
+    expect(THEATER).toMatch(/addNonThrowingPair/);
+    expect(THEATER).toMatch(/\/\* theater \*\//);
+    expect(REJECT_SRC.length).toBeGreaterThan(200);
+    expect(REJECT_SRC).toMatch(/addNonThrowingPair/);
+    expect(REJECT_SRC).toMatch(/theater/);
+    expect(REJECT_SRC).toMatch(/process\.exit\(1\)/);
+    expect(reject(THEATER_PATH).status).toBe(1);
+    expect(reject(CLEAN_PATH).status).toBe(0);
     expect(SKILL).not.toMatch(/addNonThrowingPair/);
     expect(SKILL).not.toMatch(/\/\* theater \*\//);
   });
 
-  it('rejects ceremony wrappers from the fixture, not a slogan mention', () => {
+  it('rejects ceremony wrappers by spawning reject-code-slop on the fixture', () => {
     expect(CEREMONY).toMatch(/WidgetManager/);
     expect(CEREMONY).toMatch(/WidgetFactory\.ts/);
-    expect(SKILL).toMatch(
-      /a file that matches test\/fixtures\/ceremony-wrapper\.ts fails the catalog/i,
-    );
+    expect(REJECT_SRC).toMatch(/WidgetFactory\.ts/);
+    expect(REJECT_SRC).toContain('Manager');
+    expect(REJECT_SRC).toContain('WidgetUtils.ts');
+    expect(reject(CEREMONY_PATH).status).toBe(1);
     expect(SKILL).toMatch(
       /must not add a (new )?(file|wrapper|interface|flag|helper)[\s\S]{0,80}that did not exist/i,
     );
