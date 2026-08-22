@@ -17,6 +17,17 @@ behavior. Building block.
 - **Consumers:** Skill authors, `/vs-try-skill` dogfood, `/vs-ship-it` before a skill PR
 - **Skip conditions:** Skip when the change is not a skill or eval contract (plain app code with ordinary unit tests)
 
+## Workshop first
+
+Ask 1-3 clarifying questions. Draft one scenario. Write eval code only
+after the user accepts.
+
+The live prompt tests skill behavior. It is a problem a real user would
+type, not implementation steps.
+
+Bad: "read SKILL.md then run X".
+Good: the request a user would type to trigger the skill.
+
 ## Workspace scorer, not slogan pins
 
 A writer following this skill emits `scripts/reject-*.mjs` that reads
@@ -45,18 +56,22 @@ Do not write a live CASE for a phrase that SKILL.md can assert. Do not
 write a static pin for a first-turn question, a tool call, or a
 transcript shape. Do not invent a new PathGrade runner.
 
-### Gold, fail-closed, isolation
+### Score the outcome
 
-These are how this repo already uses PathGrade. Do not invent APIs.
+Gold stays true if the skill internals change. Score outcome (lint, tests,
+behavior), not filenames or methods the skill might rename. If a check
+looks for a file, the user prompt must name it.
 
-- **Gold:** name the required artifact or behavior, then score it
-  (`check` / `score` on the isolated workspace, or the reject script on
-  fixture bytes). Mentions in SKILL.md are not gold.
-- **Fail-closed:** missing evidence is a fail. `evaluate` with no
-  artifact scores 0. Reject-script exit 2 is not a pass.
-- **Isolation:** `createAgent({ skillDir, workspace })` copies the skill
-  and fixture into an isolated workspace (and HOME) per trial. Score
-  that workspace, not the checkout that contains the prompt.
+Each live CASE needs at least one `check()` or `score()`. Optional
+`judge()` at 0.2-0.5. `toolUsage` only when the workflow is mandatory.
+Score outcome first.
+
+API: `createAgent`, `prompt` / `runConversation`, `evaluate`, `check`,
+`score`, `judge`, `toolUsage` from `@wix/pathgrade`. This repo wraps
+`createAgent` via `vs-internal-shared/test/pathgrade-agent`. Isolation is
+that agent's own workspace. `evaluate(..., { onScorerError: 'fail' })`
+is fail-closed. Multi-turn skills use `runConversation` plus reactions,
+not a flattened one-shot.
 
 ## Exclusive order
 
@@ -78,7 +93,12 @@ ceiling a skill does not already pin.
 
 ## PathGrade commands - do not edit PathGrade
 
+Prefer pathgrade CLI over bare vitest. Do not install PathGrade; vs already has it.
+
 ```bash
+pathgrade analyze --dir skills/that-skill
+pathgrade validate skills/that-skill/test/that.eval.ts
+pathgrade run
 npm run eval:static
 npm run eval
 npm run eval -- skills/vs-shape-it/test/shape-it.eval.ts
