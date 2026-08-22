@@ -27,6 +27,9 @@ describe('vs-tldr compression contract', () => {
     expect(SKILL).toMatch(/Do not start a new task/);
     expect(SKILL).toMatch(/genuinely ambiguous/i);
     expect(SKILL).toMatch(/second `\/vs-tldr`/);
+    expect(SKILL).toMatch(/propose `\/vs-eli5`/);
+    expect(SKILL).toMatch(/Do not run it/);
+    expect(SKILL).toMatch(/prose-only/);
   });
 
   it('is wired into the shared VS contracts', () => {

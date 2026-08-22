@@ -12,8 +12,8 @@ conversation short and decision-focused; the human makes strategic calls.
 Do NOT write code, scaffold projects, create GitHub issues, or start
 implementation workers. Planning-only research or critique subagents are
 allowed for complex work. Output is questions, evidence, design, stress-test,
-a decision record when one is warranted, and a goal-ready execution blueprint.
-Writing an ADR is a decision record, not implementation, and is allowed.
+a decision record when one is warranted, a goal-ready execution blueprint,
+and a closing `/vs-eli5` HTMDX of the spec. Writing an ADR is a decision record, not implementation, and is allowed. The eli5 is a short review of the spec so the user can confirm it, not a replacement for the spec and not implementation.
 </HARD-GATE>
 
 ## Route the input
@@ -33,7 +33,9 @@ Infer the route; do not ask the user to choose a mode.
 If the initial route was wrong, pivot immediately.
 
 All routes end in pushback. Explore and Guided Explore run it as the last step
-of independent shaping; Challenge hands the whole session to it.
+of independent shaping, then the close-time eli5. Challenge hands the whole
+session to pushback in interactive mode; pushback composes the close-time
+`/vs-eli5`. Shape-it does not compose a second one.
 
 For Explore, use the shared
 [`context-docs.md`](../vs-internal-shared/references/context-docs.md) protocol
@@ -121,15 +123,18 @@ than the default batched checkpoint:
    `Align → Evidence → Design → Challenge → Handoff`, with the current phase
    and the number of resolved and open decisions. Do not show a percentage,
    time estimate, target question count, or empty progress bar.
-2. Ask one consequential strategic question at a time. Give a recommended
-   answer first, explain the consequence, and wait for the user's answer.
+2. Ask one consequential strategic question at a time. Lead with a Why tldr
+   (one line: what the user loses if they pick wrong), then the recommended
+   answer, then wait. Always include Drill (`eli5`) as the last option.
+   Compose `/vs-eli5` on that question's tradeoff only if they pick it.
 3. Branch from each answer: skip decisions it settles and inspect the code or
    named evidence yourself when a fact can answer the next question.
-4. Accept `done`, `skip`, `back`, and `?`. `skip` accepts the stated reversible
-   default for the current question; `?` defers it as an open decision; `back`
-   revisits the previous answer and updates dependent decisions. If the user
-   says `done`, preserve remaining uncertainty as explicit open decisions with
-   recommendations.
+4. Accept `done`, `skip`, `back`, `?`, and `eli5`. `skip` accepts the stated
+   reversible default for the current question; `?` defers it as an open
+   decision; `eli5` drills this question's tradeoff with `/vs-eli5` and waits
+   for A/B after; `back` revisits the previous answer and updates dependent
+   decisions. If the user says `done`, preserve remaining uncertainty as
+   explicit open decisions with recommendations.
 5. Stop interviewing once outcome, boundary, success proof, and the
    expensive-to-reverse choices are clear. Reflect the agreed mental model in
    no more than three bullets. If a fundamental part of that model remains
@@ -158,6 +163,13 @@ For the default batched checkpoint:
 - State the decision in everyday language before presenting options. Make clear
   what changes for the user; do not make them decode architecture or workflow
   labels to answer.
+- Every question has a Why tldr: one line, user-world stake if they pick
+  wrong. It is not a call to `/vs-tldr`.
+- Every question ends with the same Drill option: compose `/vs-eli5` on
+  that question's tradeoff and open the html. Do not open it unless they
+  pick Drill. In the text fallback it is always `D. Drill — /vs-eli5 this
+  tradeoff`. In the structured tool it is the last option, same label.
+  `1D` or `eli5` drills that question, then wait for A/B/C.
 - Recommend a path for every choice; put it first and label it the default. In
   the text fallback, make it option `A`.
 - Accept batched replies like `1A, 2B`; a bare `A` or `yes` accepts every
@@ -176,19 +188,21 @@ fallback below.
 
 ### 1. <short decision title>
 
-<Why this decision belongs to the user.>
+**Why:** <one-line tldr of the user-world stake if they pick wrong>
 
 **Recommended: A — <choice>** — <one-clause rationale>
 
 - A. <choice> — <consequence>
 - B. <choice> — <consequence>
 - C. <choice> — <consequence>
+- D. Drill — `/vs-eli5` this tradeoff
 
 ### 2. <short decision title>
 
 ...
 
-Reply `A` to accept every recommendation, or specify changes such as `1B, 2A`.
+Reply `A` to accept every recommendation, `1D` to drill question 1, or
+specify changes such as `1B, 2A`.
 ```
 
 ### 2. Independent shaping
@@ -514,64 +528,65 @@ interaction.
 
 ### 3. Closing interaction
 
+Explore and Guided Explore only. Challenge does not compose `/vs-eli5` here;
+pushback does that close.
+
 Before composing the closing interaction, follow
-[`../vs-internal-shared/references/explanation-surfaces.md`](../vs-internal-shared/references/explanation-surfaces.md).
-For a complex design, keep the Markdown spec as the machine source of truth and
-create a visual HTMDX review surface that links it. Chat carries only the TLDR,
-the artifact link, and the approval or remaining strategic decision.
+[`../vs-internal-shared/references/explanation-surfaces.md`](../vs-internal-shared/references/explanation-surfaces.md)
+for chat TLDR vs artifact. The close-time eli5 is required even when that
+complexity test would keep the answer in chat: the user is confirming a spec.
 
-Return with the complete recommendation, evidence-driven changes from the
-stress test, the Goal Contract, any drafted ADR, and any execution blueprint.
-Switch the progress signal from decision resolution to handoff readiness:
-`Handoff: Goal Contract ready | <N> open decisions`. When it is not ready, name
-the missing Goal Contract field or strategic decision instead of showing a
-percentage.
-The first sentence states the recommendation in plain English and why it is the
-best fit. Translate internal verdicts, execution classes, and agent terms into
-what changes for the user before naming their literal labels.
-Show the ADR as a path plus its one-line decision, or state in one clause why
-none was warranted; it is part of what the approval gate covers, not a follow-up
-task. Make unresolved
-strategic decisions conspicuous; for each, recommend one path and explain how
-the alternatives change the outcome. Do not restart the interview or expose a
-trail of tactical questions the independent phase already resolved.
+On Explore and Guided Explore, always compose [`/vs-eli5`](../vs-eli5/SKILL.md) on the spec or plan, including
+a `NOT_READY` close — the pictures should show the block. Do not skip the eli5
+for a small or routine shape. The eli5 is a short picture review of that spec
+so the user can confirm it. The Markdown spec, Goal Contract, and any ADR stay
+the thing they approve and the machine source of truth; link them from the
+eli5. Do not treat the eli5 as a replacement contract.
 
-Show the pushback result as one compact sentence in user language — `The design
-is ready to build, with one open rollout risk (READY_WITH_RISKS).` Include only
-the surviving high and medium findings. Report it as the state of the design,
-not as a separate review to read.
+After `/vs-eli5` returns `Saved:`, open that `.html` immediately. Do not wait
+for the user to click the path:
 
-Compression must preserve the sharpest supported reason the recommendation can
-fail. State its cause and user consequence so the user can judge the tradeoff.
-A generic risk label is not enough, even when the literal verdict remains
-visible.
+```bash
+open "$ARTIFACT_PATH" 2>/dev/null || xdg-open "$ARTIFACT_PATH"
+```
 
-A `NOT_READY` verdict does not block the approval gate, but it changes what is
-being approved. Lead with the blocking finding and recommend reworking it before
-`/vs-build-it`. Offer a full interactive `/vs-pushback` when the user wants to
-defend the design in rounds; composed mode scored it without their answers.
+If open fails, say so in one line and still give the `file://` path.
 
-Ask for approval once, after the whole design, Goal Contract, any ADR, and any
-execution blueprint are visible. Approval means the artifact is ready for
-`/vs-build-it`;
-it does not itself start implementation.
+Chat is only this exclusive 4-item close, in this order:
+
+1. The first sentence is the TLDR returned by composed `/vs-eli5` (two to four short lines): the recommendation in plain English and why it is the best fit. Do not write a second TLDR.
+2. The opened eli5.
+3. `Handoff: Goal Contract ready | <N> open decisions` (or the missing field).
+4. One `Your action` approval line, plus the shortest exact reply that accepts.
+
+Do not paste the Goal Contract, ADR, pushback report, execution blueprint, or
+the `Execution:` block into chat. Those live in the linked files and the eli5.
 Routing metadata does not replace or suppress the closing design.
 
-Keep the closing turn easy to answer: make one approval request, put it in
-`Your action`, and include the shortest exact reply that accepts the
-recommendation. Do not make the user reconstruct the requested decision from
-the design or reply to workflow metadata.
+Put the complete recommendation and all of the following in the linked files, not in chat:
 
-If an unresolved strategic decision remains, combine it with this closing gate
-when each option's consequences are already fully shaped: ask the user to
-approve the recommendation or select an alternative. If their selection
-requires redesign, return the revised complete design for approval rather than
-pretending the earlier gate approved unseen work.
+- the complete recommendation, stress-test changes, and any ADR (path plus
+  one-line decision, or one clause why none was warranted)
+- unresolved strategic decisions, each with one recommended path and how
+  alternatives change the outcome
+- the pushback result as the state of the design, one compact sentence plus
+  surviving high and medium findings (`The design is ready to build, with one
+  open rollout risk (READY_WITH_RISKS).`)
+- the sharpest supported reason the recommendation can fail, with cause and user consequence; a generic risk label is not enough
+- a `NOT_READY` verdict does not block the approval gate; the spec and eli5 lead with the blocking finding and recommend rework
+  before `/vs-build-it`; offer interactive `/vs-pushback` if they want to
+  defend it in rounds
+- the smallest handoff that can execute the approved Goal Contract, default
+  `/vs-build-it`, plus the execution class below
 
-Recommend the smallest handoff that can execute the approved Goal Contract.
+Keep one approval request. Ask for approval once, after the whole design, Goal Contract, any ADR, and any
+execution blueprint are visible in those files. Approval means ready for
+`/vs-build-it`; it does not start implementation. If an unresolved strategic
+decision remains and each option is already shaped, combine it with this gate.
+If their pick needs redesign, return a revised complete design.
 
-Default to the approved design or spec, then `/vs-build-it`. Extra coordination
-must follow the execution class and blueprint above:
+Default to the approved spec, then `/vs-build-it`. Extra coordination follows
+the execution class written in the spec, not in chat:
 
 - **Durability:** propose issues when work spans sessions or people, needs a
   shared dependency graph, or must survive chat context. Distinguish unresolved
@@ -596,6 +611,8 @@ Runtime: parent only | parent + subagents | Codex tasks/threads | Claude subagen
 Next: /vs-build-it with implementation objective: <objective>
       (or /vs-orchestrate when the spec is multi-milestone)
 ```
+
+Write that block in the spec. Do not print it in chat.
 
 ## Confusion
 
@@ -652,4 +669,4 @@ Direct: emit **Next** only. Composed: return to caller.
 
 **Prev:** idea, rough plan, or question
 **Next:** `/vs-build-it`
-**Relevant:** `/vs-improve`
+**Relevant:** `/vs-improve` | `/vs-eli5`

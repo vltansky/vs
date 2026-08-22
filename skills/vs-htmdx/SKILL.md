@@ -205,4 +205,4 @@ Direct: emit **Next** only. Composed: return to caller.
 
 **Prev:** research, analysis, or supplied source material
 **Next:** done
-**Relevant:** `/vs-explain-diff`
+**Relevant:** `/vs-explain-diff` | `/vs-eli5`

@@ -11,8 +11,9 @@ before implementation starts, and keep the human-facing output short enough to
 actually read.
 
 <HARD-GATE>
-Do NOT write code or begin implementation. Output is a stress-test, verdict, and
-handoff only.
+Do NOT write code or begin implementation. Output is a stress-test, verdict,
+and report file. The interactive close-time `/vs-eli5` of that verdict uses the
+same exclusive 4-item chat as shape-it: TLDR, opened eli5, Handoff, Your action.
 </HARD-GATE>
 
 If the input is raw or unformed, route to `/vs-shape-it` first.
@@ -172,7 +173,8 @@ and drops the questions:
 - label the verdict exactly as in interactive mode; do not convert uncertainty
   into a numeric approval signal
 - return `Verdict` and Top Pushback to the caller; skip the saved
-  report and the `Next` line unless the caller asks for the artifact
+  report, the close-time `/vs-eli5`, and the `Next` line unless the
+  caller asks for the artifact
 
 For SUBSTANTIAL and HIGH-RISK work, Premise Challenge stays mandatory and the
 review covers the risk-relevant dimensions. A composed ROUTINE pass may use the
@@ -228,30 +230,18 @@ turns out to be stronger than every objection you have, that is the finding.
 
 ### 3. Take a position
 
-Lead with what you found. The first interactive response opens with a
-`Stress-Test Assessment` and the findings behind it, under about 300 words:
+Lead with what you found. Chat mid-grill is only this 3-line position.
+Never open with questions:
 
 ```text
-Stress-Test Assessment
-- Status: READY_WITH_RISKS
-- Weakest: premise, assumptions
-- What holds up: <the steelman in one line>
-
-[High, 75] Premise
-Concern: <the specific failure mode>
-Evidence: <file, number, measurement, or prior art>
-Recommendation: <what I would do instead>
-
-[Medium, 100] Feasibility
-...
-
-[FYI, 50] Maintainability
-...
+Status: READY_WITH_RISKS
+Weakest: premise
+Holds up: <steelman in one line>
 ```
 
-Open with the assessment, never with questions. An assessment with no findings
-under it is as empty as a findings dump with no position — say what you found,
-what it means, and what you would do.
+Write the `Stress-Test Assessment` and the findings behind it, under about
+300 words, to the report file. An assessment file with no findings is as empty as a findings dump with no position — say what you found, what it means, and
+what you would do.
 
 For each finding:
 
@@ -334,8 +324,21 @@ label manual, deployment, and served-behavior gaps explicitly.
 
 ### 5. Report
 
-The chat report is compact by default, under about 500 words unless the user asks
-for the full version. Persist the same report to
+In interactive mode, including a shape-it Challenge handoff, compose
+[`/vs-eli5`](../vs-eli5/SKILL.md) on the verdict after the report, including
+`NOT_READY`. Open the html. The eli5 is a short review of the verdict so the
+user can confirm it, not a replacement for the report file.
+
+Chat is only this exclusive 4-item close, in this order:
+1. The first sentence is the TLDR returned by composed `/vs-eli5` (two to four short lines): the verdict in plain English and why. Do not write a second TLDR.
+2. The opened eli5.
+3. `Handoff: <verdict> | <N> open concerns`.
+4. One `Your action` confirm line.
+
+Do not paste the report, `Handoff Context`, or the Stress-Test Assessment
+template into chat. Write the full report (template below) to disk when
+durable history is useful or the user asks; it may run longer than 500 words
+in the file. Persist it to
 `~/.vs/$PROJECT_ID/vs-pushback/YYYY-MM-DD-<topic>.md` only when durable history is
 useful or the user asks for it; do not write it into the project tree. Redact
 secrets and broad private context before persistence.
@@ -346,6 +349,12 @@ aggregate readiness score as an approval gate.
 
 ```markdown
 Verdict: READY | READY_WITH_RISKS | NOT_READY
+
+## Stress-Test Assessment
+- Status: READY_WITH_RISKS
+- Weakest: premise, assumptions
+- What holds up: <the steelman in one line>
+- [High, 75] Premise — concern, evidence, recommendation
 
 ## Handoff Context
 - Proposal: ...

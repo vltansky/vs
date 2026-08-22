@@ -59,6 +59,20 @@ Score 0.0: The agent jumped straight to proposing or implementing a solution (wr
           return !/score.*\d+\/100|verdict|stress.test|premise challenge|not.ready|ready.with.risks/i.test(early);
         },
       ),
+      check(
+        'question-has-why-tldr',
+        ({ transcript }) =>
+          /\*\*Why:\*\*|Why:\s|\bwhy this\b|what you (lose|risk|give up)/i.test(
+            transcript,
+          ),
+        { weight: 2 },
+      ),
+      check(
+        'question-offers-drill-eli5',
+        ({ transcript }) =>
+          /\/vs-eli5|\bdrill\b.*eli5|eli5.*tradeoff/i.test(transcript),
+        { weight: 2 },
+      ),
     ], { failFast: false, onScorerError: 'skip' });
 
     expect(result.score).toBeGreaterThan(0.5);
