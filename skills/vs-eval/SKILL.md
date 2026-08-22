@@ -56,22 +56,25 @@ Do not write a live CASE for a phrase that SKILL.md can assert. Do not
 write a static pin for a first-turn question, a tool call, or a
 transcript shape. Do not invent a new PathGrade runner.
 
-### Score the outcome
+### Gold, fail-closed, isolation, APIs
 
-Gold stays true if the skill internals change. Score outcome (lint, tests,
+Do not invent APIs. Gold stays true if the skill internals change. Score outcome (lint, tests,
 behavior), not filenames or methods the skill might rename. If a check
 looks for a file, the user prompt must name it.
 
 Each live CASE needs at least one `check()` or `score()`. Optional
-`judge()` at 0.2-0.5. `toolUsage` only when the workflow is mandatory.
+`judge()` at weight 0.2-0.5. `toolUsage` only when the workflow is mandatory.
 Score outcome first.
 
 API: `createAgent`, `prompt` / `runConversation`, `evaluate`, `check`,
 `score`, `judge`, `toolUsage` from `@wix/pathgrade`. This repo wraps
-`createAgent` via `vs-internal-shared/test/pathgrade-agent`. Isolation is
-that agent's own workspace. `evaluate(..., { onScorerError: 'fail' })`
-is fail-closed. Multi-turn skills use `runConversation` plus reactions,
-not a flattened one-shot.
+`createAgent` via `vs-internal-shared/test/pathgrade-agent`.
+
+Isolation is `createAgent({ skillDir, workspace })` copying the skill
+and fixture into an isolated workspace and HOME. Score that workspace.
+Fail-closed: missing evidence fails; `onScorerError: 'zero'` or
+`'fail'`, not `'skip'`. Multi-turn skills use `runConversation`
+plus reactions, not a flattened one-shot.
 
 ## Exclusive order
 
@@ -93,7 +96,7 @@ ceiling a skill does not already pin.
 
 ## PathGrade commands - do not edit PathGrade
 
-Prefer pathgrade CLI over bare vitest. Do not install PathGrade; vs already has it.
+Prefer pathgrade run over bare vitest. Do not install PathGrade; vs already has @wix/pathgrade. Keep the vs wrappers.
 
 ```bash
 pathgrade analyze --dir skills/that-skill

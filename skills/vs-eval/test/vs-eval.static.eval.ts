@@ -69,4 +69,9 @@ describe('vs-eval workspace scorer', () => {
     const result = rejectPair(CLEAN_SKILL, CLEAN_CASE);
     expect(result.status).toBe(0);
   });
+
+  it('exits 2 when a target is missing', () => {
+    const result = rejectPair(SLOGAN_SKILL, path.join(FIXTURES, 'missing.static.eval.ts'));
+    expect(result.status).toBe(2);
+  });
 });

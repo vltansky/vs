@@ -24,7 +24,7 @@ for (const target of targets) {
   }
 }
 
-const SLOGAN_PIN = /toMatch\(\s*\/(?:self-audit|exclusive|fixture)/;
+const SLOGAN_PIN = /toMatch\(\s*\/(?:self-audit|exclusive|fixture)\//;
 const NOT_TO_MATCH = /not\.toMatch/;
 const EXCLUSIVE_ALT = /exclusive alternative|reject-[\w.-]+\.mjs/;
 const SLOGAN_TRIO =
