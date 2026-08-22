@@ -175,14 +175,14 @@ first line is the answer) lives there. The rules below apply to the copy.
 - Do not use em dashes as a default rhythm. Prefer a period or a comma.
   Keep an em dash only if the source or requested voice uses them.
 - State the point so it stands without comparison framing. Do not invent
-  a comparison, analogy, or example the source does not support, and do
-  not reach for "not X but Y" or "if you're coming from".
+  a comparison, analogy, or example the source does not support.
+  A draft that matches test/fixtures/comparison-crutch.md fails the audit.
 - Do not close with a generic uplift, recap, or chatbot send-off.
   End the artifact on the last concrete fact, takeaway, or next action.
-  No "In conclusion" or "Overall".
-- Rewrite, then self-audit, then fix remaining tells. Ask what still
-  makes this obviously AI generated. Preserve meaning and match the
-  intended tone.
+  A draft that matches test/fixtures/bad-closer.md fails the audit.
+- Rewrite, then self-audit, then fix remaining tells. Ask what leftover
+  rhythm, closer, or comparison still marks the draft as machine-written.
+  Preserve meaning and match the intended tone.
 
 ## Workflow
 
