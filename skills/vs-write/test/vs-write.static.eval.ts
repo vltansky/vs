@@ -65,9 +65,22 @@ describe('vs-write: prose unslop pins', () => {
     expect(SKILL).toMatch(/generic uplift, recap, or chatbot send-off/i);
   });
 
-  it('requires a self-audit of remaining AI tells', () => {
-    expect(SKILL).toMatch(/self-audit/i);
-    expect(SKILL).toMatch(/obviously AI generated/i);
+  it('requires rewrite then self-audit then a fixture-backed closer reject', () => {
+    const closer = fs.readFileSync(
+      path.join(FIXTURE_DIR, 'bad-closer.md'),
+      'utf8',
+    );
+    expect(closer).toMatch(/In conclusion/);
+    expect(closer).toMatch(/Overall/);
+    expect(closer).toMatch(/the future looks bright/);
+    expect(SKILL).toMatch(/Rewrite, then self-audit, then fix remaining tells/);
+    expect(SKILL).toMatch(/end the artifact on the last concrete fact/i);
+    expect(SKILL).toMatch(
+      /a draft that matches test\/fixtures\/bad-closer\.md fails the audit/i,
+    );
+    expect(SKILL).not.toMatch(/In conclusion/);
+    expect(SKILL).not.toMatch(/Overall/);
+    expect(SKILL).not.toMatch(/the future looks bright/);
   });
 
   it('pairs the audit with preserve meaning and match tone', () => {

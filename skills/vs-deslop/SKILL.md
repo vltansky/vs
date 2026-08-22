@@ -68,10 +68,14 @@ Inspect the requested scope for:
   - ad-hoc `typeof` narrowing where the value should be parsed once at the
     boundary
 
+A file that matches test/fixtures/try-catch-theater.ts fails the catalog.
+A file that matches test/fixtures/ceremony-wrapper.ts fails the catalog.
+
 ## Procedure
 
-**Exclusive order:** collect → validate/discard FP → surgical delete →
-verify → rescan/density stop. Do not skip or invert these.
+**Exclusive order:** Lock behavior first, then collect →
+validate/discard FP → surgical delete → verify → rescan.
+Do not skip or invert these.
 
 1. **Lock behavior first.** Identify the existing tests or direct checks that
    prove behavior. If none exist and cleanup could change behavior, add the
@@ -98,12 +102,11 @@ verify → rescan/density stop. Do not skip or invert these.
    exist; do not introduce new slop while removing old.
 6. **Verify after cleanup.** Re-run the targeted proof and any required
    guardrail.
-7. **Re-scan the catalog, then density-stop.** Walk the cleanup targets and
-   the quick checks again. If a concept, branch, file, or wrapper is still
-   cuttable, delete it or defer it. Do not report `CLEAN` or `CLEANED` while
-   an in-scope tell remains unaddressed. Then report deferred items: if a
-   cleanup is risky or architectural, leave it as a finding instead of
-   sneaking it into the diff.
+7. **Rescan, then stop.** Walk the cleanup targets and the quick checks
+   again. The deslop run ends the pass. At most 2 rescans. Then stop.
+   `CLEAN` / `CLEANED` means no in-scope leftover is still cuttable.
+   If the leftover is only deferred (risky / out of scope): WARN, not
+   another rescan. Do not keep looping.
 
 ### Quick checks before reporting `CLEAN` or `CLEANED`
 
