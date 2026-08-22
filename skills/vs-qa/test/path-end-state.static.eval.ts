@@ -20,6 +20,10 @@ const FOUR_WORD = path.join(FIX, "four-word-path");
 const CLEAN_TABLE = path.join(FIX, "clean-table-shot");
 const CLEAN_EXPO = path.join(FIX, "clean-expo-file");
 const CLEAN_NO_VISUAL = path.join(FIX, "clean-no-visual");
+const PHRASE = path.join(FIX, "phrase-complete-beside", "SKILL.md");
+const MAGIC_PNG = path.join(FIX, "magic-only-png");
+const MAGIC_JPEG = path.join(FIX, "magic-only-jpeg");
+const COMMAND_XX = path.join(FIX, "command-xx");
 const TEMPLATE = path.join(DIR, "references", "qa-report-template.md");
 const HTML_TEMPLATE = path.join(DIR, "references", "qa-report-template.html");
 
@@ -46,6 +50,10 @@ describe("vs-qa user path, end state, and visual baseline", () => {
     expect(SKILL_RAW).not.toMatch(/CLEAN_QA_TABLE_SHOT_CANARY/);
     expect(SKILL_RAW).not.toMatch(/CLEAN_QA_EXPO_FILE_CANARY/);
     expect(SKILL_RAW).not.toMatch(/CLEAN_QA_NO_VISUAL_CANARY/);
+    expect(SKILL_RAW).not.toMatch(/PHRASE_COMPLETE_QA_CANARY/);
+    expect(SKILL_RAW).not.toMatch(/MAGIC_ONLY_PNG_QA_CANARY/);
+    expect(SKILL_RAW).not.toMatch(/MAGIC_ONLY_JPEG_QA_CANARY/);
+    expect(SKILL_RAW).not.toMatch(/COMMAND_XX_QA_CANARY/);
     expect(SKILL_RAW).not.toMatch(/SHOW_ME_SKILL_CANARY/);
     expect(SKILL_RAW).not.toMatch(/EXPO_AGENT_DEVICE_CANARY/);
     expect(SKILL_RAW).not.toMatch(/\/vs-show-me|\/vs-expo-device/i);
@@ -86,6 +94,21 @@ describe("vs-qa user path, end state, and visual baseline", () => {
     expect(reject(path.join(FIX, "verify-pass-no-command")).stderr).toMatch(/pass with no named command/);
   });
 
+  it("rejects phrase-complete beside the live tree, magic-only headers, and Command: xx", () => {
+    expect(reject(PHRASE).status).toBe(1);
+    expect(reject(MAGIC_PNG).status).toBe(1);
+    expect(reject(MAGIC_JPEG).status).toBe(1);
+    expect(reject(COMMAND_XX).status).toBe(1);
+    expect(reject(COMMAND_XX).stderr).toMatch(/pass with no named command/);
+    const beside = path.join(DIR, "phrase-complete-beside.md");
+    fs.writeFileSync(beside, fs.readFileSync(PHRASE));
+    try {
+      expect(reject(beside).status).toBe(1);
+    } finally {
+      fs.unlinkSync(beside);
+    }
+  });
+
   it("accepts shipped table fields plus real shot, Expo file on disk, no-visual pass, and this skill", () => {
     expect(SKILL_RAW).toMatch(/skills\/vs-qa\/scripts\/reject-qa-path\.mjs/);
     expect(SKILL_RAW).toMatch(/test\/fixtures\/path-end-state/);
@@ -95,6 +118,9 @@ describe("vs-qa user path, end state, and visual baseline", () => {
     expect(SKILL_RAW).toMatch(/named command/);
     expect(SKILL_RAW).toMatch(/image magic/);
     expect(SKILL_RAW).toMatch(/this rejector/);
+    expect(SKILL_RAW).toMatch(/live skill path/);
+    expect(SKILL_RAW).toMatch(/published-rejector hash/);
+    expect(SKILL_RAW).toMatch(/IHDR/);
     expect(reject(CLEAN_TABLE).status).toBe(0);
     expect(reject(CLEAN_EXPO).status).toBe(0);
     expect(reject(CLEAN_NO_VISUAL).status).toBe(0);

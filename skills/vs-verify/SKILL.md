@@ -64,9 +64,9 @@ Every run names both:
 
 A `PASS` or `CLEAN` that only says tests passed, with no user path and no
 observable end state, is `FAIL`. A `PASS` without a named command is `FAIL`.
-When a visual is in scope, a `PASS` without image magic in a real screenshot or baseline file inside the scored run directory (no absolute, `~`, or `..` paths) is `FAIL`.
+When a visual is in scope, a `PASS` without a real PNG or JPEG (IHDR or decoded pixels, not header-only image magic) in a real screenshot or baseline file inside the scored run directory (no absolute, `~`, or `..` paths) is `FAIL`.
 Score runs with
-`skills/vs-verify/scripts/reject-verify-path.mjs` (exit 1 is a fail). Exclusive is this rejector (same bytes) failing the published bad set and passing the published clean set under `test/fixtures/path-end-state`. A sibling stub or `rejected>0` on any child is not exclusive.
+`skills/vs-verify/scripts/reject-verify-path.mjs` (exit 1 is a fail). Exclusive is the live skill path or a pinned published-rejector hash. this rejector still fails the published bad set and passes the published clean set under `test/fixtures/path-end-state`. A phrase-complete SKILL.md beside the live tree, a one-line-changed copy scored by itself, or a sibling stub is not exclusive.
 
 Verify may pin a screenshot or baseline path. New shots compare to that pin.
 Do not invent a show-me skill. If the user names an Expo or device screenshot

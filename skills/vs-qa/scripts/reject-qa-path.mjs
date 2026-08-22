@@ -5,6 +5,7 @@
 //
 // Exit 0 clean. Exit 1 reject. Exit 2 cannot check. Treat 2 as not a pass.
 import { spawnSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { dirname, isAbsolute, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -68,20 +69,71 @@ const looksLikeSkill =
   /^name:\s*/m.test(text) &&
   /^# /m.test(text);
 
-const slogans = /user path/i.test(text) && /observable end state/i.test(text);
-const exclusiveSkill =
-  slogans &&
-  /reject-qa-path\.mjs/.test(text) &&
-  /test\/fixtures\/path-end-state/.test(text) &&
-  /this rejector/i.test(text) &&
-  /image magic/i.test(text) &&
-  /named command/i.test(text);
+function sha256(buf) {
+  return createHash('sha256').update(buf).digest('hex');
+}
+function identityBytes(buf) {
+  return Buffer.from(
+    String(buf)
+      .replace(/const PUBLISHED_REJECTOR_SHA256 = '[a-f0-9]*'/, "const PUBLISHED_REJECTOR_SHA256 = ''")
+      .replace(/const PUBLISHED_SKILL_SHA256 = '[a-f0-9]*'/, "const PUBLISHED_SKILL_SHA256 = ''"),
+  );
+}
+const PUBLISHED_REJECTOR_SHA256 = '092ba12e46b636cc124f9d9d0c2892b3ac1c4dbc609f1f34cd35b1886a896164';
+const PUBLISHED_SKILL_SHA256 = 'cb41b0b19c558b19d8ae4222461c295ee04cbf5e205419d5b33b1c82521f017e';
+function repoSkillPath() {
+  let dir = dirname(SELF);
+  for (let i = 0; i < 10; i++) {
+    const pkgPath = join(dir, 'package.json');
+    if (existsSync(pkgPath)) {
+      try {
+        const pkg = JSON.parse(readFileSync(pkgPath, 'utf8'));
+        if (pkg.name === 'vs') {
+          const skillName = dirname(dirname(SELF)).split(/[\\\\/]/).filter(Boolean).pop();
+          return resolve(join(dir, 'skills', skillName, 'SKILL.md'));
+        }
+      } catch {
+      }
+    }
+    const parent = dirname(dir);
+    if (parent === dir) break;
+    dir = parent;
+  }
+  return '';
+}
+function isPublishedPair(skillFile) {
+  const rejector = join(dirname(skillFile), 'scripts', SELF.split(/[\\\\/]/).pop());
+  if (!existsSync(rejector) || !statSync(rejector).isFile()) return false;
+  let rejectorBytes;
+  let skillBytes;
+  try {
+    rejectorBytes = readFileSync(rejector);
+    skillBytes = readFileSync(skillFile);
+  } catch {
+    return false;
+  }
+  return (
+    sha256(identityBytes(rejectorBytes)) === PUBLISHED_REJECTOR_SHA256 &&
+    sha256(skillBytes) === PUBLISHED_SKILL_SHA256 &&
+    PUBLISHED_REJECTOR_SHA256.length === 64
+  );
+}
+function isLiveOrPublished(skillFile) {
+  const live = repoSkillPath();
+  if (live && resolve(skillFile) === live) return true;
+  return isPublishedPair(skillFile);
+}
+
 
 const BAD = [
   'slogan-only-skill.md',
   'copy-phrases-skill.md',
   'stub-rejector',
   'structure-paste',
+  'phrase-complete-beside',
+  'magic-only-png',
+  'magic-only-jpeg',
+  'command-xx',
   'bad-clean-no-path',
   'four-word-path',
   'bad-pass-no-shot',
@@ -133,7 +185,7 @@ function wiredExclusive(skillFile) {
 }
 
 if (looksLikeSkill) {
-  if (!wiredExclusive(files[0]) || !exclusiveSkill) {
+  if (!wiredExclusive(files[0]) || !isLiveOrPublished(files[0])) {
     console.error('reject-qa-path: slogan-only skill');
     process.exit(1);
   }
@@ -189,36 +241,32 @@ function insideRun(candidate) {
   return rel !== '' && !rel.startsWith('..') && !isAbsolute(rel);
 }
 
-function hasImageMagic(buf) {
-  if (
-    buf.length >= 8 &&
-    buf[0] === 0x89 &&
-    buf[1] === 0x50 &&
-    buf[2] === 0x4e &&
-    buf[3] === 0x47 &&
-    buf[4] === 0x0d &&
-    buf[5] === 0x0a &&
-    buf[6] === 0x1a &&
-    buf[7] === 0x0a
-  ) {
-    return true;
+function isRealPng(buf) {
+  if (buf.length < 24) return false;
+  if (buf[0] !== 0x89 || buf[1] !== 0x50 || buf[2] !== 0x4e || buf[3] !== 0x47) return false;
+  if (buf[4] !== 0x0d || buf[5] !== 0x0a || buf[6] !== 0x1a || buf[7] !== 0x0a) return false;
+  if (buf.subarray(12, 16).toString('ascii') !== 'IHDR') return false;
+  return buf.readUInt32BE(16) > 0 && buf.readUInt32BE(20) > 0;
+}
+function isRealJpeg(buf) {
+  if (buf.length < 24) return false;
+  if (buf[0] !== 0xff || buf[1] !== 0xd8 || buf[2] !== 0xff) return false;
+  for (let i = 2; i < buf.length - 8; i++) {
+    if (buf[i] === 0xff && (buf[i + 1] === 0xc0 || buf[i + 1] === 0xc1 || buf[i + 1] === 0xc2)) return true;
   }
-  if (buf.length >= 3 && buf[0] === 0xff && buf[1] === 0xd8 && buf[2] === 0xff) {
-    return true;
-  }
-  if (
-    buf.length >= 12 &&
-    buf[0] === 0x52 &&
-    buf[1] === 0x49 &&
-    buf[2] === 0x46 &&
-    buf[3] === 0x46 &&
-    buf[8] === 0x57 &&
-    buf[9] === 0x45 &&
-    buf[10] === 0x42 &&
-    buf[11] === 0x50
-  ) {
-    return true;
-  }
+  return false;
+}
+function isRealWebp(buf) {
+  if (buf.length < 20) return false;
+  if (buf.subarray(0, 4).toString('ascii') !== 'RIFF') return false;
+  if (buf.subarray(8, 12).toString('ascii') !== 'WEBP') return false;
+  const fourcc = buf.subarray(12, 16).toString('ascii');
+  return fourcc === 'VP8 ' || fourcc === 'VP8L' || fourcc === 'VP8X';
+}
+function hasRealImage(buf, pathOnly) {
+  if (/\.png$/i.test(pathOnly)) return isRealPng(buf);
+  if (/\.jpe?g$/i.test(pathOnly)) return isRealJpeg(buf);
+  if (/\.webp$/i.test(pathOnly)) return isRealWebp(buf);
   return false;
 }
 
@@ -236,7 +284,7 @@ function resolveExisting(raw) {
     if (!info.isFile() || info.size === 0) return '';
     const buf = readFileSync(candidate);
     if (/\.(png|webp|jpe?g)$/i.test(pathOnly)) {
-      return hasImageMagic(buf) ? candidate : '';
+      return hasRealImage(buf, pathOnly) ? candidate : '';
     }
     JSON.parse(buf.toString('utf8'));
     return candidate;
@@ -277,7 +325,7 @@ function claimsPass(body) {
 
 function isNamedCommand(value) {
   const token = value.trim();
-  if (!token || token.length < 2) return false;
+  if (!token || token.length < 3) return false;
   if (/^(pass|warn|fail|blocked|clean|proven|pending)$/i.test(token)) return false;
   if (/^\/vs-/.test(token)) return false;
   if (!/[A-Za-z]{2,}/.test(token)) return false;
