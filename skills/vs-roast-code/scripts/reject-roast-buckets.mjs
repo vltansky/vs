@@ -60,24 +60,13 @@ const looksLikeSkill =
   /^# /m.test(text);
 
 const hasSlogans = /\bAct\b/.test(text) && /\bConsider\b/.test(text);
-// Copied bucket slogans are not procedure. The closer is nits-never-Act,
-// crash-level-is-Act, SMALL prefix, STANDARD keeps tiers.
-const copiedPhrases =
-  /must change before merge/i.test(text) &&
-  /do not block merge/i.test(text) &&
-  /recorded,\s+no action/i.test(text) &&
-  /one-line why/i.test(text) &&
-  /PR author/i.test(text) &&
-  /executor/i.test(text) &&
-  /lists findings with no buckets fails/i.test(text) &&
-  /puts a nit in Act/i.test(text) &&
-  /do not invent a new channel/i.test(text);
+// Copied slogans plus the 13-phrase closer are not procedure. A skill
+// exclusive is the wired rejector plus roast fixtures — paste cannot
+// satisfy that.
 const hasProcedure =
-  copiedPhrases &&
-  /PARKING TICKETS[\s\S]{0,80}never Act/i.test(text) &&
-  /crash-level/i.test(text) &&
-  /SMALL stays flat/i.test(text) &&
-  /keep the Sin Inventory/i.test(text);
+  /^## Review Buckets/m.test(text) &&
+  /skills\/vs-roast-code\/scripts\/reject-roast-buckets\.mjs/.test(text) &&
+  /test\/fixtures\/buckets/.test(text);
 
 if (looksLikeSkill) {
   if (!hasProcedure) {

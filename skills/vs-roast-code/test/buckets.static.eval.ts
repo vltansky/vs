@@ -57,6 +57,8 @@ describe('vs-roast-code review buckets', () => {
   });
 
   it('accepts Act-only security, mixed buckets plus Dismissed with why, and this skill', () => {
+    expect(SKILL_RAW).toMatch(/skills\/vs-roast-code\/scripts\/reject-roast-buckets\.mjs/);
+    expect(SKILL_RAW).toMatch(/test\/fixtures\/buckets/);
     expect(reject(CLEAN_ACT).status).toBe(0);
     expect(reject(CLEAN).status).toBe(0);
     expect(reject(path.join(DIR, 'SKILL.md')).status).toBe(0);

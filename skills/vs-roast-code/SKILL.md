@@ -447,6 +447,9 @@ Advisors still run as today (Codex, compose, the shared independent-advisors
 lane). They do not invent a new channel. The parent assigns the bucket after
 verifying the finding.
 
+Score the roast with `skills/vs-roast-code/scripts/reject-roast-buckets.mjs`
+(exit 1 is a fail). Exclusive roast cases live under `test/fixtures/buckets`.
+
 ## Fix
 
 Process selected fixes. Show before/after for major changes. Run linter if available.
@@ -467,7 +470,7 @@ do not spend another review cycle just to get nicer closeout wording.
 Closeout for STANDARD and HIGH-RISK is one line, not a scorecard block:
 
 ```
-Pass 1: [N] fixed | Pass 2: [N] found, [M] absolved | Files: N | Lanes: codex ✓ | Remaining: [by tier]
+Pass 1: [N] fixed | Pass 2: [N] found, [M] absolved | Files: N | Lanes: codex ✓ | Remaining: [N] Act
 ```
 
 `Lanes` is mandatory and names every evidence lane the class called for, with a
