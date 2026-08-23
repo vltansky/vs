@@ -20,8 +20,17 @@ flowchart LR
 Turns an idea into an evidence-backed design for your approval.
 
 ```mermaid
-flowchart LR
-    I[Idea] --> A[Align] --> R[Research] --> D[Design] --> P[Stress-test] --> O[Approve]
+flowchart TD
+    I[Input] --> R{What did you bring?}
+    R -- Vague idea --> E[Explore<br/>Up to 3 strategic questions]
+    R -- "Interview me" --> G[Guided Explore<br/>One question at a time]
+    R -- Formed plan --> C[Challenge<br/>Pushback score and verdict]
+    E --> S[Research, design, stress-test]
+    G --> S
+    S --> D{Strategic decisions resolved?}
+    D -- Yes --> O[Approval-ready design]
+    D -- No --> L[Living spec<br/>Open decisions and next decision]
+    L -. Next session .-> S
 ```
 
 ### `/vs-build-it`: turn the direction into working code
@@ -29,9 +38,21 @@ flowchart LR
 Turns the approved direction into working, verified code.
 
 ```mermaid
-flowchart LR
-    I[Approved direction] --> P[Challenge plan] --> E[Implement and test]
-    E --> R[Review and QA] --> V[Verify]
+flowchart TD
+    I[Requested outcome] --> P{Approved plan?}
+    P -- No --> A[Create plan<br/>Use architect when needed]
+    P -- Yes --> C[Challenge plan]
+    A --> C
+    C --> R{Ready to build?}
+    R -- No --> S[Stop for strategic decision]
+    R -- Yes --> E[Implement with TDD]
+    E --> D{Failure needs investigation?}
+    D -- Yes --> G[Debug from evidence] --> E
+    D -- No --> V[Review integrated diff]
+    V --> Q{Changed browser behavior?}
+    Q -- Yes --> B[Focused browser QA]
+    Q -- No --> O[Verify]
+    B --> O
 ```
 
 ### `/vs-ship-it`: publish and follow through
@@ -40,9 +61,14 @@ Publishes the scoped work and reports its CI and review status.
 
 ```mermaid
 flowchart TD
-    I[Permission to publish] --> C[Check, commit, push] --> D{Outcome}
-    D -- PR --> P[Create and verify PR] --> W[Follow CI and review]
-    D -- Direct push --> V[Verify remote SHA]
+    I[Permission to publish] --> D{PR or direct push?}
+    D -- PR --> R{Review explicitly approved?}
+    R -- Yes --> V[Run or reuse review]
+    R -- No --> P[Skip review]
+    V --> C[Check, commit, push, prepare PR]
+    P --> C
+    C --> O[Create and verify PR] --> W[Follow CI and review]
+    D -- Direct push --> F[Check destination, commit, push] --> S[Verify remote SHA]
 ```
 
 ## Quick start
