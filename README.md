@@ -1,91 +1,80 @@
 # vs
 
-vs is a plugin for Claude Code, Codex, and Cursor. It adds reusable workflows for
-planning, implementing, reviewing, testing, and shipping changes in a repository.
+vs is a workflow plugin for Claude Code, Codex, and Cursor. You decide the
+direction and when to publish. VS handles the work from research to verified PR.
 
-Its main workflow has three skills:
+## How vs works
 
-```text
-/vs-shape-it  ->  /vs-build-it  ->  /vs-ship-it
- decide what       build it          verify and publish
+```mermaid
+flowchart LR
+    I[Idea] --> S["/vs-shape-it<br/>Decide"]
+    S --> B["/vs-build-it<br/>Build and verify"]
+    B --> P["/vs-ship-it<br/>Publish and follow"]
+    P --> O[Pull request]
 ```
 
-A skill is a set of instructions you invoke with a slash command. You make the
-product decisions; the skills tell the agent how to research, implement, test,
-review, and follow through on CI.
+## Core workflows
 
-## Get started
+### `/vs-shape-it`: turn intent into an approved direction
 
-### 1. Install vs
+Turns an idea into an evidence-backed design for your approval.
 
-Install vs through your agent's marketplace so future releases are picked up
-automatically.
+```mermaid
+flowchart LR
+    I[Idea] --> A[Align] --> R[Research] --> D[Design] --> P[Stress-test] --> O[Approve]
+```
 
-For Codex:
+### `/vs-build-it`: turn the direction into working code
+
+Turns the approved direction into working, verified code.
+
+```mermaid
+flowchart LR
+    I[Approved direction] --> P[Challenge plan] --> E[Implement and test]
+    E --> R[Review and QA] --> V[Verify]
+```
+
+### `/vs-ship-it`: publish and follow through
+
+Publishes the scoped work and reports its CI and review status.
+
+```mermaid
+flowchart TD
+    I[Permission to publish] --> C[Check, commit, push] --> D{Outcome}
+    D -- PR --> P[Create and verify PR] --> W[Follow CI and review]
+    D -- Direct push --> V[Verify remote SHA]
+```
+
+## Quick start
+
+### Install
+
+Codex:
 
 ```bash
 codex plugin marketplace add vltansky/vs
 codex plugin add vs@vs
 ```
 
-Codex refreshes Git marketplaces and installed plugins automatically at startup.
-
-For Claude Code:
+Claude Code:
 
 ```text
 /plugin marketplace add vltansky/vs
 /plugin install vs@vs
 ```
 
-Third-party Claude Code marketplaces do not auto-update by default. Open
-`/plugin`, select **Marketplaces → vs → Enable auto-update**, then restart your
-agent session. Cursor installation options are below.
-
-### 2. Shape the change
-
-Open your project in the agent and describe what you want:
+### Use
 
 ```text
 /vs-shape-it Add saved filters to search
-```
-
-`/vs-shape-it` starts with a short alignment round, then researches and
-stress-tests the direction independently before returning with a complete
-design for approval. It also keeps settled domain language in a lazy
-`CONTEXT.md` glossary. Stay for the opening decisions; come back for the final
-review.
-
-### 3. Build it
-
-When the design is ready, hand it to the agent:
-
-```text
 /vs-build-it Implement the approved design
-```
-
-`/vs-build-it` challenges the plan before coding, resolves routine decisions on
-its own, implements with tests, reviews the diff, runs relevant QA, and returns
-the finished work for you to inspect.
-
-### 4. Ship it
-
-Review the result. When you are satisfied, publish it:
-
-```text
 /vs-ship-it
 ```
 
-`/vs-ship-it` creates the commit and pull request, verifies the published state,
-and can keep watching CI and review when you ask it to.
+## Other skills
 
-That is the complete beginner workflow. Use these three skills for your first few
-changes. The rest of vs is there when you need more control over a specific kind
-of work.
-
-## Discover the layers
-
-vs is designed in layers. Start with the top layer and discover the others only
-when you need them:
+Core workflows compose smaller skills automatically. Invoke another skill when
+you want a different entry point or one specific phase.
 
 | Layer | Skills | Use them for |
 |---|---|---|
@@ -93,33 +82,11 @@ when you need them:
 | Advanced workflows | `/vs-improve`, `/vs-bugfix`, `/vs-fix-pr`, and others | Starting from a different situation or owning a specialized outcome |
 | Building blocks | `/vs-tdd`, `/vs-debug-mode`, `/vs-qa`, `/vs-verify`, and others | Controlling one specific phase directly |
 
-The higher-level workflows already use the building blocks under the hood. For
-example, `/vs-build-it` can challenge the plan, resolve tactical uncertainty,
-use TDD or debugging, review the diff, run QA, verify the result, and produce a
-brief by composing the relevant lower-level skills.
-
-You do not need to run that chain yourself. Use the core workflow by default.
-When you want only one part—for example, a root-cause investigation or a final
-verification—you can invoke `/vs-debug-mode` or `/vs-verify` directly.
-
 ### Minimum solutions by default
 
-vs looks for the smallest complete solution after it understands the affected
-code and the requested outcome. It checks, in order, whether it can avoid new
-code, reuse the repository, use the standard library or native platform, reuse
-an installed dependency, express the change clearly in one line, or write the
-smallest new implementation.
-
-This gate reduces machinery, not quality. It does not relax requirements,
-security, accessibility, error handling, tests, research, or verification.
-
-`/vs-shape-it`, `/vs-architect`, `/vs-build-it`, and other workflows that decide
-solution size apply the gate explicitly. Claude Code and Codex also load it for
-sessions and subagents through plugin hooks, so it still applies when you work
-outside `/vs-build-it`. Set `VS_MINIMUM_SOLUTION=off` only when you need to
-disable that global hook for testing or troubleshooting; explicit workflow
-guidance remains active. Cursor receives the guidance through the workflows it
-loads rather than through a plugin hook.
+VS chooses the smallest complete solution that meets the requirements. It does
+not trade away security, accessibility, tests, or verification. Set
+`VS_MINIMUM_SOLUTION=off` only to troubleshoot the global Claude or Codex hook.
 
 ### Advanced workflows
 
@@ -132,20 +99,7 @@ loads rather than through a plugin hook.
 | `/vs-baby-sit` | Keep a PR merge-ready as CI and review state changes |
 | `/vs-orchestrate` | Coordinate a multi-milestone project via a living roadmap, one milestone at a time |
 
-`/vs-improve` can also find or specify work before the main flow:
-
-```text
-Find direction:       /vs-improve next -> /vs-shape-it -> /vs-build-it
-Specify one concern:  /vs-improve plan <thing> -> /vs-build-it
-Before shipping:      /vs-improve branch -> /vs-ship-it
-Architecture:         /vs-architect -> /vs-shape-it -> /vs-build-it
-```
-
-`/vs-improve` uses architect for its architecture lens. `/vs-shape-it` uses it
-before designing changes to existing module seams, while `/vs-build-it` invokes
-it only before an unplanned architecture refactor. Approved designs are not
-reopened during implementation. `/vs-roast-code` uses architect only to deepen
-confirmed, diff-scoped structural findings after implementation.
+Architecture: /vs-architect -> /vs-shape-it -> /vs-build-it
 
 ### Building blocks
 
@@ -181,26 +135,7 @@ confirmed, diff-scoped structural findings after implementation.
 | `/vs-retro` | Extract session learnings and route them to durable destinations |
 | `/vs-try-skill` | Blind-test a skill and compare its behavior with expectations |
 
-## Why this workflow exists
-
-Most agent workflows fail in one of two ways:
-
-- The agent decides too much. It guesses through meaningful ambiguity and
-  confidently builds the wrong thing.
-- The agent asks too much. It stops for routine choices, turning you into an
-  approval queue.
-
-vs separates strategic decisions from routine execution. Its skills use explicit
-handoffs, bounded loops, verification gates, and circuit breakers. They stop when
-your judgment is required and keep moving when the next step is mechanical.
-
-At phase boundaries, VS also separates the semantic next workflow from context
-treatment. The agent chooses whether to continue, delegate bounded work, create
-a durable handoff, compact, clear, or stop. `/vs-next` exposes that reasoning
-directly when you ask what should happen next; workflows use the same contract
-internally, so remembering the command is optional.
-
-## Installation options
+## Other installation options
 
 vs ships native plugin manifests for Claude Code, Codex, and Cursor. All three
 load the same `SKILL.md` files under `skills/`.
@@ -223,27 +158,7 @@ gh api repos/vltansky/vs/contents/install.ps1 -H "Accept: application/vnd.github
 From a clone, run `./install.sh` or `npm run install-plugin` (Windows:
 `./install.ps1` or `npm run install-plugin:windows`).
 
-Re-run the installer to update every detected agent. For automatic updates, use
-the native Codex or Claude Code marketplace installation below.
-
-### Claude Code
-
-```text
-/plugin marketplace add vltansky/vs
-/plugin install vs@vs
-```
-
-Open `/plugin`, select **Marketplaces → vs → Enable auto-update**. Claude Code
-then refreshes the marketplace and installed plugin at startup.
-
-### Codex
-
-```bash
-codex plugin marketplace add vltansky/vs
-codex plugin add vs@vs
-```
-
-Codex refreshes Git marketplaces and installed plugins automatically at startup.
+Re-run the installer to update every detected agent.
 
 ### Cursor
 
