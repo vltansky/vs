@@ -4,8 +4,25 @@
 //   node reject-htmdx-handoff.mjs <skill.md|handoff.md|dir>
 //
 // Exit 0 clean. Exit 1 reject. Exit 2 cannot check. Treat 2 as not a pass.
-import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
-import { dirname, join } from 'node:path';
+// Exclusive is fixture text only: the live rejector identity hash in the
+// scored body, or an inherit pointer without the owner-string paste.
+import { createHash } from 'node:crypto';
+import { readdirSync, readFileSync, statSync } from 'node:fs';
+import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const SELF = fileURLToPath(import.meta.url);
+const PUBLISHED_REJECTOR_SHA256 =
+  '7f0d132a5da87497d26b5f7fa4b821422b7964472f2d28f4787bc0f260a56648';
+
+function sha256(buf) {
+  return createHash('sha256').update(buf).digest('hex');
+}
+function identityBytes(buf) {
+  return Buffer.from(String(buf).replace(/[a-f0-9]{64}/gi, ''));
+}
+
+const SELF_ID = sha256(identityBytes(readFileSync(SELF)));
 
 const target = process.argv[2];
 if (!target) {
@@ -58,28 +75,23 @@ const looksLikeSkill =
   !stat.isDirectory() &&
   (/^name:\s*/m.test(text) || /SKILL\.md$/i.test(target));
 
-function wiredExclusive(skillFile) {
-  const rootDir = dirname(skillFile);
-  const rejector = join(rootDir, 'scripts', 'reject-htmdx-handoff.mjs');
-  const fixtures = join(rootDir, 'test', 'fixtures', 'handoff');
-  if (!existsSync(rejector) || !existsSync(fixtures)) return false;
-  if (!statSync(rejector).isFile() || !statSync(fixtures).isDirectory()) {
-    return false;
-  }
-  if (readdirSync(fixtures).length === 0) return false;
-  const body = readFileSync(rejector, 'utf8');
-  return /^#!/m.test(body) && /process\.exit/.test(body);
+function exclusiveFromText(body) {
+  return (
+    SELF_ID === PUBLISHED_REJECTOR_SHA256 &&
+    PUBLISHED_REJECTOR_SHA256.length === 64 &&
+    new RegExp(PUBLISHED_REJECTOR_SHA256, 'i').test(body)
+  );
 }
 
 const hasPointer = /vs-htmdx\/SKILL\.md|\/vs-htmdx/.test(text);
-const inheritOnly = /inherit/i.test(text) && hasPointer;
-const owner =
+const ownerPaste =
   /first-screen/i.test(text) &&
   /shot failed/i.test(text) &&
   /openable URL|file:\/\//i.test(text);
+const inheritOnly = /inherit/i.test(text) && hasPointer && !ownerPaste;
 
 if (looksLikeSkill) {
-  if (wiredExclusive(files[0]) || owner || inheritOnly) {
+  if (exclusiveFromText(text) || inheritOnly) {
     process.exit(0);
   }
   console.error('reject-htmdx-handoff: slogan-only skill');
@@ -87,16 +99,19 @@ if (looksLikeSkill) {
 }
 
 const hasUrl = /https?:\/\/\S+|file:\/\/\S+/.test(text);
-const hasShot =
-  /!\[[^\]]*\]\([^)]+\)/.test(text) ||
-  /\bShot:\s*(?!failed).+/i.test(text);
 const hasFail = /shot failed|screenshot failed/i.test(text);
+const hasMdShot =
+  /!\[[^\]]*\]\([^)]+\.(?:png|jpe?g|webp)(?:\s+"[^"]*")?\)/i.test(text);
+const hasShotField =
+  /\bShot:\s*(?!\s*(?:failed|n\/a|none|—|-|tbd|todo|\.\.\.)\b)\S+\.(?:png|jpe?g|webp)\b/i.test(
+    text,
+  );
 
 if (!hasUrl) {
   console.error('reject-htmdx-handoff: HTMDX handoff has no URL');
   process.exit(1);
 }
-if (!hasShot && !hasFail) {
+if (!hasMdShot && !hasShotField && !hasFail) {
   console.error(
     'reject-htmdx-handoff: missing shot with no failure line',
   );

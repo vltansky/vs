@@ -229,8 +229,9 @@ Autonomous is not silent. Per
 [`../vs-internal-shared/references/communication.md`](../vs-internal-shared/references/communication.md),
 this beat is **I shape**. When the phase changes into or out of it, emit the
 full 4-step map plus you-are-here, remaining, and next decision. Score those
-lines with `skills/vs-shape-it/scripts/reject-step-map.mjs` (exit 1 is a
-fail). Exclusive cases live under `test/fixtures/step-map`.
+lines with `skills/vs-shape-it/scripts/reject-step-map.mjs` (identity
+`3ec809b19c36c2d41700e25d19f1a50f4bc4750dbcfc413b84f4e7ccb42af3cf`;
+exit 1 is a fail). Exclusive cases live under `test/fixtures/step-map`.
 
 ```text
 Align → I shape → You decide → Handoff

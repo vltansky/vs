@@ -45,11 +45,14 @@ user-visible phase changes, so the run is not a string of surprises:
 
 `Align. I shape. You decide. Handoff.`
 
-A phase-boundary chat line includes all three:
+A phase-boundary chat line includes all three, as labeled fields next to
+the full map (`Align → I shape → You decide → Handoff`):
 
 - **you-are-here** — which of the four is current
 - **remaining** — the steps still ahead
 - **next decision** — the single thing the user must decide or will receive next
+
+Naming the four steps, or heading them, without those labels is not the map.
 
 Session internals stay hidden: compact, clear, continue, subagent, stop, and
 the session-action named handoff. Those belong to

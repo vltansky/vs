@@ -199,7 +199,9 @@ reply must include an openable URL **and** an attached first-screen shot.
 If the shot fails: still send the URL. Say `Shot failed:` plus the reason.
 Do not block the handoff. Callers inherit this section; they do not restate
 it. Score handoffs with `skills/vs-htmdx/scripts/reject-htmdx-handoff.mjs`
-(exit 1 is a fail). Exclusive cases live under `test/fixtures/handoff`.
+(identity `7f0d132a5da87497d26b5f7fa4b821422b7964472f2d28f4787bc0f260a56648`;
+exit 1 is a fail). Exclusive cases live under `test/fixtures/handoff`.
+`Shot:` is a real image path, or `Shot failed: <reason>`. `Shot: n/a` is not a shot.
 
 ## Flow Contract
 
