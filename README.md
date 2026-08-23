@@ -56,8 +56,8 @@ Turns an idea into an evidence-backed design for your approval.
 ```mermaid
 flowchart TD
     I[Input] --> R{What did you bring?}
-    R -- Vague idea --> E[Explore<br/>Up to 3 strategic questions]
-    R -- "Interview me" --> G[Guided Explore<br/>One question at a time]
+    R -- Vague idea --> E[Explore<br/>Up to 3 independent questions in one batch]
+    R -- "Interview me" --> G[Guided Explore<br/>One adaptive question at a time]
     R -- Formed plan --> C[Challenge<br/>Pushback score and verdict]
     E --> S[Research, design, stress-test]
     G --> S
