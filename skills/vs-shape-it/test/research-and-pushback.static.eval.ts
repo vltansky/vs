@@ -86,16 +86,14 @@ describe('pushback: composed mode', () => {
   it('runs non-interactively when another workflow composes it', () => {
     expect(PUSHBACK).toMatch(/## Composed mode/);
     expect(PUSHBACK).toMatch(/run non-interactively/i);
-    expect(PUSHBACK).toMatch(/opening\s+question rounds inside it breaks that contract/i);
+    expect(PUSHBACK).toMatch(/Do not open question rounds, create artifacts, or invoke eli5/i);
   });
 
   it('keeps the investigation, qualitative verdict, and risk-aware routing', () => {
-    expect(PUSHBACK).toMatch(
-      /composed mode keeps the investigation, the confidence anchors, and the verdict/i,
-    );
-    expect(PUSHBACK).toMatch(/record it as unresolved with a\s+severity instead of asking/i);
+    expect(PUSHBACK).toMatch(/Keep the evidence work, Ponytail alternative,\s+and verdict/i);
+    expect(PUSHBACK).toMatch(/record the decision as\s+unresolved/i);
     expect(PUSHBACK).toMatch(/premise challenge stays mandatory/i);
-    expect(PUSHBACK).toMatch(/do not convert uncertainty\s+into a numeric approval signal/i);
+    expect(PUSHBACK).toMatch(/Numeric confidence\s+adds false precision/i);
   });
 
   it('does not upgrade itself into an interactive grill', () => {

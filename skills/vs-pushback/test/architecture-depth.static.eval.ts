@@ -26,7 +26,7 @@ describe('architecture depth skill guards', () => {
   it('wires Architecture Depth as a conditional pushback dimension', () => {
     expect(SKILL).toMatch(/Architecture Depth/);
     expect(SKILL).toMatch(/architecture-depth-dimension\.md/);
-    expect(SKILL).toMatch(/module boundaries, abstractions, or interfaces/);
+    expect(SKILL).toMatch(/module boundaries, abstractions, or\s+interfaces/);
     expect(SKILL).toMatch(/When Architecture Depth was active, add a short options comparison/i);
   });
 

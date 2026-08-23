@@ -283,8 +283,9 @@ describe('independent advisor fanout', () => {
     expect(INDEPENDENT_ADVISORS).toMatch(/do not majority-vote/i);
   });
 
-  it('dispatches during pushback pre-scan and collects before the verdict', () => {
-    expect(PUSHBACK).toMatch(/dispatch.*during pre-scan/is);
-    expect(PUSHBACK).toMatch(/collect.*before the verdict/is);
+  it('keeps advisor fanout optional and confined to deep pushback', () => {
+    expect(PUSHBACK).toMatch(/independent advisor is optional in a deep\s+review/i);
+    expect(PUSHBACK).toMatch(/genuinely different signal/i);
+    expect(PUSHBACK).toMatch(/Quick review.*default/is);
   });
 });

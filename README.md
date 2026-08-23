@@ -182,7 +182,7 @@ Architecture: /vs-architect -> /vs-shape-it -> /vs-build-it
 | Skill | Use it to |
 |---|---|
 | `/vs-ponytail` | Choose the smallest complete solution and expose what machinery it avoided |
-| `/vs-pushback` | Stress-test an idea, spec, or plan, with risk-gated independent model challenge |
+| `/vs-pushback` | Stress-test a formed proposal with evidence, a smaller Ponytail alternative, and targeted decision questions |
 | `/vs-prototype` | Answer one UI or logic question with throwaway code |
 | `/vs-github-research` | Find external GitHub examples, patterns, and prior art |
 | `/vs-htmdx` | Turn source material into one portable visual HTMDX artifact |

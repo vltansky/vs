@@ -95,7 +95,7 @@ describe('vs-ponytail contract', () => {
     expect(shape).toMatch(/vs-ponytail\/SKILL\.md/);
     expect(shape).toMatch(/Ponytail cut/);
     expect(pushback).toMatch(/vs-ponytail\/SKILL\.md/);
-    expect(pushback).toMatch(/smallest complete proposal rung/i);
+    expect(pushback).toMatch(/smaller complete alternative/i);
     expect(build).toMatch(/vs-ponytail\/SKILL\.md/);
     expect(build).toMatch(/Ponytail decision/);
     expect(build).toMatch(/final Ponytail pass/i);
