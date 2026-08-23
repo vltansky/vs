@@ -29,7 +29,8 @@ describe('vs-deslop: stays a code-cleanup skill', () => {
     expect(SKILL).toMatch(/vs:build-it/);
     expect(SKILL).toMatch(/vs:ship-it/);
     expect(SKILL).toMatch(/## Deslop Result/);
-    expect(SKILL).toMatch(/minimum-solution/);
+    expect(SKILL).toMatch(/vs-ponytail/);
+    expect(SKILL).toMatch(/composed mode/);
     expect(SKILL).toMatch(/\*\*Prev:\*\*/);
     expect(SKILL).toMatch(/\*\*Next:\*\*/);
     expect(SKILL).toMatch(/`\/vs-verify`/);

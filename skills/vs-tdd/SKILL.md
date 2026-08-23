@@ -87,9 +87,8 @@ Do not write all tests first and then all implementation. That is specification-
 
 ## Phase 3: Green (Implement)
 
-Apply the shared
-[`minimum-solution` gate](../vs-internal-shared/references/minimum-solution.md)
-after the failing behavior is understood.
+Apply [`vs-ponytail`](../vs-ponytail/SKILL.md) in composed mode after the
+failing behavior is understood.
 
 Write the minimum code to make the test pass. Nothing more.
 

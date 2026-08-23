@@ -1,0 +1,8 @@
+{
+  "name": "ponytail-review-fixture",
+  "private": true,
+  "type": "commonjs",
+  "dependencies": {
+    "lodash": "^4.17.21"
+  }
+}

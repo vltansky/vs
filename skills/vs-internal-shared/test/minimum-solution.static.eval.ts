@@ -6,7 +6,7 @@ import { describe, expect, it } from 'vitest';
 
 const ROOT = path.resolve(__dirname, '..', '..', '..');
 const reference = fs.readFileSync(
-  path.join(__dirname, '..', 'references', 'minimum-solution.md'),
+  path.join(ROOT, 'skills', 'vs-ponytail', 'references', 'contract.md'),
   'utf8',
 );
 const hooks = JSON.parse(
@@ -56,7 +56,7 @@ describe('minimum-solution guidance', () => {
         path.join(ROOT, 'skills', skill, 'SKILL.md'),
         'utf8',
       );
-      expect(source, skill).toMatch(/minimum-solution\.md/);
+      expect(source, skill).toMatch(/vs-ponytail\/SKILL\.md/);
     }
 
     expect(reference).toMatch(/never understanding, research,[\s\S]*evidence,[\s\S]*verification, safety/);
@@ -112,7 +112,7 @@ describe('minimum-solution guidance', () => {
   });
 
   it('emits concise context and supports an off switch', () => {
-    const script = path.join(ROOT, 'hooks', 'minimum-solution.mjs');
+    const script = path.join(ROOT, 'hooks', 'ponytail.mjs');
     const enabled = execFileSync(process.execPath, [script], {
       encoding: 'utf8',
       env: { ...process.env, PLUGIN_ROOT: ROOT },
@@ -122,8 +122,8 @@ describe('minimum-solution guidance', () => {
       env: { ...process.env, PLUGIN_ROOT: ROOT, VS_MINIMUM_SOLUTION: 'off' },
     });
 
-    expect(enabled).toContain('Minimum Solution Gate');
-    expect(enabled.split(/\s+/).length).toBeLessThan(180);
+    expect(enabled).toContain('Ponytail Minimum Solution Gate');
+    expect(enabled.split(/\s+/).length).toBeLessThan(220);
     expect(disabled).toBe('');
   });
 });

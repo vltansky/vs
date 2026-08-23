@@ -1,0 +1,6 @@
+interface:
+  display_name: "vs-ponytail"
+  short_description: "Choose the smallest complete solution"
+
+policy:
+  allow_implicit_invocation: true

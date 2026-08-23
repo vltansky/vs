@@ -32,9 +32,8 @@ assumption.
 
 ## Choose the easiest seam
 
-Apply the shared
-[`minimum-solution` gate](../vs-internal-shared/references/minimum-solution.md)
-after inspecting the relevant code. The first rung that answers the prototype's
+Apply [`vs-ponytail`](../vs-ponytail/SKILL.md) in composed mode after
+inspecting the relevant code. The first rung that answers the prototype's
 one question is the prototype; do not climb further for production resemblance.
 
 In an existing project, optimize for **time to a useful comparison**, not maximum

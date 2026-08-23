@@ -318,11 +318,12 @@ prior-art finding you deliberately rejected as a decision with its rationale.
 
 #### Design
 
-Load and apply the shared
-[`minimum-solution` gate](../vs-internal-shared/references/minimum-solution.md).
-Use it to minimize concepts, interfaces, dependencies, and coordination in the
-first slice; never use it to reduce evidence, verification, safety, or an
-explicit requirement.
+Load and follow [`../vs-ponytail/SKILL.md`](../vs-ponytail/SKILL.md) in
+composed mode while generating candidates, choosing the first slice, and
+finalizing scope. Start with the first complete rung; do not present a larger
+candidate unless evidence shows the smaller one cannot deliver the approved
+outcome. Never reduce evidence, verification, safety, or an explicit
+requirement.
 
 Lead with the recommended approach and why. Keep the core chat design under
 about 450 words, excluding a justified orchestration appendix, and include:
@@ -335,6 +336,11 @@ about 450 words, excluding a justified orchestration appendix, and include:
   runtime or operational boundary
 - 1-2 alternatives with concrete tradeoffs
 - risks, success criteria, and verification
+
+For a meaningful solution-size decision, include a compact `### Ponytail cut`
+with the smallest complete slice, machinery avoided, explicit deferrals, and
+the evidence that makes the slice complete. Omit it when no machinery or scope
+choice was made; do not manufacture a section for trivial wording work.
 
 Do not make the first delivery absorb every useful capability discovered during
 shaping. Separate what is required for the smallest complete outcome from later

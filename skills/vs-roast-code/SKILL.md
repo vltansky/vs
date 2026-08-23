@@ -13,8 +13,8 @@ Second pass roasts what's left.
 Roast Code is a building-block review tool. It consumes:
 
 - `vs-deslop` semantics during Pass 1: simplify working code while preserving behavior.
-- The shared [`minimum-solution` gate](../vs-internal-shared/references/minimum-solution.md)
-  when judging whether new machinery is necessary.
+- [`vs-ponytail`](../vs-ponytail/SKILL.md) in composed mode when judging
+  whether new machinery is necessary.
 - [independent-advisors](../vs-internal-shared/references/independent-advisors.md)
   during Pass 2: Codex or another model is an independent signal, not the final
   judge.
@@ -263,6 +263,24 @@ For every meaningful change, ask whether there is a structural simplification
 that would make the implementation smaller, more direct, and easier to explain.
 Look for ways to delete whole branches, helpers, modes, wrappers, layers, or
 incidental concepts instead of merely moving them around.
+
+### Ponytail pass
+
+Run this bounded pass in every review class:
+
+1. Check once whether equivalent behavior or a canonical repository helper
+   already exists.
+2. Check whether standard-library or native-platform behavior can replace a
+   new dependency or custom implementation.
+3. Look for an entire dependency, file, wrapper, mode, branch, abstraction, or
+   configuration entry that can disappear while the requested behavior stays
+   complete.
+4. Reject speculative extensibility that serves no explicit requirement.
+
+A Ponytail finding must name the removable machinery, the smaller verified
+alternative, and the behavior-preservation check. Do not report a vague
+"simplify this" preference or invent a finding when the chosen machinery is
+already the first complete rung.
 
 Architecture findings must be framed as deepening opportunities, not vague "extract a service" advice. Include: `Files/modules`, `Problem`, `Suggested deepening`, `Test surface`, and `Why this improves locality/leverage`. If the suggestion does not reduce caller pain or clarify a public seam, do not report it as architecture.
 

@@ -136,8 +136,11 @@ you want a different entry point or one specific phase.
 ### Minimum solutions by default
 
 VS chooses the smallest complete solution that meets the requirements. It does
-not trade away security, accessibility, tests, or verification. Set
-`VS_MINIMUM_SOLUTION=off` only to troubleshoot the global Claude or Codex hook.
+not trade away security, accessibility, tests, or verification.
+`/vs-ponytail` owns the rule directly; shape-it, build-it, and code review
+compose it and expose meaningful cuts. Claude and Codex also receive it through
+the global hook. Set `VS_PONYTAIL=off` to troubleshoot the hook;
+`VS_MINIMUM_SOLUTION=off` remains a compatibility alias.
 
 ### Advanced workflows
 
@@ -156,6 +159,7 @@ Architecture: /vs-architect -> /vs-shape-it -> /vs-build-it
 
 | Skill | Use it to |
 |---|---|
+| `/vs-ponytail` | Choose the smallest complete solution and expose what machinery it avoided |
 | `/vs-pushback` | Stress-test an idea, spec, or plan, with risk-gated independent model challenge |
 | `/vs-prototype` | Answer one UI or logic question with throwaway code |
 | `/vs-github-research` | Find external GitHub examples, patterns, and prior art |

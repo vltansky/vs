@@ -1,4 +1,4 @@
-# Minimum Solution Gate
+# Ponytail Minimum Solution Gate
 
 After understanding the affected flow, take the first rung that completely
 satisfies the request:
@@ -12,8 +12,11 @@ satisfies the request:
 7. Write the smallest local implementation that completes the work.
 
 Before choosing standard-library, platform, dependency, or local code, check
-the affected area once for a repository helper and reuse it when it fits. Then
-choose, implement, and stop searching or comparing alternatives.
+the affected area once for a repository helper and reuse it when it fits. This
+check must inventory the target file's sibling modules and inspect likely
+exports or helpers; searching only for the requested function name is not a
+repository-reuse check. Then choose, implement, and stop searching or comparing
+alternatives.
 
 Minimize concepts, files, dependencies, branches, and configuration—not merely
 line count. Between equally clear and correct solutions, prefer fewer changed

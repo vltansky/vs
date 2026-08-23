@@ -19,13 +19,13 @@ text is included at `skills/vs-baby-sit/LICENSE.openai-gh-fix-ci`.
 
 - Author: Dietrich Gebert
 - Project: https://github.com/dietrichgebert/ponytail
-- Used in: minimum-solution guidance, plugin hooks, workflow composition, and
+- Used in: `skills/vs-ponytail`, plugin hooks, workflow composition, and
   `skills/vs-build-it/test/baselines/ponytail-full.md`
 - Source: https://github.com/dietrichgebert/ponytail/tree/2ed6c52c9d7e5e56942508591085fd45dea277d3
 - License: MIT
 
-The shared minimum-solution ladder and its session/subagent delivery are adapted
-from Ponytail. vs rewrites the guidance to fit its workflow composition and to
+The `vs-ponytail` minimum-solution ladder and its session/subagent delivery are
+adapted from Ponytail. vs rewrites the guidance to fit its workflow composition and to
 preserve requirements, security, accessibility, research, evidence, and
 verification. The unmodified `ponytail-full.md` copy is retained as the frozen
 pure-Ponytail arm of the PathGrade comparison. The copied MIT license text is

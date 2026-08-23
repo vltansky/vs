@@ -25,6 +25,8 @@ Build-it is a workflow. It composes building blocks instead of inventing
 one-off behavior:
 
 - `vs-pushback` stress-tests the plan in Phase 1.
+- `vs-ponytail` chooses the first complete solution rung during planning,
+  implementation, review, and cleanup.
 - `vs-decide-for-me` owns the no-questions decision ladder for tactical uncertainty.
 - `vs-tdd` guides implementation; `vs-debug-mode` is loaded only after evidence
   shows that ordinary red/green feedback is insufficient.
@@ -112,9 +114,10 @@ use it as the run-level progress contract for build-it:
 
 These apply the shared `vs-decide-for-me` contract to every question that would normally go to the user. A decision recorded in an ADR read during Phase 0 outranks all of them:
 
-Load and apply the shared
-[`minimum-solution` gate](../vs-internal-shared/references/minimum-solution.md)
-during planning, implementation, review, and cleanup.
+Load and follow [`../vs-ponytail/SKILL.md`](../vs-ponytail/SKILL.md) in
+composed mode during planning, implementation, review, and cleanup. Retain each
+meaningful Ponytail decision in the run record; mention it in chat only when it
+materially avoided or removed machinery.
 
 1. **Outcome completeness** — ship the smallest complete observable outcome.
    Do not implement every capability in a plan when a narrower vertical slice
@@ -285,6 +288,21 @@ Risk-first sequencing retires uncertainty; it is not permission to start with
 the largest defensive backend. Record the chosen vertical slice and deferred
 work in the decision log. If the smallest new value requires user access,
 surface that dependency instead of substituting easier lower-value work.
+
+Before selecting any Ponytail rung below repository reuse, inventory sibling
+modules in the affected path and inspect their likely exports/helpers. A search
+only for the requested symbol is insufficient evidence that the repository has
+nothing reusable.
+
+For every meaningful solution-size choice, record:
+
+```text
+Ponytail decision:
+- Chosen rung: <rung>
+- Avoided: <dependency, file, abstraction, branch, or configuration>
+- Complete because: <observable requirement or proof>
+- Deferred: <unrequested capability, or none>
+```
 
 ### Step 2: Create branch
 
@@ -543,6 +561,14 @@ bounded methodology within the remaining workflow child budget. Load
 duplication, indirection, or generated-looking boilerplate that the parent
 cannot remove confidently during its review. Keep either skill scoped to the
 branch diff.
+
+Run one final Ponytail pass in every review path, including small diffs that
+stay in the parent. Compare the integrated diff with the recorded solution
+rung: check whether an existing helper, standard/native capability, or already
+installed dependency can replace new machinery, and whether a whole file,
+dependency, wrapper, mode, branch, abstraction, or configuration entry can be
+removed while preserving the complete outcome. Apply only evidenced deletions;
+do not create simplification work to fill the pass.
 
 ### Auto-decision override for Pass 2
 

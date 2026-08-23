@@ -11,7 +11,7 @@ const FIXTURE_DIR = path.join(__dirname, 'fixtures', 'real-world-minimum');
 const EVAL_AGENT = (process.env.PATHGRADE_AGENT ?? 'codex') as 'claude' | 'codex';
 const COPY_FROM_HOME = EVAL_AGENT === 'codex' ? ['.codex/auth.json'] : undefined;
 const VS_GUIDANCE = fs.readFileSync(
-  path.join(__dirname, '..', '..', 'vs-internal-shared', 'references', 'minimum-solution.md'),
+  path.join(__dirname, '..', '..', 'vs-ponytail', 'references', 'contract.md'),
   'utf8',
 );
 const BASE_GUIDANCE = `# Implementation discipline

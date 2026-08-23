@@ -4,20 +4,23 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-if (process.env.VS_MINIMUM_SOLUTION?.toLowerCase() === 'off') {
-  process.exit(0);
-}
+const disabled = [
+  process.env.VS_PONYTAIL,
+  process.env.VS_MINIMUM_SOLUTION,
+].some((value) => value?.toLowerCase() === 'off');
+
+if (disabled) process.exit(0);
 
 const pluginRoot =
-  process.env.PLUGIN_ROOT ??
-  process.env.CLAUDE_PLUGIN_ROOT ??
+  process.env.PLUGIN_ROOT ||
+  process.env.CLAUDE_PLUGIN_ROOT ||
   path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const instructionsPath = path.join(
   pluginRoot,
   'skills',
-  'vs-internal-shared',
+  'vs-ponytail',
   'references',
-  'minimum-solution.md',
+  'contract.md',
 );
 
 try {

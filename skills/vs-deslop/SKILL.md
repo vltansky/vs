@@ -10,9 +10,8 @@ building block: remove AI-ish noise, needless abstraction, duplicated logic,
 stale fallbacks, and review-hostile clutter while preserving the product
 contract.
 
-Use the shared
-[`minimum-solution` gate](../vs-internal-shared/references/minimum-solution.md)
-to prefer structural deletion and native or existing capabilities over a new
+Use [`vs-ponytail`](../vs-ponytail/SKILL.md) in composed mode to prefer
+structural deletion and native or existing capabilities over a new
 cleanup abstraction.
 
 ## Flow Contract

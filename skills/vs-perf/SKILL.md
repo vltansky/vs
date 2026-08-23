@@ -46,9 +46,9 @@ and frame the work as cleanup or architecture, not proven performance.
    Write the measured number down before any optimization.
 4. **Set the pass contract.** Example: "PASS when p95 improves by 20% and tests
    still pass."
-5. **Optimize in small patches.** Apply the shared
-   [`minimum-solution` gate](../vs-internal-shared/references/minimum-solution.md)
-   and stop at the first change that meets the pass contract. Re-run the
+5. **Optimize in small patches.** Apply
+   [`vs-ponytail`](../vs-ponytail/SKILL.md) in composed mode and stop at the
+   first change that meets the pass contract. Re-run the
    evaluator after each meaningful change.
 6. **Guard correctness.** Pair performance checks with relevant regression tests.
 

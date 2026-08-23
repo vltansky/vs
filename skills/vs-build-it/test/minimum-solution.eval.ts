@@ -33,9 +33,9 @@ const VS_GUIDANCE = fs.readFileSync(
     __dirname,
     '..',
     '..',
-    'vs-internal-shared',
+    'vs-ponytail',
     'references',
-    'minimum-solution.md',
+    'contract.md',
   ),
   'utf8',
 );
