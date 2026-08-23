@@ -7,11 +7,16 @@ direction and when to publish. VS handles the work from research to verified PR.
 
 ```mermaid
 flowchart LR
-    I[Idea] --> S["/vs-shape-it<br/>Decide"]
-    S --> B["/vs-build-it<br/>Build and verify"]
+    I[Idea] --> S["/vs-shape-it<br/>Decide"] --> B["/vs-build-it<br/>Build and verify"]
     B --> P["/vs-ship-it<br/>Publish and follow"]
     P --> O[Pull request]
+
+    S -. composes .-> SC["/vs-architect? · /vs-github-research?<br/>/vs-pushback · /vs-eli5 · /vs-eval?"]
+    B -. composes .-> BC["/vs-pushback · /vs-decide-for-me<br/>/vs-tdd · /vs-debug-mode?<br/>/vs-roast-code? · /vs-deslop?<br/>/vs-qa? · /vs-verify · /vs-brief? · /vs-eval?"]
+    P -. composes .-> PC["/vs-roast-code? · /vs-baby-sit"]
 ```
+
+`?` means conditional. Ponytail influenced VS but is not a runtime skill.
 
 ## Core workflows
 
