@@ -37,12 +37,15 @@ flowchart LR
     B --> P["/vs-ship-it<br/>Publish and follow"]
     P --> O[Pull request]
 
-    S -. composes .-> SC["/vs-architect? · /vs-github-research?<br/>/vs-pushback · /vs-eli5 · /vs-eval?"]
-    B -. composes .-> BC["/vs-pushback · /vs-decide-for-me<br/>/vs-tdd · /vs-debug-mode?<br/>/vs-roast-code? · /vs-deslop?<br/>/vs-qa? · /vs-verify · /vs-brief? · /vs-eval?"]
+    S -. composes .-> SC["/vs-ponytail · /vs-architect? · /vs-github-research?<br/>/vs-pushback · /vs-eli5 · /vs-eval?"]
+    B -. composes .-> BC["/vs-ponytail · /vs-pushback · /vs-decide-for-me<br/>/vs-tdd · /vs-debug-mode?<br/>/vs-roast-code? · /vs-deslop?<br/>/vs-qa? · /vs-verify · /vs-brief? · /vs-eval?"]
     P -. composes .-> PC["/vs-roast-code? · /vs-baby-sit"]
 ```
 
-`?` means conditional. Ponytail influenced VS but is not a runtime skill.
+`?` means conditional. `/vs-ponytail` is both a public building block and an
+always-on solution-size rule delivered to Claude and Codex sessions by hooks.
+Shape-it uses it to cut scope, build-it uses it while planning and implementing,
+and roast-code uses it to identify removable machinery during review.
 
 ## Core workflows
 
@@ -143,9 +146,17 @@ you want a different entry point or one specific phase.
 
 VS chooses the smallest complete solution that meets the requirements. It does
 not trade away security, accessibility, tests, or verification.
-`/vs-ponytail` owns the rule directly; shape-it, build-it, and code review
-compose it and expose meaningful cuts. Claude and Codex also receive it through
-the global hook. Set `VS_PONYTAIL=off` to troubleshoot the hook;
+`/vs-ponytail` owns this rule: avoid new code when possible, then prefer
+repository reuse, the standard library or native platform, an installed
+dependency, and only then the smallest local implementation. Meaningful uses
+show the chosen rung, machinery avoided, completeness proof, and deferred
+scope.
+
+Shape-it composes Ponytail into its proposed cut. Build-it applies it during
+planning, implementation, and the final cleanup pass. Roast-code runs a named
+Ponytail pass for both large and small reviews. Claude and Codex also receive
+the canonical contract through session and subagent hooks, so it applies
+outside explicit VS workflows. Set `VS_PONYTAIL=off` to troubleshoot the hook;
 `VS_MINIMUM_SOLUTION=off` remains a compatibility alias.
 
 ### Advanced workflows
