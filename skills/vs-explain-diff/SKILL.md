@@ -112,8 +112,9 @@ is still too shallow. Return to Step 2.
 ## Step 6: Render
 
 Delegate rendering to [../vs-htmdx/SKILL.md](../vs-htmdx/SKILL.md), which owns
-the pinned runtime, the artifact shell, and the render check. Pass it the
-finished content and this destination:
+the pinned runtime, the artifact shell, the render check, and the URL +
+first-screen shot handoff. Inherit that capture contract; pointer only. Pass
+it the finished content and this destination:
 
 ```text
 ~/.vs/$PROJECT_ID/explanations/YYYY-MM-DD-<change-slug>.html

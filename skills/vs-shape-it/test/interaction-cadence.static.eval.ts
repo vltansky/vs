@@ -57,8 +57,11 @@ describe('shape-it: interaction cadence', () => {
     );
 
     expect(interview).toMatch(
-      /Align.*Evidence.*Design.*Challenge.*Handoff/is,
+      /Align.*I shape.*You decide.*Handoff/is,
     );
+    expect(interview).toMatch(/you-are-here/i);
+    expect(interview).toMatch(/remaining/i);
+    expect(interview).toMatch(/next decision/i);
     expect(interview).toMatch(/resolved.*open decisions/i);
     expect(interview).toMatch(/Do not show.*percentage.*time.*question count/is);
     expect(interview).toMatch(/Accept `done`, `skip`, `back`, `\?`, and `eli5`/i);

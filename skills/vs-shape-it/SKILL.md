@@ -95,6 +95,10 @@ and current directory. Ask for an evidence location only when it cannot be
 discovered or accessed and choosing the wrong one would materially change the
 design; ordinary navigation is not a strategic question.
 
+Opening is **Align**. When this phase starts, show the full 4-step
+map plus you-are-here, remaining, and next decision per
+[`communication.md`](../vs-internal-shared/references/communication.md).
+
 Every Explore session crosses an explicit alignment checkpoint before
 independent shaping. In the default route, ask up to 3 high-leverage strategic
 questions in one round. Even when the direction sounds settled, ask one
@@ -122,10 +126,12 @@ Use this cadence only for Guided Explore. It is deliberately more interactive
 than the default batched checkpoint:
 
 1. Start with a brief assessment of what is known, what remains undecided, and
-   the likely decision areas. Show the compact phase map
-   `Align → Evidence → Design → Challenge → Handoff`, with the current phase
-   and the number of resolved and open decisions. Do not show a percentage,
-   time estimate, target question count, or empty progress bar.
+   the likely decision areas. Show the full 4-step user map from
+   [`communication.md`](../vs-internal-shared/references/communication.md):
+   `Align → I shape → You decide → Handoff`, with you-are-here, remaining,
+   and the next decision. Do not name session internals (compact, clear, or
+   the session-action handoff). Do not show a percentage, time estimate,
+   target question count, or empty progress bar.
 2. Ask one consequential strategic question at a time. Lead with a Why tldr
    (one line: what the user loses if they pick wrong), then the recommended
    answer, then wait. Always include Drill (`eli5`) as the last option.
@@ -221,14 +227,21 @@ continue every safe part of the design.
 
 Autonomous is not silent. Per
 [`../vs-internal-shared/references/communication.md`](../vs-internal-shared/references/communication.md),
-emit one line when this beat starts and one when it ends, so the user knows the
-run is moving without being asked anything:
+this beat is **I shape**. When the phase changes into or out of it, emit the
+full 4-step map plus you-are-here, remaining, and next decision. Score those
+lines with `skills/vs-shape-it/scripts/reject-step-map.mjs` (identity
+`3ec809b19c36c2d41700e25d19f1a50f4bc4750dbcfc413b84f4e7ccb42af3cf`;
+exit 1 is a fail). Exclusive cases live under `test/fixtures/step-map`.
 
 ```text
-[2/3] I’m checking <sources> and comparing the viable options; <N> decisions still need you.
+Align → I shape → You decide → Handoff
+You-are-here: I shape
+Remaining: You decide, Handoff
+Next decision: approve or reject the recommended scope when I return
 ```
 
 Do not turn these into questions. They report state; they do not request input.
+Do not name session internals on this line.
 
 #### Gather evidence
 
@@ -549,6 +562,10 @@ eli5. Do not treat the eli5 as a replacement contract.
 
 After `/vs-eli5` returns `Saved:`, always produce the eli5 HTML and the chat
 TLDR. Display: save the eli5 HTML and put its path (or “eli5 saved”) in close item 2 as a link; do not auto-open, and do not run `open` or `xdg-open` unless the user picked Drill mid-session or later asks to open the file.
+
+Entering **You decide** / **Handoff** is a phase change: emit the full 4-step
+map plus you-are-here, remaining, and next decision as a progress line, then
+the close. That map line is not a fifth close item.
 
 Chat is only this exclusive 4-item close, in this order:
 

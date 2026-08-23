@@ -203,6 +203,9 @@ Follow the shared Mermaid guidance in
 - Only flag changes where the specific affected code path is identifiable from the diff (and session context when available)
 - Do not flag intentional design choices unless they introduce a clear defect
 
+When this run creates HTMDX, inherit the URL + first-screen shot handoff from
+[`../vs-htmdx/SKILL.md`](../vs-htmdx/SKILL.md). Pointer only.
+
 ## Output style
 
 Apply the [shared output style](../vs-internal-shared/references/output-style.md)

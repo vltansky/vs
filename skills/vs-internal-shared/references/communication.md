@@ -38,10 +38,37 @@ For explanations and review results, also apply
 [`explanation-surfaces.md`](./explanation-surfaces.md): simple answers stay in
 chat, while complex answers use a chat TLDR plus one visual HTMDX review surface.
 
+## User step map
+
+The user-facing process is four steps. Show the **full** map every time the
+user-visible phase changes, so the run is not a string of surprises:
+
+`Align. I shape. You decide. Handoff.`
+
+A phase-boundary chat line includes all three, as labeled fields next to
+the full map (`Align → I shape → You decide → Handoff`):
+
+- **you-are-here** — which of the four is current
+- **remaining** — the steps still ahead
+- **next decision** — the single thing the user must decide or will receive next
+
+Naming the four steps, or heading them, without those labels is not the map.
+
+Session internals stay hidden: compact, clear, continue, subagent, stop, and
+the session-action named handoff. Those belong to
+[`phase-boundaries.md`](./phase-boundaries.md). The user step named Handoff is
+the last of the four user steps, not that session action.
+
+`vs-shape-it` ships this first. `vs-build-it`, `vs-ship-it`, and
+`vs-orchestrate` inherit this section by pointer. Do not copy the whole
+contract into those skills.
+
 ## Progress emissions
 
 Emit one line at each phase boundary while a long autonomous run is in flight,
-so the user can see movement without asking:
+so the user can see movement without asking. When the user-visible phase
+changes, that line is a step-map line: the full four-step map plus
+you-are-here, remaining, and next decision.
 
 ```text
 [3/7] The first working slice is committed; 4 of 6 steps are done and tests still pass.

@@ -177,12 +177,31 @@ Return:
 
 - `Review question:` the question the artifact helps answer
 - `Saved:` a clickable absolute path to the `.html`
+- `URL:` the openable `file://` or https URL
+- `Shot:` the attached first-screen image, or `Shot failed: <reason>`
 - `Source:` the inputs used
 - `Verified:` structural checks and, separately, rendered browser proof
 - `Status: READY_FOR_REVIEW`
 
 Do not echo the file body into chat. Do not commit unless the caller or user
 requested a commit.
+
+## First-screen shot
+
+This skill owns capture. After the artifact is saved, the same user-facing
+reply must include an openable URL **and** an attached first-screen shot.
+
+1. Build an openable URL: `file://` of the absolute `.html` path, or a
+   host URL if one already exists.
+2. Render the first screen and screenshot above the fold.
+3. Attach that image in the same reply as the URL.
+
+If the shot fails: still send the URL. Say `Shot failed:` plus the reason.
+Do not block the handoff. Callers inherit this section; they do not restate
+it. Score handoffs with `skills/vs-htmdx/scripts/reject-htmdx-handoff.mjs`
+(identity `7f0d132a5da87497d26b5f7fa4b821422b7964472f2d28f4787bc0f260a56648`;
+exit 1 is a fail). Exclusive cases live under `test/fixtures/handoff`.
+`Shot:` is a real image path, or `Shot failed: <reason>`. `Shot: n/a` is not a shot.
 
 ## Flow Contract
 

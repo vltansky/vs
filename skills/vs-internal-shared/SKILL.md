@@ -65,9 +65,10 @@ Paste this inline — skills must stay self-contained in case they're installed 
 ## Communication contract
 
 Use [`references/communication.md`](./references/communication.md) in every
-workflow skill. It defines the chat budget, phase-boundary progress emissions,
-when a run owes the user an artifact, how to open one, and the install-freshness
-rule that makes skill changes take effect at all.
+workflow skill. It defines the chat budget, the user step map (Align. I shape.
+You decide. Handoff.), phase-boundary progress emissions, when a run owes the
+user an artifact, how to open one, and the install-freshness rule that makes
+skill changes take effect at all.
 
 ## Output style
 
