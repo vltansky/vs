@@ -1,27 +1,33 @@
 # vs
 
-vs is a workflow plugin for Claude Code, Codex, and Cursor. You decide the
-direction and when to publish. VS handles the work from research to verified PR.
+vs is built for the handshake between humans and coding agents. It gives agents
+the context and methods to run longer without getting stuck, then helps them
+explain the result and ask for human input in a form people can quickly
+understand.
+
+The result is longer autonomous agent runs with clear points for humans to
+review, align, and redirect the work.
 
 ![VS keeps agents working autonomously and brings humans back at focused alignment points](assets/human-agent-sync.png)
 
 ## Work in different rhythms
 
-Agents and humans work best on different timescales. An agent can stay inside a
-task long enough to plan, implement, test, debug, review, and verify. Human
-attention moves between projects, so context fades while that work continues.
-Raw logs and long explanations do not restore it quickly.
+Agents and humans work on different timescales. An agent can stay inside a task
+long enough to plan, implement, test, debug, and verify. Human attention moves
+between projects, so context fades. When the agent needs direction, raw logs
+and long explanations force the human to reconstruct the task.
 
-vs is built around fewer, better synchronization points. Between them, the
-agent keeps itself moving with planning, TDD, debugging, review, QA, and
-verification. At each point, it compresses what happened into a short
-explanation and visual evidence, then asks only the questions that can change
-the next run.
+vs improves both sides of that handshake. Between handshakes, it gives the
+agent shared context and methods such as planning, TDD, debugging, review, QA,
+and verification to keep moving for longer. At each handshake, the agent turns
+its work into a short explanation and evidence the human can inspect, including
+test results, diffs, screenshots, and video. It asks only the questions or
+decisions needed for the next run.
 
-The human reviews the result, restores shared context, makes the strategic
-calls, and focuses the next stretch of work. The goal is not to remove the
-human. It is to spend human attention on judgment while the agent owns routine
-execution.
+The human brings wider context, priorities, judgment, and taste. They review
+the evidence, align the direction, and focus the next stretch of work. The
+result is longer autonomous agent runs and clearer, lower-effort human
+involvement.
 
 ## How vs works
 
