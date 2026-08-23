@@ -1,8 +1,8 @@
 # Prioritize delivery risk and vertical slices in orchestration
 
 - Date: 2026-07-19
-- Supersedes: `coordinate-long-running-work-with-vs-orchestrate.md` where it
-  requires a fresh audit, review, and verification gate after every milestone
+- Supersedes the removed milestone-coordinator workflow where it required a
+  fresh audit, review, and verification gate after every milestone.
 
 ## Context
 
@@ -20,7 +20,7 @@ remained unresolved.
 
 ## Decision
 
-Shape-it, build-it, and orchestrate order delivery by:
+Shape-it and build-it order delivery by:
 
 1. user help or external access required for proof;
 2. the cheapest test of a plan-invalidating assumption;
@@ -36,11 +36,10 @@ Re-auditing known working behavior remains evidence unless the goal is to repair
 that behavior. Missing access for new value is surfaced to the user instead of
 being replaced with easier, lower-value work.
 
-Orchestrate audits milestone state before advancing, but full independent
-review and verification are proportional. They run at risky integration,
-irreversible data, security, external mutation, deployment, or final acceptance
-boundaries. Several low-risk internal milestones may share one integration
-gate. Every milestone still requires its stated evidence.
+Build-it keeps review and verification proportional. They run at risky
+integration, irreversible data, security, external mutation, deployment, or
+final acceptance boundaries. Several low-risk internal milestones may share
+one integration gate. Every milestone still requires its stated evidence.
 
 ## Consequences
 

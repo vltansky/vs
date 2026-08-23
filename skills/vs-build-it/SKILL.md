@@ -774,6 +774,6 @@ by that contract.
 
 Direct: emit **Next** only. Composed: return to caller.
 
-**Prev:** `/vs-shape-it` | `/vs-pushback` | `/vs-rfc-research` | `/vs-orchestrate`
+**Prev:** `/vs-shape-it` | `/vs-pushback` | `/vs-rfc-research`
 **Next:** `/vs-ship-it`
 **Relevant:** `/vs-bugfix` | `/vs-decide-for-me`

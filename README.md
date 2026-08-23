@@ -173,7 +173,6 @@ the hook; `VS_MINIMUM_SOLUTION=off` remains a compatibility alias.
 | `/vs-bugfix` | Reproduce, fix, verify, and review a bug end to end |
 | `/vs-fix-pr` | Evaluate and address PR feedback with approval before replies or resolution |
 | `/vs-baby-sit` | Keep a PR merge-ready as CI and review state changes |
-| `/vs-orchestrate` | Coordinate a multi-milestone project via a living roadmap, one milestone at a time |
 
 Architecture: /vs-architect -> /vs-shape-it -> /vs-build-it
 

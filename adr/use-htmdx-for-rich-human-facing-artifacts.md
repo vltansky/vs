@@ -76,5 +76,3 @@ outside the HTMDX component catalog.
   [`rich-artifacts.md`](../skills/vs-internal-shared/references/rich-artifacts.md).
 - `vs-github-research` uses HTMDX for landscape reports.
 - `vs-qa` uses it for screenshot-heavy regression or exhaustive reports.
-- `vs-orchestrate` may derive an optional HTMDX progress dashboard while keeping
-  `GOALS.md` as the source of truth.

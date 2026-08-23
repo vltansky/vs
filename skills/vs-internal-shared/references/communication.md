@@ -77,9 +77,8 @@ the session-action named handoff. Those belong to
 [`phase-boundaries.md`](./phase-boundaries.md). The user step named Handoff is
 the last of the four user steps, not that session action.
 
-`vs-shape-it` ships this first. `vs-build-it`, `vs-ship-it`, and
-`vs-orchestrate` inherit this section by pointer. Do not copy the whole
-contract into those skills.
+`vs-shape-it` ships this first. `vs-build-it` and `vs-ship-it` inherit this
+section by pointer. Do not copy the whole contract into those skills.
 
 ## Progress emissions
 

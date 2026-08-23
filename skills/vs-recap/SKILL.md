@@ -21,8 +21,8 @@ If `GOALS.md` / `decisions.tsv` / a baby-sit resume file / prior recap exists,
 READ it first. Recap must not invent a history that contradicts the trail.
 Missing trail is ok (say unknown); inventing one is not.
 
-Recap consumes the trail. Orchestrate owns `decisions.tsv`. Do not append
-rows, and do not invent a new skill.
+Recap consumes the trail; it never owns or mutates `decisions.tsv`. Do not
+append rows, and do not invent a new skill.
 
 ## Do not re-derive
 

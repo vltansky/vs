@@ -67,8 +67,8 @@ stuck evidence fails this contract.
 
 ### Pause and off-context resume
 
-Pause writes a resume file (`/tmp/pr-<N>-babysit-resume.md`, or the path
-orchestrate handed) with the predicate, last SHA, last decision, and trail
+Pause writes a resume file (`/tmp/pr-<N>-babysit-resume.md`, or a caller-supplied
+path) with the predicate, last SHA, last decision, and trail
 path. Do not start new work or leave a mid-edit broken tree. Resume reads
 that file and does not re-derive the trail. Missing resume file → stop and
 say so; do not reconstruct from chat.
@@ -76,7 +76,7 @@ say so; do not reconstruct from chat.
 ### Decision trail
 
 Append-only TSV rows (`ts`, `phase`, `decision`, `why`, `evidence`,
-`result`). If orchestrate handed a trail path (`GOALS.md` or `decisions.tsv`
+`result`). If the caller supplied a trail path (`GOALS.md` or `decisions.tsv`
 next to it), append CI and review decisions there. Otherwise keep a PR-local
 `decisions.tsv`. Picture-show-me / eli5 is not this trail. Do not invent a
 new skill.
@@ -407,4 +407,4 @@ Direct: emit **Next** only. Composed: return to caller.
 
 **Prev:** `/vs-ship-it` | `/vs-fix-pr` | standalone PR
 **Next:** done
-**Relevant:** `/vs-orchestrate`
+**Relevant:** none

@@ -70,7 +70,7 @@ describe('vs-shape-it visual progress checkpoint', () => {
     );
     expect(reject(CLEAN).status).toBe(0);
     expect(reject(path.join(DIR, 'SKILL.md')).status).toBe(0);
-    for (const workflow of ['vs-build-it', 'vs-ship-it', 'vs-orchestrate']) {
+    for (const workflow of ['vs-build-it', 'vs-ship-it']) {
       const skill = fs.readFileSync(
         path.join(ROOT, 'skills', workflow, 'SKILL.md'),
         'utf8',

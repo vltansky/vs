@@ -68,7 +68,7 @@ At a clean boundary, apply
 [Phase Boundaries](../vs-internal-shared/references/phase-boundaries.md). Resume
 by loading the spec first, then only the evidence needed for its Next decision;
 do not reload the whole prior conversation. Keep open decisions out of
-implementation issues and do not route to orchestrate until the Goal Contract
+implementation issues and do not start implementation until the Goal Contract
 is approved. Once the open decisions are resolved, continue with the normal
 spec approval and handoff.
 
@@ -654,18 +654,11 @@ the execution class written in the spec, not in chat:
   host has no parallel primitive, recommend sequential execution. Name the
   concrete primitive; do not stop at generic “sessions,” “lanes,” or “agents.”
 - **Both:** issues remain the source of truth; each worker references one issue.
-- **Multi-milestone:** when the spec has several milestones expected to span
-  hours or days and surface new facts, recommend `/vs-orchestrate`. It seeds a
-  living GOALS.md from this spec's Goal Contract and Execution Strategy and
-  drives one milestone at a time. The spec stays frozen; GOALS.md tracks the
-  changing state.
-
 ```text
 Execution: direct | orchestrated — <why>
 Source of truth: spec | spec + GitHub issues — <why>
 Runtime: parent only | parent + subagents | Codex tasks/threads | Claude subagents — <why>
 Next: /vs-build-it with implementation objective: <objective>
-      (or /vs-orchestrate when the spec is multi-milestone)
 ```
 
 Write that block in the spec. Do not print it in chat.

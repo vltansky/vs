@@ -284,4 +284,4 @@ Direct: emit **Next** only. Composed: return to caller.
 
 **Prev:** any task where the user wants less interruption
 **Next:** done
-**Relevant:** `/vs-build-it` | `/vs-orchestrate`
+**Relevant:** `/vs-build-it`

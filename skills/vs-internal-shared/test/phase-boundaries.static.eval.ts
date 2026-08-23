@@ -32,7 +32,6 @@ const WORKFLOWS = [
   'vs-bugfix',
   'vs-fix-pr',
   'vs-baby-sit',
-  'vs-orchestrate',
 ];
 
 describe('phase-boundary routing', () => {

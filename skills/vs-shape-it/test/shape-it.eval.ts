@@ -448,7 +448,7 @@ Score 0.0: three or more mid-design approval requests (section-by-section gating
         check('keeps-first-delivery-direct', ({ transcript }) =>
           /execution:\s*direct|one \/vs-build-it run|single build-it/i.test(
             transcript,
-          ) && !/next:\s*\/vs-orchestrate/i.test(transcript),
+          ),
         ),
         judge('risk-first-scope-quality', {
           rubric: `Evaluate whether the shaped plan avoids recreating a conversion platform before shipping useful analytics:
@@ -456,7 +456,7 @@ Score 0.0: three or more mid-design approval requests (section-by-section gating
 - It makes the first delivery a production-observable end-to-end tracking slice. (0-0.3)
 - The slice adds decision-enabling value beyond the existing Meta events instead of merely re-proving them. (0-0.15)
 - It explicitly defers at least two non-blocking capabilities such as PostHog, experiments, MCP access, or durable offline conversions. (0-0.25)
-- It recommends direct build-it execution instead of a multi-milestone orchestrator for the first slice. (0-0.05)`,
+- It recommends direct build-it execution for the first slice. (0-0.05)`,
           weight: 0.5,
         }),
       ],
