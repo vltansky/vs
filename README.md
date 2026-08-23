@@ -153,11 +153,12 @@ show the chosen rung, machinery avoided, completeness proof, and deferred
 scope.
 
 Shape-it composes Ponytail into its proposed cut. Build-it applies it during
-planning, implementation, and the final cleanup pass. Roast-code runs a named
-Ponytail pass for both large and small reviews. Claude and Codex also receive
-the canonical contract through session and subagent hooks, so it applies
-outside explicit VS workflows. Set `VS_PONYTAIL=off` to troubleshoot the hook;
-`VS_MINIMUM_SOLUTION=off` remains a compatibility alias.
+planning, implementation, and the final cleanup pass. Pushback applies it while
+challenging scope, alternatives, and proposed machinery. Roast-code runs a
+named Ponytail pass for both large and small reviews. Claude and Codex also
+receive the canonical contract through session and subagent hooks, so it
+applies outside explicit VS workflows. Set `VS_PONYTAIL=off` to troubleshoot
+the hook; `VS_MINIMUM_SOLUTION=off` remains a compatibility alias.
 
 ### Advanced workflows
 

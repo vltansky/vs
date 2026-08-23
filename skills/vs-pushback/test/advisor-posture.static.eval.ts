@@ -161,6 +161,18 @@ describe('pushback: proportional review and verification', () => {
     expect(SKILL).toMatch(/URGENT.*schedule a post-action pushback review/is);
   });
 
+  it('composes Ponytail when challenging scope and alternatives', () => {
+    expect(SKILL).toMatch(/vs-ponytail\/SKILL\.md/);
+    expect(SKILL).toMatch(/smallest complete proposal rung/i);
+    expect(SKILL).toMatch(/machinery avoided/i);
+    expect(SKILL).toMatch(
+      /Ponytail decision:[\s\S]*Chosen rung:[\s\S]*Avoided:[\s\S]*Complete because:[\s\S]*Deferred:/,
+    );
+    expect(SKILL).toMatch(
+      /never use Ponytail to remove requirements, safety, evidence, rollback, or\s+verification/i,
+    );
+  });
+
   it('tracks artifact identity and separates pre-implementation from post-proof checks', () => {
     expect(SKILL).toMatch(/## Artifact identity and drift/);
     expect(SKILL).toMatch(/repository and base commit/i);
@@ -195,4 +207,3 @@ describe('pushback: proportional review and verification', () => {
     expect(SKILL).toMatch(/skip the saved\s+report, the close-time `\/vs-eli5`/);
   });
 });
-

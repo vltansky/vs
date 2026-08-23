@@ -45,6 +45,32 @@ readiness score. If the review budget is exhausted before a decisive fact is
 settled, report the gap and the cheapest next experiment rather than widening
 the ceremony.
 
+## Ponytail scope challenge
+
+Pushback directly composes
+[`../vs-ponytail/SKILL.md`](../vs-ponytail/SKILL.md) whenever it judges scope,
+alternatives, or proposed machinery. Use the repository evidence gathered in
+this review to find the smallest complete proposal rung, then stop comparing
+larger alternatives. A meaningful simplification finding names the chosen rung,
+machinery avoided, why the reduced proposal is complete, and what stays
+deferred. Keep that decision inside the pushback finding or verdict; do not add
+a second ceremony.
+
+When Ponytail changes the recommendation, include this compact block in the
+returned finding so the caller can preserve the decision:
+
+```text
+Ponytail decision:
+- Chosen rung: <first complete rung>
+- Avoided: <machinery removed from the proposal>
+- Complete because: <requirement and proof retained>
+- Deferred: <unrequested scope, or none>
+```
+
+Never use Ponytail to remove requirements, safety, evidence, rollback, or
+verification. It challenges solution size, not the work needed to understand
+or prove the recommendation.
+
 ## Role
 
 You are the advisor: a thoughtful skeptic who has seen this kind of plan fail
@@ -462,7 +488,8 @@ report first if needed, then use these anchors:
   items, verification gaps, and the decisive question; optional saved report path
   in interactive mode
 - **Status:** READY | READY_WITH_RISKS | NOT_READY
-- **Consumers:** `vs-shape-it`, `vs-rfc-research`, `vs-build-it`
+- **Consumers:** `vs-shape-it`, `vs-rfc-research`, `vs-build-it`; composes
+  `vs-ponytail` for scope and alternatives
 - **Skip conditions:** ROUTINE work uses the short check. URGENT work routes to
   the incident or implementation workflow and schedules pushback afterward.
   Route raw or unformed input to `vs-shape-it` first, and use re-check mode

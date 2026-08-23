@@ -52,7 +52,8 @@ wording. Do not open a second workflow or print a separate ceremony.
 - **Inputs:** Understood outcome, affected flow, explicit requirements, and available proof
 - **Outputs:** Chosen rung, avoided machinery, completeness evidence, and explicit deferrals
 - **Status:** `CHOSEN`, `NO_CHANGE`, `BLOCKED`, or `UNPROVEN`
-- **Consumers:** hooks, `vs-shape-it`, `vs-build-it`, `vs-roast-code`, and other solution-size decision points
+- **Consumers:** hooks, `vs-shape-it`, `vs-pushback`, `vs-build-it`,
+  `vs-roast-code`, and other solution-size decision points
 - **Skip conditions:** Skip only when the caller makes no solution-size decision or the user explicitly disables Ponytail
 
 ## Output style

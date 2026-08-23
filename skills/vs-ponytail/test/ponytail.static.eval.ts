@@ -74,13 +74,17 @@ describe('vs-ponytail contract', () => {
     }
   });
 
-  it('is composed at shape, build, and review decision points', () => {
+  it('is composed at shape, pushback, build, and review decision points', () => {
     const shape = fs.readFileSync(
       path.join(ROOT, 'skills', 'vs-shape-it', 'SKILL.md'),
       'utf8',
     );
     const build = fs.readFileSync(
       path.join(ROOT, 'skills', 'vs-build-it', 'SKILL.md'),
+      'utf8',
+    );
+    const pushback = fs.readFileSync(
+      path.join(ROOT, 'skills', 'vs-pushback', 'SKILL.md'),
       'utf8',
     );
     const review = fs.readFileSync(
@@ -90,6 +94,8 @@ describe('vs-ponytail contract', () => {
 
     expect(shape).toMatch(/vs-ponytail\/SKILL\.md/);
     expect(shape).toMatch(/Ponytail cut/);
+    expect(pushback).toMatch(/vs-ponytail\/SKILL\.md/);
+    expect(pushback).toMatch(/smallest complete proposal rung/i);
     expect(build).toMatch(/vs-ponytail\/SKILL\.md/);
     expect(build).toMatch(/Ponytail decision/);
     expect(build).toMatch(/final Ponytail pass/i);

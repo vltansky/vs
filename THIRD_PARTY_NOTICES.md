@@ -22,8 +22,8 @@ text is included at `skills/vs-baby-sit/LICENSE.openai-gh-fix-ci`.
 - Used in:
   - `skills/vs-ponytail`
   - `hooks/ponytail.mjs` and `hooks/hooks.json`
-  - composition in `skills/vs-shape-it`, `skills/vs-build-it`, and
-    `skills/vs-roast-code`
+  - composition in `skills/vs-shape-it`, `skills/vs-pushback`,
+    `skills/vs-build-it`, and `skills/vs-roast-code`
   - `skills/vs-build-it/test/baselines/ponytail-full.md`
 - Source: https://github.com/dietrichgebert/ponytail/tree/2ed6c52c9d7e5e56942508591085fd45dea277d3
 - License: MIT

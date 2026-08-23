@@ -163,6 +163,56 @@ function hasDisallowedWorkspaceMutation(toolEvents: Array<{
 }
 
 describe('pushback', () => {
+  it('composed Ponytail challenge returns a smaller complete proposal', async () => {
+    const agent = await createAgent({
+      agent: EVAL_AGENT,
+      timeout: 420,
+      skillDir: SKILL_DIR,
+      workspace: FIXTURE_DIR,
+      copyFromHome:
+        EVAL_AGENT === 'codex' ? ['.codex/auth.json'] : undefined,
+      debug: true,
+    });
+
+    await promptOnce(
+      agent,
+      'Use vs-pushback in composed mode to review docs/migration-plan.md. ' +
+        'Challenge its scope and proposed machinery with the composed Ponytail contract. ' +
+        'Return the verdict and top finding without asking questions or implementing anything.',
+    );
+
+    const result = await evaluate(
+      agent,
+      [
+        check(
+          'names-the-ponytail-decision',
+          ({ transcript }) =>
+            /chosen rung/i.test(transcript) &&
+            /avoid(?:ed)?(?: machinery)?:/i.test(transcript) &&
+            /complete because/i.test(transcript) &&
+            /deferred/i.test(transcript),
+          { weight: 3 },
+        ),
+        check(
+          'keeps-proof-and-safety-work',
+          ({ transcript }) =>
+            /auth|rate limit/i.test(transcript) &&
+            /verif|test|rollback/i.test(transcript),
+          { weight: 2 },
+        ),
+        check(
+          'stays-in-review-mode',
+          ({ toolEvents }) => !hasDisallowedWorkspaceMutation(toolEvents),
+          { weight: 2 },
+        ),
+      ],
+      { failFast: false, onScorerError: 'zero' },
+    );
+
+    expect(result.score).toBe(1);
+    await agent.dispose();
+  }, 480_000);
+
   it('scripted-api-migration: interactive grill with mixed user answers', async () => {
     const agent = await createAgent({
       agent: EVAL_AGENT,

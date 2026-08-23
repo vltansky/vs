@@ -1,7 +1,7 @@
 {
   "name": "vs",
   "displayName": "vs",
-  "version": "1.8.0",
+  "version": "1.8.1",
   "description": "Plan-to-ship workflow skills for shaping ideas, building autonomously, reviewing code, and shipping PRs with agent discipline.",
   "author": {
     "name": "Vlad Tansky"
