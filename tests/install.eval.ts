@@ -5,13 +5,20 @@ import { join } from 'node:path';
 
 import { describe, expect, it } from 'vitest';
 
-const EXPECTED_CALLS = [
-  'claude plugin marketplace add vltansky/vs',
+const EXPECTED_UPDATE_CALLS = [
   'claude plugin marketplace update vs',
-  'claude plugin install vs@vs',
   'claude plugin update vs@vs',
-  'codex plugin marketplace add vltansky/vs',
   'codex plugin marketplace upgrade vs',
+  'codex plugin add vs@vs',
+];
+
+const EXPECTED_FRESH_INSTALL_CALLS = [
+  'claude plugin marketplace update vs',
+  'claude plugin marketplace add vltansky/vs',
+  'claude plugin update vs@vs',
+  'claude plugin install vs@vs',
+  'codex plugin marketplace upgrade vs',
+  'codex plugin marketplace add vltansky/vs',
   'codex plugin add vs@vs',
 ];
 
@@ -43,7 +50,7 @@ describe('plugin installer', () => {
     expect(versions[0]).not.toBe('1.0.1');
   });
 
-  it('refreshes configured marketplaces and installed plugins', () => {
+  it('updates existing marketplaces and installed plugins without reinstalling them', () => {
     const home = mkdtempSync(join(tmpdir(), 'vs-install-'));
     const bin = join(home, 'bin');
     const callsFile = join(home, 'calls.log');
@@ -65,7 +72,39 @@ describe('plugin installer', () => {
       },
     });
 
-    expect(readFileSync(callsFile, 'utf8').trim().split('\n')).toEqual(EXPECTED_CALLS);
+    expect(readFileSync(callsFile, 'utf8').trim().split('\n')).toEqual(EXPECTED_UPDATE_CALLS);
+  });
+
+  it('falls back to installation when no marketplace or plugin is installed yet', () => {
+    const home = mkdtempSync(join(tmpdir(), 'vs-install-fresh-'));
+    const bin = join(home, 'bin');
+    const callsFile = join(home, 'calls.log');
+    mkdirSync(bin);
+
+    const cliStub = `#!/bin/sh
+printf '%s %s\\n' "$(basename "$0")" "$*" >> "$CALLS_FILE"
+case "$(basename "$0") $*" in
+  'claude plugin marketplace update vs'|'claude plugin update vs@vs'|'codex plugin marketplace upgrade vs') exit 1 ;;
+esac
+`;
+    for (const cli of ['claude', 'codex']) {
+      const path = join(bin, cli);
+      writeFileSync(path, cliStub, { mode: 0o755 });
+    }
+
+    execFileSync('/bin/bash', ['install.sh'], {
+      cwd: process.cwd(),
+      env: {
+        ...process.env,
+        CALLS_FILE: callsFile,
+        HOME: home,
+        PATH: `${bin}:/usr/bin:/bin`,
+      },
+    });
+
+    expect(readFileSync(callsFile, 'utf8').trim().split('\n')).toEqual(
+      EXPECTED_FRESH_INSTALL_CALLS,
+    );
   });
 
   it.skipIf(!pwsh)('drives the same CLI sequence from the PowerShell installer', () => {
@@ -104,6 +143,8 @@ describe('plugin installer', () => {
       env,
     });
 
-    expect(readFileSync(callsFile, 'utf8').trim().split(/\r?\n/)).toEqual(EXPECTED_CALLS);
+    expect(readFileSync(callsFile, 'utf8').trim().split(/\r?\n/)).toEqual(
+      EXPECTED_UPDATE_CALLS,
+    );
   });
 });

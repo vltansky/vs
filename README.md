@@ -109,19 +109,20 @@ flowchart TD
 
 ### Install
 
-Codex:
+Run the unified installer. The same command installs vs the first time and
+updates it on later runs for every supported coding agent it detects:
 
 ```bash
-codex plugin marketplace add vltansky/vs
-codex plugin add vs@vs
+gh api repos/vltansky/vs/contents/install.sh -H "Accept: application/vnd.github.raw" | bash
 ```
 
-Claude Code:
+On Windows:
 
-```text
-/plugin marketplace add vltansky/vs
-/plugin install vs@vs
+```powershell
+gh api repos/vltansky/vs/contents/install.ps1 -H "Accept: application/vnd.github.raw" | iex
 ```
+
+Restart your agent session after installation or update.
 
 ### Use
 
@@ -213,10 +214,10 @@ Architecture: /vs-architect -> /vs-shape-it -> /vs-build-it
 vs ships native plugin manifests for Claude Code, Codex, and Cursor. All three
 load the same `SKILL.md` files under `skills/`.
 
-### GitHub CLI
+### Unified installer
 
-This one-time installer uses your existing `gh` authentication and also works
-for private clones:
+The primary installer uses your existing `gh` authentication and also works for
+private clones:
 
 ```bash
 gh api repos/vltansky/vs/contents/install.sh -H "Accept: application/vnd.github.raw" | bash
@@ -231,7 +232,32 @@ gh api repos/vltansky/vs/contents/install.ps1 -H "Accept: application/vnd.github
 From a clone, run `./install.sh` or `npm run install-plugin` (Windows:
 `./install.ps1` or `npm run install-plugin:windows`).
 
-Re-run the installer to update every detected agent.
+Re-run the installer to update every detected agent. It refreshes existing
+marketplaces and plugins first, falling back to first-time installation when
+they are not present.
+
+### Native marketplace installation
+
+Use these platform-specific commands if you prefer startup-time automatic
+updates instead of rerunning the unified installer.
+
+#### Codex
+
+```bash
+codex plugin marketplace add vltansky/vs
+codex plugin add vs@vs
+```
+
+Codex refreshes Git marketplaces and installed plugins automatically at startup.
+
+#### Claude Code
+
+```text
+/plugin marketplace add vltansky/vs
+/plugin install vs@vs
+```
+
+Enable marketplace auto-update in `/plugin`, then restart Claude Code.
 
 ### Cursor
 

@@ -20,11 +20,14 @@ install_for() {
     return
   fi
   local log; log="$(mktemp)"
-  if $market_cmd "$REPO" >"$log" 2>&1 \
-    && $market_update_cmd >>"$log" 2>&1 \
-    && $install_cmd "$PLUGIN" >>"$log" 2>&1 \
-    && { [ -z "$update_cmd" ] || $update_cmd "$PLUGIN" >>"$log" 2>&1; }; then
-    ok "$cli: installed $PLUGIN"
+  if ! { $market_update_cmd >"$log" 2>&1 || $market_cmd "$REPO" >>"$log" 2>&1; }; then
+    fail "$cli: install failed"
+    sed 's/^/      /' "$log"
+  elif [ -n "$update_cmd" ] \
+    && { $update_cmd "$PLUGIN" >>"$log" 2>&1 || $install_cmd "$PLUGIN" >>"$log" 2>&1; }; then
+    ok "$cli: installed or updated $PLUGIN"
+  elif [ -z "$update_cmd" ] && $install_cmd "$PLUGIN" >>"$log" 2>&1; then
+    ok "$cli: installed or updated $PLUGIN"
   else
     fail "$cli: install failed"
     sed 's/^/      /' "$log"

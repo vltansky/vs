@@ -38,20 +38,36 @@ function Invoke-Cli {
   return $LASTEXITCODE -eq 0
 }
 
+function Invoke-FirstSuccessful {
+  param([string]$Cli, [string[][]]$Commands, [System.Collections.Generic.List[string]]$Log)
+  foreach ($command in $Commands) {
+    if (Invoke-Cli -Cli $Cli -CliArgs $command -Log $Log) { return $true }
+  }
+  return $false
+}
+
 function Install-For {
-  param([string]$Cli, [string[][]]$Commands)
+  param(
+    [string]$Cli,
+    [string[][]]$MarketplaceCommands,
+    [string[][]]$PluginCommands
+  )
   if (-not (Get-Command $Cli -ErrorAction SilentlyContinue)) {
     Write-Skip "$Cli not found - skipping"
     return
   }
   $log = [System.Collections.Generic.List[string]]::new()
-  foreach ($command in $Commands) {
-    if (Invoke-Cli -Cli $Cli -CliArgs $command -Log $log) { continue }
+  if (-not (Invoke-FirstSuccessful -Cli $Cli -Commands $MarketplaceCommands -Log $log)) {
     Write-Fail "${Cli}: install failed"
     $log | ForEach-Object { Write-Host "      $_" }
     return
   }
-  Write-Ok "${Cli}: installed $Plugin"
+  if (-not (Invoke-FirstSuccessful -Cli $Cli -Commands $PluginCommands -Log $log)) {
+    Write-Fail "${Cli}: install failed"
+    $log | ForEach-Object { Write-Host "      $_" }
+    return
+  }
+  Write-Ok "${Cli}: installed or updated $Plugin"
 }
 
 function Remove-Path {
@@ -109,16 +125,20 @@ function Install-Cursor {
 }
 
 Write-Host 'Installing vs plugin...'
-Install-For -Cli 'claude' -Commands @(
-  @('plugin', 'marketplace', 'add', $Repo),
-  @('plugin', 'marketplace', 'update', 'vs'),
-  @('plugin', 'install', $Plugin),
-  @('plugin', 'update', $Plugin)
-)
-Install-For -Cli 'codex' -Commands @(
-  @('plugin', 'marketplace', 'add', $Repo),
-  @('plugin', 'marketplace', 'upgrade', 'vs'),
-  @('plugin', 'add', $Plugin)
-)
+Install-For -Cli 'claude' `
+  -MarketplaceCommands @(
+    @('plugin', 'marketplace', 'update', 'vs'),
+    @('plugin', 'marketplace', 'add', $Repo)
+  ) `
+  -PluginCommands @(
+    @('plugin', 'update', $Plugin),
+    @('plugin', 'install', $Plugin)
+  )
+Install-For -Cli 'codex' `
+  -MarketplaceCommands @(
+    @('plugin', 'marketplace', 'upgrade', 'vs'),
+    @('plugin', 'marketplace', 'add', $Repo)
+  ) `
+  -PluginCommands @(,@('plugin', 'add', $Plugin))
 Install-Cursor
 Write-Host 'Done. Restart your agent session (Cursor: Developer: Reload Window) to load vs.'
