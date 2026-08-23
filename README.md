@@ -1,20 +1,99 @@
 # vs
 
-vs is a plugin for Claude Code, Codex, and Cursor. It adds reusable workflows for
-planning, implementing, reviewing, testing, and shipping changes in a repository.
+vs turns an idea into a verified pull request while keeping the important
+decisions with you. It gives Claude Code, Codex, and Cursor three workflows for
+shaping the direction, building autonomously, and publishing the result.
 
-Its main workflow has three skills:
+You decide product intent, scope, and whether to publish. VS handles the routine
+research, implementation decisions, tests, review, QA, verification, and CI
+follow-through within those boundaries.
 
-```text
-/vs-shape-it  ->  /vs-build-it  ->  /vs-ship-it
- decide what       build it          verify and publish
+## How vs works
+
+```mermaid
+flowchart LR
+    I[Idea or problem] --> S["/vs-shape-it<br/>Align, research, design"]
+    S --> A{"You approve<br/>the direction"}
+    A --> B["/vs-build-it<br/>Implement, test, review, verify"]
+    B --> R{"You inspect<br/>the result"}
+    R --> P["/vs-ship-it<br/>Commit, publish, follow through"]
+    P --> O[Published and verified pull request]
+
+    BB["Building blocks<br/>pushback · TDD · debug · review · QA · verify"]
+    BB -. used when needed .-> S
+    BB -. used when needed .-> B
+    BB -. used when needed .-> P
 ```
 
-A skill is a set of instructions you invoke with a slash command. You make the
-product decisions; the skills tell the agent how to research, implement, test,
-review, and follow through on CI.
+These are owning workflows: each drives an outcome and composes smaller skills
+when their phase is needed. You do not need to invoke TDD, debugging, review,
+QA, or verification yourself. Call a building block directly only when you want
+that one job rather than the complete workflow.
 
-## Get started
+This structure avoids two common agent failures: guessing through decisions
+that need your judgment, and stopping to ask about routine choices. VS stops at
+strategic or authorization boundaries and keeps moving when the next step is
+mechanical and in scope.
+
+## What each core workflow does
+
+### `/vs-shape-it`: turn intent into an approved direction
+
+Give it an idea, problem, or rough plan. It returns an evidence-backed design
+with the scope, decisions, risks, and execution strategy needed to build it.
+
+```mermaid
+flowchart TD
+    I[Idea, problem, or rough plan] --> A[Align with you on meaningful decisions]
+    A --> R[Research the code, architecture, and prior art]
+    R --> D[Design the change and execution strategy]
+    D --> P[Stress-test the design with pushback]
+    P --> V[Self-review against the evidence]
+    V --> O[Approval-ready design]
+```
+
+### `/vs-build-it`: turn the direction into working code
+
+Give it an approved design or a concrete outcome. It returns implemented code,
+verification evidence, and a clear handoff for your inspection.
+
+```mermaid
+flowchart TD
+    I[Approved design or concrete outcome] --> S[Confirm scope, guardrails, and baseline]
+    S --> P[Challenge and repair the plan]
+    P --> A[Record durable decisions before coding]
+    A --> E[Implement with TDD]
+    E --> D{Ordinary test feedback enough?}
+    D -- No --> G[Debug from evidence]
+    G --> E
+    D -- Yes --> R[Review the integrated diff]
+    R --> Q{Changed browser behavior?}
+    Q -- Yes --> B[Run focused browser QA]
+    Q -- No --> V[Clean up and verify]
+    B --> V
+    V --> O[Working change with proof]
+```
+
+### `/vs-ship-it`: publish and follow through
+
+Give it permission to publish. It commits only the scoped work, verifies the
+remote result, and reports the current delivery status.
+
+```mermaid
+flowchart TD
+    I[Publish intent] --> S[Inspect the scoped diff and required checks]
+    S --> C[Commit the scoped work]
+    C --> D{Requested outcome}
+    D -- Pull request --> P[Push the branch and prepare the PR]
+    P --> R[Create and verify the PR]
+    R --> W[Follow CI and review by default]
+    W --> O[Published PR with current status]
+    D -- Direct push --> F[Check the destination is safe to update]
+    F --> U[Push and verify the remote SHA]
+    U --> X[Verified direct push]
+```
+
+## Start in one minute
 
 ### 1. Install vs
 
@@ -41,7 +120,7 @@ Third-party Claude Code marketplaces do not auto-update by default. Open
 `/plugin`, select **Marketplaces → vs → Enable auto-update**, then restart your
 agent session. Cursor installation options are below.
 
-### 2. Shape the change
+### 2. Shape the direction
 
 Open your project in the agent and describe what you want:
 
@@ -49,11 +128,8 @@ Open your project in the agent and describe what you want:
 /vs-shape-it Add saved filters to search
 ```
 
-`/vs-shape-it` starts with a short alignment round, then researches and
-stress-tests the direction independently before returning with a complete
-design for approval. It also keeps settled domain language in a lazy
-`CONTEXT.md` glossary. Stay for the opening decisions; come back for the final
-review.
+Stay for a short alignment round. VS then researches and stress-tests the
+direction independently before returning with a complete design for approval.
 
 ### 3. Build it
 
@@ -63,9 +139,8 @@ When the design is ready, hand it to the agent:
 /vs-build-it Implement the approved design
 ```
 
-`/vs-build-it` challenges the plan before coding, resolves routine decisions on
-its own, implements with tests, reviews the diff, runs relevant QA, and returns
-the finished work for you to inspect.
+VS executes the approved scope autonomously and returns working code with its
+verification evidence.
 
 ### 4. Ship it
 
@@ -75,17 +150,17 @@ Review the result. When you are satisfied, publish it:
 /vs-ship-it
 ```
 
-`/vs-ship-it` creates the commit and pull request, verifies the published state,
-and can keep watching CI and review when you ask it to.
+VS creates and verifies the pull request, then follows CI and review unless you
+ask it not to.
 
 That is the complete beginner workflow. Use these three skills for your first few
 changes. The rest of vs is there when you need more control over a specific kind
 of work.
 
-## Discover the layers
+## Go deeper when you need to
 
-vs is designed in layers. Start with the top layer and discover the others only
-when you need them:
+Start with the three core workflows. The other skills provide a different entry
+point or direct control over one phase:
 
 | Layer | Skills | Use them for |
 |---|---|---|
@@ -93,14 +168,8 @@ when you need them:
 | Advanced workflows | `/vs-improve`, `/vs-bugfix`, `/vs-fix-pr`, and others | Starting from a different situation or owning a specialized outcome |
 | Building blocks | `/vs-tdd`, `/vs-debug-mode`, `/vs-qa`, `/vs-verify`, and others | Controlling one specific phase directly |
 
-The higher-level workflows already use the building blocks under the hood. For
-example, `/vs-build-it` can challenge the plan, resolve tactical uncertainty,
-use TDD or debugging, review the diff, run QA, verify the result, and produce a
-brief by composing the relevant lower-level skills.
-
-You do not need to run that chain yourself. Use the core workflow by default.
-When you want only one part—for example, a root-cause investigation or a final
-verification—you can invoke `/vs-debug-mode` or `/vs-verify` directly.
+For example, invoke `/vs-debug-mode` when you only want a root-cause
+investigation, or `/vs-verify` when you only want final proof.
 
 ### Minimum solutions by default
 
@@ -178,18 +247,7 @@ confirmed, diff-scoped structural findings after implementation.
 | `/vs-retro` | Extract session learnings and route them to durable destinations |
 | `/vs-try-skill` | Blind-test a skill and compare its behavior with expectations |
 
-## Why this workflow exists
-
-Most agent workflows fail in one of two ways:
-
-- The agent decides too much. It guesses through meaningful ambiguity and
-  confidently builds the wrong thing.
-- The agent asks too much. It stops for routine choices, turning you into an
-  approval queue.
-
-vs separates strategic decisions from routine execution. Its skills use explicit
-handoffs, bounded loops, verification gates, and circuit breakers. They stop when
-your judgment is required and keep moving when the next step is mechanical.
+## How workflows hand off
 
 At phase boundaries, VS also separates the semantic next workflow from context
 treatment. The agent chooses whether to continue, delegate bounded work, create
