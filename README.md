@@ -3,6 +3,8 @@
 vs is a workflow plugin for Claude Code, Codex, and Cursor. You decide the
 direction and when to publish. VS handles the work from research to verified PR.
 
+![VS keeps agents working autonomously and brings humans back at focused alignment points](assets/human-agent-sync.png)
+
 ## How vs works
 
 ```mermaid
