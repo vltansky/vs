@@ -57,7 +57,7 @@ Turns an idea into an evidence-backed design for your approval.
 flowchart TD
     I[Input] --> R{What did you bring?}
     R -- Vague idea --> E[Explore<br/>Up to 3 independent questions in one batch]
-    R -- "Interview me" --> G[Guided Explore<br/>One adaptive question at a time]
+    R -- "Interview me" --> G[Guided Explore<br/>Up to 3 adaptive questions per round]
     R -- Formed plan --> C["Challenge<br/>/vs-pushback"]
     E --> S["Research and design<br/>/vs-github-research? · /vs-architect? · /vs-eval?"]
     G --> S

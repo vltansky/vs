@@ -45,7 +45,8 @@ describe('shape-it: interaction cadence', () => {
 
     expect(routing).toMatch(/grill this plan.*Challenge/is);
     expect(routing).toMatch(/grill me.*question me.*Guided Explore/is);
-    expect(interview).toMatch(/one consequential strategic question at a time/i);
+    expect(interview).toMatch(/up to 3 independent consequential strategic questions per round/i);
+    expect(interview).toMatch(/next round.*answers/i);
     expect(interview).toMatch(/Accept `done`, `skip`, `back`, `\?`, and `eli5`/i);
     expect(interview).toMatch(/agent supplies facts, code reading, and recommendations/i);
   });
@@ -81,7 +82,7 @@ describe('shape-it: interaction cadence', () => {
     expect(opening).toMatch(/mental model/i);
     expect(opening).toMatch(/no more than three bullets/i);
     expect(opening).not.toMatch(/fundamental.*ambiguous.*single confirmation/is);
-    expect(opening).toMatch(/Do not add a fourth interview question/i);
+    expect(opening).toMatch(/Do not start another question round/i);
     expect(closing).toMatch(/Goal Contract.*ready.*open decisions/is);
   });
 

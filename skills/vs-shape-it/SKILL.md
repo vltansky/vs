@@ -148,12 +148,14 @@ than the default batched checkpoint:
    estimate. Do not name session internals (compact, clear, or the
    session-action handoff). Do not show a time estimate, target question count,
    or an empty progress bar.
-2. Ask one consequential strategic question at a time. Lead with a Why tldr
-   (one line: what the user loses if they pick wrong), then the recommended
-   answer, then wait. Always include Drill (`eli5`) as the last option.
+2. Ask up to 3 independent consequential strategic questions per round. Batch
+   only questions whose answers do not depend on each other. Lead each with a
+   Why tldr (one line: what the user loses if they pick wrong), then the
+   recommended answer. Always include Drill (`eli5`) as the last option.
    Compose `/vs-eli5` on that question's tradeoff only if they pick it.
-3. Branch from each answer: skip decisions it settles and inspect the code or
-   named evidence yourself when a fact can answer the next question.
+3. Branch after each round: choose the next round from its answers, skip
+   decisions those answers settle, and inspect the code or named evidence
+   yourself when a fact can answer the next question.
 4. Accept `done`, `skip`, `back`, `?`, and `eli5`. `skip` accepts the stated
    reversible default for the current question; `?` defers it as an open
    decision; `eli5` drills this question's tradeoff with `/vs-eli5` and waits
@@ -165,7 +167,7 @@ than the default batched checkpoint:
    Everything else is a stated reversible default in the spec. Keep Why +
    Drill as the last option. Reflect the agreed mental model in no more than three bullets,
    then state the aligned model and enter the uninterrupted independent beat
-   without another question. Do not add a fourth interview question after that
+   without another question. Do not start another question round after that
    expensive-to-reverse call.
 6. Update progress only when a decision changes state. During alignment, show
    resolved and open decisions; do not turn progress into a fixed questionnaire.
@@ -206,9 +208,9 @@ For the default batched checkpoint:
   could proceed without it and the lookup would cost real time. When the need is
   clear, run it in the independent beat instead of asking.
 
-Guided Explore calls the structured tool once per question and waits for the
-answer. It does not use the batched-reply shortcut or the multi-question
-fallback below.
+Guided Explore calls the structured tool once per round with one to three
+independent questions, then waits for all answers. It uses the batched-reply
+shortcut and multi-question fallback below.
 
 ```markdown
 ## Decisions needed
