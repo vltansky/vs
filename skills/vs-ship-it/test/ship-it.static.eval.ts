@@ -7,11 +7,11 @@ const OPENAI_CONFIG = fs.readFileSync(
   path.resolve(__dirname, '..', 'agents', 'openai.yaml'),
   'utf8',
 );
+const README = fs.readFileSync(
+  path.resolve(__dirname, '..', '..', '..', 'README.md'),
+  'utf8',
+);
 const DESCRIPTION = SKILL.match(/^description: "([^"]+)"$/m)?.[1] ?? '';
-const REVIEW_STEP =
-  SKILL.split('### Step 0: Offer review without blocking')[1]?.split(
-    '### Step 1:',
-  )[0] ?? '';
 const PR_WORKFLOW = SKILL.split('## PR workflow')[1]?.split('## Handoff')[0] ?? '';
 
 describe('vs-ship-it routing', () => {
@@ -49,40 +49,22 @@ describe('vs-ship-it routing', () => {
   });
 });
 
-describe('vs-ship-it optional review consent', () => {
-  it('separates publishing authorization from review consent', () => {
-    expect(SKILL).toContain('## Non-negotiable consent boundary');
-    expect(SKILL).toMatch(/authorize the scoped\s+commit, push, and PR creation/i);
-    expect(SKILL).toMatch(/They do \*\*not\*\* authorize running code review/i);
-    expect(SKILL).toMatch(/without an explicit "run review" instruction,\s+skip it/i);
-    expect(SKILL).toMatch(/never\s+hold PR creation for review confirmation/i);
+describe('vs-ship-it publishing boundary', () => {
+  it('does not include a pre-PR code-review phase', () => {
+    expect(PR_WORKFLOW).toMatch(/four outcomes: prepare the PR description/i);
+    expect(PR_WORKFLOW).toMatch(/Code\s+review is outside this workflow/i);
+    expect(SKILL).not.toContain('Offer review without blocking');
+    expect(SKILL).not.toContain('vs-roast-code');
+    expect(SKILL).not.toMatch(/Review: <reused \| ran with approval \| skipped/);
   });
 
-  it('reuses review evidence and honors explicit decisions', () => {
-    expect(REVIEW_STEP).toMatch(/Review already ran:[\s\S]*reuse it/i);
-    expect(REVIEW_STEP).toMatch(/explicitly requested review or approved it/i);
-    expect(REVIEW_STEP).toMatch(/explicitly declined or said to skip review/i);
-  });
-
-  it('offers review without blocking PR preparation', () => {
-    expect(REVIEW_STEP).toMatch(/short, non-blocking commentary (?:offer|statement)/i);
-    expect(REVIEW_STEP).toContain('Say “run review” if you want it first');
-    expect(REVIEW_STEP).toMatch(/Continue gathering PR facts(?: and creating the PR)? immediately/i);
-    expect(REVIEW_STEP).toMatch(/Do not call `request_user_input`, wait\s+for a response/i);
-  });
-
-  it('never runs review without explicit approval', () => {
-    expect(REVIEW_STEP).toMatch(/Only an explicit affirmative review instruction authorizes/i);
-    expect(REVIEW_STEP).toMatch(/infer review approval from “ship it,” “create PR,” silence/i);
-    expect(REVIEW_STEP).toMatch(/If none exists, skip\s+review and continue/i);
-    expect(REVIEW_STEP).not.toMatch(/run it now/i);
-    expect(REVIEW_STEP).not.toMatch(/auto-select/i);
-  });
-
-  it('reports the review decision in the handoff', () => {
-    expect(SKILL).toContain('Review: reused');
-    expect(SKILL).toContain('Review: ran with approval');
-    expect(SKILL).toContain('Review: skipped — not explicitly approved');
+  it('shows the PR format and available proof in the README flow', () => {
+    expect(README).not.toContain('Review explicitly approved?');
+    expect(README).toMatch(/Prepare PR description<br\/>feature_area: title/);
+    expect(README).toMatch(/Problem \+ Before\/After<br\/>Why this change/);
+    expect(README).toMatch(/User impact<br\/>Evidence \+ gaps<br\/>Review focus/);
+    expect(README).toMatch(/Attach available proof<br\/>matched screenshots/);
+    expect(README).toMatch(/short video for interactions/);
   });
 });
 
@@ -98,7 +80,7 @@ describe('vs-ship-it independent PR preparation', () => {
   });
 
   it('does not make ceremony part of default PR creation', () => {
-    expect(PR_WORKFLOW).toMatch(/Do not add\s+brief generation, broad verification, reviewer\s+discovery, preview startup, or QA unless the user explicitly requested/i);
+    expect(PR_WORKFLOW).toMatch(/Do not add brief generation, broad\s+verification, reviewer discovery, preview startup, or QA unless the user\s+explicitly requested/i);
     expect(PR_WORKFLOW).toMatch(/do not introduce `vs-brief`, `vs-verify`/i);
     expect(PR_WORKFLOW).toMatch(/Do not suggest reviewers, start a\s+preview, or run QA by default/i);
   });
@@ -178,7 +160,6 @@ describe('vs-ship-it PR association and stopping point', () => {
 
   it('keeps evidence boundaries honest', () => {
     expect(SKILL).toMatch(/Do not describe CI, deployment, preview behavior, or production as verified/i);
-    expect(SKILL).toMatch(/Review: <reused \| ran with approval \| skipped/);
     expect(SKILL).toMatch(/Media: <N screenshots, N videos attached/);
   });
 });

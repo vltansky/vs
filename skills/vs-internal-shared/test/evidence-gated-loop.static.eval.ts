@@ -139,7 +139,7 @@ describe('ship-it creates the PR without rebuilding delivery evidence', () => {
   it('hands back the verified PR and concrete media state', () => {
     expect(SHIP_IT).toContain('## Handoff');
     expect(SHIP_IT).toContain('PR created and verified:');
-    expect(SHIP_IT).toMatch(/Review: <reused \| ran with approval \| skipped/);
+    expect(SHIP_IT).toMatch(/Head: `<short SHA>`/);
     expect(SHIP_IT).toMatch(/Media: <N screenshots, N videos attached/);
     expect(SHIP_IT).toMatch(/Do not describe CI, deployment, preview behavior, or production as verified/i);
   });

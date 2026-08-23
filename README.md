@@ -39,7 +39,7 @@ flowchart LR
 
     S -. composes .-> SC["/vs-ponytail · /vs-architect? · /vs-github-research?<br/>/vs-pushback · /vs-eli5 · /vs-eval?"]
     B -. composes .-> BC["/vs-ponytail · /vs-pushback · /vs-decide-for-me<br/>/vs-tdd · /vs-debug-mode?<br/>/vs-roast-code? · /vs-deslop?<br/>/vs-qa? · /vs-verify · /vs-brief? · /vs-eval?"]
-    P -. composes .-> PC["/vs-roast-code? · /vs-baby-sit"]
+    P -. composes .-> PC["/vs-baby-sit"]
 ```
 
 `?` means conditional. `/vs-ponytail` is both a public building block and an
@@ -101,12 +101,10 @@ Publishes the scoped work and reports its CI and review status.
 ```mermaid
 flowchart TD
     I[Permission to publish] --> D{PR or direct push?}
-    D -- PR --> R{Review explicitly approved?}
-    R -- Yes --> V["Run or reuse review<br/>/vs-roast-code"]
-    R -- No --> P[Skip review]
-    V --> C["Check, commit, push, prepare PR<br/>/vs-eval for skill contracts"]
-    P --> C
-    C --> O[Create and verify PR] --> W["Follow CI and review<br/>/vs-baby-sit"]
+    D -- PR --> C["Check, commit, push<br/>/vs-eval for skill contracts"]
+    C --> B["Prepare PR description<br/>feature_area: title<br/>Problem + Before/After<br/>Why this change<br/>User impact<br/>Evidence + gaps<br/>Review focus"]
+    B --> M["Attach available proof<br/>matched screenshots for static states<br/>short video for interactions"]
+    M --> O[Create and verify PR] --> W["Follow CI and GitHub review<br/>/vs-baby-sit"]
     D -- Direct push --> F[Check destination, commit, push] --> S[Verify remote SHA]
 ```
 

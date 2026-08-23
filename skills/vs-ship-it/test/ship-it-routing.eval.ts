@@ -72,8 +72,8 @@ should own the request and why. Reply in exactly two lines beginning with
   }
 });
 
-describe('vs-ship-it reviewer evidence', () => {
-  it('ships independently without auto-running review', async () => {
+describe('vs-ship-it PR evidence', () => {
+  it('ships independently with a complete PR body', async () => {
     const agent = await createAgent({
       agent: EVAL_AGENT,
       timeout: 300,
@@ -88,25 +88,15 @@ describe('vs-ship-it reviewer evidence', () => {
 Read and follow the current staged vs-ship-it SKILL.md as the authority; do not
 substitute a remembered or generic shipping workflow.
 
-The implementation is complete and the user says only: "ship it". Review has
-not run in this session, and the user has not approved or declined it. Local
+The implementation is complete and the user says only: "ship it". Local
 before/after screenshots exist. This fixture blocks file uploads and GitHub
-writes, so describe what vs-ship-it would do. Reply in exactly four lines
-beginning with "Review:", "Description:", "Media:", and "Create:".`,
+writes, so describe what vs-ship-it would do. Reply in exactly three lines
+beginning with "Description:", "Media:", and "Create:".`,
       );
 
       const result = await evaluate(
         agent,
         [
-          check('offers-but-does-not-auto-run-review', ({ transcript }) =>
-            /^Review:.*(?:offer|propose|ask|say)/im.test(transcript) &&
-            /^Review:.*(?:skip|not run|no explicit yes|unless.*approve)/im.test(
-              transcript,
-            ) &&
-            /^Review:.*(?:not block|without wait|continue|proceed)/im.test(
-              transcript,
-            ),
-          ),
           check('prepares-description-and-media', ({ transcript }) =>
             /^Description:.*(?:prepare|write|draft)/im.test(transcript) &&
             /^Media:.*(?:upload|attach|embed).*screenshot/im.test(transcript),
@@ -128,7 +118,7 @@ beginning with "Review:", "Description:", "Media:", and "Create:".`,
     }
   });
 
-  it('runs review only after explicit approval', async () => {
+  it('keeps code review out of the publishing workflow', async () => {
     const agent = await createAgent({
       agent: EVAL_AGENT,
       timeout: 300,
@@ -143,20 +133,22 @@ beginning with "Review:", "Description:", "Media:", and "Create:".`,
 Read and follow the current staged vs-ship-it SKILL.md as the authority; do not
 substitute a remembered or generic shipping workflow.
 
-The implementation is complete. The user says: "ship it, and yes run review
-first." Review has not run in this session. This fixture blocks file and GitHub
-writes. State whether review would run and what happens afterward. Reply in
-exactly two lines beginning with "Review:" and "Then:".`,
+The implementation is complete. The user says: "ship it". This fixture blocks
+file and GitHub writes. State what phases belong to ship-it and whether it adds
+a pre-PR code-review phase. Reply in exactly two lines beginning with
+"Phases:" and "Code review:".`,
       );
 
       const result = await evaluate(
         agent,
         [
-          check('runs-approved-review', ({ transcript }) =>
-            /^Review:.*(?:run|yes|vs-roast-code)/im.test(transcript),
+          check('lists-publishing-phases', ({ transcript }) =>
+            /^Phases:.*description.*media.*(?:create|verify).*PR/im.test(transcript),
           ),
-          check('continues-to-pr', ({ transcript }) =>
-            /^Then:.*(?:description|media|PR|create)/im.test(transcript),
+          check('does-not-add-code-review', ({ transcript }) =>
+            /^Code review:.*(?:not included|outside|separate|does not)/im.test(
+              transcript,
+            ) && !/vs-roast-code/i.test(transcript),
           ),
         ],
         { failFast: false, onScorerError: 'zero' },

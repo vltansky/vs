@@ -3,37 +3,11 @@ name: vs-ship-it
 description: "Use vs-ship-it when the user asks to create or open a PR; says create PR, open PR, or ship it; asks to submit changes, commit and push, or push directly. This is the VS publishing workflow and takes precedence over generic publishers such as github:yeet unless the user names another publisher. Requires affirmative publish intent; excludes review/readiness-only requests. Creates and verifies PRs, then babysits them by default; honors explicit direct pushes and requests not to watch."
 ---
 
-# Ship Changes — Review Is Opt-in, PR Creation Is Not
-
-**Mandatory default: no explicit approval to run review means skip review and
-create the PR. Never block shipping because review has not run.**
+# Ship Changes — Publish and Follow Through
 
 Create the PR quickly and independently. Ask the user only when a decision is
 both necessary and impossible to infer safely. A missing optional input is a
 reason to omit or mark a gap, not a reason to stop PR creation.
-
-Apply this decision table before doing anything else:
-
-| Review state | Review action | Required next action |
-| --- | --- | --- |
-| A current review already ran | Reuse it | Description → media → create PR |
-| User explicitly said to run review | Run it | Description → media → create PR |
-| User explicitly declined review | Skip it | Description → media → create PR |
-| Anything else, including silence or bare `ship it` | Offer once, then skip it | Description → media → create PR |
-
-The offer is a notification, not a decision point. Never describe this branch
-as pausing, waiting, requiring a clean review pass, or running review unless the
-user explicitly approves it. The rule is simply: **no explicit yes to review
-means no review**.
-
-## Non-negotiable consent boundary
-
-`ship it`, `create PR`, and equivalent publishing requests authorize the scoped
-commit, push, and PR creation. They do **not** authorize running code review.
-Review is independently opt-in: without an explicit "run review" instruction,
-skip it. Never run review by default, never wait for review approval, and never
-hold PR creation for review confirmation. Inspecting or captioning existing
-media is PR preparation, not code review.
 
 ## Routing precedence
 
@@ -72,40 +46,12 @@ not start `vs-baby-sit`.
 
 ## PR workflow
 
-The default PR path has five outcomes: decide optional review, prepare the PR
-description, prepare available media, create plus verify the PR, and hand it to
-`vs-baby-sit`. Do not add brief generation, broad verification, reviewer
-discovery, preview startup, or QA unless the user explicitly requested that
-work. Babysitting is the default after PR verification unless the user opts out.
-
-### Step 0: Offer review without blocking
-
-Check whether `vs-roast-code` or an equivalent review already ran against the
-current diff in this session.
-
-- **Review already ran:** reuse it and continue without asking.
-- **User explicitly requested review or approved it earlier:** run
-  `vs-roast-code`, apply the approved fixes, then continue directly through PR
-  description, media preparation, and PR creation.
-- **User explicitly declined or said to skip review:** skip it without asking.
-- **No decision:** send one short, non-blocking commentary statement, not a
-  blocking question:
-
-  > Review has not run in this session. Say “run review” if you want it first;
-  > otherwise I’ll skip it and continue creating the PR.
-
-Continue gathering PR facts and creating the PR immediately. Do not call `request_user_input`, wait
-for a response, or infer review approval from “ship it,” “create PR,” silence, a
-previous generic approval, or the existence of a large diff. Immediately before
-the first review action, check for a new explicit approval. If none exists, skip
-review and continue. Only an explicit affirmative review instruction authorizes
-running a reviewer, spawning review agents, or applying review-generated fixes.
-
-The review offer never changes the authorization already granted to commit,
-push, and open the PR. Do not ask for a second publishing confirmation.
-
-The final handoff states `Review: reused`, `Review: ran with approval`, or
-`Review: skipped — not explicitly approved`.
+The default PR path has four outcomes: prepare the PR description, prepare
+available media, create plus verify the PR, and hand it to `vs-baby-sit`. Code
+review is outside this workflow. Do not add brief generation, broad
+verification, reviewer discovery, preview startup, or QA unless the user
+explicitly requested that work. Babysitting is the default after PR verification
+unless the user opts out.
 
 ### Step 1: Inspect and prepare the branch
 
@@ -295,7 +241,6 @@ review, or PR status into the user-visible meaning before naming the status.
 PR created and verified: [#<N> — <title>](<PR_URL>)
 
 - Head: `<short SHA>`
-- Review: <reused | ran with approval | skipped — not explicitly approved>
 - Media: <N screenshots, N videos attached | none available | exact upload gap>
 - Checks: <fresh results reused or repository-required checks run>
 ```
@@ -320,8 +265,6 @@ separate `vs-baby-sit` goal only when the user explicitly requested a Codex goal
 
 ## Verification contract
 
-- [ ] Review was reused, explicitly approved and run, explicitly declined, or
-      skipped because no explicit approval arrived; it was never auto-run.
 - [ ] Only scoped changes were committed and pushed.
 - [ ] The PR description was prepared without unnecessary user input.
 - [ ] Available screenshots/video were uploaded before PR creation and render,
@@ -330,7 +273,7 @@ separate `vs-baby-sit` goal only when the user explicitly requested a Codex goal
 - [ ] No brief, broad verify, reviewer lookup, preview, or QA ran without an
       explicit request or repository requirement.
 - [ ] `vs-baby-sit` started after PR verification unless the user explicitly opted out.
-- [ ] The handoff reports PR URL, head, review decision, media, and checks.
+- [ ] The handoff reports PR URL, head, media, and checks.
 
 Before the final handoff, apply
 [Phase Boundaries](../vs-internal-shared/references/phase-boundaries.md). Keep
@@ -348,6 +291,6 @@ to every user-facing message.
 
 Direct: emit **Next** only. Composed: return to caller.
 
-**Prev:** `/vs-roast-code` | `/vs-build-it`
+**Prev:** `/vs-build-it`
 **Next:** done
 **Relevant:** `/vs-eval`
