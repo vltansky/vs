@@ -405,6 +405,6 @@ to every user-facing message.
 
 Direct: emit **Next** only. Composed: return to caller.
 
-**Prev:** `/vs-ship-it` | standalone PR
+**Prev:** `/vs-ship-it` | `/vs-fix-pr` | standalone PR
 **Next:** done
-**Relevant:** `/vs-fix-pr` | `/vs-orchestrate`
+**Relevant:** `/vs-orchestrate`

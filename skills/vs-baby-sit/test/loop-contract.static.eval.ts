@@ -35,7 +35,8 @@ describe('vs-baby-sit loop contract', () => {
     expect(SKILL).toMatch(/decisions\.tsv/);
     expect(SKILL).toMatch(/Picture-show-me \/ eli5 is not this trail/i);
     expect(SKILL_RAW).toMatch(/\*\*Next:\*\* done/);
-    expect(SKILL_RAW).toMatch(/\*\*Relevant:\*\* `\/vs-fix-pr` \| `\/vs-orchestrate`/);
+    expect(SKILL_RAW).toMatch(/\*\*Prev:\*\*[^\n]*`\/vs-fix-pr`/);
+    expect(SKILL_RAW).toMatch(/\*\*Relevant:\*\* `\/vs-orchestrate`/);
   });
 
   it('keeps loop canaries out of the skill', () => {

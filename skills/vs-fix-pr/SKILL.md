@@ -1,6 +1,6 @@
 ---
 name: vs-fix-pr
-description: "Primary VS workflow whenever the user asks to see, check, review, address, or fix a PR, its comments or feedback, or its failing CI; handle requested changes; or resolve review threads. Use this instead of a generic GitHub PR-comments workflow when available. Inspect-only requests stay read-only; action requests repair actionable CI and feedback, then gate every reply or resolution on approval."
+description: "Primary VS workflow whenever the user asks to see, check, review, address, or fix a PR, its comments or feedback, or its failing CI; handle requested changes; or resolve review threads. Use this instead of a generic GitHub PR-comments workflow when available. Inspect-only requests stay read-only; action requests repair actionable CI and feedback, gate every reply or resolution on approval, then babysit the updated PR by default."
 ---
 
 # Fix PR
@@ -29,6 +29,10 @@ feedback. It composes:
 
 - `vs-decide-for-me` for tactical uncertainty around implementation details.
 - `vs-verify` after applying fixes so replies are backed by evidence.
+- `vs-baby-sit` after address-mode work so the updated PR stays owned while
+  CI and new review feedback arrive.
+
+Inspect-only mode stops after its report and does not start `vs-baby-sit`.
 
 When the current checkout is not already on the PR branch, fix-pr owns the
 branch/worktree setup directly: inspect the PR, preserve unrelated dirty state,
@@ -432,6 +436,20 @@ If `THREAD_ID` is empty: tell user the reply was posted and they can resolve man
 
 Mark TODO complete, move to next comment.
 
+## Post-fix handoff
+
+After address-mode work is committed and pushed, re-resolve the PR URL, branch,
+and exact head SHA. Emit the fix summary, then hand the updated PR to
+`vs-baby-sit` unless the user explicitly says not to watch. Start it as a
+visibly separate babysitting phase and pass the resolved repository, PR number,
+head SHA, and external-write policy already established in this workflow.
+
+Fix-pr does not duplicate that skill's CI or review loop. Once composed,
+`vs-baby-sit` owns new check failures, newly posted feedback, state-change
+waiting, and the merge-ready or attention handoff. Return the babysitter's
+terminal result as the workflow result. A pending check is therefore a handoff
+condition, not a reason for fix-pr to invent another polling loop.
+
 ## Critical Rules
 
 1. **Never post or resolve without explicit approval** — show draft first, wait for confirmation
@@ -463,6 +481,7 @@ Blocked until all items pass — do not report "all addressed" without evidence 
 - [ ] Replies posted on-thread for every addressed comment (user approved each)
 - [ ] Review threads resolved (user approved each resolution)
 - [ ] Required CI and automated reviewer checks are terminal and green after fixes
+- [ ] In address mode, `vs-baby-sit` started after the updated PR was re-resolved unless the user explicitly opted out
 
 Before the final handoff, apply
 [Phase Boundaries](../vs-internal-shared/references/phase-boundaries.md). Keep
@@ -479,5 +498,5 @@ to every user-facing message.
 Direct: emit **Next** only. Composed: return to caller.
 
 **Prev:** `/vs-ship-it` | PR feedback
-**Next:** `/vs-ship-it`
-**Relevant:** `/vs-baby-sit`
+**Next:** `/vs-baby-sit`
+**Relevant:** none

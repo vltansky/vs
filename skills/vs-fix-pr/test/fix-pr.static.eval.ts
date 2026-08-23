@@ -53,3 +53,19 @@ describe('vs-fix-pr CI ownership', () => {
     expect(SKILL).toMatch(/Required CI and automated reviewer checks are terminal and green after fixes/);
   });
 });
+
+describe('vs-fix-pr babysitting handoff', () => {
+  it('hands an addressed PR to baby-sit by default', () => {
+    expect(SKILL).toMatch(/hand the updated PR to\s+`vs-baby-sit`/i);
+    expect(SKILL).toMatch(/unless the user explicitly says not to watch/i);
+    expect(SKILL).toMatch(/visibly separate\s+babysitting phase/i);
+  });
+
+  it('does not duplicate the baby-sit monitoring loop', () => {
+    expect(SKILL).toMatch(/does not duplicate that skill's CI or review loop/i);
+  });
+
+  it('keeps inspect-only requests read-only and finite', () => {
+    expect(SKILL).toMatch(/Inspect-only mode stops after its report and does not start `vs-baby-sit`/i);
+  });
+});

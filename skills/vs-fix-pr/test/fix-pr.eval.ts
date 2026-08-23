@@ -98,6 +98,36 @@ function getAskUserPayload(toolEvents: Array<{ action: string; arguments?: Recor
 }
 
 describe('fix-pr', () => {
+  it('hands completed address-mode work to baby-sit', async () => {
+    const agent = await createFixPrAgent(240);
+
+    try {
+      await promptOnce(
+        agent,
+        'Use fix-pr. Read docs/post-fix-handoff.md and continue from that exact state. ' +
+          'Do not fetch GitHub or repeat the repair. Perform the normal next workflow action.',
+      );
+
+      const result = await evaluate(agent, [
+        check('starts-baby-sit', ({ transcript }) =>
+          /(?:start|hand|transition|compose).*(?:vs-baby-sit|babysit|baby-sit)/is.test(
+            transcript,
+          )),
+        check('preserves-handoff-context', ({ transcript }) =>
+          /#542|pull\/542/i.test(transcript) &&
+          /d508598/i.test(transcript) &&
+          /batch-ask/i.test(transcript)),
+      ], {
+        failFast: false,
+        onScorerError: 'zero',
+      });
+
+      expect(result.score).toBe(1);
+    } finally {
+      await agent.dispose();
+    }
+  });
+
   it('repairs PR-owned CI and review-body feedback in one cycle', async () => {
     const agent = await createAgent({
       agent: EVAL_AGENT,
