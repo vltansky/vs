@@ -38,21 +38,39 @@ For explanations and review results, also apply
 [`explanation-surfaces.md`](./explanation-surfaces.md): simple answers stay in
 chat, while complex answers use a chat TLDR plus one visual HTMDX review surface.
 
-## User step map
+## Visual progress checkpoint
 
-The user-facing process is four steps. Show the **full** map every time the
-user-visible phase changes, so the run is not a string of surprises:
+The user-facing process has four phases: **Alignment**, **Shaping**, **Your
+input needed**, and **Handoff**. At every user-visible phase change, show one
+compact checkpoint that explains the topic, current phase, completed work,
+completed subskills and their contributions, and the workflow's output:
 
-`Align. I shape. You decide. Handoff.`
+```text
+─── <TOPIC> ───
 
-A phase-boundary chat line includes all three, as labeled fields next to
-the full map (`Align → I shape → You decide → Handoff`):
+Progress: <25|50|75|100>% <█░░░|██░░|███░|████>
+<✓|→|○> Alignment: <concrete state>
+<✓|→|○> Shaping: <concrete state>
+<✓|→|○> Your input needed: <the decision, or "none">
+<✓|→|○> Handoff: <concrete state>
+Subskills completed: </vs-* → concrete contribution; ...> or <none yet>
+Output: <durable deliverable and its state>
+```
 
-- **you-are-here** — which of the four is current
-- **remaining** — the steps still ahead
-- **next decision** — the single thing the user must decide or will receive next
+The percentage is the current phase ordinal, not confidence, elapsed work, or
+an estimate: 25% Alignment, 50% Shaping, 75% Your input needed, and 100%
+Handoff. The four-character bar mirrors that ordinal exactly.
 
-Naming the four steps, or heading them, without those labels is not the map.
+Use the user's topic as the header. Write concrete states such as `pilot goal
+aligned` or `scope ready for approval`; do not repeat the phase label as its
+description. List a subskill only after it finishes, in completion order, and
+pair it with the concrete result carried into the parent workflow. Do not list
+active or planned subskills, tools, agents, references, or the parent workflow
+itself. Use `none yet` until the first subskill finishes.
+
+`Output` names what the current workflow is producing, plus `drafting`,
+`ready`, or `blocked` and a path when one exists. For shape-it, use `Goal
+Contract + Execution Strategy`; do not reduce the output to `plan` or `spec`.
 
 Session internals stay hidden: compact, clear, continue, subagent, stop, and
 the session-action named handoff. Those belong to
@@ -65,10 +83,9 @@ contract into those skills.
 
 ## Progress emissions
 
-Emit one line at each phase boundary while a long autonomous run is in flight,
-so the user can see movement without asking. When the user-visible phase
-changes, that line is a step-map line: the full four-step map plus
-you-are-here, remaining, and next decision.
+Emit one checkpoint at each phase boundary while a long autonomous run is in
+flight, so the user can see movement without asking. When the user-visible
+phase changes, use the visual progress checkpoint above.
 
 ```text
 [3/7] The first working slice is committed; 4 of 6 steps are done and tests still pass.

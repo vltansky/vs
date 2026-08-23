@@ -60,6 +60,20 @@ Score 0.0: The agent jumped straight to proposing or implementing a solution (wr
         },
       ),
       check(
+        'opens-with-visual-progress-and-output',
+        ({ transcript }) =>
+          /Progress:\s*25%\s*█░░░/i.test(transcript) &&
+          /Alignment:/.test(transcript) &&
+          /Shaping:/.test(transcript) &&
+          /Your input needed:/.test(transcript) &&
+          /Handoff:/.test(transcript) &&
+          /Subskills completed:\s*none yet/i.test(transcript) &&
+          /Output:\s*Goal Contract\s*\+\s*Execution Strategy drafting/i.test(
+            transcript,
+          ),
+        { weight: 3 },
+      ),
+      check(
         'question-has-why-tldr',
         ({ transcript }) =>
           /\*\*Why:\*\*|Why:\s|\bwhy this\b|what you (lose|risk|give up)/i.test(

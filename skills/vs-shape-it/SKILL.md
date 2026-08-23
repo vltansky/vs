@@ -95,8 +95,9 @@ and current directory. Ask for an evidence location only when it cannot be
 discovered or accessed and choosing the wrong one would materially change the
 design; ordinary navigation is not a strategic question.
 
-Opening is **Align**. When this phase starts, show the full 4-step
-map plus you-are-here, remaining, and next decision per
+Opening is **Alignment**. When this phase starts, show the visual progress
+checkpoint at 25%, with `none yet` for subskills and `Goal Contract + Execution
+Strategy drafting` for Output, per
 [`communication.md`](../vs-internal-shared/references/communication.md).
 
 Every Explore session crosses an explicit alignment checkpoint before
@@ -126,12 +127,27 @@ Use this cadence only for Guided Explore. It is deliberately more interactive
 than the default batched checkpoint:
 
 1. Start with a brief assessment of what is known, what remains undecided, and
-   the likely decision areas. Show the full 4-step user map from
-   [`communication.md`](../vs-internal-shared/references/communication.md):
-   `Align → I shape → You decide → Handoff`, with you-are-here, remaining,
-   and the next decision. Do not name session internals (compact, clear, or
-   the session-action handoff). Do not show a percentage, time estimate,
-   target question count, or empty progress bar.
+   the likely decision areas. Show the visual checkpoint from
+   [`communication.md`](../vs-internal-shared/references/communication.md).
+   Use this shape at every user-visible phase change:
+
+   ```text
+   ─── <TOPIC> ───
+
+   Progress: <25|50|75|100>% <█░░░|██░░|███░|████>
+   <✓|→|○> Alignment: <concrete state>
+   <✓|→|○> Shaping: <concrete state>
+   <✓|→|○> Your input needed: <the decision, or "none">
+   <✓|→|○> Handoff: <concrete state>
+   Subskills completed: </vs-* → concrete contribution; ...> or <none yet>
+   Output: Goal Contract + Execution Strategy <drafting|ready|blocked>
+   ```
+
+   The percentage is the current phase ordinal: 25% Alignment, 50% Shaping,
+   75% Your input needed, and 100% Handoff. It is not confidence or a work
+   estimate. Do not name session internals (compact, clear, or the
+   session-action handoff). Do not show a time estimate, target question count,
+   or an empty progress bar.
 2. Ask one consequential strategic question at a time. Lead with a Why tldr
    (one line: what the user loses if they pick wrong), then the recommended
    answer, then wait. Always include Drill (`eli5`) as the last option.
@@ -227,21 +243,29 @@ continue every safe part of the design.
 
 Autonomous is not silent. Per
 [`../vs-internal-shared/references/communication.md`](../vs-internal-shared/references/communication.md),
-this beat is **I shape**. When the phase changes into or out of it, emit the
-full 4-step map plus you-are-here, remaining, and next decision. Score those
-lines with `skills/vs-shape-it/scripts/reject-step-map.mjs` (identity
-`3ec809b19c36c2d41700e25d19f1a50f4bc4750dbcfc413b84f4e7ccb42af3cf`;
+this beat is **Shaping**. When the phase starts, emit the visual progress
+checkpoint at 50%. Update `Subskills completed` with only finished `/vs-*`
+skills, each paired with the result Shape It kept, and keep `Output: Goal
+Contract + Execution Strategy drafting`. Score
+the checkpoint with `skills/vs-shape-it/scripts/reject-step-map.mjs` (identity
+`ee2e6aed87fd652c945d67a1e7a580bb65ffd23a01a12d7b2b79607ce9a4cdea`;
 exit 1 is a fail). Exclusive cases live under `test/fixtures/step-map`.
 
 ```text
-Align → I shape → You decide → Handoff
-You-are-here: I shape
-Remaining: You decide, Handoff
-Next decision: approve or reject the recommended scope when I return
+─── STASH CANVAS PILOT ───
+
+Progress: 50% ██░░
+✓ Alignment: pilot goal aligned
+→ Shaping: scope and evidence in progress
+○ Your input needed: none
+○ Handoff: Goal Contract + Execution Strategy
+Subskills completed: none yet
+Output: Goal Contract + Execution Strategy drafting
 ```
 
 Do not turn these into questions. They report state; they do not request input.
-Do not name session internals on this line.
+Do not name session internals in the checkpoint. The topic and states above are
+examples; replace them with the current work.
 
 #### Gather evidence
 
@@ -569,9 +593,13 @@ eli5. Do not treat the eli5 as a replacement contract.
 After `/vs-eli5` returns `Saved:`, always produce the eli5 HTML and the chat
 TLDR. Display: save the eli5 HTML and put its path (or “eli5 saved”) in close item 2 as a link; do not auto-open, and do not run `open` or `xdg-open` unless the user picked Drill mid-session or later asks to open the file.
 
-Entering **You decide** / **Handoff** is a phase change: emit the full 4-step
-map plus you-are-here, remaining, and next decision as a progress line, then
-the close. That map line is not a fifth close item.
+Entering **Your input needed** is a phase change: emit the visual progress
+checkpoint at 75%, then the close. Name the exact approval or rework decision,
+list every completed `/vs-*` subskill with its concrete contribution (including
+the `/vs-eli5` review path and `/vs-pushback` verdict here), and set `Output` to
+`Goal Contract + Execution Strategy ready` or `blocked`. The checkpoint is not
+a fifth close item. After approval, emit the 100% **Handoff** checkpoint before
+routing to the approved execution flow.
 
 Chat is only this exclusive 4-item close, in this order:
 

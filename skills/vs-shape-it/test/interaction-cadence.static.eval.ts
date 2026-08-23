@@ -50,20 +50,21 @@ describe('shape-it: interaction cadence', () => {
     expect(interview).toMatch(/agent supplies facts, code reading, and recommendations/i);
   });
 
-  it('gives guided exploration compact orientation without progress theater', () => {
+  it('shows a visual checkpoint with progress, subskills, and the shaping output', () => {
     const interview = SKILL.slice(
       SKILL.indexOf('#### Guided Explore interview'),
       SKILL.indexOf('For either cadence'),
     );
 
+    expect(interview).toMatch(/Progress: <25\|50\|75\|100>%/i);
+    expect(interview).toMatch(/Your input needed/i);
+    expect(interview).toMatch(/Subskills completed:/i);
     expect(interview).toMatch(
-      /Align.*I shape.*You decide.*Handoff/is,
+      /Subskills completed:.*\/vs-\* → concrete contribution/is,
     );
-    expect(interview).toMatch(/you-are-here/i);
-    expect(interview).toMatch(/remaining/i);
-    expect(interview).toMatch(/next decision/i);
+    expect(interview).toMatch(/Output:.*Goal Contract.*Execution Strategy/is);
     expect(interview).toMatch(/resolved.*open decisions/i);
-    expect(interview).toMatch(/Do not show.*percentage.*time.*question count/is);
+    expect(interview).toMatch(/Do not show.*time.*question count/is);
     expect(interview).toMatch(/Accept `done`, `skip`, `back`, `\?`, and `eli5`/i);
   });
 

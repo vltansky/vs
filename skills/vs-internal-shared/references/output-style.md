@@ -105,7 +105,10 @@ Section bodies are markdown lists. HTML collapses a run of spaces to one, and a
 single newline is a soft break, so consecutive bare lines can join into one
 paragraph. Lists and bold labels survive both terminal and HTML renderers.
 
-Never draw a box, a right border, a padded column, or a full-width rule. Do not
+Never draw a box, a right border, a padded column, or a full-width rule. The
+short topic banner, phase symbols, and four-character bar in
+[`communication.md`](./communication.md) are the one exception for a
+user-visible phase change. Do not use them as decoration elsewhere. Do not
 probe the host to choose formatting. Where a skill genuinely must branch on
 host behavior, branch on capability instead — for example, whether
 `request_user_input` is listed.

@@ -5,7 +5,7 @@
 //
 // Exit 0 clean. Exit 1 reject. Exit 2 cannot check. Treat 2 as not a pass.
 // Exclusive is fixture text only: the live rejector identity hash in the
-// scored body, or an inherit pointer without a you-are-here paste.
+// scored body, or an inherit pointer without a pasted checkpoint.
 import { createHash } from 'node:crypto';
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
@@ -13,7 +13,7 @@ import { fileURLToPath } from 'node:url';
 
 const SELF = fileURLToPath(import.meta.url);
 const PUBLISHED_REJECTOR_SHA256 =
-  '3ec809b19c36c2d41700e25d19f1a50f4bc4750dbcfc413b84f4e7ccb42af3cf';
+  'ee2e6aed87fd652c945d67a1e7a580bb65ffd23a01a12d7b2b79607ce9a4cdea';
 
 function sha256(buf) {
   return createHash('sha256').update(buf).digest('hex');
@@ -84,11 +84,12 @@ function exclusiveFromText(body) {
   );
 }
 
-const hasPointer = /communication\.md/i.test(text) && /step map/i.test(text);
+const hasPointer =
+  /communication\.md/i.test(text) && /visual progress checkpoint/i.test(text);
 const inheritOnly =
   /inherit/i.test(text) &&
   hasPointer &&
-  !/you-are-here|you are here/i.test(text);
+  !/^Progress:/im.test(text);
 
 if (looksLikeSkill) {
   if (exclusiveFromText(text) || inheritOnly) {
@@ -98,22 +99,22 @@ if (looksLikeSkill) {
   process.exit(1);
 }
 
-const four =
-  /\balign\b/i.test(text) &&
-  /i shape/i.test(text) &&
-  /you decide/i.test(text) &&
-  /\bhandoff\b/i.test(text);
-const labeledYou = /you-are-here\s*:/i.test(text);
-const labeledRemaining = /\bremaining\s*:/i.test(text);
-const labeledNext = /next decision\s*:/i.test(text);
-const mapped =
-  /align\s*(?:→|->)\s*i shape\s*(?:→|->)\s*you decide\s*(?:→|->)\s*handoff/i.test(
+const hasTopic = /^───\s+\S.+\s+───$/m.test(text);
+const hasExactProgress =
+  /^Progress:\s*(?:25%\s+█░░░|50%\s+██░░|75%\s+███░|100%\s+████)\s*$/im.test(
     text,
   );
+const hasPhases =
+  /^[✓→○]\s+Alignment:\s*\S/im.test(text) &&
+  /^[✓→○]\s+Shaping:\s*\S/im.test(text) &&
+  /^[✓→○]\s+Your input needed:\s*\S/im.test(text) &&
+  /^[✓→○]\s+Handoff:\s*\S/im.test(text);
+const hasSubskills = /^Subskills completed:\s*\S/im.test(text);
+const hasOutput = /^Output:\s*\S/im.test(text);
 
-if (!four || !labeledYou || !labeledRemaining || !labeledNext || !mapped) {
+if (!hasTopic || !hasExactProgress || !hasPhases || !hasSubskills || !hasOutput) {
   console.error(
-    'reject-step-map: phase-boundary chat line omits you-are-here / remaining / next decision',
+    'reject-step-map: phase checkpoint omits visual progress / phases / subskills / output',
   );
   process.exit(1);
 }
