@@ -3,6 +3,26 @@
 vs is a workflow plugin for Claude Code, Codex, and Cursor. You decide the
 direction and when to publish. VS handles the work from research to verified PR.
 
+![VS keeps agents working autonomously and brings humans back at focused alignment points](assets/human-agent-sync.png)
+
+## Work in different rhythms
+
+Agents and humans work best on different timescales. An agent can stay inside a
+task long enough to plan, implement, test, debug, review, and verify. Human
+attention moves between projects, so context fades while that work continues.
+Raw logs and long explanations do not restore it quickly.
+
+vs is built around fewer, better synchronization points. Between them, the
+agent keeps itself moving with planning, TDD, debugging, review, QA, and
+verification. At each point, it compresses what happened into a short
+explanation and visual evidence, then asks only the questions that can change
+the next run.
+
+The human reviews the result, restores shared context, makes the strategic
+calls, and focuses the next stretch of work. The goal is not to remove the
+human. It is to spend human attention on judgment while the agent owns routine
+execution.
+
 ## How vs works
 
 ```mermaid
