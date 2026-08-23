@@ -56,13 +56,17 @@ Turns an idea into an evidence-backed design for your approval.
 ```mermaid
 flowchart TD
     I[Input] --> R{What did you bring?}
-    R -- Vague idea --> E[Explore<br/>Up to 3 strategic questions]
-    R -- "Interview me" --> G[Guided Explore<br/>One question at a time]
-    R -- Formed plan --> C[Challenge<br/>Pushback score and verdict]
-    E --> S[Research, design, stress-test]
+    R -- Vague idea --> E[Explore<br/>Up to 3 independent questions in one batch]
+    R -- "Interview me" --> G[Guided Explore<br/>Up to 3 adaptive questions per round]
+    R -- Formed plan --> C["Challenge<br/>/vs-pushback"]
+    E --> S["Research and design<br/>/vs-github-research? · /vs-architect? · /vs-eval?"]
     G --> S
-    S --> D{Strategic decisions resolved?}
-    D -- Yes --> O[Approval-ready design]
+    S --> X["Stress-test<br/>/vs-pushback"]
+    X --> D{Strategic decisions resolved?}
+    C --> D
+    D -- Yes --> M{Explore mode?}
+    M -- Yes --> K["Explain spec<br/>/vs-eli5"] --> O[Approval-ready design]
+    M -- No --> O
     D -- No --> L[Living spec<br/>Open decisions and next decision]
     L -. Next session .-> S
 ```
@@ -74,19 +78,20 @@ Turns the approved direction into working, verified code.
 ```mermaid
 flowchart TD
     I[Requested outcome] --> P{Approved plan?}
-    P -- No --> A[Create plan<br/>Use architect when needed]
-    P -- Yes --> C[Challenge plan]
+    P -- No --> A["Create plan<br/>/vs-architect?"]
+    P -- Yes --> C["Challenge plan<br/>/vs-pushback"]
     A --> C
     C --> R{Ready to build?}
     R -- No --> S[Stop for strategic decision]
-    R -- Yes --> E[Implement with TDD]
+    R -- Yes --> E["Implement<br/>/vs-tdd · /vs-decide-for-me"]
     E --> D{Failure needs investigation?}
-    D -- Yes --> G[Debug from evidence] --> E
-    D -- No --> V[Review integrated diff]
+    D -- Yes --> G["Debug from evidence<br/>/vs-debug-mode"] --> E
+    D -- No --> V["Review integrated diff<br/>/vs-roast-code? · /vs-deslop?"]
     V --> Q{Changed browser behavior?}
-    Q -- Yes --> B[Focused browser QA]
-    Q -- No --> O[Verify]
+    Q -- Yes --> B["Focused browser QA<br/>/vs-qa"]
+    Q -- No --> O["Verify<br/>/vs-verify"]
     B --> O
+    O --> H["Handoff<br/>/vs-brief? · /vs-eval?"]
 ```
 
 ### `/vs-ship-it`: publish and follow through
@@ -97,11 +102,11 @@ Publishes the scoped work and reports its CI and review status.
 flowchart TD
     I[Permission to publish] --> D{PR or direct push?}
     D -- PR --> R{Review explicitly approved?}
-    R -- Yes --> V[Run or reuse review]
+    R -- Yes --> V["Run or reuse review<br/>/vs-roast-code"]
     R -- No --> P[Skip review]
-    V --> C[Check, commit, push, prepare PR]
+    V --> C["Check, commit, push, prepare PR<br/>/vs-eval for skill contracts"]
     P --> C
-    C --> O[Create and verify PR] --> W[Follow CI and review]
+    C --> O[Create and verify PR] --> W["Follow CI and review<br/>/vs-baby-sit"]
     D -- Direct push --> F[Check destination, commit, push] --> S[Verify remote SHA]
 ```
 

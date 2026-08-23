@@ -33,11 +33,11 @@ const REAL_ORCHESTRATOR_PROMPT =
 
 const GUIDED_PROGRESS_PROMPT =
   'I want to improve our planning workflow so it gives me a clearer sense of ' +
-  'progress and asks one question at a time, but still ends with a build-ready ' +
+  'progress and asks a small batch of questions at a time, but still ends with a build-ready ' +
   'handoff. Interview me to work through the design.';
 
 describe('shape-it (real prompt)', () => {
-  it('guided explore: orients with decision progress and asks one real question', async () => {
+  it('guided explore: orients with decision progress and asks a focused question batch', async () => {
     const agent = await createAgent({
       agent: EVAL_AGENT,
       timeout: 300,
@@ -52,27 +52,27 @@ describe('shape-it (real prompt)', () => {
       agent,
       [
         check(
-          'shows-compact-phase-map',
+          'shows-visual-checkpoint',
           ({ transcript }) =>
-            /align[\s\S]*evidence[\s\S]*design[\s\S]*challenge[\s\S]*handoff/i.test(
+            /progress:[\s\S]*alignment[\s\S]*shaping[\s\S]*your input needed[\s\S]*handoff[\s\S]*subskills completed[\s\S]*output:/i.test(
               transcript,
             ),
           { weight: 2 },
         ),
         check(
-          'avoids-progress-theater',
+          'avoids-fake-estimates',
           ({ transcript }) =>
-            !/\b\d+%|\b\d+\s*(?:-|–|to)\s*\d+\s*(?:min|minutes|questions)|\[□+\]/i.test(
+            !/\b\d+\s*(?:-|–|to)\s*\d+\s*(?:min|minutes|questions)|\[□+\]/i.test(
               transcript,
             ),
           { weight: 2 },
         ),
-        judge('one-consequential-question', {
+        judge('focused-consequential-question-batch', {
           rubric: `Review the FIRST agent response and any ask_user / AskUserQuestion tool event.
 
-Score 1.0: It briefly orients the user, then asks exactly one consequential design question with a recommendation and meaningful trade-offs. It does not ask a process-only question such as whether to skip a section.
-Score 0.5: It asks one useful question but provides weak orientation or no recommendation.
-Score 0.0: It asks multiple questions, asks only a process-control question, invents progress percentages/time/question counts, or presents a full design before the answer.`,
+Score 1.0: It briefly orients the user, then asks one to three independent consequential design questions in one round. Each has a recommendation and meaningful trade-offs. It does not ask a process-only question such as whether to skip a section.
+Score 0.5: It asks a useful question batch but provides weak orientation or recommendations.
+Score 0.0: It asks more than three questions, batches questions whose answers depend on each other, asks only process-control questions, invents progress percentages/time/question counts, or presents a full design before the answer.`,
           weight: 3,
           includeToolEvents: true,
         }),
