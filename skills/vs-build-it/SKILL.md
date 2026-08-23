@@ -48,6 +48,8 @@ worker briefs.
 
 Build-it is autonomous, not silent. Follow
 [`../vs-internal-shared/references/communication.md`](../vs-internal-shared/references/communication.md).
+User step map: inherit that communication contract. Pointer only; do not
+restate the map.
 For the final explanation and review artifact, also follow
 [`../vs-internal-shared/references/explanation-surfaces.md`](../vs-internal-shared/references/explanation-surfaces.md).
 

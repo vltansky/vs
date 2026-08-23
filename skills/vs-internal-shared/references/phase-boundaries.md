@@ -11,6 +11,11 @@ the context should continue**. These are separate decisions:
 The agent owns this decision. Do not make the user remember the routing model or
 choose among several context-management commands without a recommendation.
 
+The user-facing step map (Align. I shape. You decide. Handoff.) lives in
+[`communication.md`](./communication.md). This file owns session actions only.
+Do not surface compact, clear, continue, subagent, stop, or the session-action
+handoff on the user map. Keep those internals hidden unless the user must act.
+
 ## Choose one session action
 
 Evaluate the routes in this order and choose exactly one:

@@ -49,6 +49,11 @@ diagram. Use generated images only for a mental model or metaphor that Mermaid
 or factual components cannot teach cleanly; never use them as technical evidence
 or proof that a product state exists.
 
+When the deliverable is HTMDX, inherit the URL + first-screen shot handoff
+from [`../../vs-htmdx/SKILL.md`](../../vs-htmdx/SKILL.md). Pointer only;
+`/vs-qa` and other report skills follow this file rather than restating
+that capture contract.
+
 ## Artifact contract
 
 An HTMDX result is one `.html` file. It contains one editable

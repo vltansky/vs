@@ -205,6 +205,9 @@ Valid `<command>` is any command from the table above. Report the script's resul
 
 `/vs-roast-ui hooks <on|off|status|ignore-rule|ignore-file|ignore-value|reset>` manages the design detector hook for this project. The hook auto-runs the detector after direct UI file edits and surfaces findings as system reminders. Full flow is in [references/hooks.md](references/hooks.md); load it when the user invokes `/vs-roast-ui hooks` with any argument.
 
+When this run creates HTMDX, inherit the URL + first-screen shot handoff from
+[`../vs-htmdx/SKILL.md`](../vs-htmdx/SKILL.md). Pointer only.
+
 ## Output style
 
 Apply the [shared output style](../vs-internal-shared/references/output-style.md)
