@@ -33,7 +33,7 @@ runtime, so read them from the runtime rather than from memory. Run this before
 authoring, editing, or reviewing any HTMDX, from this skill's directory:
 
 ```bash
-npx -y @wix/htmdx@4 skill --definitions assets/definitions.mjs
+npx -y @wix/htmdx@4 skill --definitions ./assets/definitions.mjs
 ```
 
 `assets/definitions.mjs` is the vs catalog: the `vs` layout the artifact
@@ -47,7 +47,7 @@ When editing a file that already pins a runtime, read the guidance from *that*
 version instead, so it matches what the artifact actually loads:
 
 ```bash
-npx -y @wix/htmdx@<pinned-version> skill --definitions assets/definitions.mjs
+npx -y @wix/htmdx@<pinned-version> skill --definitions ./assets/definitions.mjs
 ```
 
 `--definitions` exists from 4.15.0. A pinned CLI that rejects the flag also
@@ -139,7 +139,7 @@ Before presenting the artifact:
    HTML, and an unpinned runtime faster than reading for them:
 
 ```bash
-npx -y @wix/htmdx@4 lint "$ARTIFACT_PATH" --strict --definitions assets/definitions.mjs
+npx -y @wix/htmdx@4 lint "$ARTIFACT_PATH" --strict --definitions ./assets/definitions.mjs
 ```
 
 Exit `0` is clean, `1` means problems were found, and `2` means the check never

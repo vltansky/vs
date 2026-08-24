@@ -45,12 +45,15 @@ describe('the vs catalog is one source the CLI and the browser both load', () =>
   });
 
   it('passes the catalog to every command that reads the registry', () => {
+    // The CLI reads a bare "assets/definitions.mjs" as a package name and
+    // rejects it; only the ./-prefixed form loads the file.
     expect(SKILL).toContain(
-      'npx -y @wix/htmdx@4 skill --definitions assets/definitions.mjs',
+      'npx -y @wix/htmdx@4 skill --definitions ./assets/definitions.mjs',
     );
     expect(SKILL).toContain(
-      'npx -y @wix/htmdx@4 lint "$ARTIFACT_PATH" --strict --definitions assets/definitions.mjs',
+      'npx -y @wix/htmdx@4 lint "$ARTIFACT_PATH" --strict --definitions ./assets/definitions.mjs',
     );
+    expect(SKILL).not.toContain('--definitions assets/');
   });
 
   it('routes pins that predate the flag instead of dead-ending', () => {
