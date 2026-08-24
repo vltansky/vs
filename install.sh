@@ -40,7 +40,8 @@ install_for() {
 install_codex_hook() {
   command -v codex >/dev/null 2>&1 || return 0
   local plugin_path
-  plugin_path="$(codex plugin list 2>/dev/null | awk '$1 == "vs@vs" { print $NF; exit }')"
+  # awk must consume all input: exiting early SIGPIPEs codex, which panics.
+  plugin_path="$(codex plugin list 2>/dev/null | awk '$1 == "vs@vs" && !found { print $NF; found = 1 }')"
   if [ -z "$plugin_path" ] || [ ! -f "$plugin_path/hooks/install-codex-hook.mjs" ]; then
     skip "codex: installed vs plugin not found — ponytail hook not registered"
     return
