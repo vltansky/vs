@@ -30,9 +30,15 @@ export const vsLayoutCss = `
     --md-sys-shape-corner-medium: 4px;
     --md-sys-shape-corner-large: 5px;
     --md-sys-shape-corner-extra-large: 5px;
-    /* The vs palette: one accent hue, everything else a neutral ink ladder on
-       white. The runtime ships purple-tinted Material neutrals; these are the
-       consolidated values from wix-private/htmdx#5, scoped to the layout. */
+    /* The vs palette: an ink accent on a neutral ladder, so the only color on
+       the page is semantic (emerald/red/amber in the components). The runtime
+       ships a purple primary and purple-tinted neutrals; the ladder is the
+       wix-private/htmdx#5 consolidation, the ink primary replaces #5's
+       leftover purple. Scoped to the layout. */
+    --md-sys-color-primary: #111111;
+    --md-sys-color-on-primary: #FFFFFF;
+    --md-sys-color-primary-container: #F2F2F2;
+    --md-sys-color-on-primary-container: #000000;
     --md-sys-color-secondary: #5C5C5C;
     --md-sys-color-on-secondary: #FFFFFF;
     --md-sys-color-secondary-container: #F2F2F2;
