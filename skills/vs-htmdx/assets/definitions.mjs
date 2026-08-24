@@ -1,28 +1,15 @@
-<!doctype html>
-<!--
-  VS HTMDX artifact. Edit only the text inside the primary
-  script[type="text/htmdx"] block and the existing title text.
--->
-<html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="vs-artifact-format" content="htmdx@2" />
-    <meta name="vs-renderer" content="@wix/htmdx@4" />
-    <title>[[TITLE]]</title>
-    <script
-      src="https://cdn.jsdelivr.net/npm/@wix/htmdx@4/dist/browser.js"
-      defer
-    ></script>
-    <script>
-      // Browser copy of the vs catalog. The CLI loads it from
-      // assets/definitions.mjs via --definitions; a portable artifact cannot
-      // import that file, so the same layout and stylesheet register here.
-      // test/vs-catalog.static.eval.ts fails when the two copies drift.
-      window.addEventListener('htmdx:ready', () => {
-        window.Htmdx.registerTheme({
-          id: 'vs',
-          css: `
+// The vs catalog: the layout and stylesheet every vs report renders against,
+// loaded by the CLI via `--definitions` so lint, compile, and skill answer
+// against the same catalog the artifact loads in the browser.
+//
+// The browser copy lives inline in artifact.html — a portable single-file
+// artifact cannot import this module — and test/vs-catalog.static.eval.ts
+// fails the build when the two drift.
+
+// Written against the runtime's custom-layout DOM: markdown runs render as
+// bare element groups (`> div`) and components as direct
+// `section[data-htmdx-component]` children, with none of the default chrome.
+export const vsLayoutCss = `
   /* vs: one column of source-order content, no rail, no hero, no section
      cards. Scoped to the layout so every other artifact this runtime renders
      keeps its stock look. */
@@ -174,33 +161,12 @@
     .htmdx-app[data-htmdx-layout='vs'] { padding: 28px 20px 48px; }
     .htmdx-app[data-htmdx-layout='vs'] > div h2 { margin-top: 32px; padding-top: 16px; }
   }
-`,
-        });
-        window.Htmdx.registerLayout({
-          name: 'vs',
-          Component: (props) => props.children,
-        });
-      });
-    </script>
-  </head>
-  <body>
-    <!-- prettier-ignore -->
-    <script
-      type="text/htmdx"
-      data-vs-source="primary"
-      data-vs-format="htmdx@2"
-    >
----
-title: [[TITLE]]
-updated: [[YYYY-MM-DD]]
-layout: vs
----
+`;
 
-# [[TITLE]]
+export const layouts = [
+  // The runtime's custom-layout shell already renders blocks in source order
+  // with no chrome, which is the vs design; the stylesheet carries the rest.
+  { name: 'vs', Component: ({ children }) => children },
+];
 
-<ExecutiveSummary>
-[[CONCLUSION]]
-</ExecutiveSummary>
-    </script>
-  </body>
-</html>
+export const themes = [{ id: 'vs', css: vsLayoutCss }];

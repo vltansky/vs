@@ -30,18 +30,29 @@ An HTMDX deliverable is:
 
 The component catalog, body grammar, and diagnostics are versioned with the
 runtime, so read them from the runtime rather than from memory. Run this before
-authoring, editing, or reviewing any HTMDX:
+authoring, editing, or reviewing any HTMDX, from this skill's directory:
 
 ```bash
-npx -y @wix/htmdx@4 skill
+npx -y @wix/htmdx@4 skill --definitions assets/definitions.mjs
 ```
+
+`assets/definitions.mjs` is the vs catalog: the `vs` layout the artifact
+template names, which lives here rather than in the runtime. `--definitions`
+makes the CLI answer against it — without the flag the linter reports
+`unknown-layout` on a working artifact, and the skill output omits the
+catalog's `external` topic. The template inlines a browser copy of the same
+catalog, so a saved artifact renders it with no extra file.
 
 When editing a file that already pins a runtime, read the guidance from *that*
 version instead, so it matches what the artifact actually loads:
 
 ```bash
-npx -y @wix/htmdx@<pinned-version> skill
+npx -y @wix/htmdx@<pinned-version> skill --definitions assets/definitions.mjs
 ```
+
+`--definitions` exists from 4.15.0. A pinned CLI that rejects the flag also
+predates the vs layout — drop the flag there; those artifacts name
+`layout: default` and lint without the catalog.
 
 Follow that output as the source of truth for the artifact contract, component
 choice, body grammar, attributes, and the CLI. Load a companion topic when the
@@ -84,7 +95,9 @@ uncertainty.
      `~/.vs/$PROJECT_ID/vs-htmdx/YYYY-MM-DD-<slug>.html`.
 2. Start from [assets/artifact.html](assets/artifact.html), which carries the
    `vs` artifact metadata the other `vs` report skills share. Copy the complete
-   shell; replace the title, frontmatter, and primary source placeholders.
+   shell; replace the title, frontmatter, and primary source placeholders. The
+   shell's inline script is the browser copy of the vs catalog that
+   `layout: vs` renders through — keep it intact.
 3. Keep `@wix/htmdx@4` pinned in both the renderer metadata and script URL.
    Every `vs` template pins one major line — do not diverge from it for a single
    artifact. The major is the pin: `@wix/htmdx` promises compatibility within a
@@ -126,7 +139,7 @@ Before presenting the artifact:
    HTML, and an unpinned runtime faster than reading for them:
 
 ```bash
-npx -y @wix/htmdx@4 lint "$ARTIFACT_PATH" --strict
+npx -y @wix/htmdx@4 lint "$ARTIFACT_PATH" --strict --definitions assets/definitions.mjs
 ```
 
 Exit `0` is clean, `1` means problems were found, and `2` means the check never
