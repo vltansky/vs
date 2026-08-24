@@ -145,7 +145,7 @@ describe('ship-it creates the PR without rebuilding delivery evidence', () => {
   });
 
   it('hands verified PRs to babysitting without duplicating its loop', () => {
-    expect(SHIP_IT).toMatch(/Hand the verified PR to `vs-baby-sit`/i);
+    expect(SHIP_IT).toMatch(/Hand the verified draft PR to `vs-baby-sit`/i);
     expect(SHIP_IT).toMatch(/unless the user explicitly says not to watch/i);
     expect(SHIP_IT).toMatch(/does not\s+duplicate that skill's CI or automated-review loop/i);
   });

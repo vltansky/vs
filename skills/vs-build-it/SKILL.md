@@ -166,6 +166,12 @@ when the user asks build-it to use a Codex goal.
 
 - Read CLAUDE.md for project-specific commands (test, build, lint).
 - Read the plan file the user pointed to (or the most recent plan in conversation).
+- Reconcile that plan with later accepted decisions in the current conversation.
+  When a newer user decision conflicts with the plan, update the durable plan
+  before any implementation or worker brief uses it. Do not leave a governing
+  decision only in the conversation. If it changes a recorded repo-level
+  decision, keep implementation blocked until Phase 2 records the superseding
+  ADR.
 - Resolve and read the applicable repository context docs before interpreting the
   plan: root `CONTEXT-MAP.md` first when present, then the mapped or root
   `CONTEXT.md` described by
@@ -335,6 +341,24 @@ Order steps using Step 1d before ordinary code dependencies. A foundation comes
 first only when it is the cheapest proof or is necessary for the smallest
 vertical slice. Prefer one end-to-end slice over separate contract-only,
 backend-only, and frontend-only milestones that delay observable behavior.
+
+### Step 1e: Require rollout compatibility proof
+
+When the plan changes a contract between independently deployed producers and
+consumers — including a proto, API, queue payload, event, or persisted schema —
+add a mixed-version rollout matrix to the plan before roasting or implementing
+it. Cover every applicable direction and recovery boundary:
+
+- old producer with new consumer;
+- new producer with old consumer;
+- in-flight work across the deploy, duplicate delivery or replay, a crash
+  between claim/publish/persist boundaries, and lease expiry or takeover;
+- malformed, mismatched, or downgraded messages failing closed, plus rollback.
+
+Each row names the public seam and its deterministic test or written argument.
+The change cannot be called complete until every applicable matrix row is
+proven against the final implementation. An untestable row remains an explicit
+rollout gap and blocks a rollout-safety claim.
 
 ---
 

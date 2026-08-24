@@ -105,7 +105,7 @@ flowchart TD
     D -- PR --> C["Check, commit, push<br/>/vs-eval for skill contracts"]
     C --> B["Prepare PR description<br/>feature_area: title<br/>Problem + Before/After<br/>Why this change<br/>User impact<br/>Evidence + gaps<br/>Review focus"]
     B --> M["Attach available proof<br/>matched screenshots for static states<br/>short video for interactions"]
-    M --> O[Create and verify PR] --> W["Follow CI and GitHub review<br/>/vs-baby-sit"]
+    M --> O[Create and verify draft PR] --> W["Earn ready-for-review, then follow CI and GitHub review<br/>/vs-baby-sit"]
     D -- Direct push --> F[Check destination, commit, push] --> S[Verify remote SHA]
 ```
 
@@ -175,7 +175,7 @@ the hook; `VS_MINIMUM_SOLUTION=off` remains a compatibility alias.
 | `/vs-improve` | Audit a repo and write prioritized implementation plans without editing source |
 | `/vs-bugfix` | Reproduce, fix, verify, and review a bug end to end |
 | `/vs-fix-pr` | Evaluate and address PR feedback with approval before replies or resolution |
-| `/vs-baby-sit` | Keep a PR merge-ready as CI and review state changes |
+| `/vs-baby-sit` | Keep repairs draft until the current head earns ready-for-review and merge-ready evidence |
 
 Architecture: /vs-architect -> /vs-shape-it -> /vs-build-it
 

@@ -28,7 +28,7 @@ describe('vs-ship-it behavior', () => {
         agent,
         `Use $vs-ship-it. The user said only "create pr" and did not ask to skip watching.
 
-Assume the scoped changes are already validated and committed, PR #542 was just created, and Step 5b verified its URL, branch, and head SHA. CI and automated review are pending.
+Assume the scoped changes are already validated and committed, PR #542 was just created as a draft, and Step 5b verified its URL, branch, draft state, and head SHA. CI and automated review are pending.
 
 Describe what you do next. Do not perform real GitHub writes or start a real watcher.`,
       );
@@ -44,19 +44,34 @@ Describe what you do next. Do not perform real GitHub writes or start a real wat
           }),
           check('does-not-end-at-pr-link', ({ log }) => {
             const output = assistantOutput(log);
-            const verifiedPr = output.search(/verified PR|PR.*(?:created|verified)|Step 5b/i);
+            const verifiedPr = output.search(
+              /verified (?:draft )?PR|PR.*(?:created|verified)|Step 5b/i,
+            );
             const babysit = output.search(
-              /start.*(?:baby-?sit|babysitting)|transition.*babysit|hand off.*vs-baby-sit/i,
+              /start.*(?:baby-?sit|babysitting)|transition.*babysit|hand (?:off )?.*to .*vs-baby-sit/i,
             );
             return verifiedPr >= 0 && babysit > verifiedPr;
+          }),
+          check('keeps-pr-draft-until-babysit-gates-pass', ({ log }) => {
+            const output = assistantOutput(log);
+            return (
+              /draft/i.test(output) &&
+              /(?:baby-?sit|babysitting).*ready for review|ready for review.*(?:baby-?sit|babysitting)|babysit.*transition/is.test(
+                output,
+              ) &&
+              (/(?:after|once|only when).*(?:CI|exact head).*(?:pass|green|success)/is.test(
+                output,
+              ) ||
+                /CI[\s\S]*automated review[\s\S]*once both pass/i.test(output))
+            );
           }),
           check('uses-the-babysit-contract', ({ log }) => {
             const output = assistantOutput(log);
             return (
               /vs-baby-sit|babysitting phase/i.test(output) &&
-              /(?:monitor|watch).*CI/is.test(output) &&
+              /(?:monitor|watch|wait).*CI/is.test(output) &&
               /automated review|reviewer-bot findings/i.test(output) &&
-              /failure|fails|actionable|needs a human/i.test(output)
+              /separate.*(?:vs-baby-sit|babysitting)|hand.*to.*vs-baby-sit/is.test(output)
             );
           }),
         ],

@@ -31,11 +31,11 @@ describe('vs-baby-sit behavior', () => {
         `Use $vs-baby-sit on PR #542 and automatically fix failures caused by this PR until it is merge-ready.
 
 The watcher has just returned this first event with exit code 10:
-{"event":"attention","reason":"ci-failure","snapshot":{"headSha":"abc123","mergeable":true,"reviewDecision":"REVIEW_REQUIRED","unresolvedThreads":0,"ciState":"FAILURE","failures":[]}}
+{"event":"attention","reason":"ci-failure","snapshot":{"draft":false,"headSha":"abc123","mergeable":true,"reviewDecision":"REVIEW_REQUIRED","unresolvedThreads":0,"ciState":"FAILURE","failures":[]}}
 
 The shared check inspector identifies one external provider check and its build URL, but no GitHub Actions logs. This environment has an installed provider build-investigation skill that can retrieve those logs. The configured checkout contains unrelated user changes.
 
-Describe the exact actions you take now, including what happens after a successful fix is pushed and what you do if the next watcher event says CI is successful and review approval from requested team platform-reviewers is the only remaining gate. Auto-merge is armed and a production rollout is planned afterward. Do not invent the missing provider error.`,
+Describe the exact actions you take now, including how you protect the old head before local repair. After the successful fix is pushed, assume the same watcher returns {"event":"attention","reason":"ready-for-review","snapshot":{"draft":true,"headSha":"def456","mergeable":true,"reviewDecision":"REVIEW_REQUIRED","unresolvedThreads":0,"ciState":"SUCCESS","failures":[]}}. Explain how you handle that event and what you do if the resumed watcher says review approval from requested team platform-reviewers is the only remaining gate. Auto-merge is armed and a production rollout is planned afterward. Do not invent the missing provider error.`,
       );
 
       const result = await evaluate(
@@ -76,6 +76,19 @@ Describe the exact actions you take now, including what happens after a successf
               )
             );
           }),
+          check('drafts-before-local-repair', ({ log }) => {
+            const output = assistantOutput(log);
+            const draft = output.search(/gh pr ready --undo|convert.*(?:PR|pull request).*draft/i);
+            const afterDraft = output.slice(Math.max(draft, 0));
+            return (
+              draft >= 0 &&
+              /(?:create|add).*worktree|local repair|apply.*fix|smallest repair/i.test(
+                afterDraft,
+              ) &&
+              /same head|head.*abc123|abc123.*head/i.test(output) &&
+              /isDraft.*true|draft.*true|verify.*draft/i.test(output)
+            );
+          }),
           check('returns-to-same-watcher-task', ({ log }) => {
             const output = assistantOutput(log);
             return (
@@ -90,6 +103,20 @@ Describe the exact actions you take now, including what happens after a successf
             return (
               /next watcher event|return.*watcher|resume.*watcher|reuse.*watcher/i.test(output) &&
               !/sleep loop|repeated.*gh|re-check PR state/i.test(output)
+            );
+          }),
+          check('promotes-only-after-green-draft-event', ({ log }) => {
+            const output = assistantOutput(log);
+            const event = output.search(/ready-for-review/i);
+            const ready = output.slice(Math.max(event, 0)).search(/gh pr ready(?! --undo)/i);
+            return (
+              event >= 0 &&
+              ready >= 0 &&
+              /same head|head.*def456|def456.*head|still at `?def456/i.test(
+                output.slice(event),
+              ) &&
+              /isDraft.*false|draft.*false|no longer draft/i.test(output.slice(event)) &&
+              /resume the same watcher|same watcher.*resume/i.test(output.slice(event))
             );
           }),
           check('stops-on-approval-only-gate', ({ log }) => {

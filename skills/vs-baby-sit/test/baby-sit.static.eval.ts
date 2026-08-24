@@ -23,6 +23,15 @@ describe('vs-baby-sit remote-first validation', () => {
     expect(SKILL).toMatch(/repository policy\s+requires pre-push validation/);
   });
 
+  it('protects the old head during repair and owns the ready-for-review transition', () => {
+    expect(SKILL).toContain('gh pr ready --undo');
+    expect(SKILL).toMatch(/before.*local repair/is);
+    expect(SKILL).toMatch(/old\s+head.*cannot be\s+merged/is);
+    expect(SKILL).toMatch(/reason: ready-for-review[\s\S]*gh pr ready/);
+    expect(SKILL).toMatch(/verify.*same head SHA.*isDraft.*false/is);
+    expect(SKILL).toMatch(/resume the same watcher/i);
+  });
+
   it('uses the same ordering for review and CI fixes', () => {
     expect(SKILL).toMatch(/push immediately after the focused check passes/);
     expect(SKILL).toMatch(/Run broad local validation after the push/);
@@ -64,8 +73,10 @@ describe('vs-baby-sit remote-first validation', () => {
   it('does not end babysitting on non-terminal attention', () => {
     expect(SKILL).toMatch(/exit `10` ends only the current watcher wait/i);
     expect(SKILL).toMatch(/does not end the babysitting\s+workflow/i);
-    expect(SKILL).toMatch(/`ci-failure` or `review-feedback`[\s\S]*resume/i);
-    expect(SKILL).toMatch(/final response only after[\s\S]*stop condition/i);
+    expect(SKILL).toMatch(
+      /`ci-failure`[\s\S]*`review-feedback`[\s\S]*`ready-for-review`[\s\S]*resume/i,
+    );
+    expect(SKILL).toMatch(/final response\s+only after[\s\S]*stop condition/i);
   });
 
   it('routes external CI through an available provider integration', () => {
@@ -295,6 +306,34 @@ print(watcher.fetch_preview_urls("owner/repo", "abc123"))
     ]);
   });
 
+  it('requires a green draft to become ready for review before merge-ready', () => {
+    const fixturePath = path.join(os.tmpdir(), `baby-sit-draft-${process.pid}.jsonl`);
+    const draft = {
+      state: 'open',
+      merged: false,
+      draft: true,
+      headSha: 'abc123',
+      mergeable: true,
+      reviewDecision: 'REVIEW_REQUIRED',
+      unresolvedThreads: 0,
+      ciState: 'SUCCESS',
+      failures: [],
+    };
+    fs.writeFileSync(fixturePath, `${JSON.stringify(draft)}\n`);
+
+    const result = spawnSync(
+      'python3',
+      [WATCHER, '--replay', fixturePath, '--until', 'merge-ready'],
+      { encoding: 'utf8' },
+    );
+    fs.unlinkSync(fixturePath);
+
+    expect(result.status).toBe(10);
+    expect(result.stdout.trim()).toBe(
+      JSON.stringify({ event: 'attention', reason: 'ready-for-review', snapshot: draft }),
+    );
+  });
+
   it('polls GitHub inside one process without emitting unchanged snapshots', () => {
     const fakeBin = fs.mkdtempSync(path.join(os.tmpdir(), 'baby-sit-gh-'));
     const fakeGh = path.join(fakeBin, 'gh');
@@ -342,6 +381,7 @@ esac
         snapshot: {
           state: 'open',
           merged: false,
+          draft: false,
           headSha: 'abc123',
           mergeable: true,
           reviewDecision: 'APPROVED',

@@ -16,8 +16,9 @@ Keep this order across every repair cycle:
 
 1. The watcher reports the first attention or terminal event.
 2. The parent retrieves provider or review evidence and classifies ownership.
-3. Only a confirmed PR-owned repair gets an isolated mutation workspace.
-4. The parent fixes, validates, commits, and pushes.
+3. Before a confirmed PR-owned repair, protect a non-draft PR with
+   `gh pr ready --undo`, then create the isolated mutation workspace.
+4. The parent fixes, validates, commits, and pushes while the PR stays draft.
 5. The parent reuses the same watcher task or process on the new head.
 6. An approval-only event stops the watcher and any host heartbeat; hand control
    back to the user instead of continuing to babysit.
@@ -55,10 +56,11 @@ supports that action.
 ## Loop contract
 
 Write the observable done-predicate before the first watch or repair loop.
-Default is merge-ready evidence: CI pass on the current head SHA, plus no
-unresolved actionable review threads. Use merged evidence only when the user
-named that target. A run that starts `watch_pr.py` or a repair cycle without
-that predicate written first has failed this contract.
+Default is merge-ready evidence: the PR is not draft, CI passes on the current
+head SHA, and no unresolved actionable review threads remain. Use merged
+evidence only when the user named that target. A run that starts `watch_pr.py`
+or a repair cycle without that predicate written first has failed this
+contract.
 
 Two stuck iterations of the same repair or milestone with no new evidence
 (same failing check, same unfinished proof) → stop, report, do not loop.
@@ -200,15 +202,16 @@ review state when needed, and emits compact JSONL only for:
 
 - `baseline` — initial state
 - `change` — head SHA, CI, review, or PR state changed
-- `attention` — CI failed, unresolved review feedback appeared, or the only
-  remaining merge-readiness gate is review approval; exit `10`
+- `attention` — CI failed, unresolved review feedback appeared, a green draft
+  is ready for review, or the only remaining merge-readiness gate is review
+  approval; exit `10`
 - `terminal` — merge-ready, merged, or closed; exit `0`
 
 Exit `10` ends only the current watcher wait; it does not end the babysitting
-workflow. After `ci-failure` or `review-feedback`, handle the attention and
-resume the same watcher task or process. Emit a final response only after a
-listed stop condition is reached. `review-approval` is the deliberate
-user-attention exception.
+workflow. After `ci-failure`, `review-feedback`, or `ready-for-review`, handle
+the attention and resume the same watcher task or process. Emit a final response
+only after a listed stop condition is reached. `review-approval` is the
+deliberate user-attention exception.
 
 No output means no state change. Do not interrupt the watcher to perform a
 redundant manual check. If the watcher itself fails, report its exact stderr;
@@ -244,6 +247,13 @@ is already a clean isolated task worktree at that exact head may be used directl
 
 After pushing, remove only a temporary worktree you created, and only when it has
 no uncommitted work. Never remove a user-owned worktree.
+
+Once the evidence confirms a PR-owned repair, protect the old head before any
+local repair. If the PR is not already draft, run `gh pr ready --undo` and
+verify that the PR still has the expected head SHA and now has `isDraft: true`.
+If either check fails, stop before editing. This ensures the old head cannot be
+merged while the repair exists only locally or while the early push is still
+earning broad validation. Keep the PR draft through every repair push.
 
 ### Review feedback
 
@@ -331,6 +341,15 @@ Keep SHA, CI, mergeability, and unresolved-thread details secondary and include
 them only when they explain ambiguity; the reviewer target is the primary user
 action.
 
+### Ready-for-review gate
+
+After `reason: ready-for-review`, the watcher has proven that the current draft
+head passed CI and has no unresolved actionable review threads. Run
+`gh pr ready`, then verify the same head SHA is still current and `isDraft` is
+`false`. If either check fails, stop and report the mismatch. Otherwise resume
+the same watcher task or process. This transition is not merge-ready evidence:
+the resumed watcher must still observe any human approval or repository gate.
+
 ## 4. Validate while remote feedback runs
 
 Unless repository policy requires broad pre-push validation:
@@ -347,9 +366,10 @@ requires pre-push validation, follow it and report that parallelism was not
 available.
 
 Restart the same watcher command after each handled CI or review-feedback event;
-in Codex, reuse the same watcher task. Do not manually poll between the push and
-watcher restart. Never restart it after a `review-approval` event: approval-only
-is a user-attention stop condition, not another watch cycle.
+in Codex, reuse the same watcher task. Also resume that watcher after handling
+`ready-for-review`. Do not manually poll between the push or draft transition
+and watcher restart. Never restart it after a `review-approval` event:
+approval-only is a user-attention stop condition, not another watch cycle.
 
 ## Stop conditions
 

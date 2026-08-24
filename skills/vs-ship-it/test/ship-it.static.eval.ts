@@ -86,7 +86,9 @@ describe('vs-ship-it independent PR preparation', () => {
   });
 
   it('uses body files for create and edit', () => {
-    expect(PR_WORKFLOW).toContain('gh pr create --title "<title>" --body-file "$BODY_FILE"');
+    expect(PR_WORKFLOW).toContain(
+      'gh pr create --draft --title "<title>" --body-file "$BODY_FILE"',
+    );
     expect(PR_WORKFLOW).toMatch(/never pass[\s\S]*inline `--body`/i);
     expect(PR_WORKFLOW).toContain('gh pr edit --body-file');
   });
@@ -135,9 +137,19 @@ describe('vs-ship-it media preparation', () => {
 });
 
 describe('vs-ship-it PR association and stopping point', () => {
+  it('creates and verifies a draft before babysitting starts', () => {
+    expect(PR_WORKFLOW).toContain('gh pr create --draft');
+    expect(PR_WORKFLOW).toContain('isDraft');
+    expect(PR_WORKFLOW).toContain('.isDraft == true');
+    expect(PR_WORKFLOW).toMatch(/babysit.*owns.*ready for review/is);
+    expect(SKILL).toMatch(
+      /State: draft[\s\S]*exact head[\s\S]*CI[\s\S]*automated review[\s\S]*ready for review/i,
+    );
+  });
+
   it('verifies open state, branch, and exact head', () => {
     expect(PR_WORKFLOW).toContain(
-      'gh pr view --json number,url,title,state,headRefName,headRefOid',
+      'gh pr view --json number,url,title,state,isDraft,headRefName,headRefOid',
     );
     expect(PR_WORKFLOW).toContain('.state == "OPEN"');
     expect(PR_WORKFLOW).toContain('.headRefName == $branch');
@@ -147,7 +159,7 @@ describe('vs-ship-it PR association and stopping point', () => {
 
   it('starts babysitting after PR verification unless declined', () => {
     expect(DESCRIPTION).toMatch(/babysits them by default/i);
-    expect(SKILL).toMatch(/Hand the verified PR to `vs-baby-sit`/i);
+    expect(SKILL).toMatch(/Hand the verified draft PR to `vs-baby-sit`/i);
     expect(SKILL).toMatch(/unless the user explicitly says not to watch/i);
     expect(SKILL).toMatch(/visibly separate\s+babysitting phase/i);
   });

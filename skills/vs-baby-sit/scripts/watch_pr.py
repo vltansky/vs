@@ -49,6 +49,7 @@ def emit(event: str, snapshot: Snapshot, **details: Any) -> None:
 def is_merge_ready(snapshot: Snapshot) -> bool:
     return (
         snapshot.get("state") == "open"
+        and snapshot.get("draft", False) is False
         and snapshot.get("ciState") in ("SUCCESS", "NONE")
         and snapshot.get("unresolvedThreads") == 0
         and snapshot.get("reviewDecision") in (None, "APPROVED")
@@ -71,6 +72,14 @@ def attention_reason(snapshot: Snapshot) -> str | None:
         return "ci-failure"
     if snapshot.get("unresolvedThreads", 0) > 0:
         return "review-feedback"
+    if (
+        snapshot.get("state") == "open"
+        and snapshot.get("draft") is True
+        and snapshot.get("ciState") in ("SUCCESS", "NONE")
+        and snapshot.get("unresolvedThreads") == 0
+        and snapshot.get("mergeable") is True
+    ):
+        return "ready-for-review"
     if (
         snapshot.get("state") == "open"
         and snapshot.get("ciState") in ("SUCCESS", "NONE")
@@ -321,6 +330,7 @@ def fetch_snapshot(repo: str, pr: int, previous: Snapshot | None) -> Snapshot:
     snapshot = {
         "state": pull_request["state"],
         "merged": pull_request["merged"],
+        "draft": pull_request.get("draft", False),
         "headSha": head_sha,
         "mergeable": pull_request.get("mergeable"),
         "reviewDecision": review_decision,

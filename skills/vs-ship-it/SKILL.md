@@ -47,7 +47,7 @@ not start `vs-baby-sit`.
 ## PR workflow
 
 The default PR path has four outcomes: prepare the PR description, prepare
-available media, create plus verify the PR, and hand it to `vs-baby-sit`. Code
+available media, create plus verify a draft PR, and hand it to `vs-baby-sit`. Code
 review is outside this workflow. Do not add brief generation, broad
 verification, reviewer discovery, preview startup, or QA unless the user
 explicitly requested that work. Babysitting is the default after PR verification
@@ -186,25 +186,25 @@ branch or create a `.github/pr-assets` directory.
 Vision may inspect, compare, or caption screenshots when already needed for the
 PR evidence. It is not part of the upload transport.
 
-### Step 4: Create and verify the PR
+### Step 4: Create and verify the draft PR
 
 Create the PR from the prepared body file:
 
 ```bash
-gh pr create --title "<title>" --body-file "$BODY_FILE"
+gh pr create --draft --title "<title>" --body-file "$BODY_FILE"
 ```
 
 Immediately re-resolve it from the same checkout and verify open state, branch,
 and exact head SHA:
 
 ```bash
-PR_JSON=$(gh pr view --json number,url,title,state,headRefName,headRefOid)
+PR_JSON=$(gh pr view --json number,url,title,state,isDraft,headRefName,headRefOid)
 LOCAL_BRANCH=$(git branch --show-current)
 LOCAL_HEAD=$(git rev-parse HEAD)
 
 echo "$PR_JSON" | jq -e \
   --arg branch "$LOCAL_BRANCH" --arg head "$LOCAL_HEAD" \
-  '.state == "OPEN" and .headRefName == $branch and .headRefOid == $head' >/dev/null || exit 1
+  '.state == "OPEN" and .isDraft == true and .headRefName == $branch and .headRefOid == $head' >/dev/null || exit 1
 
 PR_NUM=$(echo "$PR_JSON" | jq -r '.number')
 PR_URL=$(echo "$PR_JSON" | jq -r '.url')
@@ -219,9 +219,10 @@ every video exposes a player. If rendering fails, remove or correct only the
 broken embed with `gh pr edit --body-file`; do not claim the proof is attached.
 
 Apply only explicitly requested PR modifiers. Do not suggest reviewers, start a
-preview, or run QA by default. Hand the verified PR to `vs-baby-sit` after the
-creation handoff unless the user explicitly says not to watch. Ship-it does not
-duplicate that skill's CI or automated-review loop.
+preview, or run QA by default. Hand the verified draft PR to `vs-baby-sit` after
+the creation handoff unless the user explicitly says not to watch. Babysit owns
+the transition to ready for review after the exact pushed head earns it; ship-it
+does not duplicate that skill's CI or automated-review loop.
 
 When the composed babysitter reaches `reason: review-approval`, return its
 concise `Review needed: @<user-or-team>` handoff and end the workflow turn. Do
@@ -238,9 +239,11 @@ The first line says what shipped in plain language. Translate literal check,
 review, or PR status into the user-visible meaning before naming the status.
 
 ```markdown
-PR created and verified: [#<N> — <title>](<PR_URL>)
+Draft PR created and verified: [#<N> — <title>](<PR_URL>)
 
 - Head: `<short SHA>`
+- State: draft — babysit keeps it draft until the exact head passes CI and
+  automated review, then transitions it to ready for review.
 - Media: <N screenshots, N videos attached | none available | exact upload gap>
 - Checks: <fresh results reused or repository-required checks run>
 ```
@@ -269,7 +272,7 @@ separate `vs-baby-sit` goal only when the user explicitly requested a Codex goal
 - [ ] The PR description was prepared without unnecessary user input.
 - [ ] Available screenshots/video were uploaded before PR creation and render,
       or the exact media gap is visible in Evidence.
-- [ ] PR state, branch, and head SHA were re-resolved successfully.
+- [ ] Draft PR state, branch, and head SHA were re-resolved successfully.
 - [ ] No brief, broad verify, reviewer lookup, preview, or QA ran without an
       explicit request or repository requirement.
 - [ ] `vs-baby-sit` started after PR verification unless the user explicitly opted out.
