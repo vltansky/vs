@@ -23,13 +23,15 @@ describe('the vs catalog is one source the CLI and the browser both load', () =>
     expect(catalog.themes[0].css).toBe(catalog.vsLayoutCss);
   });
 
-  it('exports the four vs report components with their authoring contract', async () => {
+  it('exports the vs report components with their authoring contract', async () => {
     const catalog = await import(CATALOG_URL);
     expect(catalog.components.map((c: { name: string }) => c.name)).toEqual([
       'Delta',
       'Gauge',
       'Tradeoff',
       'Verdict',
+      'Flow',
+      'Figure',
     ]);
     for (const component of catalog.components) {
       expect(component.body).toBe('markdown');
@@ -58,6 +60,59 @@ describe('the vs catalog is one source the CLI and the browser both load', () =>
       expect(element.props['data-htmdx-component']).toBe(component.name);
       expect(element.props.className).toBe('htmdx-component');
     }
+  });
+
+  it('renders one Flow stage per row with arrow connectors between', async () => {
+    const { vsCatalogFactory, vsLayoutCss } = await import(CATALOG_URL);
+    const stubReact = {
+      createElement: (type: string, props: Record<string, unknown>, ...children: unknown[]) => ({
+        type,
+        props,
+        children: children.flat(Infinity),
+      }),
+    };
+    const catalog = vsCatalogFactory(stubReact, vsLayoutCss);
+    const flow = catalog.components.find((c: { name: string }) => c.name === 'Flow');
+    const element = flow.Component({ body: '- Input: source\n- Output: compiled\n- Install: native' });
+    const strip = element.children[0];
+    const stages = strip.children.filter((child: { props: { className: string } }) =>
+      child.props.className.includes('vs-flow-stage'),
+    );
+    const arrows = strip.children.filter((child: { props: { className: string } }) =>
+      child.props.className.includes('vs-flow-arrow'),
+    );
+    expect(stages).toHaveLength(3);
+    expect(arrows).toHaveLength(2);
+    expect(stages[0].children[0].children).toEqual(['1 · INPUT']);
+  });
+
+  it('pins a Figure marker per @x,y row and keeps prefix-less rows legend-only', async () => {
+    const { vsCatalogFactory, vsLayoutCss } = await import(CATALOG_URL);
+    const stubReact = {
+      createElement: (type: string, props: Record<string, unknown>, ...children: unknown[]) => ({
+        type,
+        props,
+        children: children.flat(Infinity),
+      }),
+    };
+    const catalog = vsCatalogFactory(stubReact, vsLayoutCss);
+    const figure = catalog.components.find((c: { name: string }) => c.name === 'Figure');
+    const element = figure.Component({
+      body: '- @21,58 Step rail\n- Legend-only note',
+      src: './shot.png',
+      caption: 'The setup flow',
+    });
+    const figureChildren = element.children[0].children.filter(Boolean);
+    const canvas = figureChildren.find(
+      (child: { props: { className?: string } }) => child.props.className === 'vs-figure-canvas',
+    );
+    const markers = canvas.children
+      .filter(Boolean)
+      .filter((child: { props: { className?: string } }) => child.props.className === 'vs-figure-marker');
+    expect(markers).toHaveLength(1);
+    expect(markers[0].props.style).toEqual({ left: '21%', top: '58%' });
+    const legend = figureChildren.find((child: { type: string }) => child.type === 'ol');
+    expect(legend.children).toHaveLength(2);
   });
 
   it('degrades to the body text when no React is available', async () => {
