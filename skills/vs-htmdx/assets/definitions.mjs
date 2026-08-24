@@ -216,6 +216,27 @@ export const vsLayoutCss = `
     color: var(--md-sys-color-on-surface-variant);
   }
   .htmdx-app[data-htmdx-layout='vs'] [data-htmdx-component='Compare'] .htmdx-image { margin: 0; }
+  /* The lightbox overlay is appended to body, outside the layout element, so
+     its rules cannot sit under the layout scope. The white plate keeps
+     transparent-background SVG diagrams readable on the dark scrim. */
+  .htmdx-app[data-htmdx-layout='vs'] img.htmdx-image { cursor: zoom-in; }
+  .vs-lightbox {
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 32px;
+    background: rgba(17, 17, 17, 0.88);
+    cursor: zoom-out;
+  }
+  .vs-lightbox img {
+    max-width: min(1400px, 100%);
+    max-height: 100%;
+    background: #FFFFFF;
+    box-shadow: 0 8px 40px rgba(0, 0, 0, 0.4);
+  }
   @media (max-width: 720px) {
     .htmdx-app[data-htmdx-layout='vs'] { padding: 28px 20px 48px; }
     .htmdx-app[data-htmdx-layout='vs'] > div h2 { margin-top: 32px; padding-top: 16px; }
@@ -518,6 +539,39 @@ export const vsCatalogFactory = (React, css) => {
   ];
 
   const themes = [{ id: 'vs', css }];
+
+  // Click-to-zoom for content images. The factory is the only code both
+  // loaders run, so the listener attaches here: a no-op under the CLI's node
+  // context, and guarded per document because a rerender re-registers the
+  // catalog and must not stack listeners.
+  if (
+    typeof document !== 'undefined' &&
+    !document.documentElement.hasAttribute('data-vs-lightbox')
+  ) {
+    document.documentElement.setAttribute('data-vs-lightbox', 'true');
+    const closeLightbox = () => {
+      const open = document.querySelector('.vs-lightbox');
+      if (open) open.remove();
+      return Boolean(open);
+    };
+    document.addEventListener('click', (event) => {
+      if (closeLightbox()) return;
+      const target = event.target instanceof Element ? event.target : null;
+      const image =
+        target && target.closest(".htmdx-app[data-htmdx-layout='vs'] img.htmdx-image");
+      if (!image) return;
+      const overlay = document.createElement('div');
+      overlay.className = 'vs-lightbox';
+      const zoomed = document.createElement('img');
+      zoomed.src = image.src;
+      zoomed.alt = image.alt;
+      overlay.append(zoomed);
+      document.body.append(overlay);
+    });
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape') closeLightbox();
+    });
+  }
 
   return { components, layouts, themes };
 };
