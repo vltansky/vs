@@ -67,6 +67,35 @@ Two stuck iterations of the same repair or milestone with no new evidence
 This generalizes the two-same-CI-failure stop. A third attempt on the same
 stuck evidence fails this contract.
 
+### Repair-cycle budget and human gate
+
+Start each babysitting run with a repair-cycle budget of **6 cycles**. A cycle
+is one attention event that leads to a confirmed PR-owned mutation, validation,
+commit, and push. Do not count watcher polls, unchanged waits, provider-log
+retrieval, local validation that does not produce a push, or approval-only
+waiting. This budget limits autonomous mutation work, not time spent waiting
+for external state.
+
+Record `repair-cycle: <used>/<budget>` in the decision trail after each repair
+push, starting with `<budget> = 6`.
+When the sixth cycle is spent without terminal evidence:
+
+1. Stop before another mutation or watcher restart, write the normal resume
+   file, and preserve the last exact-head evidence.
+2. Explain that six bounded repair cycles have been consumed and that the run
+   merits human investigation when new, non-identical findings keep appearing
+   in the same semantic area: that may indicate a contract or design problem,
+   not just another typo to patch.
+3. Ask the user directly: **“Do you approve another bounded batch of 6 repair
+   cycles?”** Use the host's structured question tool when available; otherwise
+   ask in the normal handoff and stop.
+
+Do not silently roll the budget over. If the user approves, record the approval,
+add exactly 6 cycles to the budget, and resume the same watcher with the prior
+cycle count retained. If the user declines, does not answer, or asks for human
+review, stop. No further mutation work is allowed without an explicit user
+approval.
+
 ### Pause and off-context resume
 
 Pause writes a resume file (`/tmp/pr-<N>-babysit-resume.md`, or a caller-supplied
@@ -379,6 +408,9 @@ approval-only is a user-attention stop condition, not another watch cycle.
   stop as unrecoverable.
 - Two stuck iterations of the same repair with no new evidence: report and
   stop. Do not take a third pass on the same unfinished proof.
+- Repair-cycle budget exhausted: pause, preserve the resume state, explain why
+  the churn merits human investigation, and ask whether to approve another
+  bounded batch of 6 cycles. Do not continue until the user explicitly agrees.
 - Only ambiguous review threads remain: report them explicitly and stop.
 - Review approval is the only remaining merge-readiness gate: report
   `Review needed: @<user-or-team>`, say watching stopped, and stop instead of
@@ -398,6 +430,8 @@ the next step.
 **PR:** #<N> — <title>
 **Status:** merge-ready / merged / blocked / closed
 
+**Repair budget:** <used>/<budget> cycles
+
 **Fixed:**
 - <review or CI fix with SHA>
 
@@ -405,6 +439,7 @@ the next step.
 
 **Needs attention:**
 - <ambiguous thread or external blocker; for approval use "Review needed: @user-or-team — watching stopped (reason)">
+- <if budget exhausted: "Human decision: approve another 6 repair cycles? — new findings continue in the same semantic area and warrant human investigation">
 ```
 
 Before claiming completion, verify clear feedback was fixed and pushed, CI

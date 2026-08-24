@@ -16,6 +16,53 @@ function assistantOutput(log: Array<{ type: string; assistant_message?: string }
 }
 
 describe('vs-baby-sit behavior', () => {
+  it('stops after six repair cycles and asks for another bounded batch', async () => {
+    const agent = await createAgent({
+      agent: EVAL_AGENT,
+      timeout: 360,
+      skillDir: SKILL_DIR,
+      copyFromHome:
+        EVAL_AGENT === 'codex' ? ['.codex/auth.json'] : undefined,
+    });
+
+    try {
+      await promptOnce(
+        agent,
+        `Use $vs-baby-sit on PR #542. The run has already consumed its default six repair cycles. Each cycle was a confirmed PR-owned fix, validation, commit, and push. Every new review found a different issue in the same scorer and sanitizer seam, and the PR is not merge-ready. The watcher has just returned another review-feedback event on a new head. There is no user approval for more work yet.
+
+Describe exactly how you stop now, what you tell the user about why this merits human investigation, and the direct question you ask before doing anything else. Do not invent a fix or continue into a seventh repair cycle.`,
+      );
+
+      const result = await evaluate(
+        agent,
+        [
+          check('enforces-six-cycle-budget', ({ log }) => {
+            const output = assistantOutput(log);
+            return /six|6/.test(output) && /repair.*(?:cycle|budget)|(?:cycle|budget).*repair/i.test(output);
+          }),
+          check('stops-before-seventh-repair', ({ log }) => {
+            const output = assistantOutput(log);
+            return /stop|pause|hand.*back|do not continue/i.test(output) &&
+              !/(?:apply|start|push|perform).{0,80}(?:seventh|7th|next).*repair/i.test(output);
+          }),
+          check('explains-human-investigation', ({ log }) => {
+            const output = assistantOutput(log);
+            return /human.*(?:investig|review|look)|worth.*human|new.*(?:non.?identical|different).*finding/i.test(output);
+          }),
+          check('asks-for-exactly-six-more', ({ log }) => {
+            const output = assistantOutput(log);
+            return /(?:approve|approval|permission).*another.*6.*(?:repair|cycle)|another.*bounded.*batch.*6.*(?:repair|cycle)/i.test(output);
+          }),
+        ],
+        { failFast: false, onScorerError: 'zero' },
+      );
+
+      expect(result.score).toBe(1);
+    } finally {
+      await agent.dispose();
+    }
+  });
+
   it('repairs PR-owned external CI and returns to the same watcher', async () => {
     const agent = await createAgent({
       agent: EVAL_AGENT,

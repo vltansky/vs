@@ -13,6 +13,7 @@ const CLEAN_PRED = path.join(FIX, 'clean-predicate-first');
 const CLEAN_STOP = path.join(FIX, 'clean-two-stuck-stop');
 const CLEAN_STOP_WATCHER = path.join(FIX, 'clean-two-stuck-stop-names-watcher');
 const CLEAN_PAUSE = path.join(FIX, 'clean-pause-wrote-resume');
+const CLEAN_BUDGET = path.join(FIX, 'clean-budget-human-gate');
 const BAD_PRED = path.join(FIX, 'bad-no-predicate');
 const BAD_THREE = path.join(FIX, 'bad-three-stuck-ci');
 const BAD_RESUME = path.join(FIX, 'bad-resume-no-trail');
@@ -89,6 +90,7 @@ describe('vs-baby-sit loop contract', () => {
     expect(reject(CLEAN_STOP).status).toBe(0);
     expect(reject(CLEAN_STOP_WATCHER).status).toBe(0);
     expect(reject(CLEAN_PAUSE).status).toBe(0);
+    expect(reject(CLEAN_BUDGET).status).toBe(0);
     expect(reject(path.join(DIR, 'SKILL.md')).status).toBe(0);
   });
 
