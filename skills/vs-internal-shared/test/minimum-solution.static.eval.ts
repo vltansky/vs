@@ -39,15 +39,17 @@ describe('minimum-solution guidance', () => {
     expect(hooks.hooks).toHaveProperty('SessionStart');
     expect(hooks.hooks).toHaveProperty('SubagentStart');
 
-    for (const manifest of [
-      '.claude-plugin/plugin.json',
-      '.codex-plugin/plugin.json',
-    ]) {
-      const plugin = JSON.parse(
-        fs.readFileSync(path.join(ROOT, manifest), 'utf8'),
-      ) as { hooks?: string };
-      expect(plugin.hooks).toBe('./hooks/hooks.json');
-    }
+    // Claude auto-loads hooks/hooks.json; a manifest reference would register
+    // the hooks twice (fc9ca60). Codex has no auto-load, so its manifest must
+    // keep the reference.
+    const claudePlugin = JSON.parse(
+      fs.readFileSync(path.join(ROOT, '.claude-plugin', 'plugin.json'), 'utf8'),
+    ) as { hooks?: string };
+    expect(claudePlugin.hooks).toBeUndefined();
+    const codexPlugin = JSON.parse(
+      fs.readFileSync(path.join(ROOT, '.codex-plugin', 'plugin.json'), 'utf8'),
+    ) as { hooks?: string };
+    expect(codexPlugin.hooks).toBe('./hooks/hooks.json');
   });
 
   it('composes into every workflow where solution size is a decision', () => {
