@@ -1,0 +1,14 @@
+{
+  "hooks": {
+    "sessionStart": [
+      {
+        "command": "node ./hooks/ponytail.mjs"
+      }
+    ],
+    "subagentStart": [
+      {
+        "command": "node ./hooks/ponytail.mjs"
+      }
+    ]
+  }
+}

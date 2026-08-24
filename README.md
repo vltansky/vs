@@ -43,7 +43,8 @@ flowchart LR
 ```
 
 `?` means conditional. `/vs-ponytail` is both a public building block and an
-always-on solution-size rule delivered to Claude and Codex sessions by hooks.
+always-on solution-size rule delivered to Claude, Codex, and Cursor sessions
+by hooks.
 Shape-it uses it to cut scope, build-it uses it while planning and implementing,
 and roast-code uses it to identify removable machinery during review.
 
@@ -159,9 +160,11 @@ scope.
 Shape-it composes Ponytail into its proposed cut. Build-it applies it during
 planning, implementation, and the final cleanup pass. Pushback applies it while
 challenging scope, alternatives, and proposed machinery. Roast-code runs a
-named Ponytail pass for both large and small reviews. Claude and Codex also
-receive the canonical contract through session and subagent hooks, so it
-applies outside explicit VS workflows. Set `VS_PONYTAIL=off` to troubleshoot
+named Ponytail pass for both large and small reviews. Claude, Codex, and
+Cursor also receive the canonical contract through session and subagent hooks,
+so it applies outside explicit VS workflows. Codex dropped plugin-manifest
+hooks, so the installer registers the hook in `~/.codex/hooks.json`; approve
+it once when Codex asks for hook trust. Set `VS_PONYTAIL=off` to troubleshoot
 the hook; `VS_MINIMUM_SOLUTION=off` remains a compatibility alias.
 
 ### Advanced workflows

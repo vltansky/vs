@@ -1,5 +1,5 @@
 import { execFileSync, spawnSync } from 'node:child_process';
-import { mkdtempSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, readFileSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -10,6 +10,7 @@ const EXPECTED_UPDATE_CALLS = [
   'claude plugin update vs@vs',
   'codex plugin marketplace upgrade vs',
   'codex plugin add vs@vs',
+  'codex plugin list',
 ];
 
 const EXPECTED_FRESH_INSTALL_CALLS = [
@@ -20,6 +21,7 @@ const EXPECTED_FRESH_INSTALL_CALLS = [
   'codex plugin marketplace upgrade vs',
   'codex plugin marketplace add vltansky/vs',
   'codex plugin add vs@vs',
+  'codex plugin list',
 ];
 
 // The PowerShell installer is exercised wherever a shell is available, not just
@@ -105,6 +107,55 @@ esac
     expect(readFileSync(callsFile, 'utf8').trim().split('\n')).toEqual(
       EXPECTED_FRESH_INSTALL_CALLS,
     );
+  });
+
+  it('registers the Codex ponytail hook against the installed plugin path', () => {
+    const home = mkdtempSync(join(tmpdir(), 'vs-install-hook-'));
+    const bin = join(home, 'bin');
+    const callsFile = join(home, 'calls.log');
+    mkdirSync(bin);
+
+    writeFileSync(
+      join(bin, 'claude'),
+      `#!/bin/sh\nprintf '%s %s\\n' "$(basename "$0")" "$*" >> "$CALLS_FILE"\n`,
+      { mode: 0o755 },
+    );
+    // `codex plugin list` reports this repo as the installed plugin path, the
+    // same table shape the real CLI prints.
+    writeFileSync(
+      join(bin, 'codex'),
+      `#!/bin/sh
+printf '%s %s\\n' "$(basename "$0")" "$*" >> "$CALLS_FILE"
+[ "$1 $2" = "plugin list" ] && printf 'PLUGIN STATUS VERSION PATH\\nvs@vs installed, enabled 0.0.0 ${process.cwd()}\\n'
+exit 0
+`,
+      { mode: 0o755 },
+    );
+    symlinkSync(process.execPath, join(bin, 'node'));
+
+    execFileSync('/bin/bash', ['install.sh'], {
+      cwd: process.cwd(),
+      env: {
+        ...process.env,
+        CALLS_FILE: callsFile,
+        HOME: home,
+        PATH: `${bin}:/usr/bin:/bin`,
+      },
+    });
+
+    const hooks = JSON.parse(
+      readFileSync(join(home, '.codex', 'hooks.json'), 'utf8'),
+    ).hooks;
+    for (const event of ['SessionStart', 'SubagentStart']) {
+      const commands = hooks[event][0].hooks.map(
+        (hook: { command: string }) => hook.command,
+      );
+      expect(
+        commands.filter((command: string) =>
+          command.includes(join(process.cwd(), 'hooks', 'ponytail.mjs')),
+        ),
+      ).toHaveLength(1);
+    }
   });
 
   it.skipIf(!pwsh)('drives the same CLI sequence from the PowerShell installer', () => {

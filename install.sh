@@ -35,6 +35,27 @@ install_for() {
   rm -f "$log"
 }
 
+# Codex dropped plugin-manifest hooks, so the always-on Ponytail hook must be
+# registered in ~/.codex/hooks.json. The merge script ships in the plugin.
+install_codex_hook() {
+  command -v codex >/dev/null 2>&1 || return 0
+  local plugin_path
+  plugin_path="$(codex plugin list 2>/dev/null | awk '$1 == "vs@vs" { print $NF; exit }')"
+  if [ -z "$plugin_path" ] || [ ! -f "$plugin_path/hooks/install-codex-hook.mjs" ]; then
+    skip "codex: installed vs plugin not found — ponytail hook not registered"
+    return
+  fi
+  if ! command -v node >/dev/null 2>&1; then
+    skip "codex: node not found — ponytail hook not registered"
+    return
+  fi
+  if node "$plugin_path/hooks/install-codex-hook.mjs" >/dev/null 2>&1; then
+    ok "codex: ponytail hook registered — approve it when codex asks for hook trust"
+  else
+    fail "codex: ponytail hook registration failed"
+  fi
+}
+
 # Cursor has no plugin CLI; the documented path is a local plugin under
 # ~/.cursor/plugins/local/. Symlink a clone if we're running from one, else
 # clone the repo there.
@@ -61,5 +82,6 @@ install_cursor() {
 echo "Installing vs plugin..."
 install_for claude "claude plugin marketplace add" "claude plugin marketplace update vs" "claude plugin install" "claude plugin update"
 install_for codex  "codex plugin marketplace add"  "codex plugin marketplace upgrade vs" "codex plugin add" ""
+install_codex_hook
 install_cursor
 echo "Done. Restart your agent session (Cursor: Developer: Reload Window) to load vs."

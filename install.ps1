@@ -70,6 +70,33 @@ function Install-For {
   Write-Ok "${Cli}: installed or updated $Plugin"
 }
 
+# Codex dropped plugin-manifest hooks, so the always-on Ponytail hook must be
+# registered in ~/.codex/hooks.json. The merge script ships in the plugin.
+function Install-CodexHook {
+  if (-not (Get-Command codex -ErrorAction SilentlyContinue)) { return }
+  $ErrorActionPreference = 'Continue'
+  $row = & codex plugin list 2>$null | Where-Object { $_ -match '^\s*vs@vs\s' } | Select-Object -First 1
+  $ErrorActionPreference = 'Stop'
+  $pluginPath = if ($row) { ([string]$row -split '\s+' | Where-Object { $_ })[-1] } else { $null }
+  if (-not $pluginPath -or -not (Test-Path -LiteralPath (Join-Path $pluginPath 'hooks/install-codex-hook.mjs'))) {
+    Write-Skip 'codex: installed vs plugin not found - ponytail hook not registered'
+    return
+  }
+  if (-not (Get-Command node -ErrorAction SilentlyContinue)) {
+    Write-Skip 'codex: node not found - ponytail hook not registered'
+    return
+  }
+  $ErrorActionPreference = 'Continue'
+  & node (Join-Path $pluginPath 'hooks/install-codex-hook.mjs') 2>&1 | Out-Null
+  $registered = $LASTEXITCODE -eq 0
+  $ErrorActionPreference = 'Stop'
+  if ($registered) {
+    Write-Ok 'codex: ponytail hook registered - approve it when codex asks for hook trust'
+  } else {
+    Write-Fail 'codex: ponytail hook registration failed'
+  }
+}
+
 function Remove-Path {
   param([string]$Path)
   if (-not (Test-Path -LiteralPath $Path)) { return }
@@ -140,5 +167,6 @@ Install-For -Cli 'codex' `
     @('plugin', 'marketplace', 'add', $Repo)
   ) `
   -PluginCommands @(,@('plugin', 'add', $Plugin))
+Install-CodexHook
 Install-Cursor
 Write-Host 'Done. Restart your agent session (Cursor: Developer: Reload Window) to load vs.'
