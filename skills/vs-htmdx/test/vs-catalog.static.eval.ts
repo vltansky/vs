@@ -5,22 +5,47 @@ import { describe, expect, it } from 'vitest';
 
 const SKILL_DIR = path.resolve(__dirname, '..');
 const SKILL = fs.readFileSync(path.join(SKILL_DIR, 'SKILL.md'), 'utf8');
-const ARTIFACT = fs.readFileSync(
-  path.join(SKILL_DIR, 'assets', 'artifact.html'),
-  'utf8',
+const TEMPLATES = Object.fromEntries(
+  ['artifact.html', 'proposal.html'].map((name) => [
+    name,
+    fs.readFileSync(path.join(SKILL_DIR, 'assets', name), 'utf8'),
+  ]),
 );
+const ARTIFACT = TEMPLATES['artifact.html'];
+const PROPOSAL = TEMPLATES['proposal.html'];
 const CATALOG_URL = pathToFileURL(
   path.join(SKILL_DIR, 'assets', 'definitions.mjs'),
 ).href;
 
 describe('the vs catalog is one source the CLI and the browser both load', () => {
-  it('exports the vs layout and theme as data the CLI can register', async () => {
+  it('exports the vs layouts and theme as data the CLI can register', async () => {
     const catalog = await import(CATALOG_URL);
-    expect(catalog.layouts.map((l: { name: string }) => l.name)).toEqual(['vs']);
-    expect(typeof catalog.layouts[0].Component).toBe('function');
+    expect(catalog.layouts.map((l: { name: string }) => l.name)).toEqual([
+      'vs',
+      'vs-proposal',
+    ]);
+    for (const layout of catalog.layouts) {
+      expect(typeof layout.Component).toBe('function');
+    }
     expect(catalog.themes).toHaveLength(1);
     expect(catalog.themes[0].id).toBe('vs');
     expect(catalog.themes[0].css).toBe(catalog.vsLayoutCss);
+  });
+
+  it('maps the proposal hero slots from frontmatter fields lint accepts', async () => {
+    // Only lint-known frontmatter fields may feed slots; an unknown field
+    // would fail every --strict lint of a proposal artifact.
+    const catalog = await import(CATALOG_URL);
+    const proposal = catalog.layouts.find(
+      (l: { name: string }) => l.name === 'vs-proposal',
+    );
+    expect(proposal.slots).toEqual({
+      title: { from: 'title' },
+      project: { from: 'project' },
+      owner: { from: 'owner' },
+      phase: { from: 'phase' },
+      updated: { from: 'updated' },
+    });
   });
 
   it('exports the vs report components with their authoring contract', async () => {
@@ -32,6 +57,17 @@ describe('the vs catalog is one source the CLI and the browser both load', () =>
       'Verdict',
       'Flow',
       'Figure',
+      'Bars',
+      'Trend',
+      'Tree',
+      'Sequence',
+      'ApiDiff',
+      'Options',
+      'Scope',
+      'Risks',
+      'Impact',
+      'Questions',
+      'Compat',
     ]);
     for (const component of catalog.components) {
       expect(component.body).toBe('markdown');
@@ -115,6 +151,136 @@ describe('the vs catalog is one source the CLI and the browser both load', () =>
     expect(legend.children).toHaveLength(2);
   });
 
+  it('scales Bars to the largest value and drops Trend to text below two points', async () => {
+    const { vsCatalogFactory, vsLayoutCss } = await import(CATALOG_URL);
+    const stubReact = {
+      createElement: (type: string, props: Record<string, unknown>, ...children: unknown[]) => ({
+        type,
+        props,
+        children: children.flat(Infinity),
+      }),
+    };
+    const catalog = vsCatalogFactory(stubReact, vsLayoutCss);
+    const bars = catalog.components.find((c: { name: string }) => c.name === 'Bars');
+    const barsElement = bars.Component({ body: '- /api/search: 4,000 req\n- /api/export: 1,000 req' });
+    const barRows = barsElement.children[0].children;
+    const fillOf = (row: { children: Array<{ props: { children?: unknown; style?: { width: string } } }> }) =>
+      row.children[1].children[0].props.style.width;
+    expect(fillOf(barRows[0])).toBe('100%');
+    expect(fillOf(barRows[1])).toBe('25%');
+
+    const trend = catalog.components.find((c: { name: string }) => c.name === 'Trend');
+    const chart = trend.Component({ body: '- 4.14: 380ms\n- 4.15: 210ms' });
+    expect(chart.children[0].type).toBe('figure');
+    const svg = chart.children[0].children.find((child: { type: string }) => child.type === 'svg');
+    expect(svg.children.flat().filter((child: { type: string }) => child.type === 'circle')).toHaveLength(2);
+    const onePoint = trend.Component({ body: '- 4.15: 210ms' });
+    expect(onePoint.children[0].type).toBe('div');
+  });
+
+  it('draws Tree guides from row depth and colors diff marks', async () => {
+    const { vsCatalogFactory, vsLayoutCss } = await import(CATALOG_URL);
+    const stubReact = {
+      createElement: (type: string, props: Record<string, unknown>, ...children: unknown[]) => ({
+        type,
+        props,
+        children: children.flat(Infinity),
+      }),
+    };
+    const catalog = vsCatalogFactory(stubReact, vsLayoutCss);
+    const tree = catalog.components.find((c: { name: string }) => c.name === 'Tree');
+    const element = tree.Component({
+      body: '- plugins/\n  - + plugin/: installable\n  - project.json\n- − tests/',
+    });
+    const treeRows = element.children[0].children;
+    const text = (row: { children: Array<{ props: { className: string }; children: string[] } | null> }) =>
+      row.children.filter(Boolean).map((child) => child!.children.join(''));
+    expect(text(treeRows[0])).toEqual(['plugins/']);
+    expect(text(treeRows[1])).toEqual(['├─ ', '+ ', 'plugin/', '  — installable']);
+    expect(text(treeRows[2])).toEqual(['└─ ', 'project.json']);
+    const removed = treeRows[3].children.filter(Boolean);
+    expect(removed[1].props.className).toContain('line-through');
+  });
+
+  it('lays Sequence actors as columns and needs two of them to draw', async () => {
+    const { vsCatalogFactory, vsLayoutCss } = await import(CATALOG_URL);
+    const stubReact = {
+      createElement: (type: string, props: Record<string, unknown>, ...children: unknown[]) => ({
+        type,
+        props,
+        children: children.flat(Infinity),
+      }),
+    };
+    const catalog = vsCatalogFactory(stubReact, vsLayoutCss);
+    const sequence = catalog.components.find((c: { name: string }) => c.name === 'Sequence');
+    const element = sequence.Component({
+      body: '- CLI -> Registry: resolve\n- Registry --> CLI: tarball',
+    });
+    const figure = element.children[0];
+    expect(figure.type).toBe('figure');
+    const svg = figure.children.find((child: { type: string }) => child.type === 'svg');
+    const groups = svg.children.filter(Boolean).filter((child: { type: string }) => child.type === 'g');
+    // two actor groups + two message groups
+    expect(groups).toHaveLength(4);
+    const reply = groups[3].children.find((child: { type: string }) => child.type === 'line');
+    expect(reply.props.strokeDasharray).toBe('5 4');
+    const onlyProse = sequence.Component({ body: '- no arrows here' });
+    expect(onlyProse.children[0].type).toBe('div');
+  });
+
+  it('chips Options dispositions, Risks levels, and Flow stage status', async () => {
+    const { vsCatalogFactory, vsLayoutCss } = await import(CATALOG_URL);
+    const stubReact = {
+      createElement: (type: string, props: Record<string, unknown>, ...children: unknown[]) => ({
+        type,
+        props,
+        children: children.flat(Infinity),
+      }),
+    };
+    const catalog = vsCatalogFactory(stubReact, vsLayoutCss);
+    const options = catalog.components.find((c: { name: string }) => c.name === 'Options');
+    const optionRow = options.Component({ body: '- [rejected] Root tests: breaks locality' }).children[0].children[0];
+    expect(optionRow.children[0].children[0].children).toEqual(['rejected']);
+
+    const risks = catalog.components.find((c: { name: string }) => c.name === 'Risks');
+    const riskRow = risks.Component({
+      body: '- Consumers pin the old layout: medium × high — keep an alias',
+    }).children[0].children[0];
+    const chips = riskRow.children[0].children.map((chip: { children: string[] }) => chip.children.join(''));
+    expect(chips).toEqual(['Consumers pin the old layout', 'likelihood medium', 'impact high']);
+    expect(riskRow.children[1].children).toEqual(['keep an alias']);
+
+    const flow = catalog.components.find((c: { name: string }) => c.name === 'Flow');
+    const strip = flow.Component({ body: '- Land [done]: merged\n- Verify [active]: running' }).children[0];
+    const stages = strip.children.filter((child: { props: { className: string } }) =>
+      child.props.className.includes('vs-flow-stage'),
+    );
+    expect(stages[0].props['data-status']).toBe('done');
+    expect(stages[0].children[0].children).toEqual(['✓ · LAND']);
+    expect(stages[1].props['data-status']).toBe('active');
+  });
+
+  it('marks Compat cells from column headings and degrades without them', async () => {
+    const { vsCatalogFactory, vsLayoutCss } = await import(CATALOG_URL);
+    const stubReact = {
+      createElement: (type: string, props: Record<string, unknown>, ...children: unknown[]) => ({
+        type,
+        props,
+        children: children.flat(Infinity),
+      }),
+    };
+    const catalog = vsCatalogFactory(stubReact, vsLayoutCss);
+    const compat = catalog.components.find((c: { name: string }) => c.name === 'Compat');
+    const element = compat.Component({ columns: 'lint, render', body: '- 4.15: ✓ · partial' });
+    const table = element.children[0].children[0];
+    expect(table.type).toBe('table');
+    const bodyRow = table.children[1].children[0];
+    const cells = bodyRow.children.map((cell: { children: string[] }) => cell.children.join(''));
+    expect(cells).toEqual(['4.15', '✓', '±']);
+    const noColumns = compat.Component({ body: '- 4.15: ✓' });
+    expect(noColumns.children[0].type).toBe('div');
+  });
+
   it('degrades to the body text when no React is available', async () => {
     // The plugin cache ships this skill without node_modules; lint never
     // renders, so a text fallback keeps the CLI path working there.
@@ -124,16 +290,21 @@ describe('the vs catalog is one source the CLI and the browser both load', () =>
     expect(delta.Component({ body: '- Save p95: 480ms → 120ms' })).toBe(
       '- Save p95: 480ms → 120ms',
     );
+    // The proposal layout needs hooks for its TOC; without them it must pass
+    // the document through rather than crash the CLI's registry load.
+    const proposal = catalog.layouts.find(
+      (l: { name: string }) => l.name === 'vs-proposal',
+    );
+    expect(proposal.Component({ children: 'body', slots: {} })).toBe('body');
   });
 
-  it('inlines the identical stylesheet and factory in the artifact shell', async () => {
+  it('inlines the identical stylesheet and factory in every template shell', async () => {
     // Exact substring: any edit to one copy without the other fails here.
-    // assets/sync-artifact-catalog.mjs regenerates the inline copy. The factory
+    // assets/sync-artifact-catalog.mjs regenerates the inline copies. The factory
     // is compared as raw file text, not Function.prototype.toString - vitest's
     // module transform rewrites the imported source, sync-artifact-catalog runs
     // under plain node where toString returns the file slice verbatim.
     const { vsLayoutCss } = await import(CATALOG_URL);
-    expect(ARTIFACT).toContain(vsLayoutCss);
     const definitions = fs.readFileSync(
       path.join(SKILL_DIR, 'assets', 'definitions.mjs'),
       'utf8',
@@ -143,30 +314,41 @@ describe('the vs catalog is one source the CLI and the browser both load', () =>
     expect(start).toBeGreaterThan(-1);
     const factorySource = definitions.slice(start, end);
     expect(factorySource.length).toBeGreaterThan(1000);
-    expect(ARTIFACT).toContain(factorySource);
+    for (const shell of Object.values(TEMPLATES)) {
+      expect(shell).toContain(vsLayoutCss);
+      expect(shell).toContain(factorySource);
+    }
   });
 
-  it('registers the same components, layout, and theme in the browser', () => {
-    expect(ARTIFACT).toContain('window.Htmdx.registerLayout');
-    expect(ARTIFACT).toContain("name: 'vs'");
-    expect(ARTIFACT).toContain('window.Htmdx.registerTheme');
-    expect(ARTIFACT).toContain("id: 'vs'");
-    expect(ARTIFACT).toContain('window.Htmdx.registerComponents');
-    expect(ARTIFACT).toContain('vsCatalogFactory(window.Htmdx.React, vsLayoutCss)');
-    // Registration must wait for the runtime; a bare call would throw before
-    // the deferred browser.js defines window.Htmdx.
-    expect(ARTIFACT).toContain("addEventListener('htmdx:ready'");
+  it('registers the same components, layouts, and theme in the browser', () => {
+    for (const shell of Object.values(TEMPLATES)) {
+      expect(shell).toContain('window.Htmdx.registerLayout');
+      expect(shell).toContain("name: 'vs'");
+      expect(shell).toContain("name: 'vs-proposal'");
+      expect(shell).toContain('window.Htmdx.registerTheme');
+      expect(shell).toContain("id: 'vs'");
+      expect(shell).toContain('window.Htmdx.registerComponents');
+      expect(shell).toContain('vsCatalogFactory(window.Htmdx.React, vsLayoutCss)');
+      // Registration must wait for the runtime; a bare call would throw before
+      // the deferred browser.js defines window.Htmdx.
+      expect(shell).toContain("addEventListener('htmdx:ready'");
+    }
   });
 
   it('loads the Figtree face the vs tokens name', () => {
     // The runtime names Figtree in --md-ref-typeface-brand but never loads it;
     // without this link every artifact silently falls back to the system stack.
-    expect(ARTIFACT).toContain('fonts.googleapis.com/css2?family=Figtree');
+    for (const shell of Object.values(TEMPLATES)) {
+      expect(shell).toContain('fonts.googleapis.com/css2?family=Figtree');
+    }
   });
 
-  it('names the vs layout in the template frontmatter', () => {
+  it('names its own vs layout in each template frontmatter', () => {
     expect(ARTIFACT).toMatch(/^layout: vs$/m);
-    expect(ARTIFACT).not.toMatch(/^layout: default$/m);
+    expect(PROPOSAL).toMatch(/^layout: vs-proposal$/m);
+    for (const shell of Object.values(TEMPLATES)) {
+      expect(shell).not.toMatch(/^layout: default$/m);
+    }
   });
 
   it('passes the catalog to every command that reads the registry', () => {

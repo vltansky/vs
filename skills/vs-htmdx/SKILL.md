@@ -93,11 +93,22 @@ uncertainty.
    - otherwise resolve `$PROJECT_ID` with
      [../vs-internal-shared/SKILL.md](../vs-internal-shared/SKILL.md) and write
      `~/.vs/$PROJECT_ID/vs-htmdx/YYYY-MM-DD-<slug>.html`.
-2. Start from [assets/artifact.html](assets/artifact.html), which carries the
-   `vs` artifact metadata the other `vs` report skills share. Copy the complete
-   shell; replace the title, frontmatter, and primary source placeholders. The
-   shell's inline script is the browser copy of the vs catalog that
-   `layout: vs` renders through — keep it intact.
+2. Pick the template shell by document kind:
+   - [assets/artifact.html](assets/artifact.html) (`layout: vs`) for reports,
+     briefs, and analyses — the default;
+   - [assets/proposal.html](assets/proposal.html) (`layout: vs-proposal`) for
+     proposals, RFCs, and design docs that argue for a decision. Its hero
+     renders `title`, `project`, `owner`, `phase`, and `updated` from
+     frontmatter — keep the body h1-free — and `phase` takes one of Draft,
+     Proposed, Accepted, Rejected, or Superseded. The skeleton's section order
+     (Problem → Proposal → Design details → Alternatives → Drawbacks → Rollout →
+     Unresolved questions → References) is the reviewer's reading order; drop a
+     section only when it truly has nothing to say.
+
+   Both carry the `vs` artifact metadata the other `vs` report skills share.
+   Copy the complete shell; replace the title, frontmatter, and primary source
+   placeholders. The shell's inline script is the browser copy of the vs
+   catalog that the named layout renders through — keep it intact.
 3. Keep `@wix/htmdx@4` pinned in both the renderer metadata and script URL.
    Every `vs` template pins one major line — do not diverge from it for a single
    artifact. The major is the pin: `@wix/htmdx` promises compatibility within a
@@ -108,7 +119,14 @@ uncertainty.
    - decisive metrics, comparison, or timeline second;
    - evidence and caveats next;
    - detailed reference material last.
-5. Remove every placeholder and unused section.
+5. Draw structure as diagrams, not text. The runtime renders fenced
+   ` ```mermaid ` blocks natively, so anything with branches, cycles, or
+   topology — flowcharts, state machines, architecture graphs, ER diagrams —
+   belongs in one; never ASCII-art a diagram or describe one in prose. The
+   catalog's `Flow`, `Sequence`, and `Tree` cover only their strictly linear
+   or hierarchical grammars; when the shape outgrows them, switch to mermaid
+   rather than forcing the component.
+6. Remove every placeholder and unused section.
 
 ## Edit
 
