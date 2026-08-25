@@ -128,7 +128,14 @@ uncertainty.
    catalog's `Flow`, `Sequence`, and `Tree` cover only their strictly linear
    or hierarchical grammars; when the shape outgrows them, switch to mermaid
    rather than forcing the component.
-6. Remove every placeholder and unused section.
+6. Compress the prose. The artifact is a review surface, not a transcript:
+   keep the lede to two sentences, one idea per paragraph and at most three
+   sentences each, and route anything enumerable — options, risks, scope,
+   metrics, steps — through a component instead of paragraphs. After drafting,
+   make one pass that challenges every sentence: cut restated context, hedges,
+   and narration. When a section still runs past one short screen, link the
+   detail or drop it.
+7. Remove every placeholder and unused section.
 
 ## Edit
 
@@ -143,6 +150,8 @@ Treat the source block as the canonical document.
    change when needed to keep the browser title accurate.
 4. Preserve the artifact's current runtime and component contract. Do not
    silently upgrade an existing artifact.
+5. Hold new or rewritten content to the Create compression bar — challenge
+   verbosity instead of matching the length of what is already there.
 
 If an `.html` file has no HTMDX source block, it is ordinary HTML. Stop and say
 that converting it requires a new HTMDX artifact rather than an in-place edit.

@@ -373,8 +373,31 @@ export const vsLayoutCss = `
   @media (max-width: 720px) {
     .htmdx-app[data-htmdx-layout='vs'] { padding: 28px 20px 48px; }
     :is(.htmdx-app[data-htmdx-layout='vs'], .vs-p-main) > div h2 { margin-top: 32px; padding-top: 16px; }
-    .htmdx-app[data-htmdx-layout^='vs'] .vs-flow { flex-direction: column; }
-    .htmdx-app[data-htmdx-layout^='vs'] .vs-flow-arrow { transform: rotate(90deg); }
+    /* Narrow Flow is a stepper, not a stack of cards: full-width cards with
+       arrow rows spend a screen on five short lines. The rail carries the
+       sequence, so the arrow glyphs and card chrome go. */
+    .htmdx-app[data-htmdx-layout^='vs'] .vs-flow { flex-direction: column; gap: 0; }
+    .htmdx-app[data-htmdx-layout^='vs'] .vs-flow-arrow { display: none; }
+    .htmdx-app[data-htmdx-layout^='vs'] .vs-flow-stage {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: baseline;
+      column-gap: 10px;
+      border: 0;
+      border-radius: 0;
+      background: transparent;
+      box-shadow: none;
+      border-left: 2px solid var(--md-sys-color-outline-variant);
+      padding: 5px 0 5px 14px;
+    }
+    .htmdx-app[data-htmdx-layout^='vs'] .vs-flow-stage > div:first-child { white-space: nowrap; }
+    .htmdx-app[data-htmdx-layout^='vs'] .vs-flow-stage > div + div { margin-top: 0; }
+    .htmdx-app[data-htmdx-layout^='vs'] .vs-flow-stage[data-status='done'] { background: transparent; }
+    .htmdx-app[data-htmdx-layout^='vs'] .vs-flow-stage[data-status='active'] {
+      background: transparent;
+      box-shadow: none;
+      border-left-color: var(--md-sys-color-primary);
+    }
   }
   /* vs-proposal shell: the report tokens and components above, under a
      proposal chrome - one dark hero surface carrying title, eyebrow, and
