@@ -73,7 +73,7 @@ const vsLayoutCss = `
     --md-sys-color-surface: #FFFFFF;
     --md-sys-color-on-surface: #000000;
     --md-sys-color-surface-variant: #F2F2F2;
-    --md-sys-color-on-surface-variant: #5C5C5C;
+    --md-sys-color-on-surface-variant: #444444;
     --md-sys-color-outline: #B3B3B3;
     --md-sys-color-outline-variant: #E2E2E2;
     --md-sys-color-surface-container-lowest: #FFFFFF;
@@ -94,7 +94,9 @@ const vsLayoutCss = `
        alias is re-declared here to recompute against the scoped ladder. */
     --htmdx-bg: var(--md-sys-color-surface);
     --htmdx-ink: var(--md-sys-color-on-surface);
-    --htmdx-body: var(--md-sys-color-on-surface-variant);
+    /* Reading text stays full-contrast on white; only secondary text (notes,
+       captions, chips) takes the muted variant. */
+    --htmdx-body: var(--md-sys-color-on-surface);
     --htmdx-soft: var(--md-sys-color-on-surface-variant);
     --htmdx-line: var(--md-sys-color-outline-variant);
     --htmdx-line-strong: var(--md-sys-color-outline);
@@ -231,6 +233,11 @@ const vsLayoutCss = `
   /* The pill track is the one shape --radius does not reach. Status chips and
      timeline dots keep their full round: they read as marks, not as bars. */
   .htmdx-app[data-htmdx-layout^='vs'] [data-htmdx-component='Gauge'] .rounded-full { border-radius: 2px; }
+  /* MADR: the outcome reads above the fold - Options hoists chosen rows to
+     the top and this accent marks them as the decision, not another row. */
+  .htmdx-app[data-htmdx-layout^='vs'] [data-htmdx-component='Options'] [data-disposition='chosen'] {
+    box-shadow: inset 2px 0 0 #047857;
+  }
   /* A Compare of two screenshots is a pair of figures, not a pair of cards: the
      border would frame the caption as well and read as two separate panels. A
      Compare of two claims keeps the card, which is the only thing separating
@@ -473,6 +480,17 @@ const vsLayoutCss = `
   .vs-p-pill[data-phase='Accepted'] { background: #047857; color: #D1FAE5; }
   .vs-p-pill[data-phase='Rejected'] { background: #B91C1C; color: #FEE2E2; }
   .vs-p-pill[data-phase='Superseded'] { background: #B45309; color: #FEF3C7; }
+  /* PEP-style banner: a dead proposal says so between the hero and the body,
+     before anyone reads three sections and acts on it. */
+  .vs-p-notice[data-phase='Rejected'] { background: #FEE2E2; color: #7F1D1D; }
+  .vs-p-notice[data-phase='Superseded'] { background: #FEF3C7; color: #78350F; }
+  .vs-p-notice-inner {
+    max-width: 54rem;
+    margin: 0 auto;
+    padding: 10px 28px;
+    font-size: 0.875rem;
+    font-weight: 500;
+  }
   .vs-p-body {
     display: grid;
     grid-template-columns: minmax(0, 1fr);
@@ -512,11 +530,12 @@ const vsLayoutCss = `
   .vs-p-toc-num { font-family: var(--vs-mono); font-size: 0.6875rem; color: var(--md-sys-color-primary); }
   .vs-p-main { min-width: 0; }
   /* The lede: the opening paragraph before any section is the pitch, so it
-     reads one step larger and quieter than body text. */
+     reads one step larger than body text. Size alone carries the emphasis -
+     graying the pitch out on white costs contrast where it matters most. */
   .vs-p-main > div:first-child > p:first-child {
     font-size: 1.125rem;
     line-height: 1.55;
-    color: var(--md-sys-color-on-surface-variant);
+    color: var(--md-sys-color-on-surface);
   }
   /* Rail links jump to sections; without the offset the ruled h2 lands flush
      against the viewport edge. Smooth scroll is scoped through :has so only
@@ -765,14 +784,30 @@ const vsCatalogFactory = (React, css) => {
         h(
           'ul',
           { className: 'mt-3 flex flex-col gap-1.5', style: { listStyle: 'none', margin: '12px 0 0', padding: 0 } },
-          rows(body).map((item, index) =>
-            h(
+          // MADR's consequence tri-state: a leading + or − marks a point as a
+          // good or bad consequence, unmarked stays neutral - the same
+          // valence grammar <Delta> and <Tradeoff> already use.
+          rows(body).map((item, index) => {
+            const { kind, rest } = valence(item);
+            return h(
               'li',
               { key: index, className: 'flex gap-2.5 text-sm text-card-foreground' },
-              h('span', { 'aria-hidden': 'true', className: 'text-muted-foreground' }, '—'),
-              h('span', null, plain(item)),
-            ),
-          ),
+              h(
+                'span',
+                {
+                  'aria-hidden': 'true',
+                  className: kind ? 'font-medium ' + (kind === 'gain' ? 'text-emerald-700' : 'text-red-700') : 'text-muted-foreground',
+                  // The em dash is wider than +/−; a fixed centered column
+                  // keeps every row's text at the same left edge.
+                  style: { width: '1.25rem', textAlign: 'center', flexShrink: 0 },
+                },
+                // Neutral is a middot, not a dash: the display pass rewrites
+                // em dashes to hyphens, which would collide with the cost −.
+                kind === 'gain' ? '+' : kind === 'cost' ? '−' : '·',
+              ),
+              h('span', null, plain(rest)),
+            );
+          }),
         ),
       ),
     );
@@ -1193,34 +1228,44 @@ const vsCatalogFactory = (React, css) => {
     deferred: 'bg-amber-50 text-amber-700',
     open: 'bg-muted text-muted-foreground',
   };
-  const Options = ({ body = '' }) =>
-    wrap(
+  const Options = ({ body = '' }) => {
+    const parsed = rows(body).map((row) => {
+      const { tag, rest } = bracketTag(row);
+      const disposition = OPTION_TONE[tag] ? tag : 'open';
+      const { label, value } = labelValue(rest);
+      return { disposition, label, value };
+    });
+    // MADR's above-the-fold rule: the chosen option surfaces first no matter
+    // where the author wrote it, so the outcome opens the block.
+    const ordered = [
+      ...parsed.filter((option) => option.disposition === 'chosen'),
+      ...parsed.filter((option) => option.disposition !== 'chosen'),
+    ];
+    return wrap(
       'Options',
       h(
         'div',
         { className: 'divide-y rounded-lg border bg-card' },
-        rows(body).map((row, index) => {
-          const { tag, rest } = bracketTag(row);
-          const disposition = OPTION_TONE[tag] ? tag : 'open';
-          const { label, value } = labelValue(rest);
-          return h(
+        ordered.map((option, index) =>
+          h(
             'div',
-            { key: index, className: 'px-4 py-3' },
+            { key: index, className: 'px-4 py-3', 'data-disposition': option.disposition },
             h(
               'div',
               { className: 'flex flex-wrap items-center gap-2' },
               h(
                 'span',
-                { className: 'rounded-full px-2 py-0.5 text-xs font-semibold ' + OPTION_TONE[disposition] },
-                disposition,
+                { className: 'rounded-full px-2 py-0.5 text-xs font-semibold ' + OPTION_TONE[option.disposition] },
+                option.disposition,
               ),
-              h('span', { className: 'text-sm font-semibold text-card-foreground' }, plain(label)),
+              h('span', { className: 'text-sm font-semibold text-card-foreground' }, plain(option.label)),
             ),
-            value ? h('div', { className: 'mt-1 text-sm text-muted-foreground' }, plain(value)) : null,
-          );
-        }),
+            option.value ? h('div', { className: 'mt-1 text-sm text-muted-foreground' }, plain(option.value)) : null,
+          ),
+        ),
       ),
     );
+  };
 
   // Scope renders the exclusions beside the inclusions on purpose: what a
   // proposal deliberately leaves out is where review arguments start.
@@ -1433,12 +1478,95 @@ const vsCatalogFactory = (React, css) => {
     );
   };
 
+  // Signoff: the gates between this phase and the next. KEP marks which items
+  // are required, TC39 strikes what deliberately does not apply - both
+  // survive here so "not done" and "doesn't apply" never read the same.
+  const SIGNOFF_BOX = /^\[([ x~])\]\s*(.*)$/i;
+  const Signoff = ({ body = '' }) =>
+    wrap(
+      'Signoff',
+      h(
+        'div',
+        { className: 'divide-y rounded-lg border bg-card' },
+        rows(body).map((row, index) => {
+          const boxMatch = row.match(SIGNOFF_BOX);
+          if (!boxMatch) {
+            return h('div', { key: index, className: 'px-4 py-2.5 text-sm' }, plain(row));
+          }
+          const state = boxMatch[1].toLowerCase() === 'x' ? 'done' : boxMatch[1] === '~' ? 'na' : 'pending';
+          const required = /^\(R\)\s*/.test(boxMatch[2]);
+          const rest = required ? boxMatch[2].replace(/^\(R\)\s*/, '') : boxMatch[2];
+          const [item, ...noteParts] = rest.split(NOTE_SPLIT);
+          return h(
+            'div',
+            { key: index, className: 'flex flex-wrap items-baseline gap-x-3 gap-y-1 px-4 py-2.5' },
+            h(
+              'span',
+              {
+                'aria-hidden': 'true',
+                className:
+                  'inline-flex w-5 justify-center rounded text-xs font-bold ' +
+                  (state === 'done' ? 'bg-emerald-50 text-emerald-700' : 'text-muted-foreground'),
+              },
+              state === 'done' ? '✓' : state === 'na' ? '—' : '○',
+            ),
+            h(
+              'span',
+              { className: 'text-sm ' + (state === 'na' ? 'text-muted-foreground line-through' : 'text-card-foreground') },
+              plain(item),
+            ),
+            required
+              ? h('span', { className: 'rounded px-1.5 py-0.5 text-xs font-semibold bg-amber-50 text-amber-700' }, 'required')
+              : null,
+            noteParts.length
+              ? h('span', { className: 'text-sm text-muted-foreground' }, plain(noteParts.join(' — ')))
+              : null,
+          );
+        }),
+      ),
+    );
+
+  // History: dated state transitions with their evidence, oldest first. An
+  // "updated" stamp says something changed; this says what, when, and where
+  // the decision artifact lives.
+  const History = ({ body = '' }) =>
+    wrap(
+      'History',
+      h(
+        'div',
+        { className: 'divide-y rounded-lg border bg-card' },
+        rows(body).map((row, index) => {
+          const { label, value } = labelValue(row);
+          const [event, ...noteParts] = value.split(NOTE_SPLIT);
+          return h(
+            'div',
+            { key: index, className: 'grid grid-cols-[minmax(96px,112px)_1fr] gap-3 px-4 py-2.5' },
+            h('span', { className: 'font-mono text-xs font-bold text-card-foreground' }, plain(label)),
+            h(
+              'span',
+              { className: 'text-sm text-card-foreground' },
+              plain(event),
+              noteParts.length
+                ? h('span', { className: 'text-muted-foreground' }, ' — ' + plain(noteParts.join(' — ')))
+                : null,
+            ),
+          );
+        }),
+      ),
+    );
+
   // vs-proposal chrome. The hero carries what frontmatter declares - title,
   // eyebrow, owner, phase, updated - and the contents rail is scanned from
   // the mounted h2s, so it can never drift from the document's sections. The
   // scan needs hooks, so a hookless host (the CLI lint path, a stub React)
   // gets the document without the chrome instead of a crash.
   const PROPOSAL_PHASES = ['Draft', 'Proposed', 'Accepted', 'Rejected', 'Superseded'];
+  // PEP-style dead-state banners: a closed proposal warns before the lede,
+  // not in a chip the reader has to decode.
+  const PROPOSAL_NOTICE = {
+    Rejected: 'This proposal was rejected. It stays published for the record - do not build on it.',
+    Superseded: 'This proposal was superseded. Read the successor in History before acting on anything below.',
+  };
   const headingId = (text, index) => {
     const slug = String(text)
       .toLowerCase()
@@ -1491,6 +1619,13 @@ const vsCatalogFactory = (React, css) => {
             : null,
         ),
       ),
+      PROPOSAL_NOTICE[phase]
+        ? h(
+            'div',
+            { className: 'vs-p-notice', 'data-phase': phase },
+            h('div', { className: 'vs-p-notice-inner' }, PROPOSAL_NOTICE[phase]),
+          )
+        : null,
       h(
         'div',
         { className: 'vs-p-body' },
@@ -1547,9 +1682,9 @@ const vsCatalogFactory = (React, css) => {
       name: 'Verdict',
       body: 'markdown',
       purpose:
-        'Open a proposal with its decision and the two or three lines behind it. `status` carries the state; the body is one `- item` row per point. Put it above the first heading — it is what a reader skims before deciding to read the rest.',
+        'Open a proposal with its decision and the two or three lines behind it. `status` carries the state; the body is one `- item` row per point, and a leading `+` or `−` marks a point as a good or bad consequence of the decision — unmarked rows stay neutral. Put it above the first heading — it is what a reader skims before deciding to read the rest.',
       example:
-        '<Verdict status="Accepted">\n- Ship the SVG import path, not an embedded renderer.\n- Costs 0 bytes and works today.\n- Revisit if a live canvas is ever asked for.\n</Verdict>',
+        '<Verdict status="Accepted">\n- Ship the SVG import path, not an embedded renderer.\n- + Costs 0 bytes and works today.\n- − No live canvas until someone asks for one.\n</Verdict>',
       props: [
         {
           name: 'status',
@@ -1652,7 +1787,7 @@ const vsCatalogFactory = (React, css) => {
       name: 'Options',
       body: 'markdown',
       purpose:
-        "Record the disposition of each alternative considered, written as '- [chosen] Name: reason' rows with chosen, rejected, or deferred in the bracket. The reason is the sentence a future reader needs before reopening the debate. Weighing options that are still open belongs in <Tradeoff> - this component closes them.",
+        "Record the disposition of each alternative considered, written as '- [chosen] Name: reason' rows with chosen, rejected, or deferred in the bracket. Chosen rows surface to the top of the block regardless of source order - the outcome reads above the fold. The reason is the sentence a future reader needs before reopening the debate. Weighing options that are still open belongs in <Tradeoff> - this component closes them.",
       example:
         '<Options>\n- [chosen] Package subdirectory: tests stay local without shipping to consumers\n- [rejected] Root tests directory: breaks project locality\n- [deferred] Creator Kit migration: revisit once the boundary lands\n</Options>',
       Component: asComponent(Options),
@@ -1709,6 +1844,24 @@ const vsCatalogFactory = (React, css) => {
       ],
       Component: asComponent(Compat),
     },
+    {
+      name: 'Signoff',
+      body: 'markdown',
+      purpose:
+        "Track the gates between this phase and the next, written as '- [x] item', '- [ ] item', and '- [~] item' rows - done, pending, and not-applicable (struck through, so a skipped gate never reads as a forgotten one). '(R)' after the box marks a gate required before the phase advances, and text after ' — ' carries the evidence or the reason. Use it for review sign-off and release criteria; sequencing work belongs in <Flow>.",
+      example:
+        '<Signoff>\n- [x] (R) Static evals green — 65 files, 534 passed\n- [ ] (R) Reviewer approval — vlad\n- [~] Migration guide — no consumer-facing change\n</Signoff>',
+      Component: asComponent(Signoff),
+    },
+    {
+      name: 'History',
+      body: 'markdown',
+      purpose:
+        "Record the document's state transitions, written as '- YYYY-MM-DD: event — evidence' rows oldest first. It answers what changed hands and when, with the evidence beside it - the first place a reviewer looks on a revisited proposal. One row per transition or major revision, not per edit; the frontmatter `updated` date should match the last row.",
+      example:
+        '<History>\n- 2026-08-12: Draft opened — after the plugin-boundary incident\n- 2026-08-25: Proposed — review thread PR #45\n</History>',
+      Component: asComponent(History),
+    },
   ];
 
   const layouts = [
@@ -1718,8 +1871,10 @@ const vsCatalogFactory = (React, css) => {
     {
       name: 'vs-proposal',
       // Slots stay inside the runtime's known frontmatter vocabulary
-      // (title/project/owner/phase/updated) so a proposal lints clean; phase
-      // carries the lifecycle state in the same words <Verdict> uses.
+      // (title/project/owner/phase/updated) so a proposal lints clean; the
+      // runtime ignores unknown fields, so relation links (supersedes,
+      // discussion) live in <History> rows, not frontmatter. phase carries
+      // the lifecycle state in the same words <Verdict> uses.
       slots: {
         title: { from: 'title' },
         project: { from: 'project' },
@@ -1764,6 +1919,40 @@ const vsCatalogFactory = (React, css) => {
     document.addEventListener('keydown', (event) => {
       if (event.key === 'Escape') closeLightbox();
     });
+  }
+
+  // Rendered prose shows a plain hyphen where the source writes an em dash.
+  // This is a display pass only: the htmdx source block is a <script>, which
+  // the walker skips, so the ' — ' note-split grammar keeps working. Runs on
+  // a MutationObserver because the runtime renders after registration.
+  // Only document + MutationObserver are guarded globals; the CLI's node
+  // context has a partial DOM shim, so Node/NodeFilter/Document stay off-limits
+  // - numeric nodeType/filter constants stand in for them.
+  if (
+    typeof document !== 'undefined' &&
+    typeof MutationObserver !== 'undefined' &&
+    typeof document.createTreeWalker === 'function' &&
+    !document.documentElement.hasAttribute('data-vs-dash')
+  ) {
+    document.documentElement.setAttribute('data-vs-dash', 'true');
+    const inVerbatim = (node) => Boolean(node.parentElement?.closest('script,style,pre,code,textarea'));
+    const swapDashes = (node) => {
+      if (node.nodeValue?.includes('—') && !inVerbatim(node)) {
+        node.nodeValue = node.nodeValue.replaceAll('—', '-');
+      }
+    };
+    const dedash = (root) => {
+      if (root.nodeType === 3) return swapDashes(root);
+      if (root.nodeType !== 1 && root.nodeType !== 9) return;
+      const walker = document.createTreeWalker(root, 4 /* SHOW_TEXT */);
+      for (let node = walker.nextNode(); node; node = walker.nextNode()) swapDashes(node);
+    };
+    new MutationObserver((mutations) => {
+      for (const mutation of mutations) {
+        for (const added of mutation.addedNodes) dedash(added);
+      }
+    }).observe(document.documentElement, { childList: true, subtree: true });
+    dedash(document);
   }
 
   return { components, layouts, themes };

@@ -102,10 +102,13 @@ uncertainty.
      proposals, RFCs, and design docs that argue for a decision. Its hero
      renders `title`, `project`, `owner`, `phase`, and `updated` from
      frontmatter — keep the body h1-free — and `phase` takes one of Draft,
-     Proposed, Accepted, Rejected, or Superseded. The skeleton's section order
-     (Problem → Proposal → Design details → Alternatives → Drawbacks → Rollout →
-     Unresolved questions → References) is the reviewer's reading order; drop a
-     section only when it truly has nothing to say.
+     Proposed, Accepted, Rejected, or Superseded. Rejected and Superseded also
+     render a notice band under the hero, so a dead proposal warns its reader
+     before the lede; name the successor in the History section. The skeleton's
+     section order (Problem → Proposal → Design details → Alternatives →
+     Drawbacks → Rollout → Unresolved questions → Future possibilities →
+     History → References) is the reviewer's reading order; drop a section only
+     when it truly has nothing to say.
 
    Both carry the `vs` artifact metadata the other `vs` report skills share.
    Copy the complete shell; replace the title, frontmatter, and primary source
@@ -131,10 +134,14 @@ uncertainty.
 6. Compress the prose. The artifact is a review surface, not a transcript:
    keep the lede to two sentences, one idea per paragraph and at most three
    sentences each, and route anything enumerable — options, risks, scope,
-   metrics, steps — through a component instead of paragraphs. After drafting,
-   make one pass that challenges every sentence: cut restated context, hedges,
-   and narration. When a section still runs past one short screen, link the
-   detail or drop it.
+   metrics, steps — through a component instead of paragraphs. Sections carry
+   budgets too: a problem statement in two to five short paragraphs that links
+   background instead of restating it, one sentence per non-goal, one short
+   paragraph per alternative and per risk, one or two sentences per open
+   question — and remove a question once it is answered. After drafting, make
+   one pass that challenges every sentence: cut restated context, hedges, and
+   narration. When a section still runs past one short screen, link the detail
+   or drop it.
 7. Remove every placeholder and unused section.
 
 ## Edit
@@ -181,7 +188,20 @@ A `runtime-version-mismatch` finding means the linted runtime and the pinned
 major disagree, so the results describe a runtime the artifact does not load.
 Change the `npx` version to match the pin rather than ignoring it.
 
-3. Render the saved file and confirm it compiled. An artifact is a thing the
+3. Check the prose against the Create budgets. The checker reads only the
+   source block's paragraphs — components, code, and lists are exempt — and
+   reports each overrun with its line number:
+
+```bash
+node assets/check-verbosity.mjs "$ARTIFACT_PATH"
+```
+
+Exit `0` is within budget, `1` lists overruns, `2` means it never ran. An
+overrun is a prompt to compress or link, not a hard failure — when a long
+paragraph is genuinely irreducible, say so in the handoff instead of padding
+around the checker.
+
+4. Render the saved file and confirm it compiled. An artifact is a thing the
    user looks at, so a structural check alone does not establish that it
    renders. Linting is not rendering either: it reads the source without
    loading the runtime, so it cannot see a CDN that never responds, a pin whose
@@ -202,7 +222,7 @@ to the host's browser tooling, or open the `file://` path — no server is neede
 When nothing can render it, report structural validation as such and do not
 claim rendered proof.
 
-4. Check the artifact's visual evidence. A report about something visible that
+5. Check the artifact's visual evidence. A report about something visible that
    shows none of it renders and lints perfectly, so nothing above catches it:
 
 ```bash
