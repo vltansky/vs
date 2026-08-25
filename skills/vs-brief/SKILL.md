@@ -217,4 +217,4 @@ Direct: emit **Next** only. Composed: return to caller.
 
 **Prev:** `/vs-build-it` | standalone branch
 **Next:** `/vs-ship-it`
-**Relevant:** `/vs-write` | `/vs-recap`
+**Relevant:** `/vs-recap` | `/vs-pr-walkthrough`

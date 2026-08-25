@@ -1,6 +1,0 @@
-interface:
-  display_name: "vs-explain-diff"
-  short_description: "Explain a code change as a teaching artifact with self-check questions."
-
-policy:
-  allow_implicit_invocation: true

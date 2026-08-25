@@ -71,7 +71,7 @@ describe('vs-htmdx URL + first-screen shot', () => {
       'vs-eli5',
       'vs-brief',
       'vs-roast-ui',
-      'vs-explain-diff',
+      'vs-pr-walkthrough',
     ]) {
       const skill = fs.readFileSync(
         path.join(ROOT, 'skills', workflow, 'SKILL.md'),

@@ -224,4 +224,4 @@ Direct: emit **Next** only. Composed: return to caller.
 
 **Prev:** source material, research, draft, or direct writing request
 **Next:** done
-**Relevant:** `/vs-brief` | `/vs-github-research`
+**Relevant:** `/vs-github-research`

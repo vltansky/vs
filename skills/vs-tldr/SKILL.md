@@ -40,7 +40,7 @@ Compress and simplify the explanation the user just read.
 
 Use `/vs-tldr` at any point, including inside another skill. It compresses one
 explanation after the fact; it does not replace `/vs-recap` for the whole current
-situation, `/vs-write` for editing supplied prose, `/vs-explain-diff` for a
+situation, `/vs-write` for editing supplied prose, `/vs-pr-walkthrough` for a
 deep code-change explainer, or `/vs-eli5` for a from-zero visual explainer.
 This skill stays prose-only. It does not become HTMDX.
 

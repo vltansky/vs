@@ -2,6 +2,19 @@
 
 This plugin includes or adapts material from the following third-party projects.
 
+## Oren Roth's PR Walkthrough skill
+
+- Author: Oren Roth
+- Used in: `skills/vs-pr-walkthrough`
+
+The `vs-pr-walkthrough` skill is based on Oren Roth's original idea, workflow,
+renderer feature set, and GitHub-native review UI for turning an alphabetical
+PR file dump into a logical, step-by-step story. VS preserves the original CLI,
+optional diff fetching, rich narrative allowlist, per-file notes, configurable
+folding, path shortening, labels, syntax highlighting, and viewed interactions.
+Its adaptations are exact-head state, fail-closed file mapping, exact-path note
+matching, disk-backed evidence, and a dependency-free Node implementation.
+
 ## OpenAI GitHub Actions CI Fix skill
 
 - Project: https://github.com/openai/plugins
@@ -111,23 +124,6 @@ Apache-2.0 license text is included at
 The `vs-roast-ui` `verdict` command adapts Yeachan Heo's `visual-verdict` skill.
 The copied MIT license notice is included at
 `skills/vs-roast-ui/LICENSE.oh-my-claudecode`.
-
-## explain-diff-html skill
-
-- Author: Geoffrey Litt
-- Used in: `skills/vs-explain-diff`
-- Source: https://gist.github.com/geoffreylitt/a29df1b5f9865506e8952488eac3d524
-
-The `vs-explain-diff` skill is an original rewrite inspired by the source
-skill's approach to explaining a code change as a teaching artifact: a
-background layer deep enough for a newcomer and marked skippable, intuition
-carried by toy data and figures, a walkthrough grouped so the reader can follow
-it, and comprehension questions that let the reader confirm they understood. The
-reader self-check pattern documented in `vs-htmdx` exists to render those
-questions. The vs implementation adds its own boundary rules, evidence
-discipline, artifact destination, and delegation to `vs-htmdx`, and does not
-adopt the source skill's file-hygiene or HTML-authoring instructions. No source
-text is reproduced verbatim.
 
 ## Warp skill-doctor
 

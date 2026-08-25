@@ -202,7 +202,7 @@ Architecture: /vs-architect -> /vs-shape-it -> /vs-build-it
 | `/vs-eli5` | Explain from zero with big pictures and few words, via `/vs-htmdx` |
 | `/vs-eval` | Write PathGrade static pins and live evals with exclusive contracts, not slogan mentions |
 | `/vs-tune-skill` | Grade one named skill from local chats and propose a scratch diff |
-| `/vs-explain-diff` | Explain a code change in depth, with intuition, diagrams, and reader self-check questions |
+| `/vs-pr-walkthrough` | Turn a large GitHub PR into an interactive diff ordered as a logical story |
 | `/vs-perf` | Optimize performance against an explicit evaluator |
 | `/vs-to-issues` | Turn a plan, spec, or RFC into vertical-slice GitHub issues |
 | `/vs-steal` | Find ideas worth porting from another repository |
