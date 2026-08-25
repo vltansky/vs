@@ -1,6 +1,7 @@
-// Regenerates the inline browser copy of the vs catalog in artifact.html from
-// definitions.mjs, between the vs-catalog:begin/end markers. Run after any
-// definitions.mjs change; test/vs-catalog.static.eval.ts fails on drift.
+// Regenerates the inline browser copy of the vs catalog in every template
+// shell (artifact.html, proposal.html) from definitions.mjs, between the
+// vs-catalog:begin/end markers. Run after any definitions.mjs change;
+// test/vs-catalog.static.eval.ts fails on drift.
 //
 //   node assets/sync-artifact-catalog.mjs
 
@@ -29,13 +30,14 @@ const block = [
   '// vs-catalog:end',
 ].join('\n');
 
-const artifactPath = join(here, 'artifact.html');
-const artifact = readFileSync(artifactPath, 'utf8');
 const pattern = /\/\/ vs-catalog:begin[\s\S]*?\/\/ vs-catalog:end/;
-if (!pattern.test(artifact)) {
-  console.error('artifact.html has no vs-catalog:begin/end markers to replace');
-  process.exit(2);
+for (const template of ['artifact.html', 'proposal.html']) {
+  const templatePath = join(here, template);
+  const shell = readFileSync(templatePath, 'utf8');
+  if (!pattern.test(shell)) {
+    console.error(`${template} has no vs-catalog:begin/end markers to replace`);
+    process.exit(2);
+  }
+  writeFileSync(templatePath, shell.replace(pattern, block));
+  console.log(`${template} catalog block regenerated from definitions.mjs`);
 }
-
-writeFileSync(artifactPath, artifact.replace(pattern, block));
-console.log('artifact.html catalog block regenerated from definitions.mjs');
