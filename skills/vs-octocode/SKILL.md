@@ -31,7 +31,13 @@ For a landscape report, produce a matrix-centered map of projects in the same sp
 
 The vs plugin includes `octocode` in its plugin `.mcp.json`. Use its typed MCP tools directly when available.
 
-If they are not active in this session, fall back to the octocode CLI (`npx -y octocode-cli@latest --tool <name> --queries '<json>' --json`) — same tool names, same query payloads — and note in the report that the plugin MCP server was not loaded. See the [shared octocode access ladder](../vs-internal-shared/references/octocode-access.md).
+If they are not active in this session, fall back to the Octocode CLI
+(`npx -y octocode@latest tools <name> --queries '<json>' --compact`) and note in
+the report that the plugin MCP server was not loaded. Check the interface once
+with `npx -y octocode@latest context --minimal`; before the first raw CLI call
+to a tool, read its exact schema with
+`npx -y octocode@latest tools <name> --scheme --json --compact`. See the
+[shared Octocode access ladder](../vs-internal-shared/references/octocode-access.md).
 
 Do not load or invoke Octocode's prompt, skill, or orchestration workflows (for example, `reviewPR`). This skill owns the research plan and execution loop; wrapping it in another workflow can add an approval gate or route the task into local code review.
 
@@ -111,18 +117,16 @@ Typical octocode tool choices:
 
 | Need | Tool |
 |---|---|
-| Find candidate repos | `githubSearchRepositories` |
-| Find implementation examples | `githubSearchCode` |
-| Inspect project layout | `githubViewRepoStructure` |
-| Read source/docs | `githubGetFileContent` |
-| Understand adoption/history | `githubSearchPullRequests` |
-| Find package ecosystem signals | `packageSearch` |
+| Find candidate repos | `ghSearchRepos` |
+| Find implementation examples | `ghSearchCode` |
+| Inspect project layout | `ghViewRepoStructure` |
+| Read source/docs | `ghGetFileContent` |
+| Understand adoption/history | `ghSearchPullRequests` |
+| Find package ecosystem signals | `npmSearch` |
 
-Every tool call should include:
-
-- `mainResearchGoal`: the user's full question
-- `researchGoal`: the specific thing this call is trying to learn
-- `reasoning`: why this search/read is the right next step
+For CLI calls, pass only fields from the tool's current `--scheme`; do not add
+legacy planning fields that the schema does not expose. Keep the call's purpose
+in the research plan and claim ledger.
 
 Follow hints in tool responses. If a tool suggests narrowing, pagination, related files, or a better next call, use that guidance unless you have a clear reason not to.
 
@@ -159,11 +163,22 @@ For each representative example, capture:
 
 Favor implementation files and committed docs over README claims. README-only evidence is allowed, but label it as documentation evidence.
 
+Start from the strongest available handle: use a known path for an exact read,
+an identifier for semantic references, a code shape for structural search, and
+a why-question for PR or commit history. Do not force every question through
+the same tool sequence.
+
 For every nontrivial claim, inspect at least two evidence dimensions:
 
 - **Structure:** repository layout and where the mechanism lives
 - **Stream:** exact source, test, config, or committed documentation
 - **Connections/history:** callers, integrations, PRs, issues, releases, or commit intent
+
+Grade proof by what it establishes: **semantic** evidence proves identity or
+reachability, **structural** evidence proves code shape, **lexical** evidence
+proves text coverage, and **provider** evidence is limited by the remote index.
+Treat provider snippets as leads, and do not infer unused, safe, or absent from
+lexical or provider evidence alone.
 
 Use targeted `matchString` or line-range reads after discovery. If the same remote area needs three or more deep reads, or the conclusion needs semantic navigation or strong absence proof, materialize that bounded area when authorized instead of repeatedly reading it through the provider.
 

@@ -7,6 +7,9 @@ import { createAgent } from '../../vs-internal-shared/test/pathgrade-agent';
 
 const SKILL_DIR = path.resolve(__dirname, '..');
 const SKILL = fs.readFileSync(path.join(SKILL_DIR, 'SKILL.md'), 'utf8');
+const MCP_CONFIG = JSON.parse(
+  fs.readFileSync(path.resolve(SKILL_DIR, '..', '..', '.mcp.json'), 'utf8'),
+);
 
 describe('vs-octocode', () => {
   it.skip('has a runnable behavior-eval scaffold for future octocode-backed broad search fixtures', async () => {
@@ -40,9 +43,29 @@ describe('vs-octocode', () => {
 
   it('uses Octocode tools directly and never gates execution on plan approval', () => {
     expect(SKILL).toMatch(/typed MCP tools directly/i);
+    expect(SKILL).toMatch(/npx -y octocode@latest tools <name>/i);
+    expect(SKILL).toMatch(/context --minimal/i);
+    expect(SKILL).toMatch(/tools <name> --scheme/i);
+    expect(SKILL).not.toMatch(/octocode-cli/i);
     expect(SKILL).toMatch(/Do not load or invoke Octocode[^\n]+orchestration/i);
     expect(SKILL).toMatch(/host or repository policy requires a research subagent/i);
     expect(SKILL).toMatch(/Never ask for approval of the research plan/i);
+  });
+
+  it('uses current tool names and grades evidence by proof strength', () => {
+    expect(MCP_CONFIG.mcpServers.octocode.args).toEqual(['octocode-mcp@18.2.2']);
+    for (const tool of [
+      'ghSearchRepos',
+      'ghSearchCode',
+      'ghViewRepoStructure',
+      'ghGetFileContent',
+      'ghSearchPullRequests',
+      'npmSearch',
+    ]) {
+      expect(SKILL).toContain(`\`${tool}\``);
+    }
+    expect(SKILL).toMatch(/strongest available handle/i);
+    expect(SKILL).toMatch(/semantic[\s\S]{0,180}structural[\s\S]{0,180}lexical[\s\S]{0,180}provider/i);
   });
 
   it('resolves repository-local identifiers before broad discovery', () => {

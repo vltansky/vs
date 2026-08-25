@@ -2,7 +2,7 @@
   "mcpServers": {
     "octocode": {
       "command": "npx",
-      "args": ["octocode-mcp@14.1.2"]
+      "args": ["octocode-mcp@18.2.2"]
     }
   }
 }

@@ -21,17 +21,19 @@ Before delegating, load and follow
 Determine how this session reaches Octocode, following the
 [shared access ladder](../vs-internal-shared/references/octocode-access.md).
 
-Check whether `mcp__octocode__githubSearchRepositories` (or any `mcp__octocode__*` tool) is in your available tools. The vs plugin includes `octocode` in its plugin `.mcp.json`, so absence usually means the host did not load plugin MCP config for this session.
+Check whether `mcp__octocode__ghSearchRepos` (or any `mcp__octocode__*` tool) is in your available tools. The vs plugin includes `octocode` in its plugin `.mcp.json`, so absence usually means the host did not load plugin MCP config for this session.
 
 **IF octocode MCP tools are available:** proceed to Phase 1.
 
-**IF octocode MCP tools are NOT available:** use the octocode CLI instead — same tool names, same query payloads:
+**IF octocode MCP tools are NOT available:** use the Octocode CLI instead:
 
 ```bash
-npx -y octocode-cli@latest --tool githubSearchRepositories --queries '<json>' --json
+npx -y octocode@latest context --minimal
+npx -y octocode@latest tools ghSearchRepos --scheme --json --compact
+npx -y octocode@latest tools ghSearchRepos --queries '<json>' --compact
 ```
 
-Confirm it works once before planning (for example `npx -y octocode-cli@latest --tool githubSearchCode --help`). Then proceed to Phase 1 and route every research call through the CLI, and note in the RFC that Octocode ran through the CLI because the plugin MCP server was not loaded.
+Confirm it works once before planning, read each tool's `--scheme` before its first raw call, then proceed to Phase 1 and route every research call through the CLI. Note in the RFC that Octocode ran through the CLI because the plugin MCP server was not loaded.
 
 **IF the user explicitly constrained the task to a local codebase / fixture:** use **local-evidence mode** — only when the instruction is explicit (for example: "the fixture is local", "analyze the current repo", "use Read/Grep/Glob tools", or equivalent). In that case:
 - proceed with local repo analysis instead of GitHub research
@@ -42,7 +44,7 @@ Confirm it works once before planning (for example `npx -y octocode-cli@latest -
 **IF neither MCP nor the CLI can reach Octocode and the task is not explicitly local-only:** stop and tell the user:
 
 ```
-Octocode is not reachable in this session — the plugin MCP server is not loaded and `npx octocode-cli` failed. Reload or reinstall the plugin MCP config (or fix npm registry/network access for the CLI), then re-run this skill.
+Octocode is not reachable in this session — the plugin MCP server is not loaded and `npx octocode` failed. Reload or reinstall the plugin MCP config (or fix npm registry/network access for the CLI), then re-run this skill.
 ```
 
 Do NOT claim GitHub-backed research without one of the two Octocode routes.
@@ -88,10 +90,10 @@ Proceed?
 Break the RFC topic into 2-5 concrete research questions. Each question maps to octocode tool calls.
 
 Example research questions:
-- "How does [library X] implement [feature]?" -> `githubSearchCode` + `githubGetFileContent`
-- "What repos solve [problem]?" -> `githubSearchRepositories`
-- "What changed when [library] adopted [pattern]?" -> `githubSearchPullRequests`
-- "What's the directory structure of [project]?" -> `githubViewRepoStructure`
+- "How does [library X] implement [feature]?" -> `ghSearchCode` + `ghGetFileContent`
+- "What repos solve [problem]?" -> `ghSearchRepos`
+- "What changed when [library] adopted [pattern]?" -> `ghSearchPullRequests`
+- "What's the directory structure of [project]?" -> `ghViewRepoStructure`
 
 Present the plan to the user before executing:
 
@@ -107,7 +109,7 @@ Proceed?
 ### Phase 3: Execute Research
 
 Use Octocode through bounded Explore children, via whichever route Phase 0
-resolved (MCP tools, or `octocode-cli --tool <name> --queries '<json>' --json`).
+resolved (MCP tools, or `octocode tools <name> --queries '<json>' --compact`).
 Group related research
 questions by evidence domain and dispatch one Explore child per evidence domain,
 not one child per query or tool call. Separate children only when domains are
@@ -122,7 +124,9 @@ and ecosystem alternatives.
   cold reviewer.
 - Run discovery and shortlist queries before fetching full files or PR history
 - Independent evidence domains may run in parallel; sequential dependencies stay together
-- Every tool call MUST include `mainResearchGoal`, `researchGoal`, and `reasoning`
+- For CLI calls, use only fields exposed by the current `--scheme`; keep the
+  research purpose in the plan and evidence ledger rather than legacy payload
+  fields
 - Follow hints in tool responses
 - Collect file:line references for every finding
 - Return a compact evidence ledger: claim, URL or file:line, supporting excerpt
@@ -132,12 +136,12 @@ and ecosystem alternatives.
 
 | Research Need | Tool | When |
 |---------------|------|------|
-| Find repos | `githubSearchRepositories` | Discovering projects, comparing solutions |
-| Find code patterns | `githubSearchCode` | Locating implementations, API usage |
-| Read source | `githubGetFileContent` | Understanding implementation details |
-| Explore structure | `githubViewRepoStructure` | Understanding project layout |
-| Find PR history | `githubSearchPullRequests` | Understanding why decisions were made |
-| Find packages | `packageSearch` | Looking up npm/pypi packages |
+| Find repos | `ghSearchRepos` | Discovering projects, comparing solutions |
+| Find code patterns | `ghSearchCode` | Locating implementations, API usage |
+| Read source | `ghGetFileContent` | Understanding implementation details |
+| Explore structure | `ghViewRepoStructure` | Understanding project layout |
+| Find PR history | `ghSearchPullRequests` | Understanding why decisions were made |
+| Find packages | `npmSearch` | Looking up npm packages |
 
 **Research depth:**
 - For each research question, aim for 2-3 concrete code references

@@ -32,16 +32,20 @@ If the user did not give a repo, ask for one. Do not pick one yourself.
 
 ## Phase 1: Pre-scan with octocode
 
-Use octocode for read-only structural search, preferring it over `gh`. Reach it through the [shared access ladder](../vs-internal-shared/references/octocode-access.md): plugin MCP tools first, otherwise the octocode CLI (`npx -y octocode-cli@latest --tool <name> --queries '<json>' --json`), which takes the same tool names and payloads.
+Use Octocode for read-only structural search, preferring it over `gh`. Reach it
+through the [shared access ladder](../vs-internal-shared/references/octocode-access.md):
+plugin MCP tools first, otherwise
+`npx -y octocode@latest tools <name> --queries '<json>' --compact` after reading
+that tool's `--scheme`.
 
-1. `githubViewRepoStructure` — top-level layout, does the repo have skills/, prompts/, agents/, evals/, docs/?
-2. `githubGetFileContent` on `README.md`, `AGENTS.md`, `CLAUDE.md`, `CONTRIBUTING.md`, `docs/index.md` — read the project's self-description.
-3. `githubSearchCode` for scope-specific signals:
+1. `ghViewRepoStructure` — top-level layout, does the repo have skills/, prompts/, agents/, evals/, docs/?
+2. `ghGetFileContent` on `README.md`, `AGENTS.md`, `CLAUDE.md`, `CONTRIBUTING.md`, `docs/index.md` — read the project's self-description.
+3. `ghSearchCode` for scope-specific signals:
    - skills: search `name:` in `SKILL.md`, `frontmatter`, `/skills/`, `/prompts/`
    - workflow: search `workflow`, `pipeline`, `orchestrat`, `agent loop`
    - tests: look under `evals/`, `tests/`, `fixtures/`, `golden/`
    - tooling: search `package.json` / `pyproject.toml` / `Cargo.toml` scripts
-4. `githubSearchPullRequests` (state: merged, last ~50) — what has this project been iterating on? PR titles reveal priorities a README does not.
+4. `ghSearchPullRequests` (state: merged, last ~50) — what has this project been iterating on? PR titles reveal priorities a README does not.
 
 If MCP is not loaded, note in the report that octocode ran through the CLI. Fall back to `gh` (`gh api repos/owner/repo/contents/path`) + `gh search code` only when the CLI is unreachable too, and label that as degraded tooling.
 

@@ -16,34 +16,38 @@ Do not load or invoke Octocode's own prompt, skill, or orchestration workflows
 
 ## 2. Octocode CLI (fallback when MCP is not loaded)
 
-The CLI exposes the same tools as the MCP server, with the same names and the
-same query payloads. A missing MCP server is no longer a reason to stop.
+The CLI and current MCP server use the same tool names and schema family for
+their exposed catalogs; gated tools such as clone may be absent. Check
+availability once, read a tool's schema before its first raw call, then use only
+fields that schema exposes. A missing MCP server is no longer a reason to stop.
 
 ```bash
-npx -y octocode-cli@latest --tool <toolName> --queries '<json>' --json
+npx -y octocode@latest context --minimal
+npx -y octocode@latest tools <toolName> --scheme --json --compact
+npx -y octocode@latest tools <toolName> --queries '<json>' --compact
 ```
 
 ```bash
-npx -y octocode-cli@latest --tool githubSearchCode \
-  --queries '{"keywordsToSearch":["useSyncExternalStore"],"owner":"facebook","repo":"react"}' --json
+npx -y octocode@latest tools ghSearchCode \
+  --queries '{"keywords":["useSyncExternalStore"],"owner":"facebook","repo":"react","match":"file","concise":true,"limit":10}' --compact
 ```
 
-- Tool names are identical to MCP: `githubSearchCode`, `githubGetFileContent`,
-  `githubViewRepoStructure`, `githubSearchRepositories`,
-  `githubSearchPullRequests`, `packageSearch`, plus `local*` and `lsp*` tools.
-- `--queries` takes the JSON-stringified tool input — the same object you would
-  pass over MCP, including `mainResearchGoal`, `researchGoal`, and `reasoning`.
-- `--tool <name> --help` prints that tool's input/output schema.
-  `--tools-context` prints the full instructions plus every schema.
-- `--json` prints `structuredContent` only. Pipe into `jq`.
-- Exit `0` on success, `1` on missing flag, bad stdin, validation, or tool error.
-- Auth comes from Octocode-stored credentials, then the `gh` CLI token
-  (`octocode-cli login` or `gh auth login`).
+- The remote tools are `ghSearchCode`, `ghSearchRepos`, `ghSearchPullRequests`,
+  `ghSearchIssues`, `ghSearchCommits`, `ghGetFileContent`,
+  `ghViewRepoStructure`, and `ghCloneRepo`; package lookup is `npmSearch`.
+- Local tools are `localSearchCode`, `localFindFiles`, `localFindDeadCode`,
+  `localGetFileContent`, `localViewStructure`, and `lspGetSemantics`.
+- `--queries` takes the JSON-stringified input shown by `--scheme`. MCP calls
+  use their exposed typed schema; do not add legacy fields absent from it.
+- `--compact` prints compact agent-facing output; use `--json` with schema or
+  status commands when structured metadata is needed.
+- Check authentication with `npx -y octocode@latest auth status --json`; GitHub
+  CLI credentials can be refreshed with `gh auth login`.
 - Independent calls should be issued in one message so they run concurrently.
   One process start per call is the CLI's main cost; do not loop sequentially.
 - If `npx` resolves against an internal registry (Wix machines default to
-  `npm.dev.wixpress.com`), add `--registry https://registry.npmjs.org` or
-  connect the VPN.
+  `npm.dev.wixpress.com`), place `--registry=https://registry.npmjs.org`
+  immediately after `npx`, or connect the VPN.
 
 Say in the report that Octocode ran through the CLI rather than MCP, and that
 the host may need to reload or reinstall plugin MCP config.

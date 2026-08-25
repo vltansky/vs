@@ -284,7 +284,7 @@ evidence-backed code research. It supports `/vs-octocode`,
 `/vs-rfc-research`, `/vs-steal`, and prior-art passes in `/vs-shape-it` and
 `/vs-pushback`. If a host does not load plugin MCP config, those skills fall
 back to the [octocode CLI](https://octocode.ai/)
-(`npx -y octocode-cli@latest --tool <name> --queries '<json>' --json`), which
+(`npx -y octocode@latest tools <name> --queries '<json>' --compact`), which
 exposes the same tools.
 
 Optional tools add capabilities without being required for the rest of vs:
