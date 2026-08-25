@@ -122,6 +122,31 @@ describe('check-visual-evidence enforces the contract', () => {
     expect(result.stdout).toContain('"valid":true');
   });
 
+  it('scans only the source block of an HTMDX artifact, not the shell catalog', () => {
+    // The template shells inline the vs catalog, whose Figure example carries
+    // src="./onboarding.png"; that string never renders, so it must not count
+    // as a missing-evidence reference.
+    const dir = fixture('htmdx');
+    const report = path.join(dir, 'report.html');
+    fs.writeFileSync(
+      report,
+      [
+        '<script>',
+        "const example = '<Figure src=\"./onboarding.png\" caption=\"x\">';",
+        '</script>',
+        '<script type="text/htmdx">',
+        '# Report',
+        '',
+        'No visual claim here.',
+        '</script>',
+      ].join('\n'),
+    );
+
+    const result = run(report);
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain('"referenced":0');
+  });
+
   it('fails an artifact whose screenshot is not on disk', () => {
     const dir = fixture('missing');
     const report = path.join(dir, 'report.html');

@@ -108,9 +108,18 @@ async function readPngSize(filePath) {
   }
 }
 
+// An HTMDX artifact renders only its source block; the shell's inline catalog
+// carries component example strings (e.g. Figure's src="./onboarding.png")
+// that never reach the reader, so scanning the whole file reports phantom
+// missing evidence. Plain HTML and Markdown reports still scan in full.
+const HTMDX_SOURCE_PATTERN =
+  /<(script|template)\b[^>]*type=["']text\/htmdx["'][^>]*>([\s\S]*?)<\/\1>/gi;
+const htmdxBlocks = [...report.matchAll(HTMDX_SOURCE_PATTERN)].map((match) => match[2]);
+const scanned = htmdxBlocks.length ? htmdxBlocks.join('\n') : report;
+
 const references = new Set();
 for (const pattern of [IMAGE_PATTERN, ATTRIBUTE_PATTERN]) {
-  for (const match of report.matchAll(pattern)) {
+  for (const match of scanned.matchAll(pattern)) {
     const reference = normalize(match[1] ?? match[2]);
     if (reference && isMedia(reference)) references.add(reference);
   }
