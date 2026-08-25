@@ -216,8 +216,8 @@ Do not paste the walkthrough or diff into chat.
 - **Outputs:** one interactive HTML walkthrough plus its JSON source map and
   captured diff
 - **Status:** `READY_FOR_REVIEW | BLOCKED_STALE_HEAD | BLOCKED_INCOMPLETE_MAP | SKIPPED_SMALL_PR`
-- **Consumers:** direct human invocation and onboarding a reviewer to an
-  unfamiliar PR
+- **Consumers:** direct human invocation, onboarding a reviewer to an
+  unfamiliar PR, and `vs-ship-it` for automatic large-PR review handoff
 - **Skip conditions:** small PR, non-GitHub diff, or a request for a quality
   verdict rather than a reading aid
 

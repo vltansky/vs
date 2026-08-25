@@ -27,6 +27,10 @@ describe('vs-pr-walkthrough boundary', () => {
     expect(SKILL).toMatch(/BLOCKED_STALE_HEAD/);
     expect(SCHEMA).toMatch(/40-character PR head SHA/i);
   });
+
+  it('can be composed by ship-it for automatic large-PR handoff', () => {
+    expect(SKILL).toMatch(/Consumers:[\s\S]*`vs-ship-it`[\s\S]*automatic large-PR review handoff/i);
+  });
 });
 
 describe('vs-pr-walkthrough story contract', () => {

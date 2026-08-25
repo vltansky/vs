@@ -28,7 +28,7 @@ describe('vs-ship-it behavior', () => {
         agent,
         `Use $vs-ship-it. The user said only "create pr" and did not ask to skip watching.
 
-Assume the scoped changes are already validated and committed, PR #542 was just created as a draft, and Step 5b verified its URL, branch, draft state, and head SHA. CI and automated review are pending.
+Assume the scoped changes are already validated and committed, PR #542 was just created as a draft, and the PR verification resolved its URL, branch, draft state, exact head SHA, and 12 changed files. CI and automated review are pending.
 
 Describe what you do next. Do not perform real GitHub writes or start a real watcher.`,
       );
@@ -39,6 +39,18 @@ Describe what you do next. Do not perform real GitHub writes or start a real wat
           check('starts-babysitting-by-default', ({ log }) => {
             const output = assistantOutput(log);
             return /start.*(?:baby-?sit|babysitting)|transition.*babysit|hand off.*vs-baby-sit/is.test(
+              output,
+            );
+          }),
+          check('starts-large-pr-walkthrough-by-default', ({ log }) => {
+            const output = assistantOutput(log);
+            return /(?:spawn|start|launch).*(?:subagent|child).*(?:PR )?walkthrough|(?:PR )?walkthrough.*(?:subagent|child)/is.test(
+              output,
+            );
+          }),
+          check('walkthrough-does-not-delay-babysitting', ({ log }) => {
+            const output = assistantOutput(log);
+            return /(?:parallel|concurrent|without waiting|immediately)[\s\S]*(?:baby-?sit|babysitting)|(?:baby-?sit|babysitting)[\s\S]*(?:parallel|concurrent|without waiting)/is.test(
               output,
             );
           }),

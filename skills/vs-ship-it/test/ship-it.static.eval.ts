@@ -38,7 +38,7 @@ describe('vs-ship-it routing', () => {
     expect(SKILL).toContain('### Direct-push path');
     expect(SKILL).toMatch(/verify local and remote SHAs match/i);
     expect(SKILL).toContain('Do not create a feature branch or PR in direct-push mode.');
-    expect(SKILL).toMatch(/Direct-push mode does\s+not start `vs-baby-sit`/i);
+    expect(SKILL).toMatch(/Direct-push mode does\s+not start `vs-pr-walkthrough` or `vs-baby-sit`/i);
   });
 
   it('routes bare ship-it to the single PR workflow', () => {
@@ -51,7 +51,7 @@ describe('vs-ship-it routing', () => {
 
 describe('vs-ship-it publishing boundary', () => {
   it('does not include a pre-PR code-review phase', () => {
-    expect(PR_WORKFLOW).toMatch(/four outcomes: prepare the PR description/i);
+    expect(PR_WORKFLOW).toMatch(/five outcomes: prepare the PR description/i);
     expect(PR_WORKFLOW).toMatch(/Code\s+review is outside this workflow/i);
     expect(SKILL).not.toContain('Offer review without blocking');
     expect(SKILL).not.toContain('vs-roast-code');
@@ -149,12 +149,36 @@ describe('vs-ship-it PR association and stopping point', () => {
 
   it('verifies open state, branch, and exact head', () => {
     expect(PR_WORKFLOW).toContain(
-      'gh pr view --json number,url,title,state,isDraft,headRefName,headRefOid',
+      'gh pr view --json number,url,title,state,isDraft,headRefName,headRefOid,changedFiles',
     );
     expect(PR_WORKFLOW).toContain('.state == "OPEN"');
     expect(PR_WORKFLOW).toContain('.headRefName == $branch');
     expect(PR_WORKFLOW).toContain('.headRefOid == $head');
+    expect(PR_WORKFLOW).toContain("HEAD_SHA=$(echo \"$PR_JSON\" | jq -r '.headRefOid')");
+    expect(PR_WORKFLOW).toContain("CHANGED_FILES=$(echo \"$PR_JSON\" | jq -r '.changedFiles')");
     expect(PR_WORKFLOW).toMatch(/Do not switch branches before this succeeds/i);
+  });
+
+  it('starts one bounded large-PR walkthrough without delaying babysitting', () => {
+    expect(PR_WORKFLOW).toMatch(/Fewer than 10 changed files[\s\S]*do not start a walkthrough child/i);
+    expect(PR_WORKFLOW).toMatch(/10 or more changed files[\s\S]*vs-pr-walkthrough\/SKILL\.md/i);
+    expect(PR_WORKFLOW).toMatch(/fresh-context child/i);
+    expect(PR_WORKFLOW).toMatch(/hand the verified draft PR to\s+`vs-baby-sit`\s+immediately without waiting/i);
+    expect(PR_WORKFLOW).toMatch(/exactly those two active children/i);
+  });
+
+  it('never surfaces a stale walkthrough or refreshes after every repair', () => {
+    expect(PR_WORKFLOW).toMatch(/current `headRefOid`[\s\S]*walkthrough's `Explains` SHA/i);
+    expect(PR_WORKFLOW).toMatch(/do not surface the stale artifact/i);
+    expect(PR_WORKFLOW).toMatch(/do not regenerate after\s+each repair push/i);
+    expect(PR_WORKFLOW).toMatch(/At `reason: ready-for-review`, refresh it once/i);
+    expect(PR_WORKFLOW).toMatch(/one initial walkthrough and at most one final\s+refresh/i);
+    expect(PR_WORKFLOW).toMatch(/Never prepare a walkthrough before the PR exists/i);
+  });
+
+  it('keeps walkthrough generation non-blocking', () => {
+    expect(PR_WORKFLOW).toMatch(/A review aid never blocks publishing, repair, or the\s+`review-approval` stop/i);
+    expect(SKILL).toMatch(/Walkthrough: <\[open walkthrough\][\s\S]*exact <short SHA>[\s\S]*generating for\s+exact head[\s\S]*skipped — small PR[\s\S]*exact gap>/i);
   });
 
   it('starts babysitting after PR verification unless declined', () => {

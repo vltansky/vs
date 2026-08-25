@@ -39,7 +39,7 @@ flowchart LR
 
     S -. composes .-> SC["/vs-ponytail · /vs-architect? · /vs-octocode?<br/>/vs-pushback · /vs-eli5 · /vs-eval?"]
     B -. composes .-> BC["/vs-ponytail · /vs-pushback · /vs-decide-for-me<br/>/vs-tdd · /vs-debug-mode?<br/>/vs-roast-code? · /vs-deslop?<br/>/vs-qa? · /vs-verify · /vs-brief? · /vs-eval?"]
-    P -. composes .-> PC["/vs-baby-sit"]
+    P -. composes .-> PC["/vs-pr-walkthrough? · /vs-baby-sit"]
 ```
 
 `?` means conditional. `/vs-ponytail` is both a public building block and an
@@ -105,7 +105,9 @@ flowchart TD
     D -- PR --> C["Check, commit, push<br/>/vs-eval for skill contracts"]
     C --> B["Prepare PR description<br/>feature_area: title<br/>Problem + Before/After<br/>Why this change<br/>User impact<br/>Evidence + gaps<br/>Review focus"]
     B --> M["Attach available proof<br/>matched screenshots for static states<br/>short video for interactions"]
-    M --> O[Create and verify draft PR] --> W["Earn ready-for-review, then follow CI and GitHub review<br/>/vs-baby-sit"]
+    M --> O[Create and verify draft PR] --> L{10+ changed files?}
+    L -- yes --> T["Start exact-head walkthrough asynchronously<br/>/vs-pr-walkthrough"] --> W["Earn ready-for-review, then follow CI and GitHub review<br/>/vs-baby-sit"]
+    L -- no --> W
     D -- Direct push --> F[Check destination, commit, push] --> S[Verify remote SHA]
 ```
 
