@@ -18,13 +18,13 @@ Do NOT copy code verbatim, ignore licensing, or file PRs here. The output is a r
 - You noticed another project solving a problem this repo is also solving, and want a side-by-side of approaches
 - Before writing a new skill / prompt / convention, look at 1-2 similar projects first
 
-Compare with `/vs-github-research` — that skill builds a landscape of multiple competitors on shared axes. `/vs-steal` is one target, maximum depth.
+Compare with `/vs-octocode` — that skill builds a landscape of multiple competitors on shared axes. `/vs-steal` is one target, maximum depth.
 
 ## Phase 0: Scope the target
 
 Confirm the target and the intent:
 
-- `owner/repo` — exactly one. Multiple targets → use `/vs-github-research` instead.
+- `owner/repo` — exactly one. Multiple targets → use `/vs-octocode` instead.
 - Scope — "skills and prompts", "workflow shape", "test patterns", "everything". Pick one to avoid a shallow scan over a huge repo.
 - Anything known-irrelevant — language, runtime, domain mismatches — say so up front so the scan doesn't waste time on them.
 
@@ -100,7 +100,7 @@ suffix rule.
 Print the report path + the top recommendation. Suggest next step:
 
 - User wants to port a recommendation → frame it as a proper work item via `/vs-to-issues` or `/vs-shape-it` (not an ad-hoc patch)
-- User wants another scan → rerun `/vs-steal` with a different target, or `/vs-github-research` for a landscape view
+- User wants another scan → rerun `/vs-steal` with a different target, or `/vs-octocode` for a landscape view
 - Nothing worth stealing → say so directly. "Target scanned, nothing meets the value/cost bar" is a valid outcome.
 
 ## Guardrails
@@ -108,7 +108,7 @@ Print the report path + the top recommendation. Suggest next step:
 - **Cite always.** Every claim points at a file + line range or a PR number. Uncited observations are opinions, not steals.
 - **Respect licensing.** Note the target repo's license in the report header. If copying code (not just ideas), the license decides whether it's legal.
 - **Don't inflate value.** "High value" requires a one-sentence concrete improvement to this repo, not "interesting pattern."
-- **One target per report.** Landscape comparisons belong in `/vs-github-research`.
+- **One target per report.** Landscape comparisons belong in `/vs-octocode`.
 
 ## Verification
 
@@ -132,4 +132,4 @@ Direct: emit **Next** only. Composed: return to caller.
 
 **Prev:** (entry point — user points at an external repo)
 **Next:** `/vs-shape-it`
-**Relevant:** `/vs-github-research`
+**Relevant:** `/vs-octocode`

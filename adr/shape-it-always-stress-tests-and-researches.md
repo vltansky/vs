@@ -12,7 +12,7 @@ the composed mode introduced in `pushback-advises-rather-than-interrogates.md`.
 
 Its evidence gathering was entirely repo-inward: read the named sources, read
 nearby code, check prior artifacts. Nothing in the skill ever named
-`vs-github-research`, `vs-rfc-research`, or `vs-steal`, so a design could be
+`vs-octocode`, `vs-rfc-research`, or `vs-steal`, so a design could be
 shaped to completion without once checking whether the ecosystem had already
 settled the question. Repository evidence answers how this codebase works; it
 cannot say whether the approach is the right one.

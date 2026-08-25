@@ -327,7 +327,7 @@ are confident which lookup produces it:
 - a build-vs-adopt call hinges on what an existing library actually does
 
 Pick the narrowest flow and follow its SKILL.md file:
-[`../vs-github-research/SKILL.md`](../vs-github-research/SKILL.md) for prior
+[`../vs-octocode/SKILL.md`](../vs-octocode/SKILL.md) for prior
 art, ecosystem patterns, and landscape comparison;
 [`../vs-rfc-research/SKILL.md`](../vs-rfc-research/SKILL.md) when the decision
 is RFC- or ADR-grade and needs code-cited evidence;

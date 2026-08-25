@@ -37,7 +37,7 @@ flowchart LR
     B --> P["/vs-ship-it<br/>Publish and follow"]
     P --> O[Pull request]
 
-    S -. composes .-> SC["/vs-ponytail · /vs-architect? · /vs-github-research?<br/>/vs-pushback · /vs-eli5 · /vs-eval?"]
+    S -. composes .-> SC["/vs-ponytail · /vs-architect? · /vs-octocode?<br/>/vs-pushback · /vs-eli5 · /vs-eval?"]
     B -. composes .-> BC["/vs-ponytail · /vs-pushback · /vs-decide-for-me<br/>/vs-tdd · /vs-debug-mode?<br/>/vs-roast-code? · /vs-deslop?<br/>/vs-qa? · /vs-verify · /vs-brief? · /vs-eval?"]
     P -. composes .-> PC["/vs-baby-sit"]
 ```
@@ -60,7 +60,7 @@ flowchart TD
     R -- Vague idea --> E[Explore<br/>Up to 3 independent questions in one batch]
     R -- "Interview me" --> G[Guided Explore<br/>Up to 3 adaptive questions per round]
     R -- Formed plan --> C["Challenge<br/>/vs-pushback"]
-    E --> S["Research and design<br/>/vs-github-research? · /vs-architect? · /vs-eval?"]
+    E --> S["Research and design<br/>/vs-octocode? · /vs-architect? · /vs-eval?"]
     G --> S
     S --> X["Stress-test<br/>/vs-pushback"]
     X --> D{Strategic decisions resolved?}
@@ -186,7 +186,7 @@ Architecture: /vs-architect -> /vs-shape-it -> /vs-build-it
 | `/vs-ponytail` | Choose the smallest complete solution and expose what machinery it avoided |
 | `/vs-pushback` | Stress-test a formed proposal with evidence, a smaller Ponytail alternative, and targeted decision questions |
 | `/vs-prototype` | Answer one UI or logic question with throwaway code |
-| `/vs-github-research` | Find external GitHub examples, patterns, and prior art |
+| `/vs-octocode` | Find external GitHub examples, patterns, and prior art |
 | `/vs-htmdx` | Turn source material into one portable visual HTMDX artifact |
 | `/vs-rfc-research` | Turn code and research evidence into an RFC, ADR, or proposal |
 | `/vs-tdd` | Run a red-green-refactor loop |
@@ -280,7 +280,7 @@ skills folder.
 ## Included tooling
 
 vs includes [octocode MCP](https://github.com/bgauryy/octocode-mcp) for
-evidence-backed code research. It supports `/vs-github-research`,
+evidence-backed code research. It supports `/vs-octocode`,
 `/vs-rfc-research`, `/vs-steal`, and prior-art passes in `/vs-shape-it` and
 `/vs-pushback`. If a host does not load plugin MCP config, those skills fall
 back to the [octocode CLI](https://octocode.ai/)

@@ -49,7 +49,7 @@ Paste this inline — skills must stay self-contained in case they're installed 
 ├── specs/        # shape-it design docs
 ├── rfcs/         # rfc-research RFCs
 ├── qa-reports/   # qa QA reports + screenshots
-├── github-research/ # github-research prior-art docs and landscape maps
+├── vs-octocode/  # Octocode prior-art docs and landscape maps
 ├── briefs/       # brief outputs
 ├── reviews/      # code-review diffs, scans, and evidence
 ├── verification/ # verification result summaries
@@ -115,7 +115,7 @@ Never write into the project tree (`docs/`, `.context/`, `.octocode/`) for sessi
 Each user-facing vs skill has a kind classification:
 
 - **Workflow** — takes a loose human goal and drives a full outcome (`vs-shape-it`, `vs-improve`, `vs-build-it`, `vs-ship-it`, `vs-bugfix`, `vs-fix-pr`, `vs-baby-sit`, `vs-chief-of-staff`)
-- **Building block** — owns one bounded job and can be used directly or composed by workflows (`vs-search-threads`, `vs-tdd`, `vs-qa`, `vs-brief`, `vs-tldr`, `vs-eli5`, `vs-eval`, `vs-tune-skill`, `vs-pr-walkthrough`, `vs-verify`, `vs-ponytail`, `vs-deslop`, `vs-perf`, `vs-debug-mode`, `vs-roast-code`, `vs-roast-ui`, `vs-architect`, `vs-github-research`, `vs-htmdx`, `vs-rfc-research`, `vs-pushback`, `vs-prototype`, `vs-to-issues`, `vs-steal`, `vs-setup-adr`, `vs-decide-for-me`, `vs-next`, `vs-recap`, `vs-retro`, `vs-try-skill`, `vs-write`)
+- **Building block** — owns one bounded job and can be used directly or composed by workflows (`vs-search-threads`, `vs-tdd`, `vs-qa`, `vs-brief`, `vs-tldr`, `vs-eli5`, `vs-eval`, `vs-tune-skill`, `vs-pr-walkthrough`, `vs-verify`, `vs-ponytail`, `vs-deslop`, `vs-perf`, `vs-debug-mode`, `vs-roast-code`, `vs-roast-ui`, `vs-architect`, `vs-octocode`, `vs-htmdx`, `vs-rfc-research`, `vs-pushback`, `vs-prototype`, `vs-to-issues`, `vs-steal`, `vs-setup-adr`, `vs-decide-for-me`, `vs-next`, `vs-recap`, `vs-retro`, `vs-try-skill`, `vs-write`)
 
 `vs-internal-shared` is repo-local shared reference material, not a user-facing skill kind.
 

@@ -15,7 +15,7 @@ describe('shape-it: research flow', () => {
   });
 
   it('names the concrete research skills to chain into', () => {
-    expect(SKILL).toMatch(/vs-github-research\/SKILL\.md/);
+    expect(SKILL).toMatch(/vs-octocode\/SKILL\.md/);
     expect(SKILL).toMatch(/vs-rfc-research\/SKILL\.md/);
     expect(SKILL).toMatch(/vs-steal\/SKILL\.md/);
   });

@@ -18,7 +18,7 @@ Internal conversations have been referring to skill layers, but the mapping only
 Classify user-facing skills by kind using plain-language labels recorded in the skill body or local references rather than custom top-level frontmatter:
 
 - **Workflow.** Takes a loose human goal and drives it to a shippable outcome. Composes building blocks. Examples: `vs-shape-it`, `vs-build-it`, `vs-ship-it`, `vs-bugfix`, `vs-fix-pr`, `vs-afk`, `vs-baby-sit`.
-- **Building block.** Owns one phase, mode, decision helper, or meta job (`vs-tdd`, `vs-roast-review`, `vs-brief`, `vs-verify`, `vs-deslop`, `vs-second-opinion`, `vs-perf`, `vs-qa`, `vs-debug-mode`, `vs-github-research`, `vs-rfc-research`, `vs-pushback`, `vs-to-issues`, `vs-steal`, `vs-setup-adr`, `autoanswer`, `caveman`, `vs-retro`, `vs-try-skill`). Called directly by humans mid-session or composed by a workflow.
+- **Building block.** Owns one phase, mode, decision helper, or meta job (`vs-tdd`, `vs-roast-review`, `vs-brief`, `vs-verify`, `vs-deslop`, `vs-second-opinion`, `vs-perf`, `vs-qa`, `vs-debug-mode`, `vs-octocode`, `vs-rfc-research`, `vs-pushback`, `vs-to-issues`, `vs-steal`, `vs-setup-adr`, `autoanswer`, `caveman`, `vs-retro`, `vs-try-skill`). Called directly by humans mid-session or composed by a workflow.
 
 Shared reference material such as `vs-internal-shared` is not a user-facing skill kind. It is repo-local guidance consumed by the other skills.
 

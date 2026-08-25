@@ -74,5 +74,5 @@ outside the HTMDX component catalog.
 
 - The shared selection and security contract lives in
   [`rich-artifacts.md`](../skills/vs-internal-shared/references/rich-artifacts.md).
-- `vs-github-research` uses HTMDX for landscape reports.
+- `vs-octocode` uses HTMDX for landscape reports.
 - `vs-qa` uses it for screenshot-heavy regression or exhaustive reports.

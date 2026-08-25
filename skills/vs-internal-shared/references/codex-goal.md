@@ -18,7 +18,7 @@ evidence needed for terminal updates.
 - **Owns goals:** `vs-shape-it` for shaping sessions, `vs-improve`, `vs-build-it`,
   `vs-ship-it`, `vs-bugfix`, `vs-fix-pr`, `vs-baby-sit`
 - **Usually contributes evidence:** `vs-tdd`, `vs-debug-mode`, `vs-qa`, `vs-verify`,
-  `vs-roast-code`, `vs-deslop`, `vs-brief`, `vs-pushback`, `vs-github-research`, `vs-rfc-research`,
+  `vs-roast-code`, `vs-deslop`, `vs-brief`, `vs-pushback`, `vs-octocode`, `vs-rfc-research`,
   `vs-to-issues`, `vs-steal`, `vs-perf`
 - **Standalone exception:** a building block may own a goal when the user invokes
   it directly as the whole task, for example "optimize this endpoint with perf"

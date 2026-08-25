@@ -1,9 +1,9 @@
 ---
-name: vs-github-research
+name: vs-octocode
 description: "Use when the user asks how GitHub projects solve a problem, wants prior art, external code examples, ecosystem patterns, or a landscape comparison across parallel projects."
 ---
 
-# GitHub Research
+# Octocode Research
 
 Answer the user's question by looking outward at real GitHub projects. Find how external projects solve the same kind of problem, then synthesize the patterns with citations.
 
@@ -79,7 +79,7 @@ Keep at least two hypotheses alive for each unsettled claim. Include the cheapes
 Write a short plan and proceed immediately:
 
 ```markdown
-## GitHub Research Plan
+## Octocode Research Plan
 **Question:** <user question>
 **Mode:** <prior-art answer | landscape report>
 **Corpus:** <organizations, ecosystems, repo families, languages>
@@ -222,7 +222,7 @@ The multi-project matrix and cross-linked evidence justify a visual artifact.
 Resolve `$PROJECT_ID` (see
 [../vs-internal-shared/SKILL.md](../vs-internal-shared/SKILL.md)) and write one
 HTMDX artifact to
-`~/.vs/$PROJECT_ID/vs-github-research/YYYY-MM-DD-landscape.html`. Follow the
+`~/.vs/$PROJECT_ID/vs-octocode/YYYY-MM-DD-landscape.html`. Follow the
 [shared rich-artifact contract](../vs-internal-shared/references/rich-artifacts.md):
 pin its exact runtime, keep all editable content in the HTMDX source block, and
 create no Markdown twin.
@@ -295,7 +295,7 @@ Print the report path plus a short clusters summary.
 
 ## Relationship To Nearby Skills
 
-- `/vs-github-research` answers broad GitHub-backed questions and can create a landscape map across multiple projects.
+- `/vs-octocode` answers broad GitHub-backed questions and can create a landscape map across multiple projects.
 - `/vs-steal` deeply inspects one named repo for portable ideas.
 - `/vs-rfc-research` turns evidence into a formal proposal or decision document.
 

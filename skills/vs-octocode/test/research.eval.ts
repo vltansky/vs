@@ -8,7 +8,7 @@ import { createAgent } from '../../vs-internal-shared/test/pathgrade-agent';
 const SKILL_DIR = path.resolve(__dirname, '..');
 const SKILL = fs.readFileSync(path.join(SKILL_DIR, 'SKILL.md'), 'utf8');
 
-describe('github-research', () => {
+describe('vs-octocode', () => {
   it.skip('has a runnable behavior-eval scaffold for future octocode-backed broad search fixtures', async () => {
     const agent = await createAgent({ agent: 'codex', timeout: 300, skillDir: SKILL_DIR });
     const result = await evaluate(agent, [check('placeholder', () => true)]);

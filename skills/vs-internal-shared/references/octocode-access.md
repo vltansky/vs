@@ -1,6 +1,6 @@
 # Octocode access ladder
 
-Skills that need GitHub-backed evidence (`/vs-github-research`,
+Skills that need GitHub-backed evidence (`/vs-octocode`,
 `/vs-rfc-research`, `/vs-steal`, prior-art passes in `/vs-shape-it` and
 `/vs-pushback`) go through Octocode. There are two ways to reach it. Use the
 first one that is actually available; do not silently downgrade further.

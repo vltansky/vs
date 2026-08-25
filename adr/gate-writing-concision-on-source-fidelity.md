@@ -47,7 +47,7 @@ it, a textbook explanation of sliding windows delivered to the team that owns
 the rate limiter.
 
 `vs-write` is a building block for `vs-ship-it` PR bodies, `vs-brief`, and
-`vs-github-research`. A rule that trades a preserved qualification for a
+`vs-octocode`. A rule that trades a preserved qualification for a
 sharper sentence does not stay in one document.
 
 ## Decision

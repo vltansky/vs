@@ -374,6 +374,6 @@ Before completing the RFC, verify:
 
 Direct: emit **Next** only. Composed: return to caller.
 
-**Prev:** `/vs-github-research` | technical decision
+**Prev:** `/vs-octocode` | technical decision
 **Next:** `/vs-pushback`
 **Relevant:** `/vs-setup-adr`
