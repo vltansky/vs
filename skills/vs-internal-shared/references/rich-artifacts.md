@@ -39,10 +39,9 @@ immediately before it stating the conclusion. Skip Mermaid for a single fact, a
 simple file list, or a linear two-step change. Mermaid complements the Markdown
 explanation; it does not trigger HTMDX or replace the source-of-truth artifact.
 
-HTMDX does not render Mermaid source directly. When HTMDX is the review
-surface, express the same relationship with the smallest fitting HTMDX
-component or an inline SVG. Do not paste an unrendered Mermaid fence into the
-artifact.
+HTMDX renders fenced Mermaid blocks natively. When HTMDX is the review surface,
+use a Mermaid fence for anything that branches, cycles, or fans out, and the
+smallest fitting HTMDX component for linear or tabular relationships.
 
 For claims about visible product behavior, use screenshots rather than a
 diagram. Use generated images only for a mental model or metaphor that Mermaid

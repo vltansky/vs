@@ -326,8 +326,15 @@ benchmark contract before recommending implementation.
    ```
 
    Save the RFC to `~/.vs/$PROJECT_ID/rfcs/NNNN-[slug].md` (create the directory if missing; pick `NNNN` as the next sequential number in that folder)
-2. If the user explicitly asked for the RFC itself in the response, output the full final RFC markdown in chat. Otherwise present a concise summary with key findings and the file path.
-3. Suggest `/vs-pushback` to stress-test the proposal before committing to it — the RFC is a plan, and plans benefit from adversarial review
+2. Render the RFC for human review as an HTMDX proposal page through
+   [`../vs-htmdx/SKILL.md`](../vs-htmdx/SKILL.md) — its proposal shell's section
+   order matches the RFC template, and its components (Options, Risks, Scope,
+   Questions, mermaid fences) carry the alternatives, risks, and flows better
+   than markdown prose. The `.md` file stays the canonical machine-consumed
+   RFC; link it from the artifact. Inherit the URL + first-screen shot handoff
+   from `/vs-htmdx`. Pointer only.
+3. If the user explicitly asked for the RFC itself in the response, output the full final RFC markdown in chat. Otherwise present a two-to-four-line chat TLDR with key findings, the artifact URL, and the file path.
+4. Suggest `/vs-pushback` to stress-test the proposal before committing to it — the RFC is a plan, and plans benefit from adversarial review
 
 ## Research Quality Gates
 

@@ -1,6 +1,6 @@
 ---
 name: vs-htmdx
-description: "Use when the user asks to create, visualize, render, or edit an HTMDX artifact, or wants a decision brief, comparison, timeline, report, or dashboard delivered as HTMDX. Produces one portable HTML file with editable HTMDX source."
+description: "Use when the user asks to create, visualize, render, or edit an HTMDX artifact; asks for a proposal, RFC, design doc, decision brief, comparison, timeline, report, or dashboard; or asks to explain something complex, where a page of diagrams, metrics, and structured components beats a wall of chat text. Produces one portable HTML file with editable HTMDX source."
 ---
 
 # HTMDX
@@ -14,10 +14,12 @@ appropriate workflow first.
 
 ## Boundary
 
-Use this skill when the user explicitly requests HTMDX or when HTMDX is the
-requested delivery format. For an unqualified request to "visualize" a complex
-relationship, use the host's visualization capability instead. For routine
-prose, plans, and machine-consumed state, use Markdown.
+Use this skill when the user explicitly requests HTMDX, when HTMDX is the
+requested delivery format, or when the deliverable is a proposal or a complex
+explanation for a human — the two-layer contract in
+[explanation-surfaces](../vs-internal-shared/references/explanation-surfaces.md)
+makes an HTMDX page the review surface and keeps chat to a short TLDR. For
+routine prose, plans, and machine-consumed state, use Markdown.
 
 An HTMDX deliverable is:
 
