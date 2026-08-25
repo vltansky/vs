@@ -190,6 +190,15 @@ def fetch_review(repo: str, pr: int) -> tuple[str | None, int]:
     return pull_request.get("reviewDecision"), unresolved
 
 
+def fetch_requested_reviewers(pull_request: Snapshot) -> list[str]:
+    reviewers = {
+        reviewer.get("login")
+        for reviewer in pull_request.get("requested_reviewers") or []
+        if isinstance(reviewer.get("login"), str) and reviewer.get("login")
+    }
+    return sorted(reviewers)
+
+
 def fetch_approval_candidates(repo: str, pr: int, pull_request: Snapshot) -> list[str]:
     candidates: list[str] = []
     seen: set[str] = set()
@@ -200,8 +209,8 @@ def fetch_approval_candidates(repo: str, pr: int, pull_request: Snapshot) -> lis
         seen.add(login)
         candidates.append(login)
 
-    for reviewer in pull_request.get("requested_reviewers") or []:
-        add(reviewer.get("login"))
+    for login in fetch_requested_reviewers(pull_request):
+        add(login)
 
     try:
         reviews = gh_json(
@@ -216,15 +225,12 @@ def fetch_approval_candidates(repo: str, pr: int, pull_request: Snapshot) -> lis
 
 
 def fetch_approval_teams(pull_request: Snapshot) -> list[str]:
-    teams: list[str] = []
-    seen: set[str] = set()
-    for team in pull_request.get("requested_teams") or []:
-        slug = team.get("slug")
-        if not isinstance(slug, str) or not slug or slug in seen:
-            continue
-        seen.add(slug)
-        teams.append(slug)
-    return teams
+    teams = {
+        team.get("slug")
+        for team in pull_request.get("requested_teams") or []
+        if isinstance(team.get("slug"), str) and team.get("slug")
+    }
+    return sorted(teams)
 
 
 def fetch_preview_urls(repo: str, head_sha: str) -> list[str]:
@@ -345,6 +351,9 @@ def fetch_snapshot(repo: str, pr: int, previous: Snapshot | None) -> Snapshot:
         and snapshot["reviewDecision"] == "REVIEW_REQUIRED"
         and snapshot["mergeable"] is True
     ):
+        requested_reviewers = fetch_requested_reviewers(pull_request)
+        if requested_reviewers:
+            snapshot["approvalReviewers"] = requested_reviewers
         approval_candidates = fetch_approval_candidates(repo, pr, pull_request)
         if approval_candidates:
             snapshot["approvalCandidates"] = approval_candidates

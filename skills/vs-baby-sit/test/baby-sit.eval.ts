@@ -1,7 +1,11 @@
 import * as path from 'path';
 import { check, evaluate } from '@wix/pathgrade';
 import { describe, expect, it } from 'vitest';
-import { promptOnce } from '../../vs-internal-shared/test/pathgrade-v1';
+import {
+  hasAskUserEvent,
+  promptAllowingAskUserInterrupt,
+  promptOnce,
+} from '../../vs-internal-shared/test/pathgrade-v1';
 
 import { createAgent } from '../../vs-internal-shared/test/pathgrade-agent';
 
@@ -16,6 +20,51 @@ function assistantOutput(log: Array<{ type: string; assistant_message?: string }
 }
 
 describe('vs-baby-sit behavior', () => {
+  it('uses an interactive thread-write gate and keeps ownership of the run', async () => {
+    const agent = await createAgent({
+      agent: EVAL_AGENT,
+      timeout: 360,
+      skillDir: SKILL_DIR,
+      copyFromHome:
+        EVAL_AGENT === 'codex' ? ['.codex/auth.json'] : undefined,
+    });
+
+    try {
+      await promptAllowingAskUserInterrupt(
+        agent,
+        `Use $vs-baby-sit on PR #542 in batch-ask mode. A verified repair was pushed at exact head def456. Two fixed inline threads now have unique evidence-linked draft replies ready. CI is pending. The host exposes AskUserQuestion.
+
+Perform the normal next action. This is approval for GitHub thread writes, not the external human-review gate. Do not post or resolve before approval, do not end the babysitting run merely because this approval is pending, and do not ask me to invoke a skill again.`,
+      );
+
+      const result = await evaluate(
+        agent,
+        [
+          check('uses-thread-write-approval-tool', ({ toolEvents }) =>
+            hasAskUserEvent(
+              toolEvents,
+              /post.*resolve|post.*only|edit.*draft|thread.*write/i,
+            )),
+          check('does-not-misclassify-as-human-review-stop', ({ transcript }) =>
+            !/Review needed:|invoke.*(?:fix-pr|baby-sit)|start.*new.*(?:turn|task)/i.test(
+              transcript,
+            )),
+          check('preserves-continuation-after-approval', ({ transcript, toolEvents }) => {
+            const haystack = `${transcript}\n${JSON.stringify(toolEvents)}`;
+            return /same (?:babysitting )?(?:run|invocation|watcher)|resume.*watcher|continue.*babysit/i.test(
+              haystack,
+            );
+          }),
+        ],
+        { failFast: false, onScorerError: 'zero' },
+      );
+
+      expect(result.score).toBe(1);
+    } finally {
+      await agent.dispose();
+    }
+  });
+
   it('stops after six repair cycles and asks for another bounded batch', async () => {
     const agent = await createAgent({
       agent: EVAL_AGENT,

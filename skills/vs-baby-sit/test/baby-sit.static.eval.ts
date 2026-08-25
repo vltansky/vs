@@ -114,12 +114,21 @@ describe('vs-baby-sit remote-first validation', () => {
   it('stops and hands off an approval-only gate with a grounded ping suggestion', () => {
     expect(SKILL).toMatch(/After `reason: review-approval`, stop the watcher/);
     expect(SKILL).toMatch(/Review needed: @<user-or-team>/i);
-    expect(SKILL).toMatch(/first login in `approvalCandidates`/);
-    expect(SKILL).toMatch(/first slug in `approvalTeams`/);
+    expect(SKILL).toMatch(/list every login in `approvalReviewers`/);
+    expect(SKILL).toMatch(/every slug in\s+`approvalTeams`/);
+    expect(SKILL).toMatch(/Do not collapse multiple requested teams to the\s+first item/i);
     expect(SKILL).toMatch(/auto-merge.*do not\s+override this stop/is);
     expect(SKILL).toMatch(/Do not send interim `still waiting` updates/);
     expect(SKILL).toMatch(/Never invent an owner/);
     expect(SKILL).toMatch(/Never\s+.*send the ping automatically/);
+  });
+
+  it('pauses for thread-write approval without ending babysitting', () => {
+    expect(SKILL).toMatch(/thread-write approval is an interactive pause, not a stop\s+condition/i);
+    expect(SKILL).toMatch(/use the host's ask-user\s+question tool/i);
+    expect(SKILL).toMatch(/resume the same\s+babysitting invocation/i);
+    expect(SKILL).toMatch(/Do not emit a final handoff or ask the user\s+to invoke/i);
+    expect(SKILL).toMatch(/resume the same\s+watcher after the approved writes/i);
   });
 
   it('reflects babysitting state in the host thread title when supported', () => {
@@ -556,6 +565,29 @@ print(watcher.fetch_approval_candidates("owner/repo", 42, pull))
     expect(result.stdout.trim()).toBe("['requested-reviewer', 'prior-approver']");
   });
 
+  it('sorts requested reviewers separately from historical approval candidates', () => {
+    const code = `
+import importlib.util
+import sys
+spec = importlib.util.spec_from_file_location("watch_pr", sys.argv[1])
+watcher = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(watcher)
+pull = {"requested_reviewers": [
+    {"login": "zeta-reviewer"},
+    {"login": "alpha-reviewer"},
+    {"login": "zeta-reviewer"},
+]}
+print(watcher.fetch_requested_reviewers(pull))
+`;
+    const result = spawnSync('python3', ['-c', code, WATCHER], {
+      encoding: 'utf8',
+      env: { ...process.env, PYTHONDONTWRITEBYTECODE: '1' },
+    });
+
+    expect(result.status).toBe(0);
+    expect(result.stdout.trim()).toBe("['alpha-reviewer', 'zeta-reviewer']");
+  });
+
   it('surfaces requested review teams for an approval gate', () => {
     const code = `
 import importlib.util
@@ -573,6 +605,29 @@ print(watcher.fetch_approval_teams(pull))
 
     expect(result.status).toBe(0);
     expect(result.stdout.trim()).toBe("['platform-reviewers']");
+  });
+
+  it('sorts and deduplicates requested review teams for stable handoffs', () => {
+    const code = `
+import importlib.util
+import sys
+spec = importlib.util.spec_from_file_location("watch_pr", sys.argv[1])
+watcher = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(watcher)
+pull = {"requested_teams": [
+    {"slug": "zeta-reviewers"},
+    {"slug": "alpha-reviewers"},
+    {"slug": "zeta-reviewers"},
+]}
+print(watcher.fetch_approval_teams(pull))
+`;
+    const result = spawnSync('python3', ['-c', code, WATCHER], {
+      encoding: 'utf8',
+      env: { ...process.env, PYTHONDONTWRITEBYTECODE: '1' },
+    });
+
+    expect(result.status).toBe(0);
+    expect(result.stdout.trim()).toBe("['alpha-reviewers', 'zeta-reviewers']");
   });
 
   it('wakes with review-feedback once a reviewer bot posts findings', () => {

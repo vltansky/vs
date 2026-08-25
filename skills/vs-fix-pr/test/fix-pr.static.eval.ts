@@ -32,6 +32,12 @@ describe('vs-fix-pr async reviewer waiting', () => {
 });
 
 describe('vs-fix-pr CI ownership', () => {
+  it('confirms a current-head failure before announcing log inspection', () => {
+    expect(SKILL).toMatch(/user's belief that the PR is red[\s\S]{0,120}not a failure event/i);
+    expect(SKILL).toMatch(/confirm[\s\S]{0,80}exact current head[\s\S]{0,80}failing\s+check/i);
+    expect(SKILL).toMatch(/Only then say[\s\S]{0,100}open the failed check logs/i);
+  });
+
   it('treats failing CI as address-mode work even without comments', () => {
     expect(SKILL).toMatch(/CI is a first-class input/);
     expect(SKILL).toMatch(/red required check is actionable work even when Step 2 finds no\s+comments/);
@@ -63,6 +69,8 @@ describe('vs-fix-pr babysitting handoff', () => {
 
   it('does not duplicate the baby-sit monitoring loop', () => {
     expect(SKILL).toMatch(/does not duplicate that skill's CI or review loop/i);
+    expect(SKILL).toMatch(/new feedback belongs\s+only to `vs-baby-sit`/i);
+    expect(SKILL).toMatch(/Do not ask the user to invoke either\s+skill again/i);
   });
 
   it('keeps inspect-only requests read-only and finite', () => {

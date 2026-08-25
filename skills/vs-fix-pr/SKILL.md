@@ -140,6 +140,13 @@ Also check for CI status via checks API:
 gh pr checks $PR_NUM
 ```
 
+Treat the returned checks for the exact current head as the source of truth. A
+user's belief that the PR is red, an older notification, or a stale PR card is
+not a failure event. First confirm that the exact current head has a failing
+check. Only then say that you will open the failed check logs and enter Step
+1a. If the current-head snapshot is green, say the red state has cleared and do
+not run the failure inspector.
+
 | Build Status | Action |
 |--------------|--------|
 | **success** | Proceed to Step 2 |
@@ -449,6 +456,12 @@ Fix-pr does not duplicate that skill's CI or review loop. Once composed,
 waiting, and the merge-ready or attention handoff. Return the babysitter's
 terminal result as the workflow result. A pending check is therefore a handoff
 condition, not a reason for fix-pr to invent another polling loop.
+
+The handoff is a real ownership boundary: after it starts, new feedback belongs
+only to `vs-baby-sit`, even when the next event looks like another fix-pr cycle.
+Keep the user-facing phase named `baby-sit`; do not present later work as a new
+fix-pr run. Do not ask the user to invoke either skill again. Thread-write
+approval pauses and resumes the composed babysitter according to its policy.
 
 ## Critical Rules
 
