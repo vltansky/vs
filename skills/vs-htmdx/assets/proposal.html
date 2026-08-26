@@ -1976,7 +1976,10 @@ const vsCatalogFactory = (React, css) => {
                   'inline-flex w-5 justify-center rounded text-xs font-bold ' +
                   (state === 'done' ? 'bg-emerald-50 text-emerald-700' : 'text-muted-foreground'),
               },
-              state === 'done' ? '✓' : state === 'na' ? '—' : '○',
+              // Tilde, not em dash: the dedash pass rewrites — to - in text
+              // nodes, which turned "doesn't apply" into a stray minus. ASCII
+              // ~ echoes the [~] source syntax and no pass touches it.
+              state === 'done' ? '✓' : state === 'na' ? '~' : '○',
             ),
             h(
               'span',
