@@ -12,7 +12,7 @@ Second pass roasts what's left.
 
 Roast Code is a building-block review tool. It consumes:
 
-- `vs-deslop` semantics during Pass 1: simplify working code while preserving behavior.
+- `vs-deslop` semantics during Pass 1: simplify working code while preserving behavior. Pass 1 includes the vs-deslop on-demand anti-slop file pass on in-scope named TS/JS files; do not skip it.
 - [`vs-ponytail`](../vs-ponytail/SKILL.md) in composed mode when judging
   whether new machinery is necessary.
 - [independent-advisors](../vs-internal-shared/references/independent-advisors.md)
@@ -154,6 +154,10 @@ the code looks interesting.
 ---
 
 ## Pass 1: Simplify (auto-fix)
+
+Pass 1 includes the vs-deslop on-demand anti-slop file pass on in-scope
+named TS/JS files. Follow `../vs-deslop/SKILL.md`; do not skip that file
+pass.
 
 Clean the code first. The parent performs one integrated reuse, quality, and
 efficiency pass. Delegate separate review domains only when deep effort was

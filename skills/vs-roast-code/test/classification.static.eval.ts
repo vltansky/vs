@@ -155,3 +155,17 @@ describe('roast-code proportional program', () => {
     );
   });
 });
+
+describe('roast-code deslop anti-slop compose', () => {
+
+  it('points Pass 1 at the deslop on-demand anti-slop file pass', () => {
+
+    expect(SKILL).toMatch(
+
+      /Pass 1 includes the vs-deslop on-demand anti-slop file pass/,
+
+    );
+
+  });
+
+});

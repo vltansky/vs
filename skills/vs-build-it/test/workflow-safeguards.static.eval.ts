@@ -19,3 +19,17 @@ describe('build-it workflow safeguards', () => {
     expect(SKILL).toMatch(/cannot be called complete.*matrix.*proven/is);
   });
 });
+
+describe('build-it deslop anti-slop compose', () => {
+
+  it('points Phase 4 at the deslop on-demand anti-slop file pass', () => {
+
+    expect(SKILL).toMatch(
+
+      /Phase 4 includes the vs-deslop on-demand anti-slop file pass/,
+
+    );
+
+  });
+
+});

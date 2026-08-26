@@ -41,7 +41,6 @@ describe('vs-deslop: keep flatten as the first cleanup move', () => {
     expect(SKILL).not.toMatch(/encode-via-lint/i);
     expect(SKILL).not.toMatch(/poteto-mode/i);
     expect(SKILL).not.toMatch(/principle-encode/i);
-    expect(SKILL).not.toMatch(/\boxlint\b/i);
     expect(SKILL).not.toMatch(/SLOGAN_ONLY_DESLOP_CANARY/);
     expect(SKILL).not.toMatch(/\/\*\s*second-miss\s*\*\//);
   });

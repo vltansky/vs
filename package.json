@@ -1,6 +1,6 @@
 {
   "name": "vs",
-  "version": "1.8.14",
+  "version": "1.8.15",
   "description": "Plan-to-ship workflow skills for shaping ideas, building autonomously, reviewing code, and shipping PRs with agent discipline.",
   "keywords": [
     "claude-code",
@@ -27,7 +27,9 @@
   "license": "MIT",
   "type": "commonjs",
   "devDependencies": {
+    "@oxlint/plugins": "1.78.0",
     "@wix/pathgrade": "^1.0.1",
+    "oxlint": "1.78.0",
     "typescript": "^5.9.3",
     "vitest": "^4.1.5"
   }

@@ -72,6 +72,20 @@ Inspect the requested scope for:
 Run `skills/vs-deslop/scripts/reject-code-slop.mjs` on each in-scope file
 before reporting `CLEAN` or `CLEANED`. Exit 1 is a catalog fail.
 
+Then run the on-demand anti-slop file pass on the same in-scope TS/JS
+files (named files only — not a whole-repo lint, and do not write
+`oxlint.config` into the consumer repo):
+
+```bash
+node skills/vs-deslop/scripts/run-anti-slop.mjs <file.ts> [file.ts ...]
+```
+
+That command runs oxlint with the vs-owned config and the vendored
+generic anti-slop rules. Exit 1 is a catalog fail (not `CLEAN`). If
+oxlint or the plugin cannot run, report `WARN` or `BLOCKED` — do not
+pretend `CLEAN`. Enable the Effect rule only when the target repo uses
+Effect.
+
 ## Procedure
 
 **Exclusive order:** Lock behavior first, then collect →
@@ -121,6 +135,8 @@ Do not skip or invert these.
 - synonym cycling of one domain name?
 - still cuttable concept left in scope after one flatten pass?
 - `skills/vs-deslop/scripts/reject-code-slop.mjs` exit 1 after that pass?
+- `skills/vs-deslop/scripts/run-anti-slop.mjs` exit 1 on those named TS/JS files?
+- oxlint/plugin cannot run: WARN/BLOCKED, not CLEAN?
 
 ## Output
 

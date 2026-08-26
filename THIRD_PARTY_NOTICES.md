@@ -48,6 +48,20 @@ verification. The unmodified `ponytail-full.md` copy is retained as the frozen
 pure-Ponytail arm of the PathGrade comparison. The copied MIT license text is
 included at `skills/vs-build-it/test/baselines/LICENSE.ponytail`.
 
+## anti-slop
+
+- Author: Dillon Mulroy
+- Project: https://github.com/dmmulroy/anti-slop
+- Used in: `skills/vs-deslop` on-demand named-file Oxlint pass
+- Source: https://github.com/dmmulroy/anti-slop/tree/6d538555cb151d4121ed51a27db81890eacf8ae9
+- License: MIT
+
+The `vs-deslop` skill vendors the generic anti-slop Oxlint plugin (`src/`)
+and runs it on named in-scope TS/JS files only. Nothing is installed into
+the consumer repository. The Effect rule group is opt-in when the target
+repo depends on Effect. The copied MIT license text is included at
+`skills/vs-deslop/LICENSE.anti-slop`.
+
 ## GOV.UK style agent skill
 
 - Author: fofr
