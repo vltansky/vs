@@ -18,7 +18,7 @@ const BAD_SRC = fs.readFileSync(BAD, 'utf8');
 const GOOD_SRC = fs.readFileSync(GOOD, 'utf8');
 const ROAST = path.resolve(DIR, '..', 'vs-roast-code', 'SKILL.md');
 const BUILD = path.resolve(DIR, '..', 'vs-build-it', 'SKILL.md');
-const HASH = '94bf653ff17050e581ef2669efbfe2fd8b5f84cb43c6c05d5a832fa6eff3e838';
+const HASH = '9f42cf49e0a4ee9de516dbacbac04e687a0b7ed39e117d23d409555f45e18ef8';
 
 function antiSlop(args: string[], cwd?: string) {
   return spawnSync(process.execPath, [RUNNER, ...args], {
@@ -37,6 +37,7 @@ describe('vs-deslop: on-demand anti-slop file pass', () => {
     expect(SKILL).toMatch(/skills\/vs-deslop\/scripts\/reject-anti-slop\.mjs/);
     expect(SKILL_RAW).toMatch(new RegExp(HASH, 'i'));
     expect(reject(path.join(DIR, 'SKILL.md')).status).toBe(0);
+    expect(reject(path.join(FIXTURE_DIR, 'published-pair', 'SKILL.md')).status).toBe(0);
     expect(SKILL).not.toMatch(/\/anti-slop\b/);
     expect(SKILL).not.toMatch(/SLOGAN_ONLY_ANTISLOP_CANARY/);
     expect(SKILL).not.toMatch(/PARAGRAPH_PASTE_ANTISLOP_CANARY/);
@@ -46,6 +47,7 @@ describe('vs-deslop: on-demand anti-slop file pass', () => {
     expect(SKILL).not.toMatch(/NO_NAMES_ANTISLOP_CANARY/);
     expect(SKILL).not.toMatch(/CONSUMER_NPM_NPX_ANTISLOP_CANARY/);
     expect(SKILL).not.toMatch(/MD_ONLY_ANTISLOP_CANARY/);
+    expect(SKILL).not.toMatch(/HASH_ONLY_ANTISLOP_CANARY/);
   });
 
   it('rejects a chained assertion fixture and passes a typed file', () => {
@@ -110,6 +112,21 @@ describe('vs-deslop: exclusive fixtures fail slogan and mention-only inherit', (
     const mention = reject(path.join(FIXTURE_DIR, 'mention-only-inherit-skill.md'));
     expect(mention.status).toBe(1);
     expect(mention.stderr).toMatch(/mention-only inherit/);
+  });
+
+  it('fails hash-only and paste/mention/oxlint plus published hash', () => {
+    const hashOnly = reject(path.join(FIXTURE_DIR, 'hash-only-skill.md'));
+    expect(hashOnly.status).toBe(1);
+    expect(hashOnly.stderr).toMatch(/slogan-only skill/);
+    const pasteHash = reject(path.join(FIXTURE_DIR, 'paragraph-paste-hash-skill.md'));
+    expect(pasteHash.status).toBe(1);
+    expect(pasteHash.stderr).toMatch(/paragraph paste/);
+    const mentionHash = reject(path.join(FIXTURE_DIR, 'mention-only-inherit-hash-skill.md'));
+    expect(mentionHash.status).toBe(1);
+    expect(mentionHash.stderr).toMatch(/mention-only inherit/);
+    const oxlintHash = reject(path.join(FIXTURE_DIR, 'oxlint-prose-hash-skill.md'));
+    expect(oxlintHash.status).toBe(1);
+    expect(oxlintHash.stderr).toMatch(/oxlint prose without named-file runner/);
   });
 
   it('fails whole-tree, no-names, and consumer package install fixtures', () => {
