@@ -1,5 +1,5 @@
 {
-  "plugins": [],
+  "plugins": ["eslint", "unicorn"],
   "categories": {
     "correctness": "off",
     "suspicious": "off",
@@ -17,9 +17,18 @@
     {
       "name": "anti-slop-effect",
       "specifier": "../vendor/anti-slop/src/effect/index.ts"
+    },
+    {
+      "name": "inhuman",
+      "specifier": "../vendor/oxlint-plugin-inhuman/oxlint/inhuman.plugin.js"
     }
   ],
   "rules": {
+    "eslint/no-useless-catch": "error",
+    "unicorn/no-useless-fallback-in-spread": "error",
+    "unicorn/no-unnecessary-await": "error",
+    "inhuman/no-empty-wrappers": "error",
+    "inhuman/no-swallowed-catch": "error",
     "anti-slop/no-chained-type-assertions": "error",
     "anti-slop/no-conditional-empty-object-spread": "error",
     "anti-slop/no-known-value-widening": "error",

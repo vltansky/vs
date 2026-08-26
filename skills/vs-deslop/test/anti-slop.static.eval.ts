@@ -13,6 +13,9 @@ const RUNNER_SRC = fs.readFileSync(RUNNER, 'utf8');
 const FIXTURE_DIR = path.join(__dirname, 'fixtures');
 const BAD = path.join(FIXTURE_DIR, 'anti-slop-bad.ts');
 const GOOD = path.join(FIXTURE_DIR, 'anti-slop-good.ts');
+const LEFTOVER = path.join(FIXTURE_DIR, 'leftover-oxlint-bad.ts');
+const REJECT_CODE = path.join(DIR, 'scripts', 'reject-code-slop.mjs');
+const CONFIG = fs.readFileSync(path.join(DIR, 'scripts', 'anti-slop.oxlintrc.json'), 'utf8');
 const NOTE = path.join(FIXTURE_DIR, 'anti-slop-note.md');
 const BAD_SRC = fs.readFileSync(BAD, 'utf8');
 const GOOD_SRC = fs.readFileSync(GOOD, 'utf8');
@@ -59,6 +62,34 @@ describe('vs-deslop: on-demand anti-slop file pass', () => {
       /no-chained-type-assertions/,
     );
     expect(antiSlop([GOOD]).status).toBe(0);
+  });
+
+  it('rejects leftover catch/wrapper rules on one named file', () => {
+    expect(SKILL).toMatch(/eslint\/no-useless-catch/);
+    expect(SKILL).toMatch(/unicorn\/no-useless-fallback-in-spread/);
+    expect(SKILL).toMatch(/unicorn\/no-unnecessary-await/);
+    expect(SKILL).toMatch(/inhuman\/no-empty-wrappers/);
+    expect(SKILL).toMatch(/inhuman\/no-swallowed-catch/);
+    expect(CONFIG).toMatch(/"correctness": "off"/);
+    expect(CONFIG).not.toMatch(/no-console/);
+    expect(CONFIG).not.toMatch(/require-await/);
+    expect(CONFIG).not.toMatch(/no-explicit-any/);
+    expect(CONFIG).not.toMatch(/no-unnecessary-condition/);
+    expect(CONFIG).not.toMatch(/no-single-use-local-function/);
+    expect(CONFIG).not.toMatch(/react\//);
+    const leftover = antiSlop([LEFTOVER]);
+    expect(leftover.status).toBe(1);
+    const out = `${leftover.stdout}${leftover.stderr}`;
+    expect(out).toMatch(/no-useless-catch/);
+    expect(out).toMatch(/no-useless-fallback-in-spread/);
+    expect(out).toMatch(/no-unnecessary-await/);
+    expect(out).toMatch(/no-empty-wrappers/);
+    expect(out).toMatch(/no-swallowed-catch/);
+    expect(antiSlop([GOOD]).status).toBe(0);
+    const code = spawnSync(process.execPath, [REJECT_CODE, LEFTOVER], {
+      encoding: 'utf8',
+    });
+    expect(code.status).toBe(0);
   });
 
   it('fails no-args, a directory, zero JS names, and an MD-only run', () => {

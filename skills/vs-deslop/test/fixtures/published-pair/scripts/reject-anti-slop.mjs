@@ -15,7 +15,7 @@ const SELF = fileURLToPath(import.meta.url);
 const PUBLISHED_REJECTOR_SHA256 =
   '9f42cf49e0a4ee9de516dbacbac04e687a0b7ed39e117d23d409555f45e18ef8';
 const PUBLISHED_SKILL_SHA256 =
-  '902ca4f58ce6d88ec0e7325fb3ee70a48978110c8221e51208d5c0ac070ec1d2';
+  '248eff54d5ddbb0881169d63ebb9a9b03c1eaf0acee441e0094ee2fe4d5fba6a';
 
 function sha256(buf) {
   return createHash('sha256').update(buf).digest('hex');

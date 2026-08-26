@@ -1,0 +1,5 @@
+{
+  "name": "oxlint-plugin-inhuman",
+  "private": true,
+  "type": "module"
+}

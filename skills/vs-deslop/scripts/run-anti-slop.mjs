@@ -97,8 +97,16 @@ if (!oxlintCli) {
 }
 
 const pluginEntry = join(SCRIPT_DIR, "..", "vendor", "anti-slop", "src", "index.ts");
-if (!existsSync(pluginEntry) || !existsSync(GENERIC_CONFIG)) {
-  console.error("run-anti-slop: vendored anti-slop plugin or vs-owned config is missing");
+const inhumanEntry = join(
+  SCRIPT_DIR,
+  "..",
+  "vendor",
+  "oxlint-plugin-inhuman",
+  "oxlint",
+  "inhuman.plugin.js",
+);
+if (!existsSync(pluginEntry) || !existsSync(inhumanEntry) || !existsSync(GENERIC_CONFIG)) {
+  console.error("run-anti-slop: vendored plugin or vs-owned config is missing");
   process.exit(2);
 }
 

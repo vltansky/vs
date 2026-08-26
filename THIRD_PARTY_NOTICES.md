@@ -62,6 +62,20 @@ the consumer repository. The Effect rule group is opt-in when the target
 repo depends on Effect. The copied MIT license text is included at
 `skills/vs-deslop/LICENSE.anti-slop`.
 
+## oxlint-plugin-inhuman
+
+- Author: pyronaur
+- Project: https://github.com/pyronaur/oxlint-plugin-inhuman
+- Used in: `skills/vs-deslop` on-demand named-file Oxlint pass
+- Source: https://github.com/pyronaur/oxlint-plugin-inhuman/tree/aedf29b8e01b2548e9cd589e836b6b326136040a
+- License: MIT
+
+The `vs-deslop` skill vendors `inhuman/no-empty-wrappers` and
+`inhuman/no-swallowed-catch` from that pinned commit and runs them on
+named in-scope TS/JS files only. Nothing is installed into the consumer
+repository. The copied MIT license text is included at
+`skills/vs-deslop/LICENSE.oxlint-plugin-inhuman`.
+
 ## GOV.UK style agent skill
 
 - Author: fofr
