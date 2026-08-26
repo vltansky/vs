@@ -144,6 +144,34 @@ uncertainty.
    or drop it.
 7. Remove every placeholder and unused section.
 
+## Expressive range
+
+The catalog is the default voice, but the runtime gives an artifact more range
+when a section needs it:
+
+- **Tailwind is live.** Every artifact loads `@tailwindcss/browser@4`, so any
+  utility class works on the `class` of components and allowlisted HTML —
+  arbitrary values included (`grid-cols-[240px_1fr]`, `max-w-[52ch]`). Reach
+  for the theme's own hierarchy first; utilities are for the layout or emphasis
+  the catalog does not cover.
+- **Mock UIs are markup.** To explain a screen, a widget, or a layout idea,
+  build a one-off mock from allowlisted HTML (`div`, `section`, `figure`,
+  `span`) styled with Tailwind, directly in the body. No registration, no
+  screenshot of a thing that does not exist — the mock lints, renders, and
+  stays editable. Promote a mock into `assets/definitions.mjs` only when a
+  second artifact needs it.
+- **Generated images embed.** When a picture explains better than markup — an
+  illustration, a produced chart, a captured screenshot — generate it and embed
+  it with `![alt](...)` or `<img>`: a file saved next to the artifact (relative
+  path) or a `data:image/...` URI (png, jpeg, gif, webp, avif, svg+xml). Every
+  image needs alt text.
+- **Draw with SVG.** Author the SVG yourself for anything mermaid's grammars do
+  not cover — an annotated sketch, a custom glyph, a spatial layout. Inline
+  `<svg>` is not allowlisted and stays literal text, so embed the drawing as a
+  `data:image/svg+xml` image or an `.svg` file beside the artifact. Note that
+  an SVG inside `<img>` cannot load external fonts — inline the shapes or
+  accept the fallback face.
+
 ## Edit
 
 Treat the source block as the canonical document.
