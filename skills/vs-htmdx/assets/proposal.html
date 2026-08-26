@@ -224,6 +224,17 @@ const vsLayoutCss = `
     border-radius: var(--vs-sketch-pill);
     letter-spacing: 0.02em;
   }
+  /* Sources ships each entry as one nowrap pill, so an entry naming several
+     paths widens the whole document instead of wrapping - the flex row only
+     wraps between pills, never inside one. Cap the pill at the column and let
+     it wrap its own contents; without this any long source line breaks the
+     page width. */
+  .htmdx-app[data-htmdx-layout^='vs'] [data-htmdx-component='Sources'] .whitespace-nowrap {
+    max-width: 100%;
+    white-space: normal;
+    flex-wrap: wrap;
+    align-items: baseline;
+  }
   .htmdx-app[data-htmdx-layout^='vs'] .text-emerald-700 { color: #98C379; }
   .htmdx-app[data-htmdx-layout^='vs'] .text-red-700 { color: #E06C75; }
   .htmdx-app[data-htmdx-layout^='vs'] .text-amber-700 { color: #E5C07B; }
