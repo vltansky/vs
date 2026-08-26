@@ -292,7 +292,8 @@ Return:
 
 - `Review question:` the question the artifact helps answer
 - `Saved:` a clickable absolute path to the `.html`
-- `URL:` the openable `file://` or https URL
+- `URL:` the rendered localhost or https URL when one is available; otherwise
+  the openable `file://` fallback
 - `Shot:` the attached first-screen image, or `Shot failed: <reason>`
 - `Source:` the inputs used
 - `Verified:` structural checks and, separately, rendered browser proof
@@ -306,10 +307,17 @@ requested a commit.
 This skill owns capture. After the artifact is saved, the same user-facing
 reply must include an openable URL **and** an attached first-screen shot.
 
-1. Build an openable URL: `file://` of the absolute `.html` path, or a
-   host URL if one already exists.
-2. Render the first screen and screenshot above the fold.
-3. Attach that image in the same reply as the URL.
+1. When the host has a native browser panel, serve the artifact over localhost
+   with an available static preview server and open the resulting HTTP URL as a
+   Browser target. In Codex Desktop, pass the URL to `open_in_codex` with target
+   type `browser`. Do not open the HTML as a file/editor tab; that shows its
+   source instead of the rendered UI.
+2. Keep the preview server alive for the user's review, then stop it when the
+   review interaction ends. If the browser panel or a localhost preview is
+   unavailable, say why and fall back to the openable `file://` URL; do not skip
+   presentation silently.
+3. Render the first screen and screenshot above the fold.
+4. Attach that image in the same reply as the URL.
 
 If the shot fails: still send the URL. Say `Shot failed:` plus the reason.
 Do not block the handoff. Callers inherit this section; they do not restate

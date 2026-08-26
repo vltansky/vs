@@ -8,14 +8,15 @@ const TEMPLATE = fs.readFileSync(path.join(SKILL_DIR, 'assets/artifact.html'), '
 
 describe('vs-htmdx', () => {
   it('defines a focused HTMDX trigger and portable single-file output', () => {
-    expect(SKILL).toMatch(/create, visualize, render, or edit an HTMDX artifact/i);
+    expect(SKILL).toMatch(
+      /user wants a complex topic explained or shown visually[\s\S]{0,300}create, render, or edit an HTMDX artifact/i,
+    );
     expect(SKILL).toMatch(/one portable `\.html` file/i);
     expect(SKILL).toMatch(/no generated HTML body and no Markdown twin/i);
   });
 
   it('separates HTMDX from native visualization and ordinary Markdown', () => {
-    expect(SKILL).toMatch(/unqualified request to "visualize"/i);
-    expect(SKILL).toMatch(/host's visualization capability/i);
+    expect(SKILL).toMatch(/Skip conditions:[\s\S]{0,120}native visualization/i);
     expect(SKILL).toMatch(/routine\s+prose, plans, and machine-consumed state/i);
   });
 
