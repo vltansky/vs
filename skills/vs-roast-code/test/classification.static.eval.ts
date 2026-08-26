@@ -157,15 +157,9 @@ describe('roast-code proportional program', () => {
 });
 
 describe('roast-code deslop anti-slop compose', () => {
-
-  it('points Pass 1 at the deslop on-demand anti-slop file pass', () => {
-
-    expect(SKILL).toMatch(
-
-      /Pass 1 includes the vs-deslop on-demand anti-slop file pass/,
-
-    );
-
+  it('inherits the named-file runner and cannot claim CLEAN without it', () => {
+    expect(SKILL).toMatch(/run-anti-slop\.mjs/);
+    expect(SKILL).toMatch(/do not\s+report[\s\S]{0,20}`CLEAN`/i);
+    expect(SKILL).not.toMatch(/MENTION_ONLY_INHERIT_ANTISLOP_CANARY/);
   });
-
 });

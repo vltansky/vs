@@ -580,12 +580,10 @@ search for reuse, run deterministic checks, and review correctness, security,
 error handling, and unnecessary complexity.
 
 For larger or high-risk diffs, load `../vs-roast-code/SKILL.md` and follow its
-bounded methodology within the remaining workflow child budget. Load
-`../vs-deslop/SKILL.md` only when the integrated diff contains confirmed
-duplication, indirection, or generated-looking boilerplate that the parent
-cannot remove confidently during its review. Keep either skill scoped to the
-branch diff. Phase 4 includes the vs-deslop on-demand anti-slop file pass
-on in-scope named TS/JS files; do not skip that file pass.
+bounded methodology within the remaining workflow child budget. Keep roast and deslop scoped to the branch diff. Phase 4 always follows
+`../vs-deslop/SKILL.md` and runs `node skills/vs-deslop/scripts/run-anti-slop.mjs`
+on in-scope named TS/JS files; do not skip that file pass. Do not report
+`CLEAN` without that named-file runner.
 
 Run one final Ponytail pass in every review path, including small diffs that
 stay in the parent. Compare the integrated diff with the recorded solution

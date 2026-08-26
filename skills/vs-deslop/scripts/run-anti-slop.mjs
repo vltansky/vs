@@ -40,7 +40,8 @@ for (const raw of args) {
 }
 
 if (files.length === 0) {
-  process.exit(0);
+  console.error("run-anti-slop: no JS/TS file names among args");
+  process.exit(2);
 }
 
 function walkUp(start, visit) {

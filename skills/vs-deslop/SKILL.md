@@ -84,7 +84,13 @@ That command runs oxlint with the vs-owned config and the vendored
 generic anti-slop rules. Exit 1 is a catalog fail (not `CLEAN`). If
 oxlint or the plugin cannot run, report `WARN` or `BLOCKED` — do not
 pretend `CLEAN`. Enable the Effect rule only when the target repo uses
-Effect.
+Effect. No-args, a directory, or zero JS/TS names among args is not a
+pass (not `CLEAN`). Do not write `oxlint.config` or `node_modules` into
+the consumer cwd. Do not spawn a consumer package CLI.
+
+Score the file pass with `skills/vs-deslop/scripts/reject-anti-slop.mjs`
+(identity `94bf653ff17050e581ef2669efbfe2fd8b5f84cb43c6c05d5a832fa6eff3e838`;
+exit 1 is a fail). Exclusive cases live under `test/fixtures`.
 
 ## Procedure
 

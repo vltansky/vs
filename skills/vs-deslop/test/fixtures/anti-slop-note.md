@@ -1,0 +1,2 @@
+notes only
+MD_ONLY_ANTISLOP_CANARY
