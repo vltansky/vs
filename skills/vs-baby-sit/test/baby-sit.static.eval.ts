@@ -23,7 +23,7 @@ describe('vs-baby-sit remote-first validation', () => {
     expect(SKILL).toMatch(/repository policy\s+requires pre-push validation/);
   });
 
-  it('uses a six-cycle repair budget and asks before extending it', () => {
+  it('uses bounded repair batches and honors caller-provided standing authority', () => {
     expect(SKILL).toMatch(/repair-cycle budget of \*\*6 cycles\*\*/i);
     expect(SKILL).toMatch(/cycle\s+is one attention event[\s\S]{0,280}commit, and push/i);
     expect(SKILL).toMatch(/Do not count watcher polls[\s\S]{0,220}approval-only\s+waiting/i);
@@ -31,6 +31,8 @@ describe('vs-baby-sit remote-first validation', () => {
     expect(SKILL).toMatch(/approve another bounded batch of 6 repair\s+cycles/i);
     expect(SKILL).toMatch(/Do not silently roll the budget over/i);
     expect(SKILL).toMatch(/No further mutation work is allowed without an explicit user\s+approval/i);
+    expect(SKILL).toMatch(/caller supplied standing repair authority/i);
+    expect(SKILL).toMatch(/record the extension and continue with exactly 6 more\s+cycles/i);
   });
 
   it('protects the old head during repair and owns the ready-for-review transition', () => {

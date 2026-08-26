@@ -89,7 +89,15 @@ for external state.
 
 Record `repair-cycle: <used>/<budget>` in the decision trail after each repair
 push, starting with `<budget> = 6`.
-When the sixth cycle is spent without terminal evidence:
+If the caller supplied standing repair authority from an address-mode
+`vs-fix-pr` request, record the extension and continue with exactly 6 more
+cycles whenever the current batch is spent. Keep the prior cycle count. This
+authority covers only confirmed PR-owned, non-identical repairs; it does not
+bypass the two-stuck-iterations stop, ambiguous feedback decisions, external
+blockers, merge, or rollout gates.
+
+When the sixth cycle is spent without terminal evidence and standing repair
+authority was not supplied:
 
 1. Stop before another mutation or watcher restart, write the normal resume
    file, and preserve the last exact-head evidence.
@@ -105,7 +113,7 @@ Do not silently roll the budget over. If the user approves, record the approval,
 add exactly 6 cycles to the budget, and resume the same watcher with the prior
 cycle count retained. If the user declines, does not answer, or asks for human
 review, stop. No further mutation work is allowed without an explicit user
-approval.
+approval, whether supplied directly at this gate or inherited from the caller.
 
 ### Pause and off-context resume
 

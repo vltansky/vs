@@ -19,8 +19,11 @@ Preserve the difference between inspecting a PR and acting on it:
   its comments/feedback. Treat both actionable CI failures and reviewer
   feedback as owned work. The initial address request authorizes posting
   evidence-backed replies and resolving accepted or addressed-by-rewrite inline
-  threads. Do not ask for a second approval for those actions. Ambiguous or
-  declined feedback still needs a user decision and must remain open.
+  threads. The address request carries standing repair authority for additional
+  bounded batches of confirmed PR-owned fixes during the composed babysitting
+  phase.
+  Do not ask for a second approval for those actions. Ambiguous or declined
+  feedback still needs a user decision and must remain open.
 
 If the request combines both, inspect first and then continue in address mode.
 
@@ -429,7 +432,8 @@ After address-mode work is committed and pushed, re-resolve the PR URL, branch,
 and exact head SHA. Emit the fix summary, then hand the updated PR to
 `vs-baby-sit` unless the user explicitly says not to watch. Start it as a
 visibly separate babysitting phase and pass the resolved repository, PR number,
-head SHA, and external-write policy already established in this workflow.
+head SHA, external-write policy, and the address request's standing repair
+authority already established in this workflow.
 
 Fix-pr does not duplicate that skill's CI or review loop. Once composed,
 `vs-baby-sit` owns new check failures, newly posted feedback, state-change
@@ -442,6 +446,9 @@ only to `vs-baby-sit`, even when the next event looks like another fix-pr cycle.
 Keep the user-facing phase named `baby-sit`; do not present later work as a new
 fix-pr run. Do not ask the user to invoke either skill again. Thread-write
 approval pauses and resumes the composed babysitter according to its policy.
+The inherited repair authority removes only its repeated six-cycle approval
+prompt; it does not authorize merge, rollout, ambiguous feedback, external
+blocker changes, or a third attempt on the same stuck evidence.
 
 ## Critical Rules
 

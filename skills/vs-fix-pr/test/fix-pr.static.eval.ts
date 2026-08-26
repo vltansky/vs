@@ -65,6 +65,8 @@ describe('vs-fix-pr babysitting handoff', () => {
     expect(SKILL).toMatch(/hand the updated PR to\s+`vs-baby-sit`/i);
     expect(SKILL).toMatch(/unless the user explicitly says not to watch/i);
     expect(SKILL).toMatch(/visibly separate\s+babysitting phase/i);
+    expect(SKILL).toMatch(/address request carries standing repair authority/i);
+    expect(SKILL).toMatch(/additional\s+bounded batches/i);
   });
 
   it('does not duplicate the baby-sit monitoring loop', () => {

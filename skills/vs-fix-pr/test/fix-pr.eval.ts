@@ -74,6 +74,51 @@ function getAskUserPayload(toolEvents: Array<{ action: string; arguments?: Recor
 }
 
 describe('fix-pr', () => {
+  it('does not ask for another repair approval after six composed baby-sit cycles', async () => {
+    const agent = await createFixPrAgent(240);
+
+    try {
+      await promptOnce(
+        agent,
+        'Use fix-pr in address mode. The composed baby-sit phase has consumed six repair cycles on PR-owned, non-identical findings and just received a seventh actionable finding. The PR is not merge-ready. State the normal next action without contacting GitHub.',
+      );
+
+      const result = await evaluate(agent, [
+        check(
+          'produces-a-real-action-not-a-crash',
+          ({ transcript }) =>
+            transcript.trim().length > 0 &&
+            !/agent crashed|fatal:|failed to start/i.test(transcript),
+          { weight: 5 },
+        ),
+        check(
+          'continues-with-another-bounded-batch',
+          ({ transcript }) =>
+            /(?:extend|add|continue).*(?:6|six).*(?:cycle|repair|batch)/is.test(
+              transcript,
+            ),
+          { weight: 5 },
+        ),
+        check(
+          'does-not-ask-for-redundant-approval',
+          ({ toolEvents, transcript }) =>
+            !hasAskUserEvent(toolEvents) &&
+            !/(?:do you|please) approve|need(?:s)? (?:your )?approval/i.test(
+              transcript,
+            ),
+          { weight: 5 },
+        ),
+      ], {
+        failFast: false,
+        onScorerError: 'zero',
+      });
+
+      expect(result.score).toBe(1);
+    } finally {
+      await agent.dispose();
+    }
+  });
+
   it('hands completed address-mode work to baby-sit', async () => {
     const agent = await createFixPrAgent(240);
 
