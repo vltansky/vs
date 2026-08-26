@@ -1,6 +1,6 @@
 ---
 name: vs-roast-code
-description: "Use when the user says roast, roast-code, or tear apart code. Prefer over simplify for roast requests. Classifies the change first and scales review depth to it, adding a cross-model second opinion for risky or substantial diffs."
+description: "Use when the user says roast, roast-code, or tear apart code, or asks for a pre-flight, a ready-to-merge check, reasons not to ship, or names a healthy point to diff against. Prefer over simplify for roast requests. Classifies the change first and scales review depth to it, adding a cross-model second opinion for risky or substantial diffs. Readiness-only asks stay here; they are not a publish."
 ---
 
 # Roast Code
@@ -49,8 +49,72 @@ Before delegating, load and follow
 12. **Bucket every finding** — Act, Consider, Noted, or Dismissed. An unbucketed
     list fails. A nit in Act fails. Advisors stay the shared Codex / compose /
     independent-advisors lane; they do not invent a new channel.
+13. **Pre-flight is read-only go/no-go** — when the user asks for a pre-flight,
+    a ready-to-merge check, reasons not to ship, or names a healthy point, pin
+    that point and review. Do not publish. Do not auto-fix until they say fix.
 
 **Tone:** Senior dev who's seen too much + Gordon Ramsay energy. Not mean, not personal. "I'm roasting because I care."
+
+## Pre-flight mode
+
+Enter this mode when the user asks for a pre-flight, a ready-to-merge check,
+reasons not to ship, or names a healthy point (a commit, branch, tag, `HEAD~n`,
+or any moment the app worked). Those phrases stay in this skill. They are not a
+publish and they do not open a new slash skill.
+
+### Pin, then reuse one command
+
+Default the healthy point to `main` when the user does not name one. Pin it
+before any review:
+
+```bash
+git rev-parse --verify <healthy-point>
+git diff <healthy-point>...HEAD
+```
+
+Reuse that same three-dot command as the Phase 0 scope. Capture the resolved
+SHA. Fail-closed in the pin and stop before review when `git rev-parse` cannot
+resolve the healthy point, or when the three-dot diff is empty.
+
+Do not use the ordinary empty-scope prompt ("forgot to stage") in this mode. A
+bad or empty pin is not a roast; it is a stop.
+
+### Review as roast, verdict as go/no-go
+
+Keep the existing lenses, Act / Consider / Noted / Dismissed buckets, and the
+HIGH-RISK advisor lane. Do not import a second Breaking / Incomplete / Conflict
+/ Safe taxonomy. A change that would have been Breaking, Incomplete, or Conflict
+is Act or Consider; Safe is Noted.
+
+This mode is read-only until the user explicitly says fix. Skip Pass 1
+auto-apply, SMALL inline fixes, and Act auto-fix of CAPITAL / FELONY. Sweep the
+lenses and report; leave the working tree untouched.
+
+### Bounded interview (optional)
+
+After the review, ask only about unresolved implicit decisions the code cannot
+answer. Compose the questioning rules from [`../vs-pushback/SKILL.md`](../vs-pushback/SKILL.md)
+— one question at a time, recommended answer first, Finding / Recommendation /
+Impact. Do not reintroduce `/grill-me`. Skip the interview when nothing implicit
+remains.
+
+### Closeout
+
+Close with exactly one verdict:
+
+- **SHIP** — zero Act findings, the healthy point stayed pinned, and the
+  interview is done or was skipped.
+- **DO NOT SHIP** — list every Act with file path, line number, and snippet.
+
+SHIP is illegal while any Act remains, the healthy point is unresolved (missing
+pin, bad ref, or empty three-dot diff), or an interview question is still open.
+
+On SHIP, the standalone handoff is `/vs-ship-it`. Do not publish from this
+skill. Do not compose this review into `vs-ship-it`.
+
+Score a pre-flight closeout with
+`skills/vs-roast-code/scripts/reject-roast-preflight.mjs` (exit 1 is a fail).
+Exclusive pre-flight cases live under `test/fixtures/preflight`.
 
 ## Phase 0: Scope
 
@@ -60,6 +124,11 @@ Before delegating, load and follow
 3. Staged: `git diff --cached --name-only`
 4. Branch diff: `git diff main...HEAD --name-only`
 5. If none: ask
+
+In pre-flight mode the scope is the pinned three-dot command
+`git diff <healthy-point>...HEAD`. That replaces the staged / branch / ask
+fallbacks. The pin still runs first and still fail-closes on a bad ref or an
+empty diff.
 
 Resolve the scope once and retain its exact diff arguments, base branch, paths,
 and kind for every later phase. Use these scope kinds:
@@ -76,6 +145,9 @@ selected an untracked file, retain it as `explicit-uncommitted`; do not infer
 scope from a tracked-files-only status query later.
 
 **If empty:** "Nothing to roast. Either your code is perfect (unlikely) or you forgot to stage."
+
+**Pre-flight empty or bad pin:** stop before review. Do not ask whether they
+forgot to stage. The pin already failed.
 
 ---
 
@@ -231,6 +303,9 @@ or symbol when a relevant hunk falls beyond the initial orientation sample.
 ### Auto-apply
 
 Aggregate findings from all three lenses. Fix each issue directly. Skip false positives — don't argue, just move on. Briefly summarize what was fixed.
+
+**Pre-flight:** do not auto-apply. Sweep the lenses and report. Leave the
+working tree untouched until the user says fix.
 
 **Sweep for the other copies.** Before calling a fix done, grep the repository
 for further copies of what you just changed — the same CSS selector, constant,
@@ -397,6 +472,7 @@ in a SMALL response; those labels mean the wrong program ran.
   plus one line on what to do. Every finding still carries a bucket; skip empty
   Act/Consider headers when there are no findings.
 - Fix the confirmed ones directly, then one line on what changed.
+  **Pre-flight:** do not fix. Report the bucketed list and go to closeout.
 - Nothing wrong? Say so, name the one thing that is specifically right with
   `file:line` evidence, and stop. Do not open a tier to hold a single nitpick.
 
@@ -446,6 +522,9 @@ noise.
 Act. Do not print a tier menu — say which tiers you fixed in one line; the user
 can interrupt for more or less.
 
+**Pre-flight:** do not auto-fix CAPITAL / FELONY Acts. Report them and go to
+closeout.
+
 ## Review Buckets
 
 Every finding is bucketed. A roast that lists findings with no buckets fails.
@@ -477,6 +556,8 @@ Score the roast with `skills/vs-roast-code/scripts/reject-roast-buckets.mjs`
 ## Fix
 
 Process selected fixes. Show before/after for major changes. Run linter if available.
+
+**Pre-flight:** skip this section until the user says fix. Verdict first.
 
 For each review finding, act from its bucket:
 
