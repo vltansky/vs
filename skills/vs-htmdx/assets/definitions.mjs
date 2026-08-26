@@ -275,14 +275,22 @@ export const vsLayoutCss = `
     .vs-mermaid-dialog {
       width: 94vw;
       height: 92vh;
+      /* The shell's CSS reset zeroes margins, killing the UA's margin:auto
+         that centers a native dialog - restore it explicitly. */
+      margin: auto;
       padding: 0;
       background: #21252C;
       border: 1px solid #3B414C;
       border-radius: var(--vs-sketch-card, 12px);
       overflow: hidden;
+      overscroll-behavior: contain;
     }
     .vs-mermaid-dialog::backdrop {
       background: rgba(0, 0, 0, 0.65);
+    }
+    /* showModal() does not block background scroll on its own. */
+    html:has(.vs-mermaid-dialog[open]) {
+      overflow: hidden;
     }
     .vs-mermaid-dialog-canvas {
       width: 100%;
