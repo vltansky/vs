@@ -103,6 +103,21 @@ export const vsLayoutCss = `
     --muted-foreground: var(--md-sys-color-on-surface-variant);
     --border: var(--md-sys-color-outline-variant);
     --vs-mono: ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, monospace;
+    --vs-hand: 'Excalifont', 'Segoe Print', 'Bradley Hand', 'Comic Sans MS', cursive;
+    /* Hand-drawn outlines: uneven four-corner radii (slash syntax offsets each
+       corner's horizontal and vertical curve) so no card edge repeats. Two
+       scales: cards wobble gently, pills keep the classic sketch-button arc. */
+    --vs-sketch-card: 14px 5px 13px 6px / 6px 12px 5px 15px;
+    --vs-sketch-pill: 255px 15px 225px 15px / 15px 225px 15px 255px;
+  }
+  /* Excalidraw's own face, served from the same CDN family the runtime already
+     uses. Latin subset only; other scripts fall through to the system hand
+     fonts in --vs-hand. */
+  @font-face {
+    font-family: 'Excalifont';
+    src: url('https://cdn.jsdelivr.net/npm/@excalidraw/excalidraw@0.18.1/dist/prod/fonts/Excalifont/Excalifont-Regular-a88b72a24fb54c9f94e3b5fdaa7481c9.woff2') format('woff2');
+    font-style: normal;
+    font-display: swap;
   }
   /* Overscroll past the app container shows the document canvas - paint it
      the same dark surface so the page has no white edges. The 17px root em
@@ -117,6 +132,19 @@ export const vsLayoutCss = `
   .htmdx-app[data-htmdx-layout^='vs'] .border,
   .htmdx-app[data-htmdx-layout^='vs'] :is(.divide-y, .divide-x) > * {
     border-color: var(--md-sys-color-outline-variant);
+  }
+  /* Sketch pass: the whole theme follows the hand-drawn mermaid look. Cards
+     and chips get wobbly outlines; dots, gauge tracks, and figure markers are
+     excluded - a wobbly 8px circle reads as a rendering bug, not a sketch.
+     The px-2 guard limits the pill arc to text chips, keeping progress-bar
+     fills and timeline dots perfectly round. */
+  .htmdx-app[data-htmdx-layout^='vs'] [data-htmdx-component] .rounded-lg {
+    border-radius: var(--vs-sketch-card);
+  }
+  .htmdx-app[data-htmdx-layout^='vs'] [class*='px-2'].rounded-full {
+    border-radius: var(--vs-sketch-pill);
+    font-family: var(--vs-hand);
+    letter-spacing: 0.02em;
   }
   .htmdx-app[data-htmdx-layout^='vs'] .text-emerald-700 { color: #A6E3A1; }
   .htmdx-app[data-htmdx-layout^='vs'] .text-red-700 { color: #F38BA8; }
@@ -160,7 +188,7 @@ export const vsLayoutCss = `
   .htmdx-app[data-htmdx-layout^='vs'] .htmdx-mermaid {
     background: var(--md-sys-color-surface-container-lowest);
     border: 1px solid var(--md-sys-color-outline-variant);
-    border-radius: 10px;
+    border-radius: var(--vs-sketch-card);
     padding: 16px;
   }
   @media screen {
@@ -197,11 +225,12 @@ export const vsLayoutCss = `
   }
   :is(.htmdx-app[data-htmdx-layout='vs'], .vs-p-main) > div > h1 {
     margin: 0 0 14px;
-    font-family: var(--md-ref-typeface-brand);
+    /* Hand faces carry no negative tracking: tightened Excalifont collides. */
+    font-family: var(--vs-hand);
     font-size: clamp(1.75rem, 3vw, 2.25rem);
     line-height: 1.12;
     font-weight: 600;
-    letter-spacing: -0.02em;
+    letter-spacing: 0;
     color: var(--md-sys-color-on-surface);
     text-wrap: balance;
   }
@@ -211,12 +240,13 @@ export const vsLayoutCss = `
   :is(.htmdx-app[data-htmdx-layout='vs'], .vs-p-main) > div h2 {
     margin: 40px 0 12px;
     padding-top: 20px;
-    border-top: 1px solid var(--md-sys-color-outline-variant);
-    font-family: var(--md-ref-typeface-brand);
+    /* Dashed rule: the pen-stroke section separator of the sketch theme. */
+    border-top: 1px dashed var(--md-sys-color-outline);
+    font-family: var(--vs-hand);
     font-size: 1.375rem;
     line-height: 1.3;
     font-weight: 600;
-    letter-spacing: -0.01em;
+    letter-spacing: 0;
     color: var(--md-sys-color-on-surface);
   }
   :is(.htmdx-app[data-htmdx-layout='vs'], .vs-p-main) > div:first-child > h2:first-child {
@@ -225,6 +255,7 @@ export const vsLayoutCss = `
   }
   :is(.htmdx-app[data-htmdx-layout='vs'], .vs-p-main) > div h3 {
     margin: 24px 0 8px;
+    font-family: var(--vs-hand);
     font-size: 1.0625rem;
     line-height: 1.35;
     font-weight: 600;
@@ -266,7 +297,7 @@ export const vsLayoutCss = `
        not action, and the navy wash read muddy against the dark surface. */
     background: var(--md-sys-color-surface-container-highest);
     color: var(--md-sys-color-on-surface);
-    border-radius: 3px;
+    border-radius: 6px 3px 7px 4px / 4px 7px 3px 6px;
     padding: 1px 4px;
     font-family: var(--vs-mono);
     font-size: 0.875em;
@@ -515,11 +546,11 @@ export const vsLayoutCss = `
   .vs-p-title {
     margin: 0;
     max-width: 44rem;
-    font-family: var(--md-ref-typeface-brand);
+    font-family: var(--vs-hand);
     font-size: clamp(1.5rem, 3vw, 2rem);
     line-height: 1.15;
     font-weight: 700;
-    letter-spacing: -0.02em;
+    letter-spacing: 0;
     text-wrap: balance;
   }
   .vs-p-meta { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
@@ -528,7 +559,8 @@ export const vsLayoutCss = `
     align-items: center;
     padding: 4px 12px;
     border: 1px solid rgb(255 255 255 / 28%);
-    border-radius: 999px;
+    border-radius: var(--vs-sketch-pill);
+    font-family: var(--vs-hand);
     font-size: 0.75rem;
     font-weight: 700;
     /* The hero is fixed navy in every theme, so the pill ink is a literal
@@ -2082,6 +2114,10 @@ export const vsCatalogFactory = (React, css) => {
       theme: 'base',
       themeVariables: {
         darkMode: true,
+        // No quotes inside the value: mermaid's directive parser rewrites
+        // single quotes to double before JSON.parse, corrupting the whole
+        // init block and silently dropping the sketch look.
+        fontFamily: 'Excalifont, cursive',
         primaryColor: '#313244',
         primaryBorderColor: '#B4BEFE',
         primaryTextColor: '#CDD6F4',
