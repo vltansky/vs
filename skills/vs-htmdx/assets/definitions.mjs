@@ -215,13 +215,16 @@ export const vsLayoutCss = `
     align-items: baseline;
   }
   .htmdx-app[data-htmdx-layout^='vs'] .text-emerald-700 { color: #98C379; }
-  .htmdx-app[data-htmdx-layout^='vs'] .text-red-700 { color: #E06C75; }
+  /* One Dark's own red (#E06C75) measures 4.03:1 on the card and 3.46:1 on its
+     12% wash - under AA for body text. Lightened just enough to clear both
+     (5.77 / 4.66) while staying the same red. */
+  .htmdx-app[data-htmdx-layout^='vs'] .text-red-700 { color: #F0949B; }
   .htmdx-app[data-htmdx-layout^='vs'] .text-amber-700 { color: #E5C07B; }
   .htmdx-app[data-htmdx-layout^='vs'] .text-blue-700 { color: #93A4E8; }
   /* Washes are translucent tints of their own accent, not hand-mixed dark
      hexes: they stay in hue with the text on any container they land on. */
   .htmdx-app[data-htmdx-layout^='vs'] .bg-emerald-50 { background-color: rgb(152 195 121 / 12%); }
-  .htmdx-app[data-htmdx-layout^='vs'] .bg-red-50 { background-color: rgb(224 108 117 / 12%); }
+  .htmdx-app[data-htmdx-layout^='vs'] .bg-red-50 { background-color: rgb(240 148 155 / 12%); }
   .htmdx-app[data-htmdx-layout^='vs'] .bg-amber-50 { background-color: rgb(229 192 123 / 12%); }
   .htmdx-app[data-htmdx-layout^='vs'] .bg-blue-50 { background-color: rgb(147 164 232 / 12%); }
   .htmdx-app[data-htmdx-layout^='vs'] .bg-violet-50 { background-color: rgb(198 120 221 / 12%); }
@@ -234,10 +237,39 @@ export const vsLayoutCss = `
      not escaped class selectors: the sync script escapes backslashes on its way
      into the template shells, and the drift test compares raw text. */
   .htmdx-app[data-htmdx-layout^='vs'] [class~='bg-emerald-50/60'] { background-color: rgb(152 195 121 / 8%); }
-  .htmdx-app[data-htmdx-layout^='vs'] [class~='bg-red-50/60'] { background-color: rgb(224 108 117 / 8%); }
+  .htmdx-app[data-htmdx-layout^='vs'] [class~='bg-red-50/60'] { background-color: rgb(240 148 155 / 8%); }
   .htmdx-app[data-htmdx-layout^='vs'] [class~='bg-amber-50/60'] { background-color: rgb(229 192 123 / 8%); }
   .htmdx-app[data-htmdx-layout^='vs'] [class~='bg-blue-50/60'] { background-color: rgb(147 164 232 / 8%); }
   .htmdx-app[data-htmdx-layout^='vs'] [class~='bg-violet-50/60'] { background-color: rgb(198 120 221 / 8%); }
+  /* Solid severity chips (IntentList's BLOCKER banner, Gauge's over-budget
+     fill) ship raw Tailwind -500 fills with white ink - white on amber-500
+     measures 2.15:1. Repainted to the vs tones and flipped to the layout's
+     near-black ink, the lightest pair still clears 6:1. */
+  .htmdx-app[data-htmdx-layout^='vs'] .bg-emerald-500 { background-color: #98C379; }
+  .htmdx-app[data-htmdx-layout^='vs'] .bg-green-500 { background-color: #98C379; }
+  .htmdx-app[data-htmdx-layout^='vs'] .bg-amber-500 { background-color: #E5C07B; }
+  .htmdx-app[data-htmdx-layout^='vs'] .bg-red-500 { background-color: #F0949B; }
+  .htmdx-app[data-htmdx-layout^='vs'] .bg-blue-500 { background-color: #93A4E8; }
+  .htmdx-app[data-htmdx-layout^='vs'] .bg-violet-500 { background-color: #C678DD; }
+  .htmdx-app[data-htmdx-layout^='vs'] .bg-gray-400 { background-color: #A9B0BD; }
+  .htmdx-app[data-htmdx-layout^='vs'] :is(.bg-emerald-500, .bg-green-500, .bg-amber-500, .bg-red-500, .bg-blue-500, .bg-violet-500, .bg-gray-400).text-white,
+  .htmdx-app[data-htmdx-layout^='vs'] :is(.bg-emerald-500, .bg-green-500, .bg-amber-500, .bg-red-500, .bg-blue-500, .bg-violet-500, .bg-gray-400) .text-white {
+    color: var(--md-sys-color-on-secondary);
+  }
+  .htmdx-app[data-htmdx-layout^='vs'] .text-emerald-500 { color: #98C379; }
+  .htmdx-app[data-htmdx-layout^='vs'] .text-green-500 { color: #98C379; }
+  .htmdx-app[data-htmdx-layout^='vs'] .text-amber-500 { color: #E5C07B; }
+  .htmdx-app[data-htmdx-layout^='vs'] .text-red-500 { color: #F0949B; }
+  .htmdx-app[data-htmdx-layout^='vs'] .text-blue-500 { color: #93A4E8; }
+  .htmdx-app[data-htmdx-layout^='vs'] .text-violet-500 { color: #C678DD; }
+  /* Outline chips pair a -300 border with a dark: variant that never fires
+     here, so a pastel hairline lands on the dark card. Same tones at 45%. */
+  .htmdx-app[data-htmdx-layout^='vs'] :is(.border-emerald-300, .border-green-300) { border-color: rgb(152 195 121 / 45%); }
+  .htmdx-app[data-htmdx-layout^='vs'] .border-amber-300 { border-color: rgb(229 192 123 / 45%); }
+  .htmdx-app[data-htmdx-layout^='vs'] .border-red-300 { border-color: rgb(240 148 155 / 45%); }
+  .htmdx-app[data-htmdx-layout^='vs'] .border-blue-300 { border-color: rgb(147 164 232 / 45%); }
+  .htmdx-app[data-htmdx-layout^='vs'] .border-violet-300 { border-color: rgb(198 120 221 / 45%); }
+  .htmdx-app[data-htmdx-layout^='vs'] .border-gray-300 { border-color: var(--md-sys-color-outline-variant); }
   .htmdx-app[data-htmdx-layout='vs'] { padding: 44px 24px 64px; }
   .htmdx-app[data-htmdx-layout='vs'] > * {
     width: 100%;
@@ -871,6 +903,25 @@ export const vsLayoutCss = `
     .htmdx-app[data-htmdx-layout^='vs'] .text-blue-700 { color: #1D4ED8; }
     .htmdx-app[data-htmdx-layout^='vs'] .text-violet-700 { color: #6D28D9; }
     .htmdx-app[data-htmdx-layout^='vs'] :is(.bg-emerald-50, .bg-red-50, .bg-amber-50, .bg-blue-50, .bg-violet-50, [class~='bg-emerald-50/60'], [class~='bg-red-50/60'], [class~='bg-amber-50/60'], [class~='bg-blue-50/60'], [class~='bg-violet-50/60']) { background-color: transparent; }
+    /* The screen tones are tuned to sit on the dark card; on white they need
+       their saturated counterparts, and the solid chips get their white ink
+       back. */
+    .htmdx-app[data-htmdx-layout^='vs'] :is(.bg-emerald-500, .bg-green-500, .bg-amber-500, .bg-red-500, .bg-blue-500, .bg-violet-500, .bg-gray-400).text-white,
+    .htmdx-app[data-htmdx-layout^='vs'] :is(.bg-emerald-500, .bg-green-500, .bg-amber-500, .bg-red-500, .bg-blue-500, .bg-violet-500, .bg-gray-400) .text-white {
+      color: #FFFFFF;
+    }
+    .htmdx-app[data-htmdx-layout^='vs'] :is(.bg-emerald-500, .bg-green-500) { background-color: #047857; }
+    .htmdx-app[data-htmdx-layout^='vs'] .bg-amber-500 { background-color: #B45309; }
+    .htmdx-app[data-htmdx-layout^='vs'] .bg-red-500 { background-color: #B91C1C; }
+    .htmdx-app[data-htmdx-layout^='vs'] .bg-blue-500 { background-color: #1D4ED8; }
+    .htmdx-app[data-htmdx-layout^='vs'] .bg-violet-500 { background-color: #6D28D9; }
+    .htmdx-app[data-htmdx-layout^='vs'] .bg-gray-400 { background-color: #6B7280; }
+    .htmdx-app[data-htmdx-layout^='vs'] :is(.text-emerald-500, .text-green-500) { color: #047857; }
+    .htmdx-app[data-htmdx-layout^='vs'] .text-amber-500 { color: #B45309; }
+    .htmdx-app[data-htmdx-layout^='vs'] .text-red-500 { color: #B91C1C; }
+    .htmdx-app[data-htmdx-layout^='vs'] .text-blue-500 { color: #1D4ED8; }
+    .htmdx-app[data-htmdx-layout^='vs'] .text-violet-500 { color: #6D28D9; }
+    .htmdx-app[data-htmdx-layout^='vs'] :is(.border-emerald-300, .border-green-300, .border-amber-300, .border-red-300, .border-blue-300, .border-violet-300, .border-gray-300) { border-color: var(--md-sys-color-outline); }
     /* Ink on paper: the screen's One Dark syntax palette washes out on white,
        so print restores the runtime's own light-theme code colors. */
     .htmdx-app[data-htmdx-layout^='vs'] {
