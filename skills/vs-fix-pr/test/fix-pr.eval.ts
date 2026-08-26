@@ -3,7 +3,6 @@ import * as path from 'path';
 import { describe, it, expect } from 'vitest';
 import {
   check,
-  judge,
   toolUsage,
   evaluate,
 } from '@wix/pathgrade';
@@ -46,40 +45,17 @@ describe('fix-pr routing', () => {
     expect(SKILL).toMatch(/Stop after the\s+report\./);
   });
 
-  it('routes action requests through approval-gated fixes', () => {
+  it('uses address mode as reply-and-resolve authority for accepted feedback', () => {
     expect(SKILL).toContain('**Address PR:**');
-    expect(SKILL).toMatch(/approval\s+gates before posting replies or resolving/);
+    expect(SKILL).toMatch(
+      /initial address request authorizes[^.]*posting[^.]*repl(?:y|ies)[^.]*resolving[^.]*accepted[^.]*inline\s+threads/i,
+    );
+    expect(SKILL).toMatch(/Do not ask for a second approval/i);
+    expect(SKILL).toMatch(
+      /Ambiguous or\s+declined feedback[^.]*user decision[^.]*remain open/i,
+    );
   });
 });
-
-const APPROVAL_GATE_RUBRIC = `Evaluate whether the agent handled the Step 4c approval gate correctly.
-
-Correct gate (0-0.5):
-- Did it stay in the approval-gate phase rather than jumping back to fetching PR state?
-- Did it present the existing reviewer comment and drafted reply before asking?
-- Did it ask what to do after posting rather than deciding itself?
-
-Tool-first interaction (0-0.3):
-- Did it use the host's ask-user question tool for the choice instead of relying on plain chat options alone?
-- Were the choices scoped to the real Step 4c options?
-
-Decision quality (0-0.2):
-- Did it preserve the difference between "reply and resolve" vs "reply only" vs "edit first"?
-- Did it avoid implying resolution without approval?`;
-
-const UNSURE_GATE_RUBRIC = `Evaluate whether the agent handled the Step 4b unsure-path escalation correctly.
-
-Correct escalation (0-0.45):
-- Did it explain the ambiguity briefly and accurately?
-- Did it ask the user to choose between implement vs decline instead of silently deciding?
-
-Tool-first interaction (0-0.35):
-- Did it use the host's ask-user question tool for the choice instead of relying on plain chat options alone?
-- Were the offered choices scoped to the real unsure-path options?
-
-Boundary discipline (0-0.2):
-- Did it avoid pretending certainty?
-- Did it avoid posting or resolving anything before approval?`;
 
 function createFixPrAgent(timeout: number) {
   return createAgent({
@@ -113,10 +89,11 @@ describe('fix-pr', () => {
           /(?:start|hand|transition|compose).*(?:vs-baby-sit|babysit|baby-sit)/is.test(
             transcript,
           )),
-        check('preserves-handoff-context', ({ transcript }) =>
-          /#542|pull\/542/i.test(transcript) &&
-          /d508598/i.test(transcript) &&
-          /batch-ask/i.test(transcript)),
+        check('does-not-rediscover-or-repeat-repair', ({ transcript }) =>
+          /(?:do not|did not|won't|without).*(?:fetch|discover)/is.test(transcript) &&
+          /(?:do not|did not|won't|without).*(?:repeat|re-run).*repair/is.test(
+            transcript,
+          )),
       ], {
         failFast: false,
         onScorerError: 'zero',
@@ -147,7 +124,7 @@ describe('fix-pr', () => {
 
       await promptOnce(
         agent,
-        'Use fix-pr and continue from handoff.md. Fix every PR-owned CI failure and actionable feedback already recorded there. Do not fetch GitHub again, do not start a dev server, and do not post or resolve feedback without approval.',
+        'Use fix-pr and continue from handoff.md. Fix every PR-owned CI failure and actionable feedback already recorded there. Do not fetch GitHub again, do not start a dev server, and do not post or resolve feedback in this fixture.',
       );
 
       const result = await evaluate(
@@ -179,11 +156,8 @@ describe('fix-pr', () => {
             /CI|unit|test failure/i.test(transcript) &&
             /review (submission )?body|feedback|document/i.test(transcript),
           ),
-          check('preserves-reply-approval', ({ transcript, toolEvents }) =>
-            hasAskUserEvent(toolEvents, /reply|resolve|post|approval/i) ||
-            /approval.*(reply|resolve|post)|(reply|resolve|post).*approval/i.test(
-              transcript,
-            ),
+          check('respects-explicit-no-post-boundary', ({ transcript }) =>
+            /do not post|won't post|not post|without.*post/i.test(transcript),
           ),
         ],
         { failFast: false, onScorerError: 'zero' },
@@ -195,59 +169,37 @@ describe('fix-pr', () => {
     }
   });
 
-  it('uses ask-user tool for the inline-thread reply approval gate', async () => {
+  it('uses address authority to reply and resolve an accepted inline thread', async () => {
     const agent = await createFixPrAgent(360);
 
     try {
-      await promptAllowingAskUserInterrupt(
+      await promptOnce(
         agent,
-        'Use fix-pr. Read docs/reply-approval.md and continue from that exact state. ' +
-          'Do not fetch PR data again. Do not post anything yet. I want the normal approval gate for this drafted reply.',
+        'Use fix-pr. Read docs/reply-resolve-authority.md and continue from that exact state. ' +
+          'Do not fetch PR data or contact GitHub. State the normal next actions.',
       );
 
       const result = await evaluate(agent, [
         check(
-          'uses-ask-user-tool-for-approval-gate',
+          'does-not-add-a-second-approval-gate',
           ({ toolEvents }) =>
-            hasAskUserEvent(
-              toolEvents,
-              /post reply and resolve|post reply only|edit reply first|resolve/i,
-            ),
+            !hasAskUserEvent(toolEvents),
           { weight: 5 },
         ),
         check(
-          'mentions-step-4c-options',
-          ({ transcript, toolEvents }) => {
-            const haystack = `${transcript}\n${getAskUserPayload(toolEvents)}`;
-            return (
-              /post.*resolve/i.test(haystack) &&
-              /post.*only/i.test(haystack) &&
-              /edit/i.test(haystack)
-            );
-          },
+          'proceeds-to-reply-and-resolve',
+          ({ transcript }) =>
+            /(?:post|send).*repl(?:y|ies)/is.test(transcript) &&
+            /resolv.*thread/is.test(transcript),
           { weight: 2 },
         ),
         check(
-          'shows-comment-and-draft-reply',
-          ({ transcript, toolEvents }) => {
-            const haystack = `${transcript}\n${getAskUserPayload(toolEvents)}`;
-            return (
-              /include root hooks config in sparse checkout/i.test(haystack) &&
-              /draft reply/i.test(haystack) &&
-              /fixed in d508598/i.test(haystack)
-            );
-          },
+          'uses-the-prepared-thread-specific-reply',
+          ({ transcript }) =>
+            /draft(?:ed)? reply|prepared reply/i.test(transcript) &&
+            /accepted (?:inline )?thread/i.test(transcript),
           { weight: 2 },
         ),
-        judge('approval-gate-quality', {
-          rubric: APPROVAL_GATE_RUBRIC,
-          weight: 0.5,
-          includeToolEvents: true,
-        }),
-        toolUsage('approval-gate-tooling', [
-          { action: 'read_file', min: 1, weight: 0.2 },
-          { action: 'ask_user', min: 1, weight: 0.8 },
-        ]),
       ], {
         failFast: false,
         onScorerError: 'zero',
@@ -293,20 +245,15 @@ describe('fix-pr', () => {
         ),
         check(
           'explains-the-ambiguity',
-          ({ toolEvents }) => {
-            const payload = getAskUserPayload(toolEvents);
-            return (
-              /retry/i.test(payload) &&
-              /caller|call site|ownership boundary|shared backoff/i.test(payload)
-            );
+          ({ transcript, toolEvents }) => {
+            const haystack = `${transcript}\n${getAskUserPayload(toolEvents)}`;
+            return /retry/i.test(haystack) &&
+              /caller|call site|ownership boundary|shared backoff|wrapper/i.test(
+                haystack,
+              );
           },
           { weight: 2 },
         ),
-        judge('unsure-path-quality', {
-          rubric: UNSURE_GATE_RUBRIC,
-          weight: 0.5,
-          includeToolEvents: true,
-        }),
         toolUsage('unsure-path-tooling', [
           { action: 'read_file', min: 1, weight: 0.2 },
           { action: 'ask_user', min: 1, weight: 0.8 },

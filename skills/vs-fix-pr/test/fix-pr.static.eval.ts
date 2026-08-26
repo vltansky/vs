@@ -50,9 +50,9 @@ describe('vs-fix-pr CI ownership', () => {
     expect(SKILL).toMatch(/diagnose, fix or re-run, push if needed, and re-fetch the exact HEAD\s+checks/);
   });
 
-  it('keeps CI repair separate from reply approval', () => {
-    expect(SKILL).toMatch(/CI fixes do not require the review-reply approval gate/);
-    expect(SKILL).toMatch(/posting a PR\s+comment about the failure still does/);
+  it('keeps CI repair separate from unnecessary status comments', () => {
+    expect(SKILL).toMatch(/standalone CI-status comment is unnecessary/);
+    expect(SKILL).toMatch(/replies tied to accepted review feedback use address-mode authority/);
   });
 
   it('blocks completion until required checks are green', () => {

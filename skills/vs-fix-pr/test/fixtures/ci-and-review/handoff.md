@@ -20,4 +20,4 @@ Feedback surfaces:
 External-write policy:
 
 - Implement, test, commit, and prepare a push for clear PR-owned fixes.
-- Do not post a reply or resolve feedback without user approval.
+- Do not post a reply or resolve feedback in this fixture.

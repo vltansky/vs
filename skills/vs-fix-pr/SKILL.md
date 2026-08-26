@@ -1,6 +1,6 @@
 ---
 name: vs-fix-pr
-description: "Primary VS workflow whenever the user asks to see, check, review, address, or fix a PR, its comments or feedback, or its failing CI; handle requested changes; or resolve review threads. Use this instead of a generic GitHub PR-comments workflow when available. Inspect-only requests stay read-only; action requests repair actionable CI and feedback, gate every reply or resolution on approval, then babysit the updated PR by default."
+description: "Primary VS workflow whenever the user asks to see, check, review, address, or fix a PR, its comments or feedback, or its failing CI; handle requested changes; or resolve review threads. Use this instead of a generic GitHub PR-comments workflow when available. Inspect-only requests stay read-only; action requests repair actionable CI and feedback, reply to and resolve accepted threads, then babysit the updated PR by default."
 ---
 
 # Fix PR
@@ -17,8 +17,10 @@ Preserve the difference between inspecting a PR and acting on it:
   report.
 - **Address PR:** the user says address, fix, handle, apply, or resolve a PR or
   its comments/feedback. Treat both actionable CI failures and reviewer
-  feedback as owned work. Continue through the full workflow, including the
-  approval gates before posting replies or resolving threads.
+  feedback as owned work. The initial address request authorizes posting
+  evidence-backed replies and resolving accepted or addressed-by-rewrite inline
+  threads. Do not ask for a second approval for those actions. Ambiguous or
+  declined feedback still needs a user decision and must remain open.
 
 If the request combines both, inspect first and then continue in address mode.
 
@@ -27,7 +29,6 @@ If the request combines both, inspect first and then continue in address mode.
 Fix-pr is a workflow for making an existing PR healthy after review or CI
 feedback. It composes:
 
-- `vs-decide-for-me` for tactical uncertainty around implementation details.
 - `vs-verify` after applying fixes so replies are backed by evidence.
 - `vs-baby-sit` after address-mode work so the updated PR stays owned while
   CI and new review feedback arrive.
@@ -48,8 +49,8 @@ Fix-pr owns the PR-health goal after Step 0 resolves the target PR and either
 Step 1 finds actionable CI or Step 2 identifies unresolved feedback. The
 objective should name the PR plus its failing-check and unresolved-feedback
 scope. Complete the goal only after every owned CI failure and accepted review
-fix is committed and pushed, approved replies are posted, approved threads are
-resolved, and the build/reviewer state has been rechecked. Declined feedback,
+fix is committed and pushed, evidence-backed replies are posted, accepted
+threads are resolved, and the build/reviewer state has been rechecked. Declined feedback,
 external CI blockers, or human-decision threads keep the goal active or blocked
 according to Codex goal policy.
 
@@ -65,9 +66,9 @@ This matters most for decision gates:
 
 - **Step 4b unsure path** → if the host exposes an ask-user question tool, invoke it.
 - **Step 4c-decline gate** → if the host exposes an ask-user question tool, invoke it.
-- **Step 4c approval gate** → if the host exposes an ask-user question tool, invoke it.
 
-`continue from that exact state` means "skip discovery", not "skip AskUserQuestion".
+`continue from that exact state` means "skip discovery", not "skip a required
+decision". An accepted thread in address mode proceeds without another gate.
 
 Non-negotiable rule: when `AskUserQuestion` is available, do **not** render the final decision options as plain chat bullets or numbered lists first. Calling `AskUserQuestion` is the action. The follow-up chat message, if any, should only say that the question is up and you are waiting.
 
@@ -215,8 +216,8 @@ and a local reproduction when practical.
 In address mode, iterate until required CI is green or an external blocker is
 proven: diagnose, fix or re-run, push if needed, and re-fetch the exact HEAD
 checks. Continue to Step 2 in the same run so newly posted reviewer feedback is
-not missed. CI fixes do not require the review-reply approval gate; posting a PR
-comment about the failure still does.
+not missed. A standalone CI-status comment is unnecessary unless the user asks
+for one; replies tied to accepted review feedback use address-mode authority.
 
 In inspect-only mode, report the same diagnosis without editing, pushing, or
 re-running anything.
@@ -252,7 +253,10 @@ For each unresolved thread, tag it:
 - **Active** — `isOutdated == false`: still anchored to current HEAD, address normally.
 - **Outdated** — `isOutdated == true`: the code the thread was pinned to has changed. Usually already addressed by the rewrite.
 
-**Outdated bulk-resolve** — don't walk each outdated thread through Step 4 individually. Offer one prompt: "N outdated threads — resolve all as addressed-by-rewrite?" If the user keeps one open, label it `[OUTDATED]` in the finding list and re-evaluate whether the concern migrated to a new line.
+**Outdated bulk-resolve** — don't walk each outdated thread through Step 4
+individually. In address mode, verify the concern did not migrate to a new line,
+then resolve all threads already addressed by the rewrite. In inspect mode,
+report them as outdated without mutation.
 
 Feedback exit gate — only report "No PR comments to address" when the
 unresolved-thread list, issue-level comment list, and actionable
@@ -280,7 +284,7 @@ Is the reviewer's latest ask valid feedback?
 
 For an accepted code change, apply [`vs-ponytail`](../vs-ponytail/SKILL.md) in
 composed mode after confirming the feedback is PR-owned. Prefer the smallest root-cause fix
-that satisfies the comment and CI; do not minimize the approval boundary.
+that satisfies the comment and CI; do not minimize the ambiguity boundary.
 
 | Confidence | Action | Next |
 |------------|--------|------|
@@ -337,7 +341,7 @@ Use the host's ask-user question tool for this gate when available. Fall back to
 
 After posting: **mark TODO done, skip 4c/4d/4e, move to next thread.** Declined threads stay open — resolving them would signal fake agreement.
 
-### 4c. Draft Reply & Get Approval
+### 4c. Draft Evidence-Backed Reply
 
 **After committing the fix**, find the commit that touched the flagged line so the reply can cite it. Use a line-scoped lookup — `git log -- <path>` returns the latest commit touching the *file*, which is often not the commit that touched the flagged *line*:
 
@@ -349,7 +353,7 @@ git log -p -n 1 "$FIX_SHA" -- <path> | head -40
 
 For a range, use `-L <start>,<end>` and pick the SHA of the most relevant hunk. Use the SHA and a one-line summary of the actual diff in the reply — not a restatement of the comment.
 
-Show the comment and your draft reply:
+Prepare a thread-specific reply:
 
 ```
 > [original comment text]
@@ -359,39 +363,17 @@ Fixed in <SHA>: <one-line diff summary — what changed on this specific line/hu
 [optional: 1 sentence of rationale if non-obvious]
 
 Why: [brief reasoning]
-
-After posting: resolve this review thread?
 ```
 
 **Never post identical bodies across threads.** If the same boilerplate ("done", "fixed", "good catch, updated") would fit two threads, you are being lazy — each thread must reference its own commit SHA and its own diff. If a thread genuinely has nothing unique to say, drop the reply entirely and just resolve (or skip both).
 
-Before posting, diff your draft against every reply already posted in this run. On collision: rewrite with the per-thread specifics (file, line, hunk, SHA) or drop it.
+Before posting, diff your draft against every reply already posted in this run.
+On collision: rewrite with the per-thread specifics (file, line, hunk, SHA) or
+drop it. In address mode, post the reply and resolve the accepted inline thread
+without another approval prompt. Honor an explicit request not to post or
+resolve.
 
-Options: "Post reply and resolve" / "Post reply only" / "Edit reply first"
-
-Use the host's ask-user question tool for this approval gate when available. Fall back to plain chat options only if the runtime does not expose one.
-
-If `AskUserQuestion` is available, use it immediately for the approval choice. Good shape:
-- header: `Reply action`
-- question: "What should we do with this drafted reply?"
-- options:
-  - `Post reply and resolve`
-  - `Post reply only`
-  - `Edit reply first`
-
-After the tool call, send only a short status line such as "The question is up — waiting on your call."
-
-Bad:
-```text
-What would you like to do?
-1. Post reply and resolve
-2. Post reply only
-3. Edit reply first
-```
-
-Good: the three options live inside `AskUserQuestion`, and chat only says the question is up.
-
-### 4d. Post Reply (after approval only)
+### 4d. Post Reply
 
 ```bash
 # Reply to inline review comment
@@ -403,12 +385,10 @@ gh pr comment "$PR_URL" --body "<reply>"
 ```
 
 Top-level PR conversation comments and review submissions are not resolvable
-inline threads. After approval, post an attributed top-level response and skip
+inline threads. In address mode, post an attributed top-level response and skip
 Step 4e. Never call `resolveReviewThread` for these feedback items.
 
-### 4e. Resolve Thread (only if user chose "Post reply and resolve")
-
-Skip this step entirely if the user picked **"Post reply only"** in 4c. Run it only when the user explicitly approved both reply **and** resolution.
+### 4e. Resolve Accepted Thread
 
 Resolve via GraphQL — find the review thread containing this comment, then resolve it:
 
@@ -465,10 +445,10 @@ approval pauses and resumes the composed babysitter according to its policy.
 
 ## Critical Rules
 
-1. **Never post or resolve without explicit approval** — show draft first, wait for confirmation
+1. **Address mode carries reply-and-resolve authority** — do not add a second approval gate for accepted or addressed-by-rewrite feedback; honor explicit opt-outs
 2. **Keep inline feedback on-thread** — use the replies API for inline comments
 3. **Use top-level comments only for non-inline feedback** — general PR comments and review-body summaries have no resolvable inline thread
-4. **Default: reply + resolve** for inline threads after user approves (unless they opt out)
+4. **Reply + resolve accepted inline threads** — a request to fix, address, handle, apply, or resolve the PR is the approval
 5. **Cite the fix commit** — every reply to a fixed comment must name the SHA (`git log -n 1 --format=%h -- <path>`) and summarize what that commit actually changed on the flagged line
 6. **No duplicate bodies across threads** — if the same text fits two threads, rewrite with thread-specific detail (file, line, diff) or drop the reply and just resolve
 7. **Declined threads stay open** — when you disagree with a reviewer, reply with rationale but do NOT resolve. Resolution is the reviewer's call once they've seen the decline. Self-resolving a declined thread signals fake agreement.
@@ -491,8 +471,8 @@ Blocked until all items pass — do not report "all addressed" without evidence 
 - [ ] Every required failing check diagnosed from logs
 - [ ] Every owned CI failure fixed or rerun and rechecked on exact HEAD
 - [ ] Fixes committed for all accepted feedback
-- [ ] Replies posted on-thread for every addressed comment (user approved each)
-- [ ] Review threads resolved (user approved each resolution)
+- [ ] Replies posted on-thread for every addressed comment
+- [ ] Accepted and addressed-by-rewrite review threads resolved
 - [ ] Required CI and automated reviewer checks are terminal and green after fixes
 - [ ] In address mode, `vs-baby-sit` started after the updated PR was re-resolved unless the user explicitly opted out
 
