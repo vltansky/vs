@@ -107,6 +107,21 @@ const vsLayoutCss = `
     --htmdx-gray: var(--md-sys-color-on-surface-variant);
     --htmdx-gray-light: var(--md-sys-color-outline);
     --htmdx-gray-bg: var(--md-sys-color-surface-variant);
+    /* The runtime's syntax palette is fixed light-theme ink on :root, so plain
+       code text lands near-black on the dark code panel. Re-pointed at One
+       Dark, the same lineage as the surface: unhighlighted text reads as body
+       ink, every token color keeps AA contrast on the panel. */
+    --htmdx-code-text: var(--md-sys-color-on-surface);
+    --htmdx-code-comment: #7F848E;
+    --htmdx-code-keyword: #C678DD;
+    --htmdx-code-string: #98C379;
+    --htmdx-code-number: #D19A66;
+    --htmdx-code-function: #61AFEF;
+    --htmdx-code-type: #E5C07B;
+    --htmdx-code-property: #E06C75;
+    --htmdx-code-punctuation: #A9B0BD;
+    --htmdx-code-inserted: #98C379;
+    --htmdx-code-deleted: #E06C75;
     --primary: var(--md-sys-color-primary);
     --primary-foreground: var(--md-sys-color-on-primary);
     --ring: var(--md-sys-color-primary);
@@ -219,6 +234,20 @@ const vsLayoutCss = `
   .htmdx-app[data-htmdx-layout^='vs'] .bg-red-50 { background-color: rgb(224 108 117 / 12%); }
   .htmdx-app[data-htmdx-layout^='vs'] .bg-amber-50 { background-color: rgb(229 192 123 / 12%); }
   .htmdx-app[data-htmdx-layout^='vs'] .bg-blue-50 { background-color: rgb(147 164 232 / 12%); }
+  .htmdx-app[data-htmdx-layout^='vs'] .bg-violet-50 { background-color: rgb(198 120 221 / 12%); }
+  .htmdx-app[data-htmdx-layout^='vs'] .text-violet-700 { color: #C678DD; }
+  /* The runtime pairs every wash with a dark: variant, but the document never
+     enters dark mode - the vs palette is a scoped repaint, not a theme switch -
+     so the light wash is what lands. Column tints (DecisionMatrix's chosen
+     column) use the /60 opacity form of the same class, and a full column
+     carries more area than a chip, so it tints lighter. Matched as attributes,
+     not escaped class selectors: the sync script escapes backslashes on its way
+     into the template shells, and the drift test compares raw text. */
+  .htmdx-app[data-htmdx-layout^='vs'] [class~='bg-emerald-50/60'] { background-color: rgb(152 195 121 / 8%); }
+  .htmdx-app[data-htmdx-layout^='vs'] [class~='bg-red-50/60'] { background-color: rgb(224 108 117 / 8%); }
+  .htmdx-app[data-htmdx-layout^='vs'] [class~='bg-amber-50/60'] { background-color: rgb(229 192 123 / 8%); }
+  .htmdx-app[data-htmdx-layout^='vs'] [class~='bg-blue-50/60'] { background-color: rgb(147 164 232 / 8%); }
+  .htmdx-app[data-htmdx-layout^='vs'] [class~='bg-violet-50/60'] { background-color: rgb(198 120 221 / 8%); }
   .htmdx-app[data-htmdx-layout='vs'] { padding: 44px 24px 64px; }
   .htmdx-app[data-htmdx-layout='vs'] > * {
     width: 100%;
@@ -850,7 +879,22 @@ const vsLayoutCss = `
     .htmdx-app[data-htmdx-layout^='vs'] .text-red-700 { color: #B91C1C; }
     .htmdx-app[data-htmdx-layout^='vs'] .text-amber-700 { color: #B45309; }
     .htmdx-app[data-htmdx-layout^='vs'] .text-blue-700 { color: #1D4ED8; }
-    .htmdx-app[data-htmdx-layout^='vs'] :is(.bg-emerald-50, .bg-red-50, .bg-amber-50, .bg-blue-50) { background-color: transparent; }
+    .htmdx-app[data-htmdx-layout^='vs'] .text-violet-700 { color: #6D28D9; }
+    .htmdx-app[data-htmdx-layout^='vs'] :is(.bg-emerald-50, .bg-red-50, .bg-amber-50, .bg-blue-50, .bg-violet-50, [class~='bg-emerald-50/60'], [class~='bg-red-50/60'], [class~='bg-amber-50/60'], [class~='bg-blue-50/60'], [class~='bg-violet-50/60']) { background-color: transparent; }
+    /* Ink on paper: the screen's One Dark syntax palette washes out on white,
+       so print restores the runtime's own light-theme code colors. */
+    .htmdx-app[data-htmdx-layout^='vs'] {
+      --htmdx-code-comment: #71809B;
+      --htmdx-code-keyword: #7C3AED;
+      --htmdx-code-string: #047857;
+      --htmdx-code-number: #B45309;
+      --htmdx-code-function: #2563EB;
+      --htmdx-code-type: #0E7490;
+      --htmdx-code-property: #BE185D;
+      --htmdx-code-punctuation: #8A94A6;
+      --htmdx-code-inserted: #047857;
+      --htmdx-code-deleted: #B91C1C;
+    }
     .vs-p-notice[data-phase='Rejected'] { background: none; color: #B91C1C; }
     .vs-p-notice[data-phase='Superseded'] { background: none; color: #B45309; }
     .vs-p-hero { background: none; color: var(--md-sys-color-on-surface); border-bottom: 2px solid var(--md-sys-color-on-surface); }
