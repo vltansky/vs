@@ -211,35 +211,130 @@ const vsLayoutCss = `
     border: 1px solid var(--md-sys-color-outline-variant);
     border-radius: var(--vs-sketch-card);
     padding: 16px;
+    /* Pan/zoom canvas: the factory binds panzoom to the svg, so the panel
+       clips the transformed diagram instead of growing the page. */
+    overflow: hidden;
+    position: relative;
   }
   @media screen {
-    .htmdx-app[data-htmdx-layout^='vs'] .htmdx-mermaid svg :is(.node, .statediagram-state, .actor) :is(rect, circle, ellipse, polygon, path):not(g.basic.label-container path),
-    .htmdx-app[data-htmdx-layout^='vs'] .htmdx-mermaid svg rect.actor {
+    /* A wide diagram fits to width, so its panel can be a short letterbox;
+       the native resize handle lets the reader pull the canvas taller. */
+    .htmdx-app[data-htmdx-layout^='vs'] .htmdx-mermaid { resize: vertical; }
+    :is(.htmdx-app[data-htmdx-layout^='vs'] .htmdx-mermaid, .vs-mermaid-dialog) svg { cursor: grab; }
+    :is(.htmdx-app[data-htmdx-layout^='vs'] .htmdx-mermaid, .vs-mermaid-dialog) svg:active { cursor: grabbing; }
+    .htmdx-app[data-htmdx-layout^='vs'] .htmdx-mermaid::after {
+      content: 'drag pans - ctrl+scroll zooms - double-click resets';
+      position: absolute;
+      right: 10px;
+      bottom: 8px;
+      font: 500 10px/1.4 var(--vs-mono);
+      letter-spacing: 0.04em;
+      color: var(--md-sys-color-outline);
+      background: var(--md-sys-color-surface-container-lowest);
+      padding: 2px 8px;
+      border-radius: var(--vs-sketch-pill);
+      opacity: 0;
+      transition: opacity 0.2s ease;
+      pointer-events: none;
+    }
+    .htmdx-app[data-htmdx-layout^='vs'] .htmdx-mermaid:hover::after {
+      opacity: 1;
+    }
+    .vs-mermaid-expand {
+      position: absolute;
+      top: 8px;
+      right: 10px;
+      font: 500 11px/1.4 var(--vs-mono);
+      letter-spacing: 0.04em;
+      color: var(--md-sys-color-on-surface-variant);
+      background: var(--md-sys-color-surface-container-lowest);
+      border: 1px solid var(--md-sys-color-outline-variant);
+      border-radius: var(--vs-sketch-pill);
+      padding: 3px 10px;
+      cursor: pointer;
+      opacity: 0;
+      transition: opacity 0.2s ease;
+    }
+    .htmdx-mermaid:hover .vs-mermaid-expand,
+    .vs-mermaid-expand:focus-visible {
+      opacity: 1;
+    }
+    /* The dialog mounts on body, outside the runtime's theme scope, so it
+       hardcodes the screen dark palette instead of the --md-sys tokens. */
+    .vs-mermaid-dialog {
+      width: 94vw;
+      height: 92vh;
+      padding: 0;
+      background: #15171C;
+      border: 1px solid #45475A;
+      border-radius: var(--vs-sketch-card, 12px);
+      overflow: hidden;
+    }
+    .vs-mermaid-dialog::backdrop {
+      background: rgba(0, 0, 0, 0.65);
+    }
+    .vs-mermaid-dialog-canvas {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      cursor: grab;
+    }
+    .vs-mermaid-dialog-canvas:active { cursor: grabbing; }
+    .vs-mermaid-dialog-close {
+      position: absolute;
+      top: 10px;
+      right: 12px;
+      font: 500 11px/1.4 var(--vs-mono, monospace);
+      letter-spacing: 0.04em;
+      color: #A6ADC8;
+      background: #181825;
+      border: 1px solid #45475A;
+      border-radius: var(--vs-sketch-pill, 999px);
+      padding: 4px 12px;
+      cursor: pointer;
+    }
+    .vs-mermaid-dialog::after {
+      content: 'scroll zooms - drag pans - double-click resets - esc closes';
+      position: absolute;
+      right: 12px;
+      bottom: 10px;
+      font: 500 10px/1.4 var(--vs-mono, monospace);
+      letter-spacing: 0.04em;
+      color: #6C7086;
+      pointer-events: none;
+    }
+  }
+  @media print {
+    .vs-mermaid-expand { display: none; }
+  }
+  @media screen {
+    :is(.htmdx-app[data-htmdx-layout^='vs'] .htmdx-mermaid, .vs-mermaid-dialog) svg :is(.node, .statediagram-state, .actor) :is(rect, circle, ellipse, polygon, path):not(g.basic.label-container path),
+    :is(.htmdx-app[data-htmdx-layout^='vs'] .htmdx-mermaid, .vs-mermaid-dialog) svg rect.actor {
       fill: #313244 !important;
       stroke: #B4BEFE !important;
     }
-    .htmdx-app[data-htmdx-layout^='vs'] .htmdx-mermaid svg :is(text, .nodeLabel, .stateLabel, .label) {
+    :is(.htmdx-app[data-htmdx-layout^='vs'] .htmdx-mermaid, .vs-mermaid-dialog) svg :is(text, .nodeLabel, .stateLabel, .label) {
       fill: #CDD6F4 !important;
       color: #CDD6F4 !important;
     }
-    .htmdx-app[data-htmdx-layout^='vs'] .htmdx-mermaid svg :is(.edgePath .path, .flowchart-link, .transition, .messageLine0, .messageLine1) {
+    :is(.htmdx-app[data-htmdx-layout^='vs'] .htmdx-mermaid, .vs-mermaid-dialog) svg :is(.edgePath .path, .flowchart-link, .transition, .messageLine0, .messageLine1) {
       stroke: #7F849C !important;
     }
-    .htmdx-app[data-htmdx-layout^='vs'] .htmdx-mermaid svg .marker {
+    :is(.htmdx-app[data-htmdx-layout^='vs'] .htmdx-mermaid, .vs-mermaid-dialog) svg .marker {
       fill: #7F849C !important;
       stroke: #7F849C !important;
     }
-    .htmdx-app[data-htmdx-layout^='vs'] .htmdx-mermaid svg .edgeLabel rect {
+    :is(.htmdx-app[data-htmdx-layout^='vs'] .htmdx-mermaid, .vs-mermaid-dialog) svg .edgeLabel rect {
       fill: #15171C !important;
     }
-    .htmdx-app[data-htmdx-layout^='vs'] .htmdx-mermaid svg .edgeLabel text {
+    :is(.htmdx-app[data-htmdx-layout^='vs'] .htmdx-mermaid, .vs-mermaid-dialog) svg .edgeLabel text {
       fill: #A6ADC8 !important;
     }
-    .htmdx-app[data-htmdx-layout^='vs'] .htmdx-mermaid svg .cluster rect {
+    :is(.htmdx-app[data-htmdx-layout^='vs'] .htmdx-mermaid, .vs-mermaid-dialog) svg .cluster rect {
       fill: #181825 !important;
       stroke: #6C7086 !important;
     }
-    .htmdx-app[data-htmdx-layout^='vs'] .htmdx-mermaid svg .node circle.state-start {
+    :is(.htmdx-app[data-htmdx-layout^='vs'] .htmdx-mermaid, .vs-mermaid-dialog) svg .node circle.state-start {
       fill: #B4BEFE !important;
       stroke: #B4BEFE !important;
     }
@@ -2160,11 +2255,21 @@ const vsCatalogFactory = (React, css) => {
         // block; the artifact is static after load, so React never
         // reconciles the swap.
         let repairSeq = 0;
+        // A pre-wrap render is detected by absence of the directive's
+        // fontFamily fingerprint in the svg, not by plain flowchart shapes:
+        // sequence and other legacy-renderer diagrams never carry
+        // rect.basic.label-container, so a shape check leaves them stuck on
+        // mermaid's stock theme. Authored-directive fences are excluded by
+        // the per-block source check before any re-render.
+        const missedDirective = (block) => {
+          const svg = block.querySelector('svg');
+          return !!svg && !svg.outerHTML.includes('Excalifont');
+        };
         const repaint = () => {
           const blocks = Array.from(document.querySelectorAll('.htmdx-mermaid'));
           const host = blocks[0]?.closest(globalThis.Htmdx.DEFAULT_TAG_NAME);
           if (!host) return;
-          if (!blocks.some((block) => block.querySelector('svg rect.basic.label-container'))) return;
+          if (!blocks.some(missedDirective)) return;
           globalThis.Htmdx.resolveSource(host)
             .then(({ ok, source }) => {
               if (!ok) return;
@@ -2173,8 +2278,7 @@ const vsCatalogFactory = (React, css) => {
               for (let match; (match = fence.exec(source)); ) sources.push(match[1]);
               if (blocks.length !== sources.length) return;
               blocks.forEach((block, index) => {
-                const svg = block.querySelector('svg');
-                if (!svg || !svg.querySelector('rect.basic.label-container')) return;
+                if (!missedDirective(block)) return;
                 const text = sources[index];
                 if (text.includes('%%{init') || text.trimStart().startsWith('---')) return;
                 if (block.hasAttribute('data-vs-sketch-repair')) return;
@@ -2193,6 +2297,99 @@ const vsCatalogFactory = (React, css) => {
         repaint();
         if (typeof MutationObserver !== 'undefined') {
           new MutationObserver(repaint).observe(document.documentElement, {
+            childList: true,
+            subtree: true,
+          });
+        }
+      })
+      .catch(() => {});
+    // Pan/zoom for oversized diagrams. panzoom applies a CSS transform to the
+    // svg without restructuring it (unlike svg-pan-zoom's injected viewport
+    // <g>), so the sketch repair swap and the palette selectors stay valid.
+    // Plain wheel keeps scrolling the page - zoom needs ctrl/cmd. The repair
+    // pass replaces svg.outerHTML, orphaning any bound instance, so binding is
+    // keyed per block on the current svg node and rebinds after a swap.
+    import('https://cdn.jsdelivr.net/npm/panzoom@9.4.4/+esm')
+      .then((mod) => {
+        const panzoom = mod.default ?? mod;
+        const bindings = new WeakMap();
+        // Full view: one lazily created native <dialog> shared by all blocks.
+        // The current svg is cloned into it (transform cleared), so the inline
+        // canvas keeps its own pan state; inside the modal plain wheel zooms
+        // because there is no page scroll to protect. Esc and the close
+        // button both land in the close event, which disposes the clone.
+        let dialog = null;
+        let dialogPan = null;
+        const openDialog = (block) => {
+          const svg = block.querySelector('svg');
+          if (!svg) return;
+          if (!dialog) {
+            dialog = document.createElement('dialog');
+            dialog.className = 'vs-mermaid-dialog';
+            const canvas = document.createElement('div');
+            canvas.className = 'vs-mermaid-dialog-canvas';
+            const close = document.createElement('button');
+            close.type = 'button';
+            close.className = 'vs-mermaid-dialog-close';
+            close.textContent = 'Close';
+            close.addEventListener('click', () => dialog.close());
+            dialog.append(canvas, close);
+            dialog.addEventListener('close', () => {
+              dialogPan?.dispose();
+              dialogPan = null;
+              canvas.textContent = '';
+            });
+            document.body.appendChild(dialog);
+          }
+          const clone = svg.cloneNode(true);
+          clone.style.transform = '';
+          clone.style.maxWidth = 'none';
+          dialog.firstChild.appendChild(clone);
+          dialog.showModal();
+          dialogPan = panzoom(clone, {
+            maxZoom: 12,
+            minZoom: 0.1,
+            smoothScroll: false,
+            zoomDoubleClickSpeed: 1,
+            autocenter: true,
+          });
+          clone.addEventListener('dblclick', () => {
+            dialogPan.zoomAbs(0, 0, 1);
+            dialogPan.moveTo(0, 0);
+          });
+        };
+        const bind = () => {
+          document.querySelectorAll('.htmdx-mermaid').forEach((block) => {
+            const svg = block.querySelector('svg');
+            if (!svg) return;
+            if (!block.querySelector('.vs-mermaid-expand')) {
+              const expand = document.createElement('button');
+              expand.type = 'button';
+              expand.className = 'vs-mermaid-expand';
+              expand.textContent = 'Full view';
+              expand.addEventListener('click', () => openDialog(block));
+              block.appendChild(expand);
+            }
+            const bound = bindings.get(block);
+            if (bound?.svg === svg) return;
+            bound?.instance.dispose();
+            const instance = panzoom(svg, {
+              maxZoom: 8,
+              minZoom: 0.25,
+              smoothScroll: false,
+              zoomDoubleClickSpeed: 1,
+              beforeWheel: (event) => !(event.ctrlKey || event.metaKey),
+            });
+            svg.addEventListener('dblclick', () => {
+              instance.zoomAbs(0, 0, 1);
+              instance.moveTo(0, 0);
+            });
+            bindings.set(block, { svg, instance });
+          });
+        };
+        bind();
+        if (typeof MutationObserver !== 'undefined') {
+          new MutationObserver(bind).observe(document.documentElement, {
             childList: true,
             subtree: true,
           });
