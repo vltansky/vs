@@ -173,7 +173,11 @@ const vsLayoutCss = `
   /* The runtime initializes mermaid with a fixed config (no theme hook), so
      dark mode is the Catppuccin Mocha palette ported as CSS over the rendered
      SVG. Mermaid injects id-prefixed styles inside the SVG, hence !important.
-     Screen-scoped: print keeps mermaid's stock light theme on white paper. */
+     Screen-scoped: print keeps mermaid's stock light theme on white paper.
+     Diagrams opting into look: handDrawn draw shapes as rough.js paths inside
+     g.basic.label-container; those color themselves via the init directive's
+     themeVariables, so the shape override skips them or it repaints the
+     sketch hatching into an unreadable smear. */
   .htmdx-app[data-htmdx-layout^='vs'] .htmdx-mermaid {
     background: var(--md-sys-color-surface-container-lowest);
     border: 1px solid var(--md-sys-color-outline-variant);
@@ -181,7 +185,7 @@ const vsLayoutCss = `
     padding: 16px;
   }
   @media screen {
-    .htmdx-app[data-htmdx-layout^='vs'] .htmdx-mermaid svg :is(.node, .statediagram-state, .actor) :is(rect, circle, ellipse, polygon, path),
+    .htmdx-app[data-htmdx-layout^='vs'] .htmdx-mermaid svg :is(.node, .statediagram-state, .actor) :is(rect, circle, ellipse, polygon, path):not(g.basic.label-container path),
     .htmdx-app[data-htmdx-layout^='vs'] .htmdx-mermaid svg rect.actor {
       fill: #313244 !important;
       stroke: #B4BEFE !important;
@@ -2066,6 +2070,99 @@ const vsCatalogFactory = (React, css) => {
       }
     }).observe(document.documentElement, { childList: true, subtree: true });
     dedash(document);
+  }
+
+  // Sketch-by-default mermaid. The runtime initializes mermaid with a locked
+  // config and no theme hook, but look/theme/themeVariables are absent from
+  // its secure list, so a per-diagram init directive still applies. Importing
+  // the runtime's own mermaid URL yields the same module instance (ESM cache),
+  // and registration runs before the first diagram renders, so wrapping
+  // mermaid.render here injects the directive into every plain fence. Fences
+  // carrying their own %%{init}%% or frontmatter config keep full control.
+  // Gated on window.Htmdx so the CLI's node context never fetches the CDN.
+  if (
+    typeof document !== 'undefined' &&
+    globalThis.Htmdx?.DEFAULT_MERMAID_SRC &&
+    !document.documentElement.hasAttribute('data-vs-sketch-mermaid')
+  ) {
+    document.documentElement.setAttribute('data-vs-sketch-mermaid', 'true');
+    const sketchDirective = `%%{init: ${JSON.stringify({
+      look: 'handDrawn',
+      theme: 'base',
+      themeVariables: {
+        darkMode: true,
+        primaryColor: '#313244',
+        primaryBorderColor: '#B4BEFE',
+        primaryTextColor: '#CDD6F4',
+        lineColor: '#7F849C',
+        textColor: '#CDD6F4',
+        mainBkg: '#313244',
+        background: '#15171C',
+        labelBackgroundColor: '#15171C',
+        clusterBkg: '#181825',
+        clusterBorder: '#6C7086',
+        noteBkgColor: '#181825',
+        noteTextColor: '#CDD6F4',
+      },
+    })}}%%\n`;
+    import(globalThis.Htmdx.DEFAULT_MERMAID_SRC)
+      .then((mod) => {
+        const mermaid = mod.default ?? mod;
+        const originalRender = mermaid.render.bind(mermaid);
+        mermaid.render = (id, text, ...rest) => {
+          const authored = text.includes('%%{init') || text.trimStart().startsWith('---');
+          return originalRender(id, authored ? text : sketchDirective + text, ...rest);
+        };
+        // The runtime can render diagrams before this patch lands (it mounts
+        // the doc while the catalog module is still loading), and
+        // Htmdx.rerender cannot repair them: the reused React root keeps the
+        // mermaid effect's deps identical, so it never re-renders. The source
+        // script is also detached from the DOM at mount, so fences come back
+        // through Htmdx.resolveSource(host), which serves the runtime's own
+        // cached copy. Fence order matches .htmdx-mermaid order; any diagram
+        // that landed plain re-renders and swaps in place. One-shot per
+        // block; the artifact is static after load, so React never
+        // reconciles the swap.
+        let repairSeq = 0;
+        const repaint = () => {
+          const blocks = Array.from(document.querySelectorAll('.htmdx-mermaid'));
+          const host = blocks[0]?.closest(globalThis.Htmdx.DEFAULT_TAG_NAME);
+          if (!host) return;
+          if (!blocks.some((block) => block.querySelector('svg rect.basic.label-container'))) return;
+          globalThis.Htmdx.resolveSource(host)
+            .then(({ ok, source }) => {
+              if (!ok) return;
+              const sources = [];
+              const fence = /```mermaid[^\S\n]*\n([\s\S]*?)```/g;
+              for (let match; (match = fence.exec(source)); ) sources.push(match[1]);
+              if (blocks.length !== sources.length) return;
+              blocks.forEach((block, index) => {
+                const svg = block.querySelector('svg');
+                if (!svg || !svg.querySelector('rect.basic.label-container')) return;
+                const text = sources[index];
+                if (text.includes('%%{init') || text.trimStart().startsWith('---')) return;
+                if (block.hasAttribute('data-vs-sketch-repair')) return;
+                block.setAttribute('data-vs-sketch-repair', 'true');
+                repairSeq += 1;
+                originalRender(`vs-sketch-repair-${repairSeq}`, sketchDirective + text)
+                  .then(({ svg: markup }) => {
+                    const current = block.querySelector('svg');
+                    if (current) current.outerHTML = markup;
+                  })
+                  .catch(() => {});
+              });
+            })
+            .catch(() => {});
+        };
+        repaint();
+        if (typeof MutationObserver !== 'undefined') {
+          new MutationObserver(repaint).observe(document.documentElement, {
+            childList: true,
+            subtree: true,
+          });
+        }
+      })
+      .catch(() => {});
   }
 
   return { components, layouts, themes };
