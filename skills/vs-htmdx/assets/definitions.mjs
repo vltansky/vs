@@ -31,35 +31,34 @@ export const vsLayoutCss = `
     --md-sys-shape-corner-medium: 4px;
     --md-sys-shape-corner-large: 5px;
     --md-sys-shape-corner-extra-large: 5px;
-    /* The vs palette: a cobalt accent on a dark neutral ladder. The neutrals
-       flip the wix-private/htmdx#5 consolidation to a near-black surface; the
-       runtime's purple primary is replaced by a light cobalt that carries
-       links, code spans, gauge fills, and the contents-rail numbers on dark.
-       Everything else stays monochrome so the semantic colors (emerald/red/
-       amber in the components) keep their meaning. Scoped to the layout. */
-    --md-sys-color-primary: #8FB0FF;
-    --md-sys-color-on-primary: #0B1633;
-    --md-sys-color-primary-container: #1B2A52;
-    --md-sys-color-on-primary-container: #C9D8FF;
-    --md-sys-color-secondary: #A8A8A8;
-    --md-sys-color-on-secondary: #111111;
-    --md-sys-color-secondary-container: #33363E;
-    --md-sys-color-on-secondary-container: #F2F2F2;
-    --md-sys-color-tertiary: #A8A8A8;
-    --md-sys-color-on-tertiary: #111111;
-    --md-sys-color-tertiary-container: #33363E;
-    --md-sys-color-on-tertiary-container: #F2F2F2;
-    --md-sys-color-surface: #1A1D23;
-    --md-sys-color-on-surface: #F2F2F2;
-    --md-sys-color-surface-variant: #2B2E36;
-    --md-sys-color-on-surface-variant: #B8BCC4;
-    --md-sys-color-outline: #646975;
-    --md-sys-color-outline-variant: #363A43;
-    --md-sys-color-surface-container-lowest: #15171C;
-    --md-sys-color-surface-container-low: #22252C;
-    --md-sys-color-surface-container: #262932;
-    --md-sys-color-surface-container-high: #2C2F38;
-    --md-sys-color-surface-container-highest: #32353F;
+    /* The vs palette: the terminal theme - Ghostty's stock #282C34 surface
+       (One Dark lineage) with Claude Code's periwinkle accent carrying links,
+       code spans, gauge fills, and the contents-rail numbers. Neutrals are a
+       ladder in the same slate hue; the semantic colors (emerald/red/amber in
+       the components) follow One Dark's ANSI set. Scoped to the layout. */
+    --md-sys-color-primary: #93A4E8;
+    --md-sys-color-on-primary: #10182E;
+    --md-sys-color-primary-container: #2A3352;
+    --md-sys-color-on-primary-container: #C8D2F4;
+    --md-sys-color-secondary: #A9B0BD;
+    --md-sys-color-on-secondary: #14161B;
+    --md-sys-color-secondary-container: #383E4A;
+    --md-sys-color-on-secondary-container: #E4E8EF;
+    --md-sys-color-tertiary: #A9B0BD;
+    --md-sys-color-on-tertiary: #14161B;
+    --md-sys-color-tertiary-container: #383E4A;
+    --md-sys-color-on-tertiary-container: #E4E8EF;
+    --md-sys-color-surface: #282C34;
+    --md-sys-color-on-surface: #D7DCE4;
+    --md-sys-color-surface-variant: #333845;
+    --md-sys-color-on-surface-variant: #A9B0BD;
+    --md-sys-color-outline: #6C7484;
+    --md-sys-color-outline-variant: #3B414C;
+    --md-sys-color-surface-container-lowest: #21252C;
+    --md-sys-color-surface-container-low: #2D323B;
+    --md-sys-color-surface-container: #31363F;
+    --md-sys-color-surface-container-high: #363B45;
+    --md-sys-color-surface-container-highest: #3C424D;
     /* One soft shadow per level instead of Material's key + ambient pair: the
        flat surfaces separate with a hairline, so elevation only has to lift a
        floating element off the page. */
@@ -102,7 +101,10 @@ export const vsLayoutCss = `
     --muted: var(--md-sys-color-surface-variant);
     --muted-foreground: var(--md-sys-color-on-surface-variant);
     --border: var(--md-sys-color-outline-variant);
-    --vs-mono: ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, monospace;
+    --vs-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, monospace;
+    /* Terminal theme: everything reads in the terminal face, like the
+       Ghostty session the palette comes from. */
+    font-family: var(--vs-mono);
     --vs-hand: 'Excalifont', 'Segoe Print', 'Bradley Hand', 'Comic Sans MS', cursive;
     /* Hand-drawn outlines: uneven four-corner radii (slash syntax offsets each
        corner's horizontal and vertical curve) so no card edge repeats. Two
@@ -110,9 +112,40 @@ export const vsLayoutCss = `
     --vs-sketch-card: 14px 5px 13px 6px / 6px 12px 5px 15px;
     --vs-sketch-pill: 255px 15px 225px 15px / 15px 225px 15px 255px;
   }
+  /* Ghostty's default face, from fontsource on the same CDN family the
+     runtime already uses. Latin subsets; 400/500/700 cover the weights the
+     tokens ask for, italic covers emphasis. */
+  @font-face {
+    font-family: 'JetBrains Mono';
+    src: url('https://cdn.jsdelivr.net/npm/@fontsource/jetbrains-mono@5/files/jetbrains-mono-latin-400-normal.woff2') format('woff2');
+    font-weight: 400;
+    font-style: normal;
+    font-display: swap;
+  }
+  @font-face {
+    font-family: 'JetBrains Mono';
+    src: url('https://cdn.jsdelivr.net/npm/@fontsource/jetbrains-mono@5/files/jetbrains-mono-latin-500-normal.woff2') format('woff2');
+    font-weight: 500;
+    font-style: normal;
+    font-display: swap;
+  }
+  @font-face {
+    font-family: 'JetBrains Mono';
+    src: url('https://cdn.jsdelivr.net/npm/@fontsource/jetbrains-mono@5/files/jetbrains-mono-latin-700-normal.woff2') format('woff2');
+    font-weight: 700;
+    font-style: normal;
+    font-display: swap;
+  }
+  @font-face {
+    font-family: 'JetBrains Mono';
+    src: url('https://cdn.jsdelivr.net/npm/@fontsource/jetbrains-mono@5/files/jetbrains-mono-latin-400-italic.woff2') format('woff2');
+    font-weight: 400;
+    font-style: italic;
+    font-display: swap;
+  }
   /* Excalidraw's own face, served from the same CDN family the runtime already
      uses. Latin subset only; other scripts fall through to the system hand
-     fonts in --vs-hand. */
+     fonts in --vs-hand. It stays the voice of the hand-drawn diagrams. */
   @font-face {
     font-family: 'Excalifont';
     src: url('https://cdn.jsdelivr.net/npm/@excalidraw/excalidraw@0.18.1/dist/prod/fonts/Excalifont/Excalifont-Regular-a88b72a24fb54c9f94e3b5fdaa7481c9.woff2') format('woff2');
@@ -122,7 +155,7 @@ export const vsLayoutCss = `
   /* Overscroll past the app container shows the document canvas - paint it
      the same dark surface so the page has no white edges. The 17px root em
      scales every rem-sized token up one notch for reading comfort. */
-  html:has(.htmdx-app[data-htmdx-layout^='vs']) { background: #1A1D23; font-size: 17px; }
+  html:has(.htmdx-app[data-htmdx-layout^='vs']) { background: #282C34; font-size: 17px; }
   /* Tailwind's *-700/*-50 semantic pairs are tuned for a white surface; on
      dark the text tones lighten and the wash backgrounds deepen so the
      emerald/red/amber meanings survive the flip. */
@@ -143,19 +176,18 @@ export const vsLayoutCss = `
   }
   .htmdx-app[data-htmdx-layout^='vs'] [class*='px-2'].rounded-full {
     border-radius: var(--vs-sketch-pill);
-    font-family: var(--vs-hand);
     letter-spacing: 0.02em;
   }
-  .htmdx-app[data-htmdx-layout^='vs'] .text-emerald-700 { color: #A6E3A1; }
-  .htmdx-app[data-htmdx-layout^='vs'] .text-red-700 { color: #F38BA8; }
-  .htmdx-app[data-htmdx-layout^='vs'] .text-amber-700 { color: #F9E2AF; }
-  .htmdx-app[data-htmdx-layout^='vs'] .text-blue-700 { color: #89B4FA; }
+  .htmdx-app[data-htmdx-layout^='vs'] .text-emerald-700 { color: #98C379; }
+  .htmdx-app[data-htmdx-layout^='vs'] .text-red-700 { color: #E06C75; }
+  .htmdx-app[data-htmdx-layout^='vs'] .text-amber-700 { color: #E5C07B; }
+  .htmdx-app[data-htmdx-layout^='vs'] .text-blue-700 { color: #93A4E8; }
   /* Washes are translucent tints of their own accent, not hand-mixed dark
      hexes: they stay in hue with the text on any container they land on. */
-  .htmdx-app[data-htmdx-layout^='vs'] .bg-emerald-50 { background-color: rgb(166 227 161 / 12%); }
-  .htmdx-app[data-htmdx-layout^='vs'] .bg-red-50 { background-color: rgb(243 139 168 / 12%); }
-  .htmdx-app[data-htmdx-layout^='vs'] .bg-amber-50 { background-color: rgb(249 226 175 / 12%); }
-  .htmdx-app[data-htmdx-layout^='vs'] .bg-blue-50 { background-color: rgb(137 180 250 / 12%); }
+  .htmdx-app[data-htmdx-layout^='vs'] .bg-emerald-50 { background-color: rgb(152 195 121 / 12%); }
+  .htmdx-app[data-htmdx-layout^='vs'] .bg-red-50 { background-color: rgb(224 108 117 / 12%); }
+  .htmdx-app[data-htmdx-layout^='vs'] .bg-amber-50 { background-color: rgb(229 192 123 / 12%); }
+  .htmdx-app[data-htmdx-layout^='vs'] .bg-blue-50 { background-color: rgb(147 164 232 / 12%); }
   .htmdx-app[data-htmdx-layout='vs'] { padding: 44px 24px 64px; }
   .htmdx-app[data-htmdx-layout='vs'] > * {
     width: 100%;
@@ -244,8 +276,8 @@ export const vsLayoutCss = `
       width: 94vw;
       height: 92vh;
       padding: 0;
-      background: #15171C;
-      border: 1px solid #45475A;
+      background: #21252C;
+      border: 1px solid #3B414C;
       border-radius: var(--vs-sketch-card, 12px);
       overflow: hidden;
     }
@@ -265,9 +297,9 @@ export const vsLayoutCss = `
       right: 12px;
       font: 500 11px/1.4 var(--vs-mono, monospace);
       letter-spacing: 0.04em;
-      color: #A6ADC8;
-      background: #181825;
-      border: 1px solid #45475A;
+      color: #A9B0BD;
+      background: #2D323B;
+      border: 1px solid #3B414C;
       border-radius: var(--vs-sketch-pill, 999px);
       padding: 4px 12px;
       cursor: pointer;
@@ -279,7 +311,7 @@ export const vsLayoutCss = `
       bottom: 10px;
       font: 500 10px/1.4 var(--vs-mono, monospace);
       letter-spacing: 0.04em;
-      color: #6C7086;
+      color: #596070;
       pointer-events: none;
     }
   }
@@ -289,39 +321,37 @@ export const vsLayoutCss = `
   @media screen {
     :is(.htmdx-app[data-htmdx-layout^='vs'] .htmdx-mermaid, .vs-mermaid-dialog) svg :is(.node, .statediagram-state, .actor) :is(rect, circle, ellipse, polygon, path):not(g.basic.label-container path),
     :is(.htmdx-app[data-htmdx-layout^='vs'] .htmdx-mermaid, .vs-mermaid-dialog) svg rect.actor {
-      fill: #313244 !important;
-      stroke: #B4BEFE !important;
+      fill: #31363F !important;
+      stroke: #93A4E8 !important;
     }
     :is(.htmdx-app[data-htmdx-layout^='vs'] .htmdx-mermaid, .vs-mermaid-dialog) svg :is(text, .nodeLabel, .stateLabel, .label) {
-      fill: #CDD6F4 !important;
-      color: #CDD6F4 !important;
+      fill: #D7DCE4 !important;
+      color: #D7DCE4 !important;
     }
     :is(.htmdx-app[data-htmdx-layout^='vs'] .htmdx-mermaid, .vs-mermaid-dialog) svg :is(.edgePath .path, .flowchart-link, .transition, .messageLine0, .messageLine1) {
-      stroke: #7F849C !important;
+      stroke: #6C7484 !important;
     }
     :is(.htmdx-app[data-htmdx-layout^='vs'] .htmdx-mermaid, .vs-mermaid-dialog) svg .marker {
-      fill: #7F849C !important;
-      stroke: #7F849C !important;
+      fill: #6C7484 !important;
+      stroke: #6C7484 !important;
     }
     :is(.htmdx-app[data-htmdx-layout^='vs'] .htmdx-mermaid, .vs-mermaid-dialog) svg .edgeLabel rect {
-      fill: #15171C !important;
+      fill: #21252C !important;
     }
     :is(.htmdx-app[data-htmdx-layout^='vs'] .htmdx-mermaid, .vs-mermaid-dialog) svg .edgeLabel text {
-      fill: #A6ADC8 !important;
+      fill: #A9B0BD !important;
     }
     :is(.htmdx-app[data-htmdx-layout^='vs'] .htmdx-mermaid, .vs-mermaid-dialog) svg .cluster rect {
-      fill: #181825 !important;
-      stroke: #6C7086 !important;
+      fill: #2D323B !important;
+      stroke: #596070 !important;
     }
     :is(.htmdx-app[data-htmdx-layout^='vs'] .htmdx-mermaid, .vs-mermaid-dialog) svg .node circle.state-start {
-      fill: #B4BEFE !important;
-      stroke: #B4BEFE !important;
+      fill: #93A4E8 !important;
+      stroke: #93A4E8 !important;
     }
   }
   :is(.htmdx-app[data-htmdx-layout='vs'], .vs-p-main) > div > h1 {
     margin: 0 0 14px;
-    /* Hand faces carry no negative tracking: tightened Excalifont collides. */
-    font-family: var(--vs-hand);
     font-size: clamp(1.75rem, 3vw, 2.25rem);
     line-height: 1.12;
     font-weight: 600;
@@ -337,7 +367,6 @@ export const vsLayoutCss = `
     padding-top: 20px;
     /* Dashed rule: the pen-stroke section separator of the sketch theme. */
     border-top: 1px dashed var(--md-sys-color-outline);
-    font-family: var(--vs-hand);
     font-size: 1.375rem;
     line-height: 1.3;
     font-weight: 600;
@@ -350,7 +379,6 @@ export const vsLayoutCss = `
   }
   :is(.htmdx-app[data-htmdx-layout='vs'], .vs-p-main) > div h3 {
     margin: 24px 0 8px;
-    font-family: var(--vs-hand);
     font-size: 1.0625rem;
     line-height: 1.35;
     font-weight: 600;
@@ -423,7 +451,7 @@ export const vsLayoutCss = `
   /* MADR: the outcome reads above the fold - Options hoists chosen rows to
      the top and this accent marks them as the decision, not another row. */
   .htmdx-app[data-htmdx-layout^='vs'] [data-htmdx-component='Options'] [data-disposition='chosen'] {
-    box-shadow: inset 2px 0 0 #A6E3A1;
+    box-shadow: inset 2px 0 0 #98C379;
   }
   /* A Compare of two screenshots is a pair of figures, not a pair of cards: the
      border would frame the caption as well and read as two separate panels. A
@@ -620,13 +648,13 @@ export const vsLayoutCss = `
      column is a content root: the :is() rules above reach it via .vs-p-main,
      and the component rules via the ^= layout match. */
   .htmdx-app[data-htmdx-layout='vs-proposal'] { padding: 0 0 72px; }
-  /* The hero is navy ink with a cobalt glow, not the primary token: a full
-     cobalt surface would shout, and the pills need a dark ground to read on. */
+  /* The hero is dark slate ink with a periwinkle glow, not the primary token:
+     a full accent surface would shout, and the pills need a dark ground. */
   .vs-p-hero {
     background:
-      radial-gradient(circle at 82% -20%, #2E5BFF 0, transparent 46%),
-      #0B1633;
-    color: #F5F8FF;
+      radial-gradient(circle at 82% -20%, #5A6FD6 0, transparent 46%),
+      #1B1F28;
+    color: #E2E6EF;
   }
   .vs-p-hero-inner { max-width: 54rem; margin: 0 auto; padding: 30px 28px 26px; }
   .vs-p-eyebrow {
@@ -636,12 +664,11 @@ export const vsLayoutCss = `
     font-weight: 700;
     letter-spacing: 0.16em;
     text-transform: uppercase;
-    color: #8FB0FF;
+    color: #93A4E8;
   }
   .vs-p-title {
     margin: 0;
     max-width: 44rem;
-    font-family: var(--vs-hand);
     font-size: clamp(1.5rem, 3vw, 2rem);
     line-height: 1.15;
     font-weight: 700;
@@ -655,7 +682,6 @@ export const vsLayoutCss = `
     padding: 4px 12px;
     border: 1px solid rgb(255 255 255 / 28%);
     border-radius: var(--vs-sketch-pill);
-    font-family: var(--vs-hand);
     font-size: 0.75rem;
     font-weight: 700;
     /* The hero is fixed navy in every theme, so the pill ink is a literal
@@ -672,8 +698,8 @@ export const vsLayoutCss = `
   .vs-p-pill[data-phase='Superseded'] { background: #B45309; color: #FEF3C7; }
   /* PEP-style banner: a dead proposal says so between the hero and the body,
      before anyone reads three sections and acts on it. */
-  .vs-p-notice[data-phase='Rejected'] { background: rgb(243 139 168 / 14%); color: #F38BA8; }
-  .vs-p-notice[data-phase='Superseded'] { background: rgb(249 226 175 / 14%); color: #F9E2AF; }
+  .vs-p-notice[data-phase='Rejected'] { background: rgb(224 108 117 / 14%); color: #E06C75; }
+  .vs-p-notice[data-phase='Superseded'] { background: rgb(229 192 123 / 14%); color: #E5C07B; }
   .vs-p-notice-inner {
     max-width: 54rem;
     margin: 0 auto;
@@ -2213,18 +2239,18 @@ export const vsCatalogFactory = (React, css) => {
         // single quotes to double before JSON.parse, corrupting the whole
         // init block and silently dropping the sketch look.
         fontFamily: 'Excalifont, cursive',
-        primaryColor: '#313244',
-        primaryBorderColor: '#B4BEFE',
-        primaryTextColor: '#CDD6F4',
-        lineColor: '#7F849C',
-        textColor: '#CDD6F4',
-        mainBkg: '#313244',
-        background: '#15171C',
-        labelBackgroundColor: '#15171C',
-        clusterBkg: '#181825',
-        clusterBorder: '#6C7086',
-        noteBkgColor: '#181825',
-        noteTextColor: '#CDD6F4',
+        primaryColor: '#31363F',
+        primaryBorderColor: '#93A4E8',
+        primaryTextColor: '#D7DCE4',
+        lineColor: '#6C7484',
+        textColor: '#D7DCE4',
+        mainBkg: '#31363F',
+        background: '#21252C',
+        labelBackgroundColor: '#21252C',
+        clusterBkg: '#2D323B',
+        clusterBorder: '#596070',
+        noteBkgColor: '#2D323B',
+        noteTextColor: '#D7DCE4',
       },
     })}}%%\n`;
     import(globalThis.Htmdx.DEFAULT_MERMAID_SRC)
