@@ -7,6 +7,7 @@ const DIR = path.resolve(__dirname, '..');
 const SKILL_RAW = fs.readFileSync(path.join(DIR, 'SKILL.md'), 'utf8');
 const SKILL = SKILL_RAW.replace(/\s+/g, ' ');
 const REJECT = path.join(DIR, 'scripts', 'reject-code-slop.mjs');
+const REJECT_ANTISLOP = path.join(DIR, 'scripts', 'reject-anti-slop.mjs');
 const FIXTURE_DIR = path.join(__dirname, 'fixtures');
 const SECOND_MISS = path.join(FIXTURE_DIR, 'second-miss-after-pass.ts');
 const CLEAN = path.join(FIXTURE_DIR, 'clean-add.ts');
@@ -41,9 +42,15 @@ describe('vs-deslop: keep flatten as the first cleanup move', () => {
     expect(SKILL).not.toMatch(/encode-via-lint/i);
     expect(SKILL).not.toMatch(/poteto-mode/i);
     expect(SKILL).not.toMatch(/principle-encode/i);
-    expect(SKILL).not.toMatch(/\boxlint\b/i);
     expect(SKILL).not.toMatch(/SLOGAN_ONLY_DESLOP_CANARY/);
     expect(SKILL).not.toMatch(/\/\*\s*second-miss\s*\*\//);
+    expect(SKILL).not.toMatch(/OXLINT_PROSE_ANTISLOP_CANARY/);
+    const oxlintProse = spawnSync(process.execPath, [
+      REJECT_ANTISLOP,
+      path.join(FIXTURE_DIR, 'oxlint-prose-skill.md'),
+    ], { encoding: 'utf8' });
+    expect(oxlintProse.status).toBe(1);
+    expect(oxlintProse.stderr).toMatch(/oxlint prose without named-file runner/);
   });
 });
 

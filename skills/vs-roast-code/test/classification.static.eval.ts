@@ -155,3 +155,11 @@ describe('roast-code proportional program', () => {
     );
   });
 });
+
+describe('roast-code deslop anti-slop compose', () => {
+  it('inherits the named-file runner and cannot claim CLEAN without it', () => {
+    expect(SKILL).toMatch(/run-anti-slop\.mjs/);
+    expect(SKILL).toMatch(/do not\s+report[\s\S]{0,20}`CLEAN`/i);
+    expect(SKILL).not.toMatch(/MENTION_ONLY_INHERIT_ANTISLOP_CANARY/);
+  });
+});

@@ -19,3 +19,12 @@ describe('build-it workflow safeguards', () => {
     expect(SKILL).toMatch(/cannot be called complete.*matrix.*proven/is);
   });
 });
+
+describe('build-it deslop anti-slop compose', () => {
+  it('inherits the named-file runner and cannot claim CLEAN without it', () => {
+    expect(SKILL).toMatch(/run-anti-slop\.mjs/);
+    expect(SKILL).toMatch(/do not\s+report[\s\S]{0,20}`CLEAN`/i);
+    expect(SKILL).not.toMatch(/Load[\s\S]{0,40}vs-deslop\/SKILL\.md[\s\S]{0,80}only when/);
+    expect(SKILL).not.toMatch(/MENTION_ONLY_INHERIT_ANTISLOP_CANARY/);
+  });
+});
