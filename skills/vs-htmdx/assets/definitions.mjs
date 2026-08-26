@@ -31,50 +31,50 @@ export const vsLayoutCss = `
     --md-sys-shape-corner-medium: 4px;
     --md-sys-shape-corner-large: 5px;
     --md-sys-shape-corner-extra-large: 5px;
-    /* The vs palette: a cobalt accent on a neutral ladder. The neutrals are
-       the wix-private/htmdx#5 consolidation; the runtime's purple primary is
-       replaced by cobalt, which carries links, code spans, gauge fills, and
-       the contents-rail numbers. Everything else stays monochrome so the
-       semantic colors (emerald/red/amber in the components) keep their
-       meaning. Scoped to the layout. */
-    --md-sys-color-primary: #1D4ED8;
-    --md-sys-color-on-primary: #FFFFFF;
-    --md-sys-color-primary-container: #E8EEFF;
-    --md-sys-color-on-primary-container: #14337D;
-    --md-sys-color-secondary: #5C5C5C;
-    --md-sys-color-on-secondary: #FFFFFF;
-    --md-sys-color-secondary-container: #F2F2F2;
-    --md-sys-color-on-secondary-container: #000000;
-    --md-sys-color-tertiary: #5C5C5C;
-    --md-sys-color-on-tertiary: #FFFFFF;
-    --md-sys-color-tertiary-container: #F2F2F2;
-    --md-sys-color-on-tertiary-container: #000000;
-    --md-sys-color-surface: #FFFFFF;
-    --md-sys-color-on-surface: #000000;
-    --md-sys-color-surface-variant: #F2F2F2;
-    --md-sys-color-on-surface-variant: #444444;
-    --md-sys-color-outline: #B3B3B3;
-    --md-sys-color-outline-variant: #E2E2E2;
-    --md-sys-color-surface-container-lowest: #FFFFFF;
-    --md-sys-color-surface-container-low: #FAFAFA;
-    --md-sys-color-surface-container: #F7F7F7;
-    --md-sys-color-surface-container-high: #F2F2F2;
-    --md-sys-color-surface-container-highest: #EBEBEB;
+    /* The vs palette: a cobalt accent on a dark neutral ladder. The neutrals
+       flip the wix-private/htmdx#5 consolidation to a near-black surface; the
+       runtime's purple primary is replaced by a light cobalt that carries
+       links, code spans, gauge fills, and the contents-rail numbers on dark.
+       Everything else stays monochrome so the semantic colors (emerald/red/
+       amber in the components) keep their meaning. Scoped to the layout. */
+    --md-sys-color-primary: #8FB0FF;
+    --md-sys-color-on-primary: #0B1633;
+    --md-sys-color-primary-container: #1B2A52;
+    --md-sys-color-on-primary-container: #C9D8FF;
+    --md-sys-color-secondary: #A8A8A8;
+    --md-sys-color-on-secondary: #111111;
+    --md-sys-color-secondary-container: #33363E;
+    --md-sys-color-on-secondary-container: #F2F2F2;
+    --md-sys-color-tertiary: #A8A8A8;
+    --md-sys-color-on-tertiary: #111111;
+    --md-sys-color-tertiary-container: #33363E;
+    --md-sys-color-on-tertiary-container: #F2F2F2;
+    --md-sys-color-surface: #1A1D23;
+    --md-sys-color-on-surface: #F2F2F2;
+    --md-sys-color-surface-variant: #2B2E36;
+    --md-sys-color-on-surface-variant: #B8BCC4;
+    --md-sys-color-outline: #646975;
+    --md-sys-color-outline-variant: #363A43;
+    --md-sys-color-surface-container-lowest: #15171C;
+    --md-sys-color-surface-container-low: #22252C;
+    --md-sys-color-surface-container: #262932;
+    --md-sys-color-surface-container-high: #2C2F38;
+    --md-sys-color-surface-container-highest: #32353F;
     /* One soft shadow per level instead of Material's key + ambient pair: the
        flat surfaces separate with a hairline, so elevation only has to lift a
        floating element off the page. */
     --md-sys-elevation-level0: none;
-    --md-sys-elevation-level1: 0 1px 2px rgb(0 0 0 / 5%);
-    --md-sys-elevation-level2: 0 2px 6px rgb(0 0 0 / 7%);
-    --md-sys-elevation-level3: 0 8px 24px rgb(0 0 0 / 9%);
-    --md-sys-state-hover-opacity: 0.06;
+    --md-sys-elevation-level1: 0 1px 2px rgb(0 0 0 / 40%);
+    --md-sys-elevation-level2: 0 2px 6px rgb(0 0 0 / 45%);
+    --md-sys-elevation-level3: 0 8px 24px rgb(0 0 0 / 55%);
+    --md-sys-state-hover-opacity: 0.08;
     /* The runtime derives these aliases on :root, where custom properties
        compute once and inherit as values, not as var() references - so every
        alias is re-declared here to recompute against the scoped ladder. */
     --htmdx-bg: var(--md-sys-color-surface);
     --htmdx-ink: var(--md-sys-color-on-surface);
-    /* Reading text stays full-contrast on white; only secondary text (notes,
-       captions, chips) takes the muted variant. */
+    /* Reading text stays full-contrast on the surface; only secondary text
+       (notes, captions, chips) takes the muted variant. */
     --htmdx-body: var(--md-sys-color-on-surface);
     --htmdx-soft: var(--md-sys-color-on-surface-variant);
     --htmdx-line: var(--md-sys-color-outline-variant);
@@ -92,8 +92,42 @@ export const vsLayoutCss = `
     --ring: var(--md-sys-color-primary);
     --accent: var(--md-sys-color-primary-container);
     --accent-foreground: var(--md-sys-color-on-primary-container);
+    /* The shadcn utilities (bg-card, text-muted-foreground, border) read
+       these names from :root, where the runtime declares light values - the
+       scoped re-declarations point them at the dark ladder. */
+    --background: var(--md-sys-color-surface);
+    --foreground: var(--md-sys-color-on-surface);
+    --card: var(--md-sys-color-surface-container-low);
+    --card-foreground: var(--md-sys-color-on-surface);
+    --muted: var(--md-sys-color-surface-variant);
+    --muted-foreground: var(--md-sys-color-on-surface-variant);
+    --border: var(--md-sys-color-outline-variant);
     --vs-mono: ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, monospace;
   }
+  /* Overscroll past the app container shows the document canvas - paint it
+     the same dark surface so the page has no white edges. The 17px root em
+     scales every rem-sized token up one notch for reading comfort. */
+  html:has(.htmdx-app[data-htmdx-layout^='vs']) { background: #1A1D23; font-size: 17px; }
+  /* Tailwind's *-700/*-50 semantic pairs are tuned for a white surface; on
+     dark the text tones lighten and the wash backgrounds deepen so the
+     emerald/red/amber meanings survive the flip. */
+  /* Tailwind's bare border/divide utilities default to currentColor - on the
+     dark surface that is the near-white text color, so every card edge glows.
+     Pin them to the hairline token instead. */
+  .htmdx-app[data-htmdx-layout^='vs'] .border,
+  .htmdx-app[data-htmdx-layout^='vs'] :is(.divide-y, .divide-x) > * {
+    border-color: var(--md-sys-color-outline-variant);
+  }
+  .htmdx-app[data-htmdx-layout^='vs'] .text-emerald-700 { color: #A6E3A1; }
+  .htmdx-app[data-htmdx-layout^='vs'] .text-red-700 { color: #F38BA8; }
+  .htmdx-app[data-htmdx-layout^='vs'] .text-amber-700 { color: #F9E2AF; }
+  .htmdx-app[data-htmdx-layout^='vs'] .text-blue-700 { color: #89B4FA; }
+  /* Washes are translucent tints of their own accent, not hand-mixed dark
+     hexes: they stay in hue with the text on any container they land on. */
+  .htmdx-app[data-htmdx-layout^='vs'] .bg-emerald-50 { background-color: rgb(166 227 161 / 12%); }
+  .htmdx-app[data-htmdx-layout^='vs'] .bg-red-50 { background-color: rgb(243 139 168 / 12%); }
+  .htmdx-app[data-htmdx-layout^='vs'] .bg-amber-50 { background-color: rgb(249 226 175 / 12%); }
+  .htmdx-app[data-htmdx-layout^='vs'] .bg-blue-50 { background-color: rgb(137 180 250 / 12%); }
   .htmdx-app[data-htmdx-layout='vs'] { padding: 44px 24px 64px; }
   .htmdx-app[data-htmdx-layout='vs'] > * {
     width: 100%;
@@ -115,6 +149,48 @@ export const vsLayoutCss = `
     max-width: 40rem;
   }
   :is(.htmdx-app[data-htmdx-layout='vs'], .vs-p-main) > div .htmdx-mermaid svg { margin: 0; }
+  /* The runtime initializes mermaid with a fixed config (no theme hook), so
+     dark mode is the Catppuccin Mocha palette ported as CSS over the rendered
+     SVG. Mermaid injects id-prefixed styles inside the SVG, hence !important.
+     Screen-scoped: print keeps mermaid's stock light theme on white paper. */
+  .htmdx-app[data-htmdx-layout^='vs'] .htmdx-mermaid {
+    background: var(--md-sys-color-surface-container-lowest);
+    border: 1px solid var(--md-sys-color-outline-variant);
+    border-radius: 10px;
+    padding: 16px;
+  }
+  @media screen {
+    .htmdx-app[data-htmdx-layout^='vs'] .htmdx-mermaid svg :is(.node, .statediagram-state, .actor) :is(rect, circle, ellipse, polygon, path),
+    .htmdx-app[data-htmdx-layout^='vs'] .htmdx-mermaid svg rect.actor {
+      fill: #313244 !important;
+      stroke: #B4BEFE !important;
+    }
+    .htmdx-app[data-htmdx-layout^='vs'] .htmdx-mermaid svg :is(text, .nodeLabel, .stateLabel, .label) {
+      fill: #CDD6F4 !important;
+      color: #CDD6F4 !important;
+    }
+    .htmdx-app[data-htmdx-layout^='vs'] .htmdx-mermaid svg :is(.edgePath .path, .flowchart-link, .transition, .messageLine0, .messageLine1) {
+      stroke: #7F849C !important;
+    }
+    .htmdx-app[data-htmdx-layout^='vs'] .htmdx-mermaid svg .marker {
+      fill: #7F849C !important;
+      stroke: #7F849C !important;
+    }
+    .htmdx-app[data-htmdx-layout^='vs'] .htmdx-mermaid svg .edgeLabel rect {
+      fill: #15171C !important;
+    }
+    .htmdx-app[data-htmdx-layout^='vs'] .htmdx-mermaid svg .edgeLabel text {
+      fill: #A6ADC8 !important;
+    }
+    .htmdx-app[data-htmdx-layout^='vs'] .htmdx-mermaid svg .cluster rect {
+      fill: #181825 !important;
+      stroke: #6C7086 !important;
+    }
+    .htmdx-app[data-htmdx-layout^='vs'] .htmdx-mermaid svg .node circle.state-start {
+      fill: #B4BEFE !important;
+      stroke: #B4BEFE !important;
+    }
+  }
   :is(.htmdx-app[data-htmdx-layout='vs'], .vs-p-main) > div > h1 {
     margin: 0 0 14px;
     font-family: var(--md-ref-typeface-brand);
@@ -182,8 +258,10 @@ export const vsLayoutCss = `
   /* Monospace at 1em reads larger than the prose around it; 0.875em brings
      inline code back to the surrounding x-height. */
   :is(.htmdx-app[data-htmdx-layout='vs'], .vs-p-main) > div :not(pre) > code {
-    background: var(--md-sys-color-primary-container);
-    color: var(--md-sys-color-on-primary-container);
+    /* A neutral surface pill, not the primary container: code is quotation,
+       not action, and the navy wash read muddy against the dark surface. */
+    background: var(--md-sys-color-surface-container-highest);
+    color: var(--md-sys-color-on-surface);
     border-radius: 3px;
     padding: 1px 4px;
     font-family: var(--vs-mono);
@@ -215,7 +293,7 @@ export const vsLayoutCss = `
   /* MADR: the outcome reads above the fold - Options hoists chosen rows to
      the top and this accent marks them as the decision, not another row. */
   .htmdx-app[data-htmdx-layout^='vs'] [data-htmdx-component='Options'] [data-disposition='chosen'] {
-    box-shadow: inset 2px 0 0 #047857;
+    box-shadow: inset 2px 0 0 #A6E3A1;
   }
   /* A Compare of two screenshots is a pair of figures, not a pair of cards: the
      border would frame the caption as well and read as two separate panels. A
@@ -445,11 +523,13 @@ export const vsLayoutCss = `
     display: inline-flex;
     align-items: center;
     padding: 4px 12px;
-    border: 1px solid rgb(255 255 255 / 24%);
+    border: 1px solid rgb(255 255 255 / 28%);
     border-radius: 999px;
     font-size: 0.75rem;
     font-weight: 700;
-    color: var(--md-sys-color-outline-variant);
+    /* The hero is fixed navy in every theme, so the pill ink is a literal
+       light tone, not a surface token that flips with the ladder. */
+    color: #C3CEE8;
   }
   /* The phase pill is the one colored mark on the hero: the lifecycle state
      is semantic, everything else on the dark surface stays monochrome. */
@@ -461,8 +541,8 @@ export const vsLayoutCss = `
   .vs-p-pill[data-phase='Superseded'] { background: #B45309; color: #FEF3C7; }
   /* PEP-style banner: a dead proposal says so between the hero and the body,
      before anyone reads three sections and acts on it. */
-  .vs-p-notice[data-phase='Rejected'] { background: #FEE2E2; color: #7F1D1D; }
-  .vs-p-notice[data-phase='Superseded'] { background: #FEF3C7; color: #78350F; }
+  .vs-p-notice[data-phase='Rejected'] { background: rgb(243 139 168 / 14%); color: #F38BA8; }
+  .vs-p-notice[data-phase='Superseded'] { background: rgb(249 226 175 / 14%); color: #F9E2AF; }
   .vs-p-notice-inner {
     max-width: 54rem;
     margin: 0 auto;
@@ -494,7 +574,7 @@ export const vsLayoutCss = `
     font-weight: 700;
     letter-spacing: 0.14em;
     text-transform: uppercase;
-    color: var(--md-sys-color-outline);
+    color: var(--md-sys-color-on-surface);
   }
   .vs-p-toc a {
     display: flex;
@@ -537,6 +617,39 @@ export const vsLayoutCss = `
     .vs-p-toc-label { display: none; }
   }
   @media print {
+    /* Paper is white and browsers drop backgrounds by default, so the dark
+       ladder would print near-white text on white - re-declare the light
+       neutrals for print. */
+    .htmdx-app[data-htmdx-layout^='vs'] {
+      --md-sys-color-primary: #1D4ED8;
+      --md-sys-color-on-primary: #FFFFFF;
+      --md-sys-color-primary-container: #E8EEFF;
+      --md-sys-color-on-primary-container: #14337D;
+      --md-sys-color-secondary: #5C5C5C;
+      --md-sys-color-secondary-container: #F2F2F2;
+      --md-sys-color-on-secondary-container: #000000;
+      --md-sys-color-tertiary: #5C5C5C;
+      --md-sys-color-tertiary-container: #F2F2F2;
+      --md-sys-color-on-tertiary-container: #000000;
+      --md-sys-color-surface: #FFFFFF;
+      --md-sys-color-on-surface: #000000;
+      --md-sys-color-surface-variant: #F2F2F2;
+      --md-sys-color-on-surface-variant: #444444;
+      --md-sys-color-outline: #B3B3B3;
+      --md-sys-color-outline-variant: #E2E2E2;
+      --md-sys-color-surface-container-lowest: #FFFFFF;
+      --md-sys-color-surface-container-low: #FAFAFA;
+      --md-sys-color-surface-container: #F7F7F7;
+      --md-sys-color-surface-container-high: #F2F2F2;
+      --md-sys-color-surface-container-highest: #EBEBEB;
+    }
+    .htmdx-app[data-htmdx-layout^='vs'] .text-emerald-700 { color: #047857; }
+    .htmdx-app[data-htmdx-layout^='vs'] .text-red-700 { color: #B91C1C; }
+    .htmdx-app[data-htmdx-layout^='vs'] .text-amber-700 { color: #B45309; }
+    .htmdx-app[data-htmdx-layout^='vs'] .text-blue-700 { color: #1D4ED8; }
+    .htmdx-app[data-htmdx-layout^='vs'] :is(.bg-emerald-50, .bg-red-50, .bg-amber-50, .bg-blue-50) { background-color: transparent; }
+    .vs-p-notice[data-phase='Rejected'] { background: none; color: #B91C1C; }
+    .vs-p-notice[data-phase='Superseded'] { background: none; color: #B45309; }
     .vs-p-hero { background: none; color: var(--md-sys-color-on-surface); border-bottom: 2px solid var(--md-sys-color-on-surface); }
     .vs-p-eyebrow, .vs-p-pill { color: var(--md-sys-color-on-surface-variant); }
     .vs-p-pill { border-color: var(--md-sys-color-outline); }
