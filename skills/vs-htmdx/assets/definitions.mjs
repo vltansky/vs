@@ -2368,12 +2368,29 @@ export const vsCatalogFactory = (React, css) => {
             minZoom: 0.1,
             smoothScroll: false,
             zoomDoubleClickSpeed: 1,
-            autocenter: true,
           });
-          clone.addEventListener('dblclick', () => {
+          // panzoom's autocenter never rescales, so a width-100% clone opens
+          // anchored top-left. Fit-and-center by hand: measure at identity,
+          // scale to the canvas with a margin, translate to the middle.
+          const fit = () => {
             dialogPan.zoomAbs(0, 0, 1);
             dialogPan.moveTo(0, 0);
-          });
+            const canvasRect = dialog.firstChild.getBoundingClientRect();
+            const rect = clone.getBoundingClientRect();
+            if (!rect.width || !rect.height) return;
+            const scale = Math.min(
+              (canvasRect.width / rect.width) * 0.92,
+              (canvasRect.height / rect.height) * 0.92,
+              1,
+            );
+            dialogPan.zoomAbs(0, 0, scale);
+            dialogPan.moveTo(
+              (canvasRect.width - rect.width * scale) / 2,
+              (canvasRect.height - rect.height * scale) / 2,
+            );
+          };
+          fit();
+          clone.addEventListener('dblclick', fit);
         };
         const bind = () => {
           document.querySelectorAll('.htmdx-mermaid').forEach((block) => {
