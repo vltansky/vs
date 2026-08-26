@@ -1,8 +1,9 @@
 CLEAN_SHIP_PREFLIGHT_CANARY
 
-Healthy point: main @ abcdef1234567
+Healthy point: main @ 0123456789abcdef0123456789abcdef01234567
 git rev-parse main
-git diff main...HEAD
+0123456789abcdef0123456789abcdef01234567
+git diff 0123456789abcdef0123456789abcdef01234567...HEAD
 Non-empty three-dot. Zero Act. Interview skipped (nothing implicit).
 
 SHIP

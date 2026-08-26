@@ -24,6 +24,15 @@ const AUTO_FIX = path.join(FIX, 'auto-fix');
 const PUBLISH_RUN = path.join(FIX, 'publish-run');
 const CLEAN = path.join(FIX, 'clean-ship');
 const BLOCKED = path.join(FIX, 'do-not-ship-act');
+const STUB = path.join(FIX, 'stub-rejector', 'SKILL.md');
+const HASH_ONLY = path.join(FIX, 'hash-only-skill.md');
+const PASTE_HASH = path.join(FIX, 'paste-hash-skill.md');
+const MENTION_HASH = path.join(FIX, 'mention-hash-skill.md');
+const FORGED_PIN = path.join(FIX, 'forged-pin');
+const EMPTY_WAIVER = path.join(FIX, 'empty-diff-waiver');
+const MUTATE = path.join(FIX, 'mutate-no-ask');
+const APPLY_FIX = path.join(FIX, 'apply-fix-no-ask');
+const FIX_IT = path.join(FIX, 'fix-it-no-ask');
 
 function reject(target: string) {
   return spawnSync(process.execPath, [REJECT, target], { encoding: 'utf8' });
@@ -47,6 +56,14 @@ describe('vs-roast-code pre-flight mode', () => {
     expect(SKILL_RAW).not.toMatch(/CLEAN_SHIP_PREFLIGHT_CANARY/);
     expect(SKILL_RAW).not.toMatch(/DO_NOT_SHIP_PREFLIGHT_CANARY/);
     expect(SKILL_RAW).not.toMatch(/STUB_REJECTOR_PREFLIGHT_CANARY/);
+    expect(SKILL_RAW).not.toMatch(/HASH_ONLY_ROAST_PREFLIGHT_CANARY/);
+    expect(SKILL_RAW).not.toMatch(/PASTE_HASH_ROAST_PREFLIGHT_CANARY/);
+    expect(SKILL_RAW).not.toMatch(/MENTION_HASH_ROAST_PREFLIGHT_CANARY/);
+    expect(SKILL_RAW).not.toMatch(/FORGED_PIN_PREFLIGHT_CANARY/);
+    expect(SKILL_RAW).not.toMatch(/EMPTY_DIFF_WAIVER_PREFLIGHT_CANARY/);
+    expect(SKILL_RAW).not.toMatch(/MUTATE_NO_ASK_PREFLIGHT_CANARY/);
+    expect(SKILL_RAW).not.toMatch(/APPLY_FIX_NO_ASK_PREFLIGHT_CANARY/);
+    expect(SKILL_RAW).not.toMatch(/FIX_IT_NO_ASK_PREFLIGHT_CANARY/);
     expect(fs.readdirSync(SKILLS_DIR)).not.toContain('vs-pre-flight');
     expect(SKILL_RAW).not.toMatch(/\/vs-pre-flight\b/);
   });
@@ -60,10 +77,14 @@ describe('vs-roast-code pre-flight mode', () => {
     expect(reject(PHRASE).stderr).toMatch(/slogan-only skill/);
     expect(reject(STRUCTURE).status).toBe(1);
     expect(reject(STRUCTURE).stderr).toMatch(/slogan-only skill/);
-    expect(reject(path.join(FIX, 'stub-rejector', 'SKILL.md')).status).toBe(1);
-    expect(reject(path.join(FIX, 'stub-rejector', 'SKILL.md')).stderr).toMatch(
-      /slogan-only skill/,
-    );
+    expect(reject(STUB).status).toBe(1);
+    expect(reject(STUB).stderr).toMatch(/slogan-only skill/);
+    expect(reject(HASH_ONLY).status).toBe(1);
+    expect(reject(HASH_ONLY).stderr).toMatch(/slogan-only skill/);
+    expect(reject(PASTE_HASH).status).toBe(1);
+    expect(reject(PASTE_HASH).stderr).toMatch(/slogan-only skill/);
+    expect(reject(MENTION_HASH).status).toBe(1);
+    expect(reject(MENTION_HASH).stderr).toMatch(/slogan-only skill/);
     expect(reject(PREFLIGHT_SKILL).status).toBe(1);
     expect(reject(PREFLIGHT_SKILL).stderr).toMatch(/vs-pre-flight skill/);
     expect(reject(PUBLISH_INVOKE).status).toBe(1);
@@ -82,6 +103,16 @@ describe('vs-roast-code pre-flight mode', () => {
     expect(reject(AUTO_FIX).stderr).toMatch(/auto-fix before user said fix/);
     expect(reject(PUBLISH_RUN).status).toBe(1);
     expect(reject(PUBLISH_RUN).stderr).toMatch(/pre-flight invoke publishes/);
+    expect(reject(FORGED_PIN).status).toBe(1);
+    expect(reject(FORGED_PIN).stderr).toMatch(/unresolved healthy-point/);
+    expect(reject(EMPTY_WAIVER).status).toBe(1);
+    expect(reject(EMPTY_WAIVER).stderr).toMatch(/empty-diff/);
+    expect(reject(MUTATE).status).toBe(1);
+    expect(reject(MUTATE).stderr).toMatch(/auto-fix before user said fix/);
+    expect(reject(APPLY_FIX).status).toBe(1);
+    expect(reject(APPLY_FIX).stderr).toMatch(/auto-fix before user said fix/);
+    expect(reject(FIX_IT).status).toBe(1);
+    expect(reject(FIX_IT).stderr).toMatch(/auto-fix before user said fix/);
   });
 
   it('accepts clean SHIP, DO NOT SHIP with Act path+line+snippet, and this skill', () => {

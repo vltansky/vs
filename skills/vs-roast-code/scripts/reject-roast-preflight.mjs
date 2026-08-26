@@ -13,7 +13,7 @@ import { fileURLToPath } from 'node:url';
 
 const SELF = fileURLToPath(import.meta.url);
 const PUBLISHED_REJECTOR_SHA256 =
-  '898355213a33a3d035eaca17a7d0fce5649162108a30da5195b6b9f308e6b5bc';
+  '5637276a14a7f6c9920990ba118f5c40fc4d471510b52c9cb525523926e252ee';
 const PUBLISHED_SKILL_SHA256 =
   '5b33ba612019a1071afbdc3ed0e99daf2e175c74c1190dbd6d619d08fd84c4c8';
 
@@ -168,19 +168,31 @@ function hasShip(body) {
   return /(?:^|[^A-Z])SHIP(?:[^A-Z]|$)/.test(body);
 }
 
-function isPinned(body) {
-  return (
-    /rev-parse/i.test(body) &&
-    /\S+\.\.\.HEAD/.test(body) &&
-    /\b[0-9a-f]{7,40}\b/.test(body)
+function resolvedObjectId(body) {
+  const fromParse = body.match(
+    /rev-parse[^\n]*(?:→|->|:|=)?[^\n]*\b([0-9a-f]{40})\b/i,
   );
+  if (fromParse) return fromParse[1];
+  const nextLine = body.match(/rev-parse[^\n]*\n\s*([0-9a-f]{40})\b/i);
+  if (nextLine) return nextLine[1];
+  const any = body.match(/\b([0-9a-f]{40})\b/);
+  return any ? any[1] : '';
+}
+
+function isPinned(body) {
+  if (!/rev-parse/i.test(body)) return false;
+  const id = resolvedObjectId(body);
+  if (!id || id.length !== 40) return false;
+  return body.includes(`${id}...HEAD`);
 }
 
 function isEmptyDiff(body) {
-  if (/non-empty (?:three-dot )?diff/i.test(body)) return false;
-  return /empty (?:three-dot )?diff|\bdiff is empty\b|0 files? changed|nothing to roast|forgot to stage|\(empty\)/i.test(
-    body,
-  );
+  if (/\(empty\)/i.test(body)) return true;
+  if (/\bdiff is empty\b/i.test(body)) return true;
+  if (/\b0 files? changed\b/i.test(body)) return true;
+  if (/nothing to roast|forgot to stage/i.test(body)) return true;
+  const stripped = body.replace(/non-empty (?:three-dot )?diff/gi, '');
+  return /empty (?:three-dot )?diff/i.test(stripped);
 }
 
 function isBadRef(body) {
@@ -208,7 +220,7 @@ function userSaidFix(body) {
 
 function autoFixed(body) {
   if (userSaidFix(body)) return false;
-  return /pass 1:\s*\d+\s*fixed|auto-apply|fixed automatically|auto-fix/i.test(
+  return /pass 1:\s*\d+\s*fixed|auto-apply|fixed automatically|auto-fix|\bmutate(?:d|s)?\b|apply-fix|\bpatched\b|edited the working tree/i.test(
     body,
   );
 }
