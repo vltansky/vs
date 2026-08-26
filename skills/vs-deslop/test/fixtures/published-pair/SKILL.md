@@ -80,13 +80,16 @@ files (named files only — not a whole-repo lint, and do not write
 node skills/vs-deslop/scripts/run-anti-slop.mjs <file.ts> [file.ts ...]
 ```
 
-That command runs oxlint with the vs-owned config and the vendored
-generic anti-slop rules. Exit 1 is a catalog fail (not `CLEAN`). If
-oxlint or the plugin cannot run, report `WARN` or `BLOCKED` — do not
-pretend `CLEAN`. Enable the Effect rule only when the target repo uses
-Effect. No-args, a directory, or zero JS/TS names among args is not a
-pass (not `CLEAN`). Do not write `oxlint.config` or `node_modules` into
-the consumer cwd. Do not spawn a consumer package CLI.
+That command runs oxlint with the vs-owned config on named files:
+the vendored generic anti-slop rules, `eslint/no-useless-catch`,
+`unicorn/no-useless-fallback-in-spread`, `unicorn/no-unnecessary-await`,
+`inhuman/no-empty-wrappers`, and `inhuman/no-swallowed-catch`. Exit 1
+is a catalog fail (not `CLEAN`). If oxlint or the plugin cannot run,
+report `WARN` or `BLOCKED` — do not pretend `CLEAN`. Enable the Effect
+rule only when the target repo uses Effect. No-args, a directory, or
+zero JS/TS names among args is not a pass (not `CLEAN`). Do not write
+`oxlint.config` or `node_modules` into the consumer cwd. Do not spawn
+a consumer package CLI.
 
 Score the file pass with `skills/vs-deslop/scripts/reject-anti-slop.mjs`
 (identity `9f42cf49e0a4ee9de516dbacbac04e687a0b7ed39e117d23d409555f45e18ef8`;

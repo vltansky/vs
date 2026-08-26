@@ -25,10 +25,6 @@ try {
 const RULES = [
   { name: "try/catch theater marker", re: /\/\*\s*theater\s*\*\// },
   { name: "try/catch around addNonThrowingPair", re: /addNonThrowingPair/ },
-  {
-    name: "empty or comment-only catch",
-    re: /catch(?:\s*\([^)]*\))?\s*\{\s*(?:\/\*[\s\S]*?\*\/|\/\/[^\n]*)?\s*\}/,
-  },
   { name: "ceremony Manager class", re: /class\s+\w*Manager\b/ },
   { name: "ceremony Factory class", re: /class\s+\w*Factory\b/ },
   { name: "ceremony Helper class", re: /class\s+\w*Helper\b/ },
