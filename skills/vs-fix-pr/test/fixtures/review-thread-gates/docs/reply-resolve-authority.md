@@ -1,10 +1,12 @@
-# Inline Thread Approval Gate
+# Inline Thread Address Authority
 
-We are already inside `/vs-fix-pr` Step 4c for a single inline review thread.
+We are already inside `/vs-fix-pr` Step 4c for a single accepted inline review
+thread. The caller entered address mode by saying, "Fix every comment on PR
+#542." They did not opt out of replies or resolution.
 
-The fix is already committed. Do not fetch GitHub state again. Do not post anything yet.
-
-The host exposes `AskUserQuestion` for this gate. Use it for the decision. Do not render the final choice list as plain chat.
+The fix is already committed. Do not fetch PR data again. This is a synthetic
+fixture, so describe the next authorized GitHub actions without contacting
+GitHub.
 
 Current thread:
 
@@ -17,11 +19,3 @@ Fixed in d508598: remote installs now sparse-checkout the root hooks.json as wel
 
 Why:
 The review was correct, but the minimal change was not enough by itself because Git rejects root file paths in sparse-checkout set without --skip-checks.
-
-Your job from this state:
-- Show the reviewer comment and the draft reply
-- Ask for approval on what to do next
-- Offer the normal Step 4c options:
-  - Post reply and resolve
-  - Post reply only
-  - Edit reply first

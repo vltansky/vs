@@ -166,7 +166,7 @@ describe('the vs catalog is one source the CLI and the browser both load', () =>
     const bars = catalog.components.find((c: { name: string }) => c.name === 'Bars');
     const barsElement = bars.Component({ body: '- /api/search: 4,000 req\n- /api/export: 1,000 req' });
     const barRows = barsElement.children[0].children;
-    const fillOf = (row: { children: Array<{ props: { children?: unknown; style?: { width: string } } }> }) =>
+    const fillOf = (row: { children: Array<{ children: Array<{ props: { style: { width: string } } }> }> }) =>
       row.children[1].children[0].props.style.width;
     expect(fillOf(barRows[0])).toBe('100%');
     expect(fillOf(barRows[1])).toBe('25%');

@@ -4,11 +4,8 @@ import {
   check,
   evaluate,
   judge,
-  toolUsage,
 } from '@wix/pathgrade';
 import {
-  hasAskUserEvent,
-  promptAllowingAskUserInterrupt,
   promptOnce,
 } from '../../vs-internal-shared/test/pathgrade-v1';
 import { createAgent } from '../../vs-internal-shared/test/pathgrade-agent';
@@ -102,7 +99,7 @@ the PR is fully green without evidence.`,
     }
   });
 
-  it('uses an approval gate for a top-level review body without implying resolution', async () => {
+  it('uses address authority for a top-level review body without implying resolution', async () => {
     const agent = await createAgent({
       agent: EVAL_AGENT,
       timeout: 360,
@@ -120,17 +117,17 @@ the PR is fully green without evidence.`,
         "printf '\\nlocal edit that must survive\\n' >> notes/local-scratch.txt",
       );
 
-      await promptAllowingAskUserInterrupt(
+      await promptOnce(
         agent,
         'Use fix-pr. Read handoff.md and continue from that exact Step 4c state. ' +
-          'Do not fetch GitHub or post anything yet. Use the normal approval gate.',
+          'Do not fetch or contact GitHub. State the normal next action.',
       );
 
       const result = await evaluate(agent, [
         check(
-          'asks-before-posting',
+          'does-not-add-a-second-approval-gate',
           ({ toolEvents }) =>
-            hasAskUserEvent(toolEvents, /post reply|edit draft/i),
+            !toolEvents.some((event) => event.action === 'ask_user'),
           { weight: 5 },
         ),
         check(
@@ -151,24 +148,24 @@ the PR is fully green without evidence.`,
           },
           { weight: 2 },
         ),
+        check('reports-missing-target-blocker', ({ transcript }) =>
+          /missing.*(?:PR )?(?:URL|target)|no (?:PR )?(?:URL|target)|cannot post/i.test(
+            transcript,
+          )),
         check('preserves-unrelated-dirty-file', async ({ runCommand }) => {
           const { stdout } = await runCommand(
             'git status --porcelain -- notes/local-scratch.txt',
           );
           return /^ M notes\/local-scratch\.txt$/m.test(stdout);
         }),
-        judge('top-level-approval-quality', {
+        judge('top-level-address-quality', {
           rubric: `The review request is a top-level review body, not an inline thread. Reward showing
-the request and specific draft, using AskUserQuestion before any post, and explaining that this surface
-cannot be resolved inline. Penalize posting, resolving, or presenting plain options as if approval had
-already been granted.`,
+the request and specific draft, recognizing that address mode already authorizes the reply, explaining
+that this surface cannot be resolved inline, and reporting the missing synthetic PR target. Penalize
+asking for redundant approval, claiming the reply was posted, or trying to resolve a top-level body.`,
           weight: 1,
           includeToolEvents: true,
         }),
-        toolUsage('approval-gate-tooling', [
-          { action: 'read_file', min: 1, weight: 0.2 },
-          { action: 'ask_user', min: 1, weight: 0.8 },
-        ]),
       ], {
         failFast: false,
         onScorerError: 'zero',
