@@ -23,6 +23,17 @@ function reject(target: string) {
 }
 
 describe('vs-htmdx URL + first-screen shot', () => {
+  it('presents local artifacts as rendered UI when the host has a browser panel', () => {
+    expect(SKILL_RAW).toMatch(/serve the artifact over localhost/i);
+    expect(SKILL_RAW).toMatch(
+      /open[\s\S]{0,100}URL[\s\S]{0,100}Browser (?:panel|target)/i,
+    );
+    expect(SKILL_RAW).toMatch(/do not open.*(?:HTML|artifact).*file(?:\/editor)? tab/i);
+    expect(SKILL_RAW).toMatch(
+      /(?:when|if).*browser[\s\S]{0,100}unavailable[\s\S]{0,180}file:\/\//i,
+    );
+  });
+
   it('keeps fixture canaries out of SKILL', () => {
     expect(SKILL_RAW).not.toMatch(/SLOGAN_ONLY_HTMDX_HANDOFF_CANARY/);
     expect(SKILL_RAW).not.toMatch(/BAD_NO_URL_HTMDX_HANDOFF_CANARY/);
