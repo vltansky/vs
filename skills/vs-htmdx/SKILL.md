@@ -1,6 +1,6 @@
 ---
 name: vs-htmdx
-description: "Use when the user asks to create, visualize, render, or edit an HTMDX artifact; asks for a proposal, RFC, design doc, decision brief, comparison, timeline, report, or dashboard; or asks to explain something complex, where a page of diagrams, metrics, and structured components beats a wall of chat text. Produces one portable HTML file with editable HTMDX source."
+description: "Use when the user wants a complex topic explained or shown visually — a system, flow, architecture, or tradeoff; a proposal, RFC, design doc, decision brief, comparison, timeline, report, or dashboard; or asks to create, render, or edit an HTMDX artifact. A page of diagrams, metrics, and structured components replaces a wall of chat text. Produces one portable HTML file with editable HTMDX source."
 ---
 
 # HTMDX
@@ -142,7 +142,14 @@ uncertainty.
    one pass that challenges every sentence: cut restated context, hedges, and
    narration. When a section still runs past one short screen, link the detail
    or drop it.
-7. Remove every placeholder and unused section.
+7. Populate components only from the sources. A metric, score, or status the
+   sources do not contain is decoration, not evidence — leave a section lean
+   rather than rounding it out with invented cards, filler grids, or secondary
+   fact rows that restate the primary ones. Treat a gauge's maximum as a
+   ceiling, not a target. Label the values that matter directly — on the
+   point, the bar, the line end — and pair every color with a label or shape,
+   so meaning never rides on color alone.
+8. Remove every placeholder and unused section.
 
 ## Expressive range
 
@@ -153,18 +160,36 @@ when a section needs it:
   utility class works on the `class` of components and allowlisted HTML —
   arbitrary values included (`grid-cols-[240px_1fr]`, `max-w-[52ch]`). Reach
   for the theme's own hierarchy first; utilities are for the layout or emphasis
-  the catalog does not cover.
+  the catalog does not cover. When a mock or SVG needs categorical color, use
+  the theme's series tokens (`var(--vs-series-1)` … `var(--vs-series-6)`) in
+  order rather than hand-picking hexes — they are the palette every chart on
+  the page already speaks.
+- **Tooltips are declarative.** Put `data-tip="text"` on any allowlisted
+  element for a hover-and-focus tooltip — add `tabindex="0"` so keyboard
+  readers reach it too. It is for the aside a label has no room for (a
+  definition, a source, an exact figure); content the reader must see stays
+  in the visible body, never only in a tooltip.
+- **Icons are inline lucide.** `<i data-vs-icon="chart-line"></i>` renders the
+  named [lucide](https://lucide.dev) icon at text size in the current color —
+  in prose, headings, table cells, and mocks. Icons are decorative by default
+  (hidden from screen readers), so keep the adjacent text self-sufficient.
+  This is the sanctioned pictogram: an icon, never an emoji.
 - **Mock UIs are markup.** To explain a screen, a widget, or a layout idea,
   build a one-off mock from allowlisted HTML (`div`, `section`, `figure`,
   `span`) styled with Tailwind, directly in the body. No registration, no
   screenshot of a thing that does not exist — the mock lints, renders, and
-  stays editable. Promote a mock into `assets/definitions.mjs` only when a
+  stays editable. When the mock depicts a real product, style it in that
+  product's own colors, type, and chrome — the artifact theme is the report's
+  voice, not the product's — and show one realistic state instead of an
+  invented dashboard. Promote a mock into `assets/definitions.mjs` only when a
   second artifact needs it.
 - **Generated images embed.** When a picture explains better than markup — an
   illustration, a produced chart, a captured screenshot — generate it and embed
   it with `![alt](...)` or `<img>`: a file saved next to the artifact (relative
   path) or a `data:image/...` URI (png, jpeg, gif, webp, avif, svg+xml). Every
-  image needs alt text.
+  image needs alt text. Keep embeds small — downsample screenshots and prefer
+  webp or avif over png; a multi-megabyte data URI makes the one-file artifact
+  sluggish to open, mail, and diff.
 - **Draw with SVG.** Author the SVG yourself for anything mermaid's grammars do
   not cover — an annotated sketch, a custom glyph, a spatial layout. Inline
   `<svg>` is not allowlisted and stays literal text, so embed the drawing as a

@@ -111,6 +111,16 @@ export const vsLayoutCss = `
        scales: cards wobble gently, pills keep the classic sketch-button arc. */
     --vs-sketch-card: 14px 5px 13px 6px / 6px 12px 5px 15px;
     --vs-sketch-pill: 255px 15px 225px 15px / 15px 225px 15px 255px;
+    /* Series palette: the One Dark terminal accents in fixed order, so
+       charts, mocks, and hand-drawn SVGs pick colors by position instead of
+       hand-mixing hexes. 1 is the theme accent; pair every color with a
+       label or shape - meaning never rides on color alone. */
+    --vs-series-1: #93A4E8;
+    --vs-series-2: #98C379;
+    --vs-series-3: #E5C07B;
+    --vs-series-4: #E06C75;
+    --vs-series-5: #56B6C2;
+    --vs-series-6: #C678DD;
   }
   /* Ghostty's default face, from fontsource on the same CDN family the
      runtime already uses. Latin subsets; 400/500/700 cover the weights the
@@ -830,6 +840,85 @@ export const vsLayoutCss = `
     .vs-p-body,
     .vs-p-body:has(> .vs-p-toc) { grid-template-columns: minmax(0, 1fr); }
   }
+  /* Declarative tooltips: the sanitizer passes data-* through, so any
+     allowlisted element can carry data-tip="text". CSS-only - hover and
+     keyboard focus both reveal it (focus needs tabindex="0" on the element).
+     No positioning library, so a tooltip near the viewport edge may clip;
+     essential content stays visible in the body, not here. */
+  .htmdx-app[data-htmdx-layout^='vs'] [data-tip] {
+    position: relative;
+    cursor: help;
+    text-decoration: underline dotted var(--md-sys-color-outline);
+    text-underline-offset: 3px;
+  }
+  .htmdx-app[data-htmdx-layout^='vs'] [data-tip]::after {
+    content: attr(data-tip);
+    position: absolute;
+    left: 50%;
+    bottom: calc(100% + 7px);
+    transform: translateX(-50%);
+    z-index: 60;
+    width: max-content;
+    max-width: 280px;
+    padding: 5px 10px;
+    font: 400 11px/1.5 var(--vs-mono);
+    letter-spacing: normal;
+    text-align: left;
+    color: #D7DCE4;
+    background: #21252C;
+    border: 1px solid #3B414C;
+    border-radius: 8px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.15s ease;
+  }
+  .htmdx-app[data-htmdx-layout^='vs'] [data-tip]:is(:hover, :focus-visible)::after {
+    opacity: 1;
+  }
+  /* Inline lucide icons: <i data-vs-icon="name"> becomes a 1em stroke icon
+     that inherits the surrounding size and color, so it sits in prose,
+     headings, and mocks without sizing rules. The factory's enhancer fills
+     it; until then (and for unknown names) the element is empty, not broken. */
+  .htmdx-app[data-htmdx-layout^='vs'] [data-vs-icon] {
+    display: inline-block;
+    vertical-align: -0.125em;
+    font-style: normal;
+    line-height: 1;
+  }
+  .htmdx-app[data-htmdx-layout^='vs'] [data-vs-icon] svg {
+    display: block;
+    width: 1em;
+    height: 1em;
+  }
+  /* <Chart>: d3 draws into .vs-chart at view time; the axis groups drop
+     d3's own font attributes in the enhancer so these rules decide type. */
+  .vs-chart svg { display: block; width: 100%; height: auto; }
+  .vs-chart text { font-family: var(--vs-mono); font-size: 11px; }
+  .vs-chart .vs-chart-axis { color: var(--md-sys-color-on-surface-variant); }
+  .vs-chart .vs-chart-axis .domain,
+  .vs-chart .vs-chart-axis line { stroke: var(--md-sys-color-outline-variant); }
+  .vs-chart .vs-chart-grid line { stroke: var(--md-sys-color-outline-variant); stroke-opacity: 0.4; }
+  .vs-chart .vs-chart-grid .domain { display: none; }
+  .vs-chart .vs-chart-series-label { font-size: 12px; font-weight: 500; }
+  .vs-chart .vs-chart-unit { fill: var(--md-sys-color-on-surface-variant); }
+  .vs-chart-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 16px;
+    margin-top: 8px;
+    font-size: 12px;
+    color: var(--md-sys-color-on-surface-variant);
+  }
+  .vs-chart-legend > span { display: inline-flex; align-items: center; gap: 6px; }
+  .vs-chart-swatch { display: inline-block; width: 10px; height: 10px; border-radius: 3px; }
+  /* Touch: 11px pills miss fingers, so the diagram chrome grows to a 44px
+     target. */
+  @media (pointer: coarse) {
+    :is(.vs-mermaid-controls, .vs-mermaid-dialog-controls) button {
+      min-height: 44px;
+      min-width: 44px;
+    }
+  }
 `;
 
 // One factory both loaders call with their own React: the CLI copy below
@@ -1270,6 +1359,56 @@ export const vsCatalogFactory = (React, css) => {
               h('div', { className: 'vs-trend-label' }, plain(point.label)),
             ),
           ),
+        ),
+        caption
+          ? h('figcaption', { className: 'mt-2 text-sm italic text-muted-foreground' }, plain(caption))
+          : null,
+      ),
+    );
+  };
+
+  // Chart is the axis chart: several series against shared points, drawn by
+  // d3 at view time. The render carries the parsed spec on a data attribute
+  // plus text fallback rows; the factory's enhancer (end of file) replaces
+  // the fallback with the SVG. Under the CLI's node render only the fallback
+  // exists, so the artifact still lints and prints without a network.
+  const Chart = ({ body = '', kind = 'line', x = '', y = '', caption = '' }) => {
+    const points = String(x)
+      .split(',')
+      .map((part) => part.trim())
+      .filter(Boolean);
+    const series = rows(body)
+      .map((row) => {
+        const { label, value } = labelValue(row);
+        return { name: plain(label), values: value.split(',').map((part) => firstNumber(part)) };
+      })
+      .filter((entry) => entry.name && entry.values.every((v) => Number.isFinite(v)));
+    // A malformed spec (missing x, ragged rows, >6 series) keeps the text
+    // fallback instead of guessing an alignment the author did not state.
+    const valid =
+      points.length >= 2 &&
+      series.length >= 1 &&
+      series.length <= 6 &&
+      series.every((entry) => entry.values.length === points.length);
+    const unit = plain(y);
+    const spec = { kind: kind === 'bar' ? 'bar' : 'line', x: points, y: unit, series, caption: plain(caption) };
+    return wrap(
+      'Chart',
+      h(
+        'figure',
+        { className: 'vs-chart-figure rounded-lg border bg-card px-4 py-4' },
+        h(
+          'div',
+          valid ? { className: 'vs-chart', 'data-vs-chart': JSON.stringify(spec) } : { className: 'vs-chart' },
+          series.length
+            ? series.map((entry, index) =>
+                h(
+                  'div',
+                  { key: index, className: 'text-sm' },
+                  entry.name + ': ' + entry.values.join(', ') + (unit ? ' ' + unit : ''),
+                ),
+              )
+            : h('div', { className: 'text-sm' }, plain(body)),
         ),
         caption
           ? h('figcaption', { className: 'mt-2 text-sm italic text-muted-foreground' }, plain(caption))
@@ -2014,7 +2153,7 @@ export const vsCatalogFactory = (React, css) => {
       name: 'Trend',
       body: 'markdown',
       purpose:
-        "Show how one measure moved across ordered points, written as '- label: value' rows in sequence - releases, weeks, milestones. The first number in each value plots the line; labels and values repeat under the chart in order. It draws one series; two measures that move together are two <Trend>s or a table. Fewer than two numeric rows render as text - there is no trend in one point.",
+        "Show how one measure moved across ordered points, written as '- label: value' rows in sequence - releases, weeks, milestones. The first number in each value plots the line; labels and values repeat under the chart in order. It draws one series; two or more measures that move together belong in <Chart>. Fewer than two numeric rows render as text - there is no trend in one point.",
       example: '<Trend caption="p95 render time by release">\n- 4.12: 610ms\n- 4.13: 540ms\n- 4.14: 380ms\n- 4.15: 210ms\n</Trend>',
       props: [
         {
@@ -2024,6 +2163,39 @@ export const vsCatalogFactory = (React, css) => {
         },
       ],
       Component: asComponent(Trend),
+    },
+    {
+      name: 'Chart',
+      body: 'markdown',
+      purpose:
+        "Plot up to six numeric series against one shared axis - multi-series lines or grouped bars with real scales and ticks, drawn by d3 at view time. `x` names the shared points as a comma-separated list; each '- series: v1, v2, ...' row supplies one value per point, in x order. Series take the theme's --vs-series-* colors in row order; lines are labeled directly at the line end and grouped bars get a swatch row, so the reader never cross-references a legend by color alone. One series over ordered points is <Trend>; magnitudes with no shared axis are <Bars>. The rows render as plain text until d3 loads, and wherever it cannot - CLI render, offline, print without a prior view - so the numbers survive every medium.",
+      example:
+        '<Chart kind="line" x="4.12, 4.13, 4.14, 4.15" y="ms" caption="p95 render time by release">\n- htmdx: 610, 540, 380, 210\n- legacy: 700, 690, 655, 640\n</Chart>',
+      props: [
+        {
+          name: 'kind',
+          type: 'string',
+          values: ['line', 'bar'],
+          default: 'line',
+          description: 'line joins each series across the points; bar groups the series side by side per point.',
+        },
+        {
+          name: 'x',
+          type: 'string',
+          description: 'Comma-separated labels for the shared points, in order; every row needs one value per label.',
+        },
+        {
+          name: 'y',
+          type: 'string',
+          description: 'Unit label for the value axis.',
+        },
+        {
+          name: 'caption',
+          type: 'string',
+          description: 'One-line caption rendered under the chart.',
+        },
+      ],
+      Component: asComponent(Chart),
     },
     {
       name: 'Tree',
@@ -2395,6 +2567,7 @@ export const vsCatalogFactory = (React, css) => {
           if (!dialog) {
             dialog = document.createElement('dialog');
             dialog.className = 'vs-mermaid-dialog';
+            dialog.setAttribute('aria-label', 'Diagram full view');
             dialogCanvas = document.createElement('div');
             dialogCanvas.className = 'vs-mermaid-dialog-canvas';
             const bar = controlBar('vs-mermaid-dialog-controls');
@@ -2490,6 +2663,240 @@ export const vsCatalogFactory = (React, css) => {
         }
       })
       .catch(() => {});
+  }
+
+  // Browser-only: draw <Chart> blocks with d3 and fill [data-vs-icon]
+  // elements with lucide glyphs. Both libraries load lazily and only when
+  // the page actually contains their targets, so chartless and iconless
+  // artifacts never touch the CDN. Failures leave the text fallback (charts)
+  // or an empty 1em box (icons) - never a broken page.
+  if (
+    typeof document !== 'undefined' &&
+    !document.documentElement.hasAttribute('data-vs-enhance')
+  ) {
+    document.documentElement.setAttribute('data-vs-enhance', 'true');
+    let d3Promise = null;
+    let lucidePromise = null;
+
+    const drawChart = (d3, block) => {
+      const spec = JSON.parse(block.getAttribute('data-vs-chart'));
+      const seriesColor = (index) => 'var(--vs-series-' + (index + 1) + ')';
+      // Line series are labeled at the line end instead of a legend, so the
+      // right margin reserves room for the longest name.
+      const longestName = Math.max(...spec.series.map((s) => s.name.length));
+      const labelRoom = spec.kind === 'line' ? Math.min(160, 16 + longestName * 7) : 12;
+      const width = 640;
+      const height = 300;
+      const margin = { top: 18, right: labelRoom, bottom: 32, left: 48 };
+      const innerW = width - margin.left - margin.right;
+      const innerH = height - margin.top - margin.bottom;
+      const values = spec.series.flatMap((s) => s.values);
+      const y = d3
+        .scaleLinear()
+        .domain(
+          spec.kind === 'bar'
+            ? [Math.min(0, d3.min(values)), Math.max(0, d3.max(values))]
+            : d3.extent(values),
+        )
+        .nice()
+        .range([innerH, 0]);
+      const svg = d3
+        .create('svg')
+        .attr('viewBox', '0 0 ' + width + ' ' + height)
+        .attr('role', 'img')
+        .attr(
+          'aria-label',
+          spec.caption || spec.kind + ' chart: ' + spec.series.map((s) => s.name).join(', '),
+        );
+      const g = svg.append('g').attr('transform', 'translate(' + margin.left + ',' + margin.top + ')');
+      // d3 stamps its own font attributes on axis groups; strip them so the
+      // .vs-chart CSS decides type.
+      const stripFont = (sel) => sel.attr('font-family', null).attr('font-size', null);
+      stripFont(
+        g
+          .append('g')
+          .attr('class', 'vs-chart-grid')
+          .call(d3.axisLeft(y).ticks(5).tickSize(-innerW).tickFormat(() => '')),
+      );
+      const pointTitle = (name, i, value) =>
+        name + ' - ' + spec.x[i] + ': ' + value + (spec.y ? ' ' + spec.y : '');
+      if (spec.kind === 'bar') {
+        const x0 = d3.scaleBand().domain(spec.x).range([0, innerW]).paddingInner(0.25).paddingOuter(0.1);
+        const x1 = d3
+          .scaleBand()
+          .domain(spec.series.map((s) => s.name))
+          .range([0, x0.bandwidth()])
+          .padding(0.12);
+        stripFont(
+          g
+            .append('g')
+            .attr('class', 'vs-chart-axis')
+            .attr('transform', 'translate(0,' + innerH + ')')
+            .call(d3.axisBottom(x0).tickSizeOuter(0)),
+        );
+        stripFont(g.append('g').attr('class', 'vs-chart-axis').call(d3.axisLeft(y).ticks(5)));
+        spec.series.forEach((entry, index) => {
+          g.append('g')
+            .selectAll('rect')
+            .data(entry.values)
+            .join('rect')
+            .attr('x', (d, i) => x0(spec.x[i]) + x1(entry.name))
+            .attr('y', (d) => Math.min(y(d), y(0)))
+            .attr('width', x1.bandwidth())
+            .attr('height', (d) => Math.abs(y(d) - y(0)))
+            .attr('fill', seriesColor(index))
+            .append('title')
+            .text((d, i) => pointTitle(entry.name, i, d));
+        });
+      } else {
+        const x = d3.scalePoint().domain(spec.x).range([0, innerW]);
+        stripFont(
+          g
+            .append('g')
+            .attr('class', 'vs-chart-axis')
+            .attr('transform', 'translate(0,' + innerH + ')')
+            .call(d3.axisBottom(x).tickSizeOuter(0)),
+        );
+        stripFont(g.append('g').attr('class', 'vs-chart-axis').call(d3.axisLeft(y).ticks(5)));
+        const line = d3
+          .line()
+          .x((d, i) => x(spec.x[i]))
+          .y((d) => y(d));
+        // Two lines can end at the same height; nudge overlapping end labels
+        // apart so both names stay readable.
+        const labelYs = spec.series
+          .map((entry, index) => ({ index, y: y(entry.values[entry.values.length - 1]) }))
+          .sort((a, b) => a.y - b.y);
+        for (let i = 1; i < labelYs.length; i++) {
+          if (labelYs[i].y - labelYs[i - 1].y < 13) labelYs[i].y = labelYs[i - 1].y + 13;
+        }
+        const labelY = new Map(labelYs.map((entry) => [entry.index, entry.y]));
+        spec.series.forEach((entry, index) => {
+          g.append('path')
+            .attr('d', line(entry.values))
+            .attr('fill', 'none')
+            .attr('stroke', seriesColor(index))
+            .attr('stroke-width', 2);
+          g.append('g')
+            .selectAll('circle')
+            .data(entry.values)
+            .join('circle')
+            .attr('cx', (d, i) => x(spec.x[i]))
+            .attr('cy', (d) => y(d))
+            .attr('r', 3.5)
+            .attr('fill', seriesColor(index))
+            .append('title')
+            .text((d, i) => pointTitle(entry.name, i, d));
+          g.append('text')
+            .attr('class', 'vs-chart-series-label')
+            .attr('x', innerW + 8)
+            .attr('y', labelY.get(index))
+            .attr('dominant-baseline', 'middle')
+            .attr('fill', seriesColor(index))
+            .text(entry.name);
+        });
+      }
+      if (spec.y) {
+        g.append('text')
+          .attr('class', 'vs-chart-unit')
+          .attr('x', -margin.left + 4)
+          .attr('y', -6)
+          .text(spec.y);
+      }
+      block.textContent = '';
+      block.appendChild(svg.node());
+      // Grouped bars have no line end to label, so they get a swatch row.
+      if (spec.kind === 'bar' && spec.series.length > 1) {
+        const legend = document.createElement('div');
+        legend.className = 'vs-chart-legend';
+        spec.series.forEach((entry, index) => {
+          const item = document.createElement('span');
+          const swatch = document.createElement('span');
+          swatch.className = 'vs-chart-swatch';
+          swatch.style.background = seriesColor(index);
+          item.append(swatch, entry.name);
+          legend.appendChild(item);
+        });
+        block.appendChild(legend);
+      }
+    };
+    const drawCharts = () => {
+      if (!document.querySelector('.vs-chart[data-vs-chart]:not([data-vs-chart-done])')) return;
+      d3Promise ||= import('https://cdn.jsdelivr.net/npm/d3@7.9.0/+esm');
+      d3Promise
+        .then((d3) => {
+          document
+            .querySelectorAll('.vs-chart[data-vs-chart]:not([data-vs-chart-done])')
+            .forEach((block) => {
+              block.setAttribute('data-vs-chart-done', 'true');
+              try {
+                drawChart(d3, block);
+              } catch {
+                // the text fallback rows stay in place
+              }
+            });
+        })
+        .catch(() => {});
+    };
+
+    const ICON_NS = 'http://www.w3.org/2000/svg';
+    const ICON_DEFAULTS = {
+      viewBox: '0 0 24 24',
+      fill: 'none',
+      stroke: 'currentColor',
+      'stroke-width': '2',
+      'stroke-linecap': 'round',
+      'stroke-linejoin': 'round',
+      'aria-hidden': 'true',
+    };
+    // lucide icon data is [tag, attrs, children] tuples, not markup; build
+    // real nodes so no icon path ever passes through innerHTML.
+    const buildIcon = (nodes) => {
+      const svg = document.createElementNS(ICON_NS, 'svg');
+      for (const [key, value] of Object.entries(ICON_DEFAULTS)) svg.setAttribute(key, value);
+      const append = (parent, list) => {
+        for (const entry of list) {
+          if (!Array.isArray(entry)) continue;
+          const [tag, attrs, children] = entry;
+          const node = document.createElementNS(ICON_NS, String(tag));
+          for (const [key, value] of Object.entries(attrs || {})) node.setAttribute(key, String(value));
+          if (Array.isArray(children)) append(node, children);
+          parent.appendChild(node);
+        }
+      };
+      append(svg, nodes);
+      return svg;
+    };
+    const drawIcons = () => {
+      if (!document.querySelector('[data-vs-icon]:not([data-vs-icon-done])')) return;
+      lucidePromise ||= import('https://cdn.jsdelivr.net/npm/lucide@1.34.0/+esm');
+      lucidePromise
+        .then((mod) => {
+          document.querySelectorAll('[data-vs-icon]:not([data-vs-icon-done])').forEach((el) => {
+            el.setAttribute('data-vs-icon-done', 'true');
+            const name = (el.getAttribute('data-vs-icon') || '').trim().toLowerCase();
+            const pascal = name.replace(/(?:^|-)([a-z0-9])/g, (match, ch) => ch.toUpperCase());
+            const icon = mod.icons && mod.icons[pascal];
+            // Unknown names leave the element empty rather than broken.
+            if (!Array.isArray(icon)) return;
+            el.textContent = '';
+            el.appendChild(buildIcon(icon));
+          });
+        })
+        .catch(() => {});
+    };
+
+    const enhance = () => {
+      drawCharts();
+      drawIcons();
+    };
+    enhance();
+    if (typeof MutationObserver !== 'undefined') {
+      new MutationObserver(enhance).observe(document.documentElement, {
+        childList: true,
+        subtree: true,
+      });
+    }
   }
 
   return { components, layouts, themes };

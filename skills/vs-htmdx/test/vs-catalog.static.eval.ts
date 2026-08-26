@@ -59,6 +59,7 @@ describe('the vs catalog is one source the CLI and the browser both load', () =>
       'Figure',
       'Bars',
       'Trend',
+      'Chart',
       'Tree',
       'Sequence',
       'ApiDiff',
