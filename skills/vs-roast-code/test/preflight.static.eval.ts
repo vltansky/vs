@@ -46,6 +46,7 @@ describe('vs-roast-code pre-flight mode', () => {
     expect(SKILL_RAW).not.toMatch(/PUBLISH_RUN_PREFLIGHT_CANARY/);
     expect(SKILL_RAW).not.toMatch(/CLEAN_SHIP_PREFLIGHT_CANARY/);
     expect(SKILL_RAW).not.toMatch(/DO_NOT_SHIP_PREFLIGHT_CANARY/);
+    expect(SKILL_RAW).not.toMatch(/STUB_REJECTOR_PREFLIGHT_CANARY/);
     expect(fs.readdirSync(SKILLS_DIR)).not.toContain('vs-pre-flight');
     expect(SKILL_RAW).not.toMatch(/\/vs-pre-flight\b/);
   });
@@ -59,6 +60,10 @@ describe('vs-roast-code pre-flight mode', () => {
     expect(reject(PHRASE).stderr).toMatch(/slogan-only skill/);
     expect(reject(STRUCTURE).status).toBe(1);
     expect(reject(STRUCTURE).stderr).toMatch(/slogan-only skill/);
+    expect(reject(path.join(FIX, 'stub-rejector', 'SKILL.md')).status).toBe(1);
+    expect(reject(path.join(FIX, 'stub-rejector', 'SKILL.md')).stderr).toMatch(
+      /slogan-only skill/,
+    );
     expect(reject(PREFLIGHT_SKILL).status).toBe(1);
     expect(reject(PREFLIGHT_SKILL).stderr).toMatch(/vs-pre-flight skill/);
     expect(reject(PUBLISH_INVOKE).status).toBe(1);

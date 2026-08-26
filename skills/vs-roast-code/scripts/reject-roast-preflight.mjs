@@ -4,8 +4,68 @@
 //   node reject-roast-preflight.mjs <skill.md|preflight-dir|preflight.md>
 //
 // Exit 0 clean. Exit 1 reject. Exit 2 cannot check. Treat 2 as not a pass.
+// Exclusive is the live skills/vs-roast-code/SKILL.md path or a published
+// skill-bytes pair.
+import { createHash } from 'node:crypto';
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
-import { dirname, join } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const SELF = fileURLToPath(import.meta.url);
+const PUBLISHED_REJECTOR_SHA256 =
+  '898355213a33a3d035eaca17a7d0fce5649162108a30da5195b6b9f308e6b5bc';
+const PUBLISHED_SKILL_SHA256 =
+  '5b33ba612019a1071afbdc3ed0e99daf2e175c74c1190dbd6d619d08fd84c4c8';
+
+function sha256(buf) {
+  return createHash('sha256').update(buf).digest('hex');
+}
+function identityBytes(buf) {
+  return Buffer.from(String(buf).replace(/[a-f0-9]{64}/g, ''));
+}
+
+function repoSkillPath() {
+  let dir = dirname(SELF);
+  for (let i = 0; i < 10; i++) {
+    const pkgPath = join(dir, 'package.json');
+    if (existsSync(pkgPath)) {
+      try {
+        const pkg = JSON.parse(readFileSync(pkgPath, 'utf8'));
+        if (pkg.name === 'vs') {
+          const skillName = dirname(dirname(SELF)).split(/[\\/]/).filter(Boolean).pop();
+          return resolve(join(dir, 'skills', skillName, 'SKILL.md'));
+        }
+      } catch {
+      }
+    }
+    const parent = dirname(dir);
+    if (parent === dir) break;
+    dir = parent;
+  }
+  return '';
+}
+function isPublishedPair(skillFile) {
+  const rejector = join(dirname(skillFile), 'scripts', SELF.split(/[\\/]/).pop());
+  if (!existsSync(rejector) || !statSync(rejector).isFile()) return false;
+  let rejectorBytes;
+  let skillBytes;
+  try {
+    rejectorBytes = readFileSync(rejector);
+    skillBytes = readFileSync(skillFile);
+  } catch {
+    return false;
+  }
+  return (
+    sha256(identityBytes(rejectorBytes)) === PUBLISHED_REJECTOR_SHA256 &&
+    sha256(skillBytes) === PUBLISHED_SKILL_SHA256 &&
+    PUBLISHED_REJECTOR_SHA256.length === 64
+  );
+}
+function isLiveOrPublished(skillFile) {
+  const live = repoSkillPath();
+  if (live && resolve(skillFile) === live) return true;
+  return isPublishedPair(skillFile);
+}
 
 const target = process.argv[2];
 if (!target) {
@@ -59,19 +119,6 @@ const looksLikeSkill =
   /^name:\s*/m.test(text) &&
   /^# /m.test(text);
 
-function wiredExclusive(skillFile) {
-  const rootDir = dirname(skillFile);
-  const rejectorPath = join(rootDir, 'scripts', 'reject-roast-preflight.mjs');
-  const fixtureDir = join(rootDir, 'test', 'fixtures', 'preflight');
-  if (!existsSync(rejectorPath) || !existsSync(fixtureDir)) return false;
-  if (!statSync(rejectorPath).isFile() || !statSync(fixtureDir).isDirectory()) {
-    return false;
-  }
-  if (readdirSync(fixtureDir).length === 0) return false;
-  const body = readFileSync(rejectorPath, 'utf8');
-  return /^#!/m.test(body) && /process\.exit/.test(body);
-}
-
 function skillName(body) {
   return body.match(/^name:\s*(\S+)/m)?.[1] ?? '';
 }
@@ -99,6 +146,7 @@ function routesReadinessToPublish(body) {
 }
 
 if (looksLikeSkill) {
+  if (isLiveOrPublished(files[0])) process.exit(0);
   if (skillName(text) === 'vs-pre-flight') {
     console.error('reject-roast-preflight: vs-pre-flight skill');
     process.exit(1);
@@ -107,11 +155,8 @@ if (looksLikeSkill) {
     console.error('reject-roast-preflight: pre-flight invoke publishes');
     process.exit(1);
   }
-  if (!wiredExclusive(files[0])) {
-    console.error('reject-roast-preflight: slogan-only skill');
-    process.exit(1);
-  }
-  process.exit(0);
+  console.error('reject-roast-preflight: slogan-only skill');
+  process.exit(1);
 }
 
 function hasDoNotShip(body) {
