@@ -132,7 +132,7 @@ describe('vs-deslop: exclusive cleanup procedure', () => {
 
   it('rejects fabricated evidence and leftover debug fossils with exclusive wording', () => {
     expect(SKILL).toMatch(
-      /`any` and an uncommented type assertion that fabricates evidence/i,
+      /`any`, a non-null assertion \(`!`\), and an uncommented type assertion that fabricates evidence/i,
     );
     expect(SKILL).toMatch(
       /`console\.log` \/ `console\.debug` \/ `console\.info` left in production paths, and a stale TODO fossil/i,

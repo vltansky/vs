@@ -50,7 +50,8 @@ Inspect the requested scope for:
   over an invariant the caller should have supplied
 - try/catch theater: a try/catch around non-throwing code, an empty catch,
   or a catch that logs and swallows a real failure
-- `any` and an uncommented type assertion that fabricates evidence
+- `any`, a non-null assertion (`!`), and an uncommented type assertion
+  that fabricates evidence
 - comments that narrate obvious code, hand-holding notes, and JSDoc that
   is only restating the signature
 - dead imports, stale flags, temporary debug leftovers, `console.log` /
@@ -82,6 +83,9 @@ node skills/vs-deslop/scripts/run-anti-slop.mjs <file.ts> [file.ts ...]
 
 That command runs oxlint with the vs-owned config on named files:
 the vendored generic anti-slop rules, `eslint/no-useless-catch`,
+`eslint/no-console` (`console.error` and `console.warn` allowed),
+`eslint/no-empty`, `eslint/no-unused-vars`, `eslint/require-await`,
+`typescript/no-explicit-any`, `typescript/no-non-null-assertion`,
 `unicorn/no-useless-fallback-in-spread`, `unicorn/no-unnecessary-await`,
 `inhuman/no-empty-wrappers`, and `inhuman/no-swallowed-catch`. Exit 1
 is a catalog fail (not `CLEAN`). If oxlint or the plugin cannot run,

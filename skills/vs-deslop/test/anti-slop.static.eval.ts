@@ -14,6 +14,7 @@ const FIXTURE_DIR = path.join(__dirname, 'fixtures');
 const BAD = path.join(FIXTURE_DIR, 'anti-slop-bad.ts');
 const GOOD = path.join(FIXTURE_DIR, 'anti-slop-good.ts');
 const LEFTOVER = path.join(FIXTURE_DIR, 'leftover-oxlint-bad.ts');
+const TARGETS = path.join(FIXTURE_DIR, 'deslop-targets-bad.ts');
 const REJECT_CODE = path.join(DIR, 'scripts', 'reject-code-slop.mjs');
 const CONFIG = fs.readFileSync(path.join(DIR, 'scripts', 'anti-slop.oxlintrc.json'), 'utf8');
 const NOTE = path.join(FIXTURE_DIR, 'anti-slop-note.md');
@@ -71,9 +72,6 @@ describe('vs-deslop: on-demand anti-slop file pass', () => {
     expect(SKILL).toMatch(/inhuman\/no-empty-wrappers/);
     expect(SKILL).toMatch(/inhuman\/no-swallowed-catch/);
     expect(CONFIG).toMatch(/"correctness": "off"/);
-    expect(CONFIG).not.toMatch(/no-console/);
-    expect(CONFIG).not.toMatch(/require-await/);
-    expect(CONFIG).not.toMatch(/no-explicit-any/);
     expect(CONFIG).not.toMatch(/no-unnecessary-condition/);
     expect(CONFIG).not.toMatch(/no-single-use-local-function/);
     expect(CONFIG).not.toMatch(/react\//);
@@ -90,6 +88,30 @@ describe('vs-deslop: on-demand anti-slop file pass', () => {
       encoding: 'utf8',
     });
     expect(code.status).toBe(0);
+  });
+
+  it('rejects any, non-null, console, dead import, empty block, idle async', () => {
+    expect(SKILL).toMatch(/eslint\/no-console/);
+    expect(SKILL).toMatch(/eslint\/no-empty/);
+    expect(SKILL).toMatch(/eslint\/no-unused-vars/);
+    expect(SKILL).toMatch(/eslint\/require-await/);
+    expect(SKILL).toMatch(/typescript\/no-explicit-any/);
+    expect(SKILL).toMatch(/typescript\/no-non-null-assertion/);
+    // console.error/warn stay legal: the target is a debug leftover, not real reporting.
+    expect(CONFIG).toMatch(/"allow": \["error", "warn"\]/);
+    // File size belongs to a repo-level lint: deslop runs on changed files and
+    // step 5 forbids restructuring, so max-lines here would only emit unfixables.
+    expect(CONFIG).not.toMatch(/max-lines/);
+    const targets = antiSlop([TARGETS]);
+    expect(targets.status).toBe(1);
+    const out = `${targets.stdout}${targets.stderr}`;
+    expect(out).toMatch(/no-console/);
+    expect(out).toMatch(/no-empty\b/);
+    expect(out).toMatch(/no-unused-vars/);
+    expect(out).toMatch(/require-await/);
+    expect(out).toMatch(/no-explicit-any/);
+    expect(out).toMatch(/no-non-null-assertion/);
+    expect(antiSlop([GOOD]).status).toBe(0);
   });
 
   it('fails no-args, a directory, zero JS names, and an MD-only run', () => {

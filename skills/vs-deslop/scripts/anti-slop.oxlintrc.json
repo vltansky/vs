@@ -1,5 +1,5 @@
 {
-  "plugins": ["eslint", "unicorn"],
+  "plugins": ["eslint", "typescript", "unicorn"],
   "categories": {
     "correctness": "off",
     "suspicious": "off",
@@ -20,7 +20,13 @@
     }
   ],
   "rules": {
+    "eslint/no-console": ["error", { "allow": ["error", "warn"] }],
+    "eslint/no-empty": "error",
+    "eslint/no-unused-vars": "error",
     "eslint/no-useless-catch": "error",
+    "eslint/require-await": "error",
+    "typescript/no-explicit-any": "error",
+    "typescript/no-non-null-assertion": "error",
     "unicorn/no-useless-fallback-in-spread": "error",
     "unicorn/no-unnecessary-await": "error",
     "inhuman/no-empty-wrappers": "error",
