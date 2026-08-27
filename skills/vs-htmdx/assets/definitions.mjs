@@ -573,7 +573,16 @@ export const vsLayoutCss = `
   /* Flow: stage cards joined by arrows on one line; the strip is the diagram,
      so the arrow is a connector glyph, not content - hidden from readers. */
   .htmdx-app[data-htmdx-layout^='vs'] .vs-flow { display: flex; align-items: stretch; gap: 10px; }
-  .htmdx-app[data-htmdx-layout^='vs'] .vs-flow-stage { flex: 1; }
+  /* flex:1 alone never equalizes the stages: a flex item defaults to
+     min-width:auto, so its min-content - one long inline code token is enough -
+     becomes a floor the strip cannot shrink under, and the overflow widens the
+     whole document instead of the card. min-width:0 restores equal columns and
+     the wrap lets such a token break rather than set the floor again. */
+  .htmdx-app[data-htmdx-layout^='vs'] .vs-flow-stage {
+    flex: 1;
+    min-width: 0;
+    overflow-wrap: break-word;
+  }
   .htmdx-app[data-htmdx-layout^='vs'] .vs-flow-arrow {
     align-self: center;
     flex: none;
