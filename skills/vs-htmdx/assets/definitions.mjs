@@ -701,21 +701,28 @@ export const vsLayoutCss = `
   /* The lightbox overlay is appended to body, outside the layout element, so
      its rules cannot sit under the layout scope. The white plate keeps
      transparent-background SVG diagrams readable on the dark scrim. */
-  .htmdx-app[data-htmdx-layout^='vs'] img.htmdx-image { cursor: zoom-in; }
+  .htmdx-app[data-htmdx-layout^='vs'] img.htmdx-image {
+    cursor: zoom-in;
+    /* A portrait screenshot taller than the viewport reads as cropped on the
+       page; cap it so the whole image is visible and full size lives in the
+       lightbox. Ratio-preserving with the width caps above. */
+    max-height: 70vh;
+  }
   .vs-lightbox {
     position: fixed;
     inset: 0;
     z-index: 100;
     display: flex;
-    align-items: center;
-    justify-content: center;
     padding: 32px;
     background: rgba(17, 17, 17, 0.88);
     cursor: zoom-out;
+    /* Tall images scroll at readable width instead of shrinking to viewport
+       height; margin auto on the img recenters the ones that fit. */
+    overflow: auto;
   }
   .vs-lightbox img {
     max-width: min(1400px, 100%);
-    max-height: 100%;
+    margin: auto;
     background: #FFFFFF;
     box-shadow: 0 8px 40px rgba(0, 0, 0, 0.4);
   }
