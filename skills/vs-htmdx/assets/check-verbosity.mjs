@@ -5,13 +5,14 @@
 // Reads only the source block's paragraph prose — frontmatter, headings,
 // lists, tables, blockquotes, fenced code, and component bodies are exempt.
 // Budgets: lede ≤ 2 sentences; paragraphs ≤ 3 sentences and ≤ 80 words;
-// a section's total prose ≤ 250 words.
+// a section's total prose ≤ 250 words; fewer than 3 `**Label:**` runs in one
+// paragraph.
 //
 // Exit codes: 0 within budget · 1 overruns listed · 2 could not check.
 // Treat 2 as "not verified" — never as a pass.
 import { readFileSync } from 'node:fs';
 
-const BUDGET = { ledeSentences: 2, paragraphSentences: 3, paragraphWords: 80, sectionWords: 250 };
+const BUDGET = { ledeSentences: 2, paragraphSentences: 3, paragraphWords: 80, sectionWords: 250, boldLabels: 3 };
 const SOURCE_BLOCK = /<script[^>]*type="text\/htmdx"[^>]*>([\s\S]*?)<\/script>/;
 
 const files = process.argv.slice(2);
@@ -22,9 +23,16 @@ if (!files.length) {
 
 const countSentences = (text) =>
   // Sentence ends: . ! ? followed by space or end — but not inside e.g./i.e.,
-  // decimals, or version numbers, which the following-capital requirement skips.
-  (text.match(/[.!?](?=\s+[A-Z"'(\[]|\s*$)/g) || []).length || 1;
+  // decimals, or version numbers, which the following-start requirement skips.
+  // A sentence may open with markup rather than a letter (`**Label:**`, a code
+  // span, a link); without those in the class a six-clause run of bolded labels
+  // counted as one sentence and passed the budget it exists to catch.
+  (text.match(/[.!?](?=\s+[A-Z"'(\[*_`]|\s*$)/g) || []).length || 1;
 const countWords = (text) => text.split(/\s+/).filter(Boolean).length;
+// A paragraph carrying several `**Label:**` runs is a record written as prose:
+// the author had fields to show and no component to put them in. Three is the
+// threshold because two bolded terms in a sentence is ordinary emphasis.
+const countBoldLabels = (text) => (text.match(/\*\*[^*]+:\*\*|\*\*[^*]+\*\*:/g) || []).length;
 
 let anyFindings = false;
 
@@ -72,6 +80,11 @@ for (const file of files) {
       if (words > BUDGET.paragraphWords)
         findings.push(`${file}:${paragraph.line} paragraph runs ${words} words (budget ${BUDGET.paragraphWords})`);
     }
+    const labels = countBoldLabels(text);
+    if (labels >= BUDGET.boldLabels)
+      findings.push(
+        `${file}:${paragraph.line} paragraph packs ${labels} bold labels — that is a record written as prose; use <Catalog> or another component`,
+      );
     paragraph = null;
   };
   const flushSection = () => {

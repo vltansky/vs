@@ -134,7 +134,12 @@ uncertainty.
 6. Compress the prose. The artifact is a review surface, not a transcript:
    keep the lede to two sentences, one idea per paragraph and at most three
    sentences each, and route anything enumerable — options, risks, scope,
-   metrics, steps — through a component instead of paragraphs. Sections carry
+   metrics, steps — through a component instead of paragraphs. A paragraph
+   that packs three or more `**Label:**` runs is not prose at all, it is a
+   record with fields: put it in `Catalog` or another component. When the same
+   labels repeat across many items, a section per item is the wall of text —
+   one `Catalog` holds twenty records the reader can scan, twenty `###`
+   sections hold none. Sections carry
    budgets too: a problem statement in two to five short paragraphs that links
    background instead of restating it, one sentence per non-goal, one short
    paragraph per alternative and per risk, one or two sentences per open
@@ -181,15 +186,24 @@ when a section needs it:
   stays editable. When the mock depicts a real product, style it in that
   product's own colors, type, and chrome — the artifact theme is the report's
   voice, not the product's — and show one realistic state instead of an
-  invented dashboard. Promote a mock into `assets/definitions.mjs` only when a
-  second artifact needs it.
+  invented dashboard. Type is the one thing you must set yourself: the `vs`
+  theme puts the whole page in its mono face, so a mock that does not carry an
+  explicit `font-sans` (or its own `style="font-family: …"`) renders a
+  consumer product in JetBrains Mono and stops reading as that product.
+  Promote a mock into `assets/definitions.mjs` only when a second artifact
+  needs it.
 - **Generated images embed.** When a picture explains better than markup — an
   illustration, a produced chart, a captured screenshot — generate it and embed
   it with `![alt](...)` or `<img>`: a file saved next to the artifact (relative
   path) or a `data:image/...` URI (png, jpeg, gif, webp, avif, svg+xml). Every
   image needs alt text. Keep embeds small — downsample screenshots and prefer
   webp or avif over png; a multi-megabyte data URI makes the one-file artifact
-  sluggish to open, mail, and diff.
+  sluggish to open, mail, and diff. Place each image with the claim it
+  supports: a screenshot in `Figure` next to the paragraph it proves, or a
+  thumbnail row inside the `Catalog` record it belongs to. A separate section
+  of screenshots forces the reader to hold twenty claims in their head and
+  scroll back — if the images really are one set to compare, that is `Gallery`,
+  not a run of `Figure` blocks under their own headings.
 - **Draw with SVG.** Author the SVG yourself for anything mermaid's grammars do
   not cover — an annotated sketch, a custom glyph, a spatial layout. Inline
   `<svg>` is not allowlisted and stays literal text, so embed the drawing as a

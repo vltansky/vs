@@ -57,6 +57,8 @@ describe('the vs catalog is one source the CLI and the browser both load', () =>
       'Verdict',
       'Flow',
       'Figure',
+      'Catalog',
+      'Gallery',
       'Bars',
       'Trend',
       'Chart',
@@ -142,9 +144,16 @@ describe('the vs catalog is one source the CLI and the browser both load', () =>
       caption: 'The setup flow',
     });
     const figureChildren = element.children[0].children.filter(Boolean);
-    const canvas = figureChildren.find(
-      (child: { props: { className?: string } }) => child.props.className === 'vs-figure-canvas',
+    // The plate is the fixed frame between figure and canvas: it is what makes
+    // a column of differently sized screenshots share one width and one left
+    // edge, so the width modifier has to survive on it.
+    const plate = figureChildren.find(
+      (child: { props: { className?: string } }) => child.props.className === 'vs-figure-plate',
     );
+    expect(element.children[0].props.className).toBe('vs-figure vs-figure--full');
+    const canvas = plate.children
+      .filter(Boolean)
+      .find((child: { props: { className?: string } }) => child.props.className === 'vs-figure-canvas');
     const markers = canvas.children
       .filter(Boolean)
       .filter((child: { props: { className?: string } }) => child.props.className === 'vs-figure-marker');
@@ -152,6 +161,67 @@ describe('the vs catalog is one source the CLI and the browser both load', () =>
     expect(markers[0].props.style).toEqual({ left: '21%', top: '58%' });
     const legend = figureChildren.find((child: { type: string }) => child.type === 'ol');
     expect(legend.children).toHaveLength(2);
+  });
+
+  it('groups Catalog field rows under the record above them and tones the chip', async () => {
+    const { vsCatalogFactory, vsLayoutCss } = await import(CATALOG_URL);
+    const stubReact = {
+      createElement: (type: string, props: Record<string, unknown>, ...children: unknown[]) => ({
+        type,
+        props,
+        children: children.flat(Infinity),
+      }),
+    };
+    const catalog = vsCatalogFactory(stubReact, vsLayoutCss);
+    const component = catalog.components.find((c: { name: string }) => c.name === 'Catalog');
+    const element = component.Component({
+      body: [
+        '- orphan field before any record',
+        '- **Agent View** [adopt now]',
+        '- Slack: `features.agent_view` classifies the app',
+        '- a note with no label',
+        '- **Slackbot MCP** [wont do]',
+        '- Kyber: owns the selector',
+      ].join('\n'),
+    });
+    const records = element.children[0].children.filter(Boolean);
+    expect(records).toHaveLength(2);
+    // Two grid cells per record - name column, field column - is what keeps the
+    // names on one left edge and the labels on one middle edge down the page.
+    const [name, fields] = records[0].children.filter(Boolean);
+    expect(records[0].props.className).toBe('vs-catalog-record');
+    const head = name.children[0];
+    expect(head.children[0].children[0]).toBe('Agent View');
+    expect(head.children[1].children[0]).toBe('adopt now');
+    expect(head.children[1].props.className).toContain('emerald');
+    // A labelled row becomes dt+dd; a row with no colon spans both columns, so
+    // an author's aside never gets promoted into a fake field label.
+    expect(fields.children.map((c: { type: string }) => c.type)).toEqual(['dt', 'dd', 'dd']);
+    expect(fields.children[2].props.className).toContain('vs-catalog-note');
+    expect(records[1].children[0].children[0].children[1].props.className).toContain('red');
+  });
+
+  it('renders every Gallery tile at one box size and takes the caption after the dash', async () => {
+    const { vsCatalogFactory, vsLayoutCss } = await import(CATALOG_URL);
+    const stubReact = {
+      createElement: (type: string, props: Record<string, unknown>, ...children: unknown[]) => ({
+        type,
+        props,
+        children: children.flat(Infinity),
+      }),
+    };
+    const catalog = vsCatalogFactory(stubReact, vsLayoutCss);
+    const component = catalog.components.find((c: { name: string }) => c.name === 'Gallery');
+    const element = component.Component({
+      body: '- ![Split view](./split.png) — Agent beside current work\n- ![Prompts](./prompts.png)',
+    });
+    const tiles = element.children[0].children;
+    expect(tiles).toHaveLength(2);
+    for (const tile of tiles) {
+      expect(tile.children[0].props.className).toBe('htmdx-image vs-gallery-image');
+    }
+    expect(tiles[0].children[1].children[0]).toBe('Agent beside current work');
+    expect(tiles[1].children[1].children[0]).toBe('Prompts');
   });
 
   it('scales Bars to the largest value and drops Trend to text below two points', async () => {

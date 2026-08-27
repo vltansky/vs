@@ -298,6 +298,13 @@ const vsLayoutCss = `
     margin-left: auto;
     margin-right: auto;
   }
+  /* The column width above is for blocks. An inline-level child - a bare
+     <Badge>, a link, a lone image - inherited it and rendered as a full-width
+     bar, which is what a status chip repeated down a page looked like before
+     this rule. Inline boxes size to their content. */
+  .htmdx-app[data-htmdx-layout='vs'] > :is(span, a, code, em, strong, small, label, img) {
+    width: auto;
+  }
   :is(.htmdx-app[data-htmdx-layout='vs'], .vs-p-main) > .htmdx-component {
     margin-top: 20px;
     margin-bottom: 20px;
@@ -621,6 +628,32 @@ const vsLayoutCss = `
     border-color: var(--md-sys-color-primary);
     box-shadow: inset 0 0 0 1px var(--md-sys-color-primary);
   }
+  /* Stages and arrows alternate, so N stages are 2N-1 children: a ninth child
+     means a fifth stage, the point where the strip stops fitting its own text. */
+
+  .htmdx-app[data-htmdx-layout^='vs'] .vs-flow:has(> :nth-child(9)) { flex-direction: column; gap: 0; }
+  .htmdx-app[data-htmdx-layout^='vs'] .vs-flow:has(> :nth-child(9)) .vs-flow-arrow { display: none; }
+  .htmdx-app[data-htmdx-layout^='vs'] .vs-flow:has(> :nth-child(9)) .vs-flow-stage {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    column-gap: 10px;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+    border-left: 2px solid var(--md-sys-color-outline-variant);
+    padding: 5px 0 5px 14px;
+  }
+  .htmdx-app[data-htmdx-layout^='vs'] .vs-flow:has(> :nth-child(9)) .vs-flow-stage > div:first-child { white-space: nowrap; }
+  .htmdx-app[data-htmdx-layout^='vs'] .vs-flow:has(> :nth-child(9)) .vs-flow-stage > div + div { margin-top: 0; }
+  .htmdx-app[data-htmdx-layout^='vs'] .vs-flow:has(> :nth-child(9)) .vs-flow-stage[data-status='done'] { background: transparent; }
+  .htmdx-app[data-htmdx-layout^='vs'] .vs-flow:has(> :nth-child(9)) .vs-flow-stage[data-status='active'] {
+    background: transparent;
+    box-shadow: none;
+    border-left-color: var(--md-sys-color-primary);
+  }
+
   /* Trend: the SVG strokes and fills currentColor, so one color declaration
      here is the entire chart theme. The label row mirrors the plotted points
      - same count, same order - which is what makes the chart readable without
@@ -680,14 +713,30 @@ const vsLayoutCss = `
      through every viewport. Markers stay out of hit-testing: a click lands on
      the image and opens the lightbox. */
   .htmdx-app[data-htmdx-layout^='vs'] .vs-figure { margin: 0; }
+  /* Screenshots arrive at whatever size they were captured, so rendering each
+     at its natural width left a column of figures with six different widths and
+     six different left edges. The plate is the fixed frame: same width for
+     every figure at a given size, image centered inside it and never upscaled
+     past its own pixels. The canvas keeps fit-content because the percent
+     markers ride it and must track the image exactly, not the frame. */
+  .htmdx-app[data-htmdx-layout^='vs'] .vs-figure-plate {
+    display: flex;
+    justify-content: center;
+    padding: 10px;
+    background: var(--md-sys-color-surface-container-lowest);
+    border: 1px solid var(--md-sys-color-outline-variant);
+    border-radius: 6px;
+  }
+  .htmdx-app[data-htmdx-layout^='vs'] .vs-figure--half .vs-figure-plate { max-width: 30rem; }
   .htmdx-app[data-htmdx-layout^='vs'] .vs-figure-canvas { position: relative; width: fit-content; }
   .htmdx-app[data-htmdx-layout^='vs'] .vs-figure-canvas img {
     display: block;
     max-width: 100%;
+    max-height: 56vh;
     margin: 0;
-    border: 1px solid var(--md-sys-color-outline-variant);
     border-radius: 4px;
   }
+  .htmdx-app[data-htmdx-layout^='vs'] .vs-figure--half .vs-figure-canvas img { max-height: 34vh; }
   .htmdx-app[data-htmdx-layout^='vs'] .vs-figure-marker {
     position: absolute;
     transform: translate(-50%, -50%);
@@ -719,6 +768,61 @@ const vsLayoutCss = `
     line-height: 18px;
     font-weight: 700;
   }
+  /* Catalog is a reference table, not a deck: twenty records as twenty bordered
+     cards is twenty boxes of chrome the reader has to look past. One hairline
+     between records and a fixed name column give the page a single scan axis -
+     names down the left edge, the same field labels down the middle. */
+  .htmdx-app[data-htmdx-layout^='vs'] .vs-catalog-record {
+    display: grid;
+    grid-template-columns: 15rem 1fr;
+    gap: 4px 20px;
+    padding: 14px 0;
+    border-top: 1px solid var(--md-sys-color-outline-variant);
+  }
+  .htmdx-app[data-htmdx-layout^='vs'] .vs-catalog-record:first-child { border-top: 0; padding-top: 0; }
+  .htmdx-app[data-htmdx-layout^='vs'] .vs-catalog-name { align-self: start; }
+  .htmdx-app[data-htmdx-layout^='vs'] .vs-catalog-fields {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 4px 12px;
+    margin: 0;
+    align-content: start;
+  }
+  .htmdx-app[data-htmdx-layout^='vs'] .vs-catalog-fields dt { padding-top: 2px; white-space: nowrap; }
+  .htmdx-app[data-htmdx-layout^='vs'] .vs-catalog-fields dd { margin: 0; }
+  .htmdx-app[data-htmdx-layout^='vs'] .vs-catalog-fields dd.vs-catalog-note { grid-column: 1 / -1; }
+  .htmdx-app[data-htmdx-layout^='vs'] img.vs-catalog-thumb {
+    display: block;
+    width: 100%;
+    height: 120px;
+    margin: 8px 0 0;
+    padding: 6px;
+    object-fit: contain;
+    background: var(--md-sys-color-surface-container-lowest);
+    border: 1px solid var(--md-sys-color-outline-variant);
+    border-radius: 4px;
+  }
+  /* Below the two-column width the name column would squeeze to nothing, so the
+     record stacks: name row, then its fields underneath. */
+  @media (max-width: 720px) {
+    .htmdx-app[data-htmdx-layout^='vs'] .vs-catalog-record { grid-template-columns: 1fr; }
+  }
+  /* Gallery: the point is that every tile is the same box, so a set of
+     screenshots captured at six sizes reads as one grid. Fixed height plus
+     contain never crops the evidence and never breaks the rhythm. */
+  .htmdx-app[data-htmdx-layout^='vs'] .vs-gallery-tile { margin: 0; }
+  .htmdx-app[data-htmdx-layout^='vs'] img.vs-gallery-image {
+    display: block;
+    width: 100%;
+    height: 190px;
+    margin: 0;
+    padding: 8px;
+    object-fit: contain;
+    background: var(--md-sys-color-surface-container-lowest);
+    border: 1px solid var(--md-sys-color-outline-variant);
+    border-radius: 4px;
+  }
+  .htmdx-app[data-htmdx-layout^='vs'] .vs-gallery-tile figcaption { margin: 6px 0 0; }
   /* The lightbox overlay is appended to body, outside the layout element, so
      its rules cannot sit under the layout scope. The white plate keeps
      transparent-background SVG diagrams readable on the dark scrim. */
@@ -753,28 +857,30 @@ const vsLayoutCss = `
     /* Narrow Flow is a stepper, not a stack of cards: full-width cards with
        arrow rows spend a screen on five short lines. The rail carries the
        sequence, so the arrow glyphs and card chrome go. */
-    .htmdx-app[data-htmdx-layout^='vs'] .vs-flow { flex-direction: column; gap: 0; }
-    .htmdx-app[data-htmdx-layout^='vs'] .vs-flow-arrow { display: none; }
-    .htmdx-app[data-htmdx-layout^='vs'] .vs-flow-stage {
-      display: flex;
-      flex-wrap: wrap;
-      align-items: baseline;
-      column-gap: 10px;
-      border: 0;
-      border-radius: 0;
-      background: transparent;
-      box-shadow: none;
-      border-left: 2px solid var(--md-sys-color-outline-variant);
-      padding: 5px 0 5px 14px;
-    }
-    .htmdx-app[data-htmdx-layout^='vs'] .vs-flow-stage > div:first-child { white-space: nowrap; }
-    .htmdx-app[data-htmdx-layout^='vs'] .vs-flow-stage > div + div { margin-top: 0; }
-    .htmdx-app[data-htmdx-layout^='vs'] .vs-flow-stage[data-status='done'] { background: transparent; }
-    .htmdx-app[data-htmdx-layout^='vs'] .vs-flow-stage[data-status='active'] {
-      background: transparent;
-      box-shadow: none;
-      border-left-color: var(--md-sys-color-primary);
-    }
+
+  .htmdx-app[data-htmdx-layout^='vs'] .vs-flow { flex-direction: column; gap: 0; }
+  .htmdx-app[data-htmdx-layout^='vs'] .vs-flow .vs-flow-arrow { display: none; }
+  .htmdx-app[data-htmdx-layout^='vs'] .vs-flow .vs-flow-stage {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    column-gap: 10px;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+    border-left: 2px solid var(--md-sys-color-outline-variant);
+    padding: 5px 0 5px 14px;
+  }
+  .htmdx-app[data-htmdx-layout^='vs'] .vs-flow .vs-flow-stage > div:first-child { white-space: nowrap; }
+  .htmdx-app[data-htmdx-layout^='vs'] .vs-flow .vs-flow-stage > div + div { margin-top: 0; }
+  .htmdx-app[data-htmdx-layout^='vs'] .vs-flow .vs-flow-stage[data-status='done'] { background: transparent; }
+  .htmdx-app[data-htmdx-layout^='vs'] .vs-flow .vs-flow-stage[data-status='active'] {
+    background: transparent;
+    box-shadow: none;
+    border-left-color: var(--md-sys-color-primary);
+  }
+
   }
   /* vs-proposal shell: the report tokens and components above, under a
      proposal chrome - one dark hero surface carrying title, eyebrow, and
@@ -1080,6 +1186,28 @@ const vsCatalogFactory = (React, css) => {
       ? { label: row, value: '' }
       : { label: row.slice(0, at).trim(), value: row.slice(at + 1).trim() };
   };
+  // plain() strips bold and prints everything else literally, which is fine for
+  // a metric label and wrong for a <Catalog> field: the release link and the
+  // API name are the evidence, and "[Release](https://…)" is not evidence.
+  // Three inline forms, the ones the catalog's rows actually carry.
+  const INLINE_TOKEN = /\[([^\]]+)\]\(([^)\s]+)\)|`([^`]+)`|\*\*([^*]+)\*\*/g;
+  const inline = (text) => {
+    const source = String(text);
+    const parts = [];
+    let at = 0;
+    let match;
+    INLINE_TOKEN.lastIndex = 0;
+    while ((match = INLINE_TOKEN.exec(source))) {
+      if (match.index > at) parts.push(source.slice(at, match.index));
+      if (match[1]) parts.push(h('a', { key: parts.length, href: match[2] }, match[1]));
+      else if (match[3]) parts.push(h('code', { key: parts.length }, match[3]));
+      else parts.push(h('strong', { key: parts.length }, match[4]));
+      at = match.index + match[0].length;
+    }
+    if (at < source.length) parts.push(source.slice(at));
+    return parts.length ? parts : source;
+  };
+  const MARKDOWN_IMAGE = /^!\[([^\]]*)\]\(([^)\s]+)\)\s*(?:(?:—|--)\s*(.*))?$/;
 
   // Direction is already on the card - the reader sees both numbers - so the
   // marker carries the one thing arithmetic cannot supply: whether the move
@@ -1344,28 +1472,33 @@ const vsCatalogFactory = (React, css) => {
     );
 
   const FIGURE_MARKER = /^@(\d+(?:\.\d+)?),(\d+(?:\.\d+)?)\s+(.*)$/;
-  const Figure = ({ body = '', src = '', caption = '' }) => {
+  const Figure = ({ body = '', src = '', caption = '', width = 'full' }) => {
     const notes = rows(body).map((row) => {
       const match = row.match(FIGURE_MARKER);
       return match ? { x: Number(match[1]), y: Number(match[2]), text: match[3] } : { text: row };
     });
+    const size = width === 'half' ? 'half' : 'full';
     return wrap(
       'Figure',
       h(
         'figure',
-        { className: 'vs-figure' },
+        { className: 'vs-figure vs-figure--' + size },
         h(
           'div',
-          { className: 'vs-figure-canvas' },
-          src ? h('img', { src, alt: plain(caption) || 'figure', className: 'htmdx-image' }) : null,
-          notes.map((note, index) =>
-            note.x == null
-              ? null
-              : h(
-                  'span',
-                  { key: index, className: 'vs-figure-marker', style: { left: note.x + '%', top: note.y + '%' } },
-                  String(index + 1),
-                ),
+          { className: 'vs-figure-plate' },
+          h(
+            'div',
+            { className: 'vs-figure-canvas' },
+            src ? h('img', { src, alt: plain(caption) || 'figure', className: 'htmdx-image' }) : null,
+            notes.map((note, index) =>
+              note.x == null
+                ? null
+                : h(
+                    'span',
+                    { key: index, className: 'vs-figure-marker', style: { left: note.x + '%', top: note.y + '%' } },
+                    String(index + 1),
+                  ),
+            ),
           ),
         ),
         caption
@@ -1388,6 +1521,153 @@ const vsCatalogFactory = (React, css) => {
       ),
     );
   };
+
+  // Catalog is the shape a survey keeps producing and the catalog had no home
+  // for: N items, each with a verdict and the same few labeled fields. Written
+  // as prose it becomes one bolded run-on per item, which is how a page of
+  // twenty features turns into a wall of text no reader can skim.
+  const CATALOG_RECORD = /^\*\*(.+?)\*\*\s*(?:\[([^\]]*)\])?\s*$/;
+  const CATALOG_TONE = {
+    good: 'bg-emerald-50 text-emerald-700',
+    bad: 'bg-red-50 text-red-700',
+    wait: 'bg-amber-50 text-amber-700',
+  };
+  // The chip's color is a claim about the verdict, so it is earned by an
+  // explicit marker or a listed word - never guessed from arbitrary text.
+  const CATALOG_WORDS = {
+    good: ['adopt', 'ship', 'keep', 'done', 'yes', 'chosen', 'must', 'extend', 'add'],
+    bad: ['no', 'not', "won't", 'wont', 'skip', 'drop', 'reject', 'rejected', 'blocked', 'never'],
+    wait: ['later', 'next', 'maybe', 'pilot', 'explore', 'evaluate', 'selective', 'partial', 'defer', 'deferred', 'conditional'],
+  };
+  const catalogTone = (status) => {
+    const trimmed = status.trim();
+    if (trimmed.startsWith('+')) return 'good';
+    if (trimmed.startsWith('−') || trimmed.startsWith('-')) return 'bad';
+    if (trimmed.startsWith('~')) return 'wait';
+    const first = trimmed.toLowerCase().split(/[\s-]+/)[0];
+    for (const tone of ['good', 'bad', 'wait']) {
+      if (CATALOG_WORDS[tone].includes(first)) return tone;
+    }
+    return null;
+  };
+  const Catalog = ({ body = '' }) => {
+    const records = [];
+    for (const row of rows(body)) {
+      const head = row.match(CATALOG_RECORD);
+      if (head) {
+        records.push({ name: head[1], status: (head[2] || '').trim(), image: null, fields: [] });
+        continue;
+      }
+      // A field row before the first record has no owner; dropping it is
+      // better than inventing a record the author did not write.
+      if (!records.length) continue;
+      const record = records[records.length - 1];
+      const picture = row.match(MARKDOWN_IMAGE);
+      if (picture) {
+        record.image = { alt: picture[1], src: picture[2] };
+        continue;
+      }
+      const { label, value } = labelValue(row);
+      record.fields.push(value ? { label, value } : { label: '', value: label });
+    }
+    return wrap(
+      'Catalog',
+      h(
+        'div',
+        { className: 'flex flex-col' },
+        records.map((record, index) =>
+          h(
+            'div',
+            { key: index, className: 'vs-catalog-record' },
+            h(
+              'div',
+              { className: 'vs-catalog-name' },
+              h(
+                'div',
+                { className: 'flex flex-wrap items-baseline gap-2' },
+                h('span', { className: 'text-sm font-semibold text-card-foreground' }, inline(record.name)),
+                record.status
+                  ? h(
+                      'span',
+                      {
+                        className:
+                          'rounded-full px-2 py-0.5 text-xs font-semibold ' +
+                          (CATALOG_TONE[catalogTone(record.status)] || 'bg-muted text-muted-foreground'),
+                      },
+                      record.status.replace(/^[+−~-]\s*/, ''),
+                    )
+                  : null,
+              ),
+              record.image
+                ? h('img', {
+                    src: record.image.src,
+                    alt: record.image.alt,
+                    className: 'htmdx-image vs-catalog-thumb',
+                  })
+                : null,
+            ),
+            record.fields.length
+              ? h(
+                  'dl',
+                  { className: 'vs-catalog-fields' },
+                  record.fields.flatMap((field, position) =>
+                    field.label
+                      ? [
+                          h(
+                            'dt',
+                            {
+                              key: 'k' + position,
+                              className: 'text-xs font-semibold tracking-wider text-muted-foreground uppercase',
+                            },
+                            field.label,
+                          ),
+                          h(
+                            'dd',
+                            { key: 'v' + position, className: 'text-sm text-card-foreground' },
+                            inline(field.value),
+                          ),
+                        ]
+                      : [
+                          h(
+                            'dd',
+                            {
+                              key: 'v' + position,
+                              className: 'vs-catalog-note text-sm text-muted-foreground',
+                            },
+                            inline(field.value),
+                          ),
+                        ],
+                  ),
+                )
+              : null,
+          ),
+        ),
+      ),
+    );
+  };
+
+  // Gallery exists because a set of screenshots is not a sequence of figures:
+  // captured at six sizes they render at six widths, and the page loses its
+  // rhythm. One box size for every tile is the whole component.
+  const Gallery = ({ body = '' }) =>
+    wrap(
+      'Gallery',
+      h(
+        'div',
+        { className: 'grid grid-cols-[repeat(auto-fit,minmax(240px,1fr))] gap-3' },
+        rows(body).map((row, index) => {
+          const picture = row.match(MARKDOWN_IMAGE);
+          if (!picture) return h('div', { key: index, className: 'text-sm' }, plain(row));
+          const caption = (picture[3] || picture[1]).trim();
+          return h(
+            'figure',
+            { key: index, className: 'vs-gallery-tile' },
+            h('img', { src: picture[2], alt: picture[1] || caption, className: 'htmdx-image vs-gallery-image' }),
+            caption ? h('figcaption', { className: 'text-sm text-muted-foreground' }, caption) : null,
+          );
+        }),
+      ),
+    );
 
   // Bars compares magnitudes with no ceiling: every bar is scaled to the
   // largest value in the set, so it answers "which is bigger and by how much",
@@ -2249,7 +2529,7 @@ const vsCatalogFactory = (React, css) => {
       name: 'Flow',
       body: 'markdown',
       purpose:
-        "Show a linear pipeline, rollout, or lifecycle as stage cards joined by arrows, written as '- Stage: detail' rows in order. A stage label may end with [done], [active], or [next] to mark rollout progress on the strip. Three to six stages read best; the strip collapses to a column on narrow screens. It renders straight-line flow only - branching, cycles, or fan-out belong in a mermaid diagram.",
+        "Show a linear pipeline, rollout, or lifecycle as stage cards joined by arrows, written as '- Stage: detail' rows in order. A stage label may end with [done], [active], or [next] to mark rollout progress on the strip. Two to four stages read best as the strip; past four, and on narrow screens, it becomes a numbered rail because a fifth column is too narrow for its own text. It renders straight-line flow only - branching, cycles, or fan-out belong in a mermaid diagram.",
       example:
         '<Flow>\n- Input: standard source package\n- Output: preserved package + compatibility files\n- Install: native plugin installation\n</Flow>',
       Component: asComponent(Flow),
@@ -2258,7 +2538,7 @@ const vsCatalogFactory = (React, css) => {
       name: 'Figure',
       body: 'markdown',
       purpose:
-        "Point at places in an image: a captioned figure whose '- @x,y note' rows pin numbered markers at percent coordinates and repeat below as a numbered legend. Verify every coordinate against a rendered screenshot before shipping - a marker on the wrong element misleads more than no marker. A row without the @x,y prefix appears in the legend only. The image zooms in the lightbox like any other; markers stay on the page.",
+        "Point at places in an image: a captioned figure whose '- @x,y note' rows pin numbered markers at percent coordinates and repeat below as a numbered legend. Verify every coordinate against a rendered screenshot before shipping - a marker on the wrong element misleads more than no marker. A row without the @x,y prefix appears in the legend only. Every figure is framed on a plate of the same width and the image is centered inside it, so screenshots captured at different sizes still share one left edge; nothing is upscaled. It carries one image the reader must study - a set of screenshots belongs in <Gallery>.",
       example:
         '<Figure src="./onboarding.png" caption="Setup step 2 — connect payments">\n- @21,58 Step rail: payments not yet connected\n- @44,34 Accept Payments — the merchant entry point\n</Figure>',
       props: [
@@ -2272,8 +2552,34 @@ const vsCatalogFactory = (React, css) => {
           type: 'string',
           description: 'One-line caption rendered under the image.',
         },
+        {
+          name: 'width',
+          type: 'string',
+          values: ['full', 'half'],
+          default: 'full',
+          description:
+            'Frame width: full spans the content column, half is for a figure that sits beside prose. Two steps on purpose - a page of figures at a third width reads as an accident.',
+        },
       ],
       Component: asComponent(Figure),
+    },
+    {
+      name: 'Catalog',
+      body: 'markdown',
+      purpose:
+        "Survey a set of items that each carry a verdict and the same few labeled fields - features against a product, endpoints against a spec, repos against a policy. A '- **Name** [status]' row opens a record and the '- key: value' rows under it are its fields; an optional '- ![alt](./shot.png)' row puts the evidence beside the record instead of in a gallery the reader has to scroll back to. Records render as rows of a reference table - names on one left edge, field labels on one middle edge - not as a deck of cards, so twenty of them stay scannable. Field values render their links and `code` so a row can carry its own proof. The status chip turns green, red, or amber for a leading +, −, or ~ or a known verdict word, and stays neutral otherwise. This is the component for the shape that otherwise becomes one bolded run-on paragraph per item, repeated down the page. Weighing options that are still open is <Tradeoff>; recording which one won is <Options>.",
+      example:
+        '<Catalog>\n- **Agent View** [adopt now]\n- Slack: `features.agent_view` classifies the app as a native Agent — [release](https://docs.slack.dev/changelog/2026/06/30/agent-messages-tab/)\n- Kyber: regular app DM with streaming threads\n- Do: enable `agent_view`, upgrade `@slack/web-api` to 7.18.0\n- **Slackbot MCP Client** [won\'t do]\n- Slack: Slackbot invokes tools from connected remote MCP servers\n- Kyber: owns selector, Session, authorization, and terminal delivery\n- Do: read-only stateless tools only, never the primary path\n</Catalog>',
+      Component: asComponent(Catalog),
+    },
+    {
+      name: 'Gallery',
+      body: 'markdown',
+      purpose:
+        "Show a set of screenshots as one grid, written as '- ![alt](./shot.png)' rows with an optional ' — caption' tail; without one the alt text is the caption. Every tile is the same box and the image is contained inside it, so captures at different sizes stop rendering at different widths. Use it where the images are a set the reader scans - product surfaces, states, before/after captures - and keep it beside the claim it supports rather than collecting every image into one media section. One image the reader must study, or one that needs markers, is <Figure>.",
+      example:
+        '<Gallery>\n- ![Slack split view](./split-view.png) — agent conversation beside the user\'s work\n- ![Suggested prompts](./suggested-prompts.png)\n- ![Task timeline](./task-timeline.png)\n</Gallery>',
+      Component: asComponent(Gallery),
     },
     {
       name: 'Bars',
