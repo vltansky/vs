@@ -2335,7 +2335,7 @@ const vsCatalogFactory = (React, css) => {
       name: 'Tree',
       body: 'markdown',
       purpose:
-        "Show a file or module hierarchy, written as nested '- name' rows indented two spaces per level. A leading '+' marks an addition (green), '−' a removal (red, struck through), '~' a change (amber); unmarked rows are unchanged context. Text after ':' renders as a muted note. This is the component for a proposal's before/after layout - one tree with marks, not two panes the reader must diff by eye.",
+        "Show a hierarchy - a file or module layout, a component tree, or a call stack (caller above callee) - written as nested '- name' rows indented two spaces per level. A leading '+' marks an addition (green), '−' a removal (red, struck through), '~' a change (amber); unmarked rows are unchanged context. Text after ':' renders as a muted note - the row's responsibility, hook, or file. This is the component for a proposal's before/after structure - one tree with marks, not two panes the reader must diff by eye.",
       example:
         '<Tree>\n- plugins/\n  - my-project/\n    - + plugin/: the installable package\n    - + tests/: plugin-only tests\n    - project.json\n- − tests/: moved into the project\n</Tree>',
       Component: asComponent(Tree),
