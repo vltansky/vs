@@ -38,7 +38,7 @@ flowchart LR
     P --> O[Pull request]
 
     S -. composes .-> SC["/vs-ponytail · /vs-architect? · /vs-octocode?<br/>/vs-pushback · /vs-eli5 · /vs-eval?"]
-    B -. composes .-> BC["/vs-ponytail · /vs-pushback · /vs-decide-for-me<br/>/vs-tdd · /vs-debug-mode?<br/>/vs-roast-code? · /vs-deslop?<br/>/vs-qa? · /vs-verify · /vs-brief? · /vs-eval?"]
+    B -. composes .-> BC["/vs-ponytail · /vs-pushback · /vs-decide-for-me<br/>/vs-tdd · /vs-debug-mode?<br/>/vs-roast-code? · /vs-deslop?<br/>/vs-qa? · /vs-verify · /vs-before-after? · /vs-eval?"]
     P -. composes .-> PC["/vs-pr-walkthrough? · /vs-baby-sit"]
 ```
 
@@ -92,7 +92,7 @@ flowchart TD
     Q -- Yes --> B["Focused browser QA<br/>/vs-qa"]
     Q -- No --> O["Verify<br/>/vs-verify"]
     B --> O
-    O --> H["Handoff<br/>/vs-brief? · /vs-eval?"]
+    O --> H["Handoff<br/>/vs-before-after? · /vs-eval?"]
 ```
 
 ### `/vs-ship-it`: publish and follow through
@@ -199,7 +199,7 @@ Architecture: /vs-architect -> /vs-shape-it -> /vs-build-it
 | `/vs-verify` | Prove a change works with concrete evidence |
 | `/vs-deslop` | Simplify bloated or repetitive code without changing behavior |
 | `/vs-write` | Write or reshape clear prose without losing substance |
-| `/vs-brief` | Turn a git diff into a concise review brief |
+| `/vs-before-after` | Show the functional behavior before and after a diff |
 | `/vs-tldr` | Compress the last explanation: shorter and simpler, same meaning |
 | `/vs-eli5` | Explain from zero with big pictures and few words, via `/vs-htmdx` |
 | `/vs-eval` | Write PathGrade static pins and live evals with exclusive contracts, not slogan mentions |

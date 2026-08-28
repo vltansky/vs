@@ -52,11 +52,10 @@ history, and repeated evidence unless the current decision needs them. For a
 trivial run that owes no report, include only the few audit facts needed to
 support the chat claim.
 
-Load and run `../../vs-brief/SKILL.md` when the change touches more than 3 files,
-records a durable design decision, the user asks for PR orientation, or there is
-meaningful before-and-after evidence. Include the comparison even when the diff
-is small. Pass the current branch diff, decision log, flagged items, and captured
-comparison evidence. Otherwise put the minimal pipeline summary and diff stat in
+Load and run `../../vs-before-after/SKILL.md` when the diff has a supported
+functional change or meaningful before-and-after evidence. Include the
+comparison even when the diff is small. Pass the exact comparison boundary and
+captured evidence. Otherwise put the minimal pipeline summary and diff stat in
 the machine audit sidecar; for a trivial run with no report, keep them to one
 compact chat line.
 

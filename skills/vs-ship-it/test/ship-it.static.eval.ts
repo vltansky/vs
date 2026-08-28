@@ -81,7 +81,9 @@ describe('vs-ship-it independent PR preparation', () => {
 
   it('does not make ceremony part of default PR creation', () => {
     expect(PR_WORKFLOW).toMatch(/Do not add brief generation, broad\s+verification, reviewer discovery, preview startup, or QA unless the user\s+explicitly requested/i);
-    expect(PR_WORKFLOW).toMatch(/do not introduce `vs-brief`, `vs-verify`/i);
+    expect(PR_WORKFLOW).toMatch(
+      /do not introduce `vs-before-after`, `vs-verify`/i,
+    );
     expect(PR_WORKFLOW).toMatch(/Do not suggest reviewers, start a\s+preview, or run QA by default/i);
   });
 

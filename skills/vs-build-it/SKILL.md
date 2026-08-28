@@ -34,8 +34,8 @@ one-off behavior:
   in Phase 4; small diffs stay in the parent.
 - `vs-qa` tests affected user-visible browser behavior in Phase 5.
 - `vs-verify` produces the final evidence-backed completion status.
-- `vs-brief` produces the human-readable orientation layer and renders captured
-  before-and-after evidence for the handoff.
+- `vs-before-after` translates a functional diff into the concise behavioral
+  comparison used in the handoff.
 - `vs-eval` only when the plan is a vs skill PathGrade contract; skip for
   product code.
 
@@ -736,8 +736,8 @@ describe the outcome as working. Implemented and proven are different claims.
 For text output captured in Phase 0, rerun the same command and representative
 input after final validation and retain the exact after output. For UI output,
 use the paired images captured before implementation and during QA. Pass the
-comparison evidence to `vs-brief`; if a required capture was blocked, pass the
-blocker instead of inventing evidence.
+comparison evidence to `vs-before-after`; if a required capture was blocked,
+pass the blocker instead of inventing evidence.
 
 Use the required shell in [references/handoff.md](./references/handoff.md). Its
 chat response stays compact; the machine audit sidecar carries the full audit
@@ -745,9 +745,9 @@ ledger, decision log, commits, guardrails, and minimal diff stat. The visual
 report explains the change with the problem-first recipe. If the user asked
 build-it to also ship, load and
 follow `../vs-ship-it/SKILL.md`; if the host cannot resolve it, say to type
-`/vs-ship-it` and stop — do not hand-roll a PR flow in its place. Load `../vs-brief/SKILL.md` only when the change is
-non-trivial (more than 3 files, a durable design decision, user-requested PR
-orientation, or meaningful before-and-after evidence).
+`/vs-ship-it` and stop — do not hand-roll a PR flow in its place. Load
+`../vs-before-after/SKILL.md` only when the diff has a supported functional
+change or meaningful before-and-after evidence.
 
 This is a phase boundary: once the Build It handoff is sent, implementation is
 complete. Route requested shipping, CI watching, review fixes, and production

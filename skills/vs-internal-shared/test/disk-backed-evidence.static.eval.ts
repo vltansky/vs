@@ -92,7 +92,10 @@ describe('disk-backed evidence contract', () => {
   it('documents bounded, on-demand retrieval across high-volume skills', () => {
     const contract = fs.readFileSync(CONTRACT_PATH, 'utf8');
     const qa = fs.readFileSync(path.join(ROOT, 'skills', 'vs-qa', 'SKILL.md'), 'utf8');
-    const brief = fs.readFileSync(path.join(ROOT, 'skills', 'vs-brief', 'SKILL.md'), 'utf8');
+    const brief = fs.readFileSync(
+      path.join(ROOT, 'skills', 'vs-before-after', 'SKILL.md'),
+      'utf8',
+    );
     const review = fs.readFileSync(path.join(ROOT, 'skills', 'vs-roast-code', 'SKILL.md'), 'utf8');
     const live = fs.readFileSync(
       path.join(ROOT, 'skills', 'vs-roast-ui', 'references', 'live.md'),

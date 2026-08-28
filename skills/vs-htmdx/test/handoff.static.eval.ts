@@ -80,7 +80,6 @@ describe('vs-htmdx URL + first-screen shot', () => {
     expect(reject(path.join(DIR, 'SKILL.md')).status).toBe(0);
     for (const workflow of [
       'vs-eli5',
-      'vs-brief',
       'vs-roast-ui',
       'vs-pr-walkthrough',
     ]) {

@@ -162,7 +162,9 @@ describe('subagent budget', () => {
     expect(BUILD_IT).toMatch(/Load.*debug-mode.*only after/is);
     expect(BUILD_IT).toMatch(/user-visible.*browser behavior/is);
     expect(BUILD_IT).toMatch(/small, low-risk diff.*parent/is);
-    expect(BUILD_HANDOFF).toMatch(/vs-brief\/SKILL\.md.*when the change/is);
+    expect(BUILD_HANDOFF).toMatch(
+      /vs-before-after\/SKILL\.md.*when the diff has a supported\s+functional change/is,
+    );
   });
 
   it('defers phase-heavy context and ends the implementation phase cleanly', () => {

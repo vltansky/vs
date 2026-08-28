@@ -16,7 +16,7 @@ describe('vs-pr-walkthrough boundary', () => {
     expect(SKILL).toMatch(/large or unfamiliar GitHub PR/i);
     expect(SKILL).toMatch(/normally ten\s+or more changed files/i);
     expect(SKILL).toMatch(/SKIPPED_SMALL_PR/);
-    expect(SKILL).toMatch(/\/vs-brief/);
+    expect(SKILL).toMatch(/\/vs-before-after/);
     expect(SKILL).toMatch(/\/vs-roast-code/);
     expect(SKILL).toMatch(/Do not turn the walkthrough into a review verdict/i);
   });

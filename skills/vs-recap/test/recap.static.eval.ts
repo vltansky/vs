@@ -28,7 +28,9 @@ function reject(target: string) {
 describe('vs-recap inherit-and-re-prove', () => {
   it('keeps workflow edges and fixture canaries out of SKILL', () => {
     expect(SKILL_RAW).toMatch(/\*\*Next:\*\* done/);
-    expect(SKILL_RAW).toMatch(/\*\*Relevant:\*\* `\/vs-search-threads` \| `\/vs-brief`/);
+    expect(SKILL_RAW).toMatch(
+      /\*\*Relevant:\*\* `\/vs-search-threads` \| `\/vs-before-after`/,
+    );
     expect(SKILL_RAW).not.toMatch(/SLOGAN_ONLY_RECAP_CANARY/);
     expect(SKILL_RAW).not.toMatch(/REDERIVE_MILESTONE_CANARY/);
     expect(SKILL_RAW).not.toMatch(/DONE_NO_POINTER_CANARY/);

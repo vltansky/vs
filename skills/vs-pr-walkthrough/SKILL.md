@@ -23,7 +23,7 @@ or more changed files.
 | Reader needs | Use |
 |---|---|
 | Read a large PR in logical order | this skill |
-| Compact orientation or a local branch summary | `/vs-brief` |
+| Functional behavior before and after a diff | `/vs-before-after` |
 | Find defects or judge code quality | `/vs-roast-code` |
 | Current status and next decision | `/vs-recap` |
 
@@ -232,4 +232,4 @@ Direct: emit **Next** only. Composed: return to caller.
 
 **Prev:** a large GitHub PR the reader needs to understand
 **Next:** done
-**Relevant:** `/vs-brief` | `/vs-roast-code`
+**Relevant:** `/vs-before-after` | `/vs-roast-code`

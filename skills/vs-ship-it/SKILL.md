@@ -71,7 +71,7 @@ create a short `username/topic` feature branch. Stage only scoped paths, commit
 with a concise conventional message, and push with `git push -u origin HEAD`.
 
 Run only checks required by repository instructions before push. Reuse current
-results; do not introduce `vs-brief`, `vs-verify`, broad test suites, or another
+results; do not introduce `vs-before-after`, `vs-verify`, broad test suites, or another
 user question as shipping ceremony. Record existing checks honestly in the PR.
 
 If authentication fails, stop after the first failure, identify the credential
