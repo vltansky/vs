@@ -36,3 +36,8 @@ Here is a catch: REDIS_URL must be set first.
 It is worth naming the timeout in the schema.
 Industry reports suggest the outage was brief.
 Despite the challenges on shard B, the canary held.
+
+Verify the redis replica is up. Verify the redis replica is up. Verify the redis replica is up.
+Ensure redis is up. Ensure redis is up. Ensure redis is up.
+Confirm the redis replica is healthy. Confirm the redis replica is healthy. Confirm the redis replica is healthy.
+Please verify redis. Please verify redis. Please verify redis.

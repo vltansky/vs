@@ -74,6 +74,22 @@ describe('vs-write: fixture-backed unslop pins', () => {
     expect(reject(CLEAN).status).toBe(0);
     expect(reject(path.join(FIXTURE_DIR, 'task-6-release-announcement.md')).status).toBe(0);
     expect(reject(path.join(FIXTURE_DIR, 'ordinary-ops-note.md')).status).toBe(0);
+    expect(reject(path.join(FIXTURE_DIR, 'ordinary-verify-replica.md')).status).toBe(0);
+    expect(reject(path.join(FIXTURE_DIR, 'ordinary-ensure-redis.md')).status).toBe(0);
+    expect(reject(path.join(FIXTURE_DIR, 'ordinary-confirm-replica.md')).status).toBe(0);
+    expect(reject(path.join(FIXTURE_DIR, 'ordinary-please-verify.md')).status).toBe(0);
+    expect(fs.readFileSync(path.join(FIXTURE_DIR, 'ordinary-verify-replica.md'), 'utf8')).toContain(
+      'Verify the redis replica is up. Verify the redis replica is up. Verify the redis replica is up.',
+    );
+    expect(fs.readFileSync(path.join(FIXTURE_DIR, 'ordinary-ensure-redis.md'), 'utf8')).toContain(
+      'Ensure redis is up. Ensure redis is up. Ensure redis is up.',
+    );
+    expect(fs.readFileSync(path.join(FIXTURE_DIR, 'ordinary-confirm-replica.md'), 'utf8')).toContain(
+      'Confirm the redis replica is healthy. Confirm the redis replica is healthy. Confirm the redis replica is healthy.',
+    );
+    expect(fs.readFileSync(path.join(FIXTURE_DIR, 'ordinary-please-verify.md'), 'utf8')).toContain(
+      'Please verify redis. Please verify redis. Please verify redis.',
+    );
     expect(SKILL).toMatch(
       /end the artifact on the last concrete fact, takeaway, or next action/i,
     );

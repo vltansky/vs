@@ -14,7 +14,7 @@ import { fileURLToPath } from 'node:url';
 
 const SELF = fileURLToPath(import.meta.url);
 const PUBLISHED_REJECTOR_SHA256 =
-  '465f44f5fd18e497dcbd4b1a4fe31f87b1909608524df56367b18d7ac28056b3';
+  'da033f9db37c7877f133b537b3873b3ce5ed00b92cc7669f6c52f45305d53a1c';
 const PUBLISHED_SKILL_SHA256 =
   '2ad0ebfd93640d3d9e277f1d98020dfd1fcbcbef0e9212bcc794917100411cc2';
 
@@ -174,7 +174,12 @@ function hasEchoRun(text) {
       shared = common[0];
       j += 1;
     }
-    if (j - i + 1 >= 2 && shared) return true;
+    if (j - i + 1 >= 2 && shared) {
+      const run = sents.slice(i, j + 1);
+      const norm = (s) => s.text.trim().toLowerCase();
+      if (run.every((s) => norm(s) === norm(run[0]))) continue;
+      return true;
+    }
   }
   return false;
 }
@@ -226,7 +231,9 @@ if (hasTurnsOut(draft)) hits.push('structural: turns-out');
 
 const ANAPHORA_SKIP = /^(?:i|it|the|a|an|this|that|we|you|they|he|she|there|but|and|so|in|as|if|my|his|her|their|its|these|those|for|at|on|of|to|is|was)$/i;
 function isOrdinaryImperative(sentence) {
-  return /^(?:[A-Za-z]+)(?:\s+(?:the|a|an|your|our|this|that))?(?:\s+[\w./:-]+){1,2}[.!?]\s*$/.test(sentence.trim());
+  const s = sentence.trim();
+  if (/^(?:Please\s+)?(?:maybe|perhaps|probably|possibly)\b/i.test(s)) return false;
+  return /^(?:Please\s+)?[A-Za-z]+(?:\s+(?:the|a|an|your|our|this|that))?(?:\s+[\w./:-]+)+[.!?]\s*$/i.test(s);
 }
 function hasSentenceAnaphora(text) {
   const SENT = /[^.!?\n]+[.!?]/g;
