@@ -116,6 +116,12 @@ describe('vs-write: prose unslop pins', () => {
     expect(
       reject(path.join(FIXTURE_DIR, 'ordinary-verify-class.md')).status,
     ).toBe(0);
+    expect(
+      reject(path.join(FIXTURE_DIR, 'ordinary-ship-list.md')).status,
+    ).toBe(0);
+    expect(
+      reject(path.join(FIXTURE_DIR, 'ordinary-ship-list-marks.md')).status,
+    ).toBe(0);
     expect(fs.readFileSync(path.join(FIXTURE_DIR, 'ordinary-verify-replica.md'), 'utf8')).toContain(
       'Verify the redis replica is up. Verify the redis replica is up. Verify the redis replica is up.',
     );
@@ -133,6 +139,15 @@ describe('vs-write: prose unslop pins', () => {
     );
     expect(fs.readFileSync(path.join(FIXTURE_DIR, 'ordinary-verify-class.md'), 'utf8')).toContain(
       'Verify redis is up on replica 2 before the join. Verify postgres is up on replica 3 before the join. Verify the queue is draining.',
+    );
+    expect(fs.readFileSync(path.join(FIXTURE_DIR, 'ordinary-ship-list.md'), 'utf8')).toContain(
+      '- Ship the canary to shard B',
+    );
+    expect(fs.readFileSync(path.join(FIXTURE_DIR, 'ordinary-ship-list.md'), 'utf8')).toContain(
+      '- Ship the canary to shard C',
+    );
+    expect(fs.readFileSync(path.join(FIXTURE_DIR, 'ordinary-ship-list.md'), 'utf8')).toContain(
+      '- Ship the canary to shard D',
     );
     expect(SKILL).toMatch(/skills\/vs-write\/scripts\/reject-slop\.mjs/);
     expect(SKILL).toMatch(/end the artifact on the last concrete fact/i);
