@@ -14,7 +14,7 @@ import { fileURLToPath } from 'node:url';
 
 const SELF = fileURLToPath(import.meta.url);
 const PUBLISHED_REJECTOR_SHA256 =
-  '338d47f9b141933e637e9e11d1e396849716644910e1ea06183ded8f1b9f9251';
+  '465f44f5fd18e497dcbd4b1a4fe31f87b1909608524df56367b18d7ac28056b3';
 const PUBLISHED_SKILL_SHA256 =
   '2ad0ebfd93640d3d9e277f1d98020dfd1fcbcbef0e9212bcc794917100411cc2';
 
@@ -195,7 +195,7 @@ function hasPunchline(text) {
 if (hasPunchline(draft)) hits.push('structural: punchline');
 
 function hasHeresTheTwist(text) {
-  return /\bhere(?:['\u2019]s|\s+is)\s+(?:the|a|my|one)\s+(?:twist|catch|kicker|rub)\b[\w\s-]{0,20}[:.]/i.test(text);
+  return /\bhere(?:['\u2019]s|\s+is)\s+the\s+(?:twist|kicker|rub)\b[\w\s-]{0,20}[:.]/i.test(text);
 }
 if (hasHeresTheTwist(draft)) hits.push('structural: heres-the-twist');
 
@@ -205,12 +205,12 @@ function hasNotNothing(text) {
 if (hasNotNothing(draft)) hits.push('structural: not-nothing');
 
 function hasWorthNaming(text) {
-  return /\bit(?:['\u2019]s|\s+is)\s+worth\s+naming\b(?!\s+(?:in|as|for)\b)|\bworth\s+naming\s*(?:that\b|:)/i.test(text);
+  return /\bworth\s+naming\s*(?:that\b|:)/i.test(text);
 }
 if (hasWorthNaming(draft)) hits.push('structural: worth-naming');
 
 function hasPerformativeHonesty(text) {
-  return /\bI\s+(?:will\s+not|won['\u2019]t)\s+pretend\b|\b(?:I['\u2019]ll|let['\u2019]s)\s+be\s+honest\b|(?:^|[.!?\u2013\u2014]\s+|\n)(?:Honestly|Look)\s*,/i.test(text);
+  return /\bI\s+(?:will\s+not|won['\u2019]t)\s+pretend\b|\b(?:I['\u2019]ll|let['\u2019]s)\s+be\s+honest\b/i.test(text);
 }
 if (hasPerformativeHonesty(draft)) hits.push('structural: performative-honesty');
 
@@ -225,7 +225,9 @@ function hasTurnsOut(text) {
 if (hasTurnsOut(draft)) hits.push('structural: turns-out');
 
 const ANAPHORA_SKIP = /^(?:i|it|the|a|an|this|that|we|you|they|he|she|there|but|and|so|in|as|if|my|his|her|their|its|these|those|for|at|on|of|to|is|was)$/i;
-const ANAPHORA_CHECKLIST = /^(?:check|set|run|restart)$/i;
+function isOrdinaryImperative(sentence) {
+  return /^(?:[A-Za-z]+)(?:\s+(?:the|a|an|your|our|this|that))?(?:\s+[\w./:-]+){1,2}[.!?]\s*$/.test(sentence.trim());
+}
 function hasSentenceAnaphora(text) {
   const SENT = /[^.!?\n]+[.!?]/g;
   const sents = [];
@@ -234,11 +236,11 @@ function hasSentenceAnaphora(text) {
     const w = m[0].match(/[A-Za-z'\u2019]+/);
     if (!w) continue;
     const head = w[0].toLowerCase();
-    if (ANAPHORA_CHECKLIST.test(head)) continue;
     sents.push({
       start: m.index + m[0].indexOf(w[0]),
       end: m.index + m[0].length,
       head,
+      text: m[0],
     });
   }
   for (let i = 0; i < sents.length; i++) {
@@ -250,7 +252,11 @@ function hasSentenceAnaphora(text) {
     ) {
       j += 1;
     }
-    if (j - i + 1 >= 3 && !ANAPHORA_SKIP.test(sents[i].head)) return true;
+    if (j - i + 1 >= 3 && !ANAPHORA_SKIP.test(sents[i].head)) {
+      const run = sents.slice(i, j + 1);
+      if (run.every((s) => isOrdinaryImperative(s.text))) continue;
+      return true;
+    }
   }
   return false;
 }
@@ -270,7 +276,7 @@ function hasAiLeftovers(text) {
 if (hasAiLeftovers(draft)) hits.push('structural: ai-leftovers');
 
 function hasDespiteChallenges(text) {
-  return /\bdespite\s+(?:these|those|such|its|their|the|numerous|significant|ongoing)\s+(?:\w+\s+)?challenges\b|\bfac(?:e|es|ed|ing)\s+(?:several|numerous|many|significant|various|a\s+number\s+of)\s+challenges\b/i.test(text);
+  return /\bdespite\s+(?:these|those|such|its|their|numerous|significant|ongoing)\s+(?:\w+\s+)?challenges\b|\bfac(?:e|es|ed|ing)\s+(?:several|numerous|many|significant|various|a\s+number\s+of)\s+challenges\b/i.test(text);
 }
 if (hasDespiteChallenges(draft)) hits.push('structural: despite-challenges');
 
@@ -280,7 +286,7 @@ function hasParticipleTail(text) {
 if (hasParticipleTail(draft)) hits.push('structural: participle-tail');
 
 function hasVagueExperts(text) {
-  return /\b(?:many|some|several|most|numerous)?\s*(?:experts|critics|observers|scholars|commentators)\s+(?:have\s+|often\s+|widely\s+)?(?:argu(?:e|es|ed)|suggest(?:s|ed)?|believ(?:e|es|ed)|agree[ds]?|contend(?:s|ed)?|observ(?:e|es|ed)|caution(?:s|ed)?|claim(?:s|ed)?|cit(?:e|es|ed)|point(?:s|ed)?\s+out)\b|\bindustry\s+reports?\s+(?:suggest|indicate|show)\w*\b/i.test(text);
+  return /\b(?:many|some|several|most|numerous)?\s*(?:experts|critics|observers|scholars|commentators)\s+(?:have\s+|often\s+|widely\s+)?(?:argu(?:e|es|ed)|suggest(?:s|ed)?|believ(?:e|es|ed)|agree[ds]?|contend(?:s|ed)?|observ(?:e|es|ed)|caution(?:s|ed)?|claim(?:s|ed)?|cit(?:e|es|ed)|point(?:s|ed)?\s+out|not(?:e|es|ed))\b/i.test(text);
 }
 if (hasVagueExperts(draft)) hits.push('structural: vague-experts');
 
