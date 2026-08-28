@@ -1,0 +1,3 @@
+- Ship the canary to shard B
+- Ship the canary to shard C
+- Ship the canary to shard D
