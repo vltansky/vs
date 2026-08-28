@@ -14,7 +14,7 @@ import { fileURLToPath } from 'node:url';
 
 const SELF = fileURLToPath(import.meta.url);
 const PUBLISHED_REJECTOR_SHA256 =
-  '95053fab36e9dad83f155f5cd4f66042e0f7ed4af976e44a5734aca12a0933d6';
+  '338d47f9b141933e637e9e11d1e396849716644910e1ea06183ded8f1b9f9251';
 const PUBLISHED_SKILL_SHA256 =
   '2ad0ebfd93640d3d9e277f1d98020dfd1fcbcbef0e9212bcc794917100411cc2';
 
@@ -185,7 +185,7 @@ function hasColonTriple(text) {
 }
 if (hasColonTriple(draft)) hits.push('structural: colon-triple');
 function hasAlreadyKnow(text) {
-  return /\byou\s+already\s+knows?\s+(?:the\s+answer|what|how|why|this|that|it|who|where)\b|\byou\s+already\s+knows?\b(?![ \t]+\w)/i.test(text);
+  return /\byou\s+already\s+knows?(?:\s+the\s+answer)?\b(?![ \t]+\w)/i.test(text);
 }
 if (hasAlreadyKnow(draft)) hits.push('structural: already-know');
 
@@ -195,7 +195,7 @@ function hasPunchline(text) {
 if (hasPunchline(draft)) hits.push('structural: punchline');
 
 function hasHeresTheTwist(text) {
-  return /\bhere(?:['\u2019]s|\s+is)\s+(?:the|a|my|one)\s+(?:twist|thing|catch|kicker|rub)\b[\w\s-]{0,20}[:.]/i.test(text);
+  return /\bhere(?:['\u2019]s|\s+is)\s+(?:the|a|my|one)\s+(?:twist|catch|kicker|rub)\b[\w\s-]{0,20}[:.]/i.test(text);
 }
 if (hasHeresTheTwist(draft)) hits.push('structural: heres-the-twist');
 
@@ -205,12 +205,12 @@ function hasNotNothing(text) {
 if (hasNotNothing(draft)) hits.push('structural: not-nothing');
 
 function hasWorthNaming(text) {
-  return /(?:\b(?:is|are|was|were|feels?|felt|seems?|seemed)|['\u2019]s)\s+(?:\w+\s+){0,2}?worth\s+naming\b(?!\s+names\b)|\bworth\s+naming\s*:/i.test(text);
+  return /\bit(?:['\u2019]s|\s+is)\s+worth\s+naming\b(?!\s+(?:in|as|for)\b)|\bworth\s+naming\s*(?:that\b|:)/i.test(text);
 }
 if (hasWorthNaming(draft)) hits.push('structural: worth-naming');
 
 function hasPerformativeHonesty(text) {
-  return /\bI\s+(?:will\s+not|won['\u2019]t)\s+pretend\b|\b(?:I['\u2019]ll|let['\u2019]s)\s+be\s+honest\b|\bto\s+be\s+clear\b|(?:^|[.!?\u2013\u2014]\s+|\n)(?:Honestly|Look)\s*,/i.test(text);
+  return /\bI\s+(?:will\s+not|won['\u2019]t)\s+pretend\b|\b(?:I['\u2019]ll|let['\u2019]s)\s+be\s+honest\b|(?:^|[.!?\u2013\u2014]\s+|\n)(?:Honestly|Look)\s*,/i.test(text);
 }
 if (hasPerformativeHonesty(draft)) hits.push('structural: performative-honesty');
 
@@ -220,23 +220,26 @@ function hasTakeMyWord(text) {
 if (hasTakeMyWord(draft)) hits.push('structural: take-my-word');
 
 function hasTurnsOut(text) {
-  return /(?:^|[.!?\u2013\u2014]\s+|\n)Turns\s+out\b|\bit\s+turns\s+out\s+that\b/i.test(text);
+  return /(?:^|[.!?\u2013\u2014]\s+|\n)Turns\s+out\b/i.test(text);
 }
 if (hasTurnsOut(draft)) hits.push('structural: turns-out');
 
 const ANAPHORA_SKIP = /^(?:i|it|the|a|an|this|that|we|you|they|he|she|there|but|and|so|in|as|if|my|his|her|their|its|these|those|for|at|on|of|to|is|was)$/i;
+const ANAPHORA_CHECKLIST = /^(?:check|set|run|restart)$/i;
 function hasSentenceAnaphora(text) {
   const SENT = /[^.!?\n]+[.!?]/g;
   const sents = [];
   for (const m of text.matchAll(SENT)) {
-    const w = m[0].match(/[A-Za-z'\u2019-]+/);
-    if (w) {
-      sents.push({
-        start: m.index + m[0].indexOf(w[0]),
-        end: m.index + m[0].length,
-        head: w[0].toLowerCase(),
-      });
-    }
+    if (/^\s*(?:[-*+]|\d+\.)\s/.test(m[0])) continue;
+    const w = m[0].match(/[A-Za-z'\u2019]+/);
+    if (!w) continue;
+    const head = w[0].toLowerCase();
+    if (ANAPHORA_CHECKLIST.test(head)) continue;
+    sents.push({
+      start: m.index + m[0].indexOf(w[0]),
+      end: m.index + m[0].length,
+      head,
+    });
   }
   for (let i = 0; i < sents.length; i++) {
     let j = i;
@@ -254,7 +257,10 @@ function hasSentenceAnaphora(text) {
 if (hasSentenceAnaphora(draft)) hits.push('structural: sentence-anaphora');
 
 function hasNotJust(text) {
-  return /\bnot\s+(?:just|only)\s+[^.!?\n;]*?\bbut(?:\s+also)?\b/i.test(text);
+  return (
+    /\bnot\s+just\s+[^.!?\n;]*?\bbut(?:\s+also)?\b/i.test(text) ||
+    /\bit(?:['\u2019]s|\s+is)\s+not\s+[^.!?\n;]{1,60}[\u2013\u2014]\s*it(?:['\u2019]s|\s+is)\b/i.test(text)
+  );
 }
 if (hasNotJust(draft)) hits.push('structural: not-just');
 
@@ -264,17 +270,17 @@ function hasAiLeftovers(text) {
 if (hasAiLeftovers(draft)) hits.push('structural: ai-leftovers');
 
 function hasDespiteChallenges(text) {
-  return /\bdespite\s+(?:these|those|such|its|their|the|numerous|significant|ongoing)\s+(?:\w+\s+)?challenges\b|\bfac(?:e|es|ed|ing)\s+(?:several|numerous|many|significant|various|a\s+number\s+of)\s+challenges\b|\bchallenges\s+remain\b|\bremains\s+to\s+be\s+seen\b|\b(?:only\s+)?time\s+will\s+tell\b/i.test(text);
+  return /\bdespite\s+(?:these|those|such|its|their|the|numerous|significant|ongoing)\s+(?:\w+\s+)?challenges\b|\bfac(?:e|es|ed|ing)\s+(?:several|numerous|many|significant|various|a\s+number\s+of)\s+challenges\b/i.test(text);
 }
 if (hasDespiteChallenges(draft)) hits.push('structural: despite-challenges');
 
 function hasParticipleTail(text) {
-  return /,\s+(?:highlighting|underscoring|showcasing|reflecting)\s+(?:its|his|her|their|our|the|a|an|how|that|what|both)\b/i.test(text);
+  return /,\s+(?:highlighting|underscoring|showcasing)\s+the\b/i.test(text);
 }
 if (hasParticipleTail(draft)) hits.push('structural: participle-tail');
 
 function hasVagueExperts(text) {
-  return /\b(?:many|some|several|most|numerous)?\s*(?:experts|critics|observers|scholars|analysts|commentators)\s+(?:have\s+|often\s+|widely\s+)?(?:argu(?:e|es|ed)|not(?:e|es|ed)|suggest(?:s|ed)?|believ(?:e|es|ed)|agree[ds]?|contend(?:s|ed)?|observ(?:e|es|ed)|caution(?:s|ed)?|claim(?:s|ed)?|cit(?:e|es|ed)|point(?:s|ed)?\s+out)\b|\bindustry\s+reports?\s+(?:suggest|indicate|show)\w*\b/i.test(text);
+  return /\b(?:many|some|several|most|numerous)?\s*(?:experts|critics|observers|scholars|commentators)\s+(?:have\s+|often\s+|widely\s+)?(?:argu(?:e|es|ed)|suggest(?:s|ed)?|believ(?:e|es|ed)|agree[ds]?|contend(?:s|ed)?|observ(?:e|es|ed)|caution(?:s|ed)?|claim(?:s|ed)?|cit(?:e|es|ed)|point(?:s|ed)?\s+out)\b|\bindustry\s+reports?\s+(?:suggest|indicate|show)\w*\b/i.test(text);
 }
 if (hasVagueExperts(draft)) hits.push('structural: vague-experts');
 

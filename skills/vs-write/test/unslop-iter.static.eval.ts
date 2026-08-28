@@ -72,6 +72,8 @@ describe('vs-write: fixture-backed unslop pins', () => {
     expect(REJECT_SRC).toMatch(/process\.exit\(1\)/);
     expect(reject(CLOSER).status).toBe(1);
     expect(reject(CLEAN).status).toBe(0);
+    expect(reject(path.join(FIXTURE_DIR, 'task-6-release-announcement.md')).status).toBe(0);
+    expect(reject(path.join(FIXTURE_DIR, 'ordinary-ops-note.md')).status).toBe(0);
     expect(SKILL).toMatch(
       /end the artifact on the last concrete fact, takeaway, or next action/i,
     );
@@ -295,12 +297,12 @@ describe('vs-write: fixture-backed unslop pins', () => {
 
   it('reject-slop fails structural-turns-out without quoting the canary in SKILL', () => {
     const body = fs.readFileSync(TURNS_OUT, 'utf8');
-    expect(body).toMatch(/It turns out that nobody tested it/);
+    expect(body).toMatch(/Turns out nobody tested it/);
     expect(body).toMatch(/TURNSOUT_CANARY_K7/);
     expect(reject(TURNS_OUT).status).toBe(1);
     expect(reject(SKILL_PATH).status).toBe(0);
     expect(SKILL).not.toMatch(/TURNSOUT_CANARY_K7/);
-    expect(SKILL).not.toMatch(/It turns out that nobody tested it/);
+    expect(SKILL).not.toMatch(/Turns out nobody tested it/);
   });
 
 
