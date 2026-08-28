@@ -14,7 +14,7 @@ import { fileURLToPath } from 'node:url';
 
 const SELF = fileURLToPath(import.meta.url);
 const PUBLISHED_REJECTOR_SHA256 =
-  '78f45efa4fbb9a5b1551ce11251a148105ba18609f3306fd826ba08f4b979cc4';
+  'f11a69408ad1db23496b3028c6363604eb12c6a4ae38931d4b6e04d7e4d24a5a';
 const PUBLISHED_SKILL_SHA256 =
   '2ad0ebfd93640d3d9e277f1d98020dfd1fcbcbef0e9212bcc794917100411cc2';
 
@@ -160,6 +160,7 @@ function isOrdinaryImperative(sentence) {
 }
 
 function hasEchoRun(text) {
+  text = text.replace(/(^|\n)\s*\d+\.\s+/g, '$1');
   const SENT = /[^.!?\n]+[.!?]?/g;
   const grams = (s) => {
     const words = s.toLowerCase().match(/[a-z0-9'’-]+/g) || [];
@@ -187,11 +188,8 @@ function hasEchoRun(text) {
       const run = sents.slice(i, j + 1);
       const LIST_MARK = /^\s*(?:[-*+]|\d+\.)\s+(?:\[[ xX]\]\s+)?/;
       const probe = (s) => {
-        const stripped = s.text.replace(LIST_MARK, '');
-        if (stripped !== s.text && !/[.!?\s]*[.!?]\s*$/.test(stripped.trim())) {
-          return stripped.trim() + '.';
-        }
-        return stripped;
+        const stripped = s.text.replace(LIST_MARK, '').trim();
+        return /[.!?]\s*$/.test(stripped) ? stripped : stripped + '.';
       };
       if (run.every((s) => isOrdinaryImperative(probe(s)))) continue;
       return true;
