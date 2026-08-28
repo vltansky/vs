@@ -207,6 +207,21 @@ export const SLOP_FIXTURES = [
   'structural-stacked-questions.md',
   'structural-echo-run.md',
   'structural-colon-triple.md',
+  'structural-did-not-chain.md',
+  'structural-already-know.md',
+  'structural-punchline.md',
+  'structural-heres-the-twist.md',
+  'structural-not-nothing.md',
+  'structural-worth-naming.md',
+  'structural-performative-honesty.md',
+  'structural-take-my-word.md',
+  'structural-turns-out.md',
+  'structural-sentence-anaphora.md',
+  'structural-not-just.md',
+  'structural-ai-leftovers.md',
+  'structural-despite-challenges.md',
+  'structural-participle-tail.md',
+  'structural-vague-experts.md',
 ] as const;
 
 const STOPWORDS = new Set([

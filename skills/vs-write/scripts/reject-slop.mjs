@@ -14,7 +14,7 @@ import { fileURLToPath } from 'node:url';
 
 const SELF = fileURLToPath(import.meta.url);
 const PUBLISHED_REJECTOR_SHA256 =
-  '1f965a949876a793a12319e4ce0b2b085fe82796363eb30d01c016356a8f5ee3';
+  'a9df63e568242aba9282d373b70487385981f5521f7261574321aeabef045f13';
 const PUBLISHED_SKILL_SHA256 =
   '2ad0ebfd93640d3d9e277f1d98020dfd1fcbcbef0e9212bcc794917100411cc2';
 
@@ -101,16 +101,26 @@ const CHAIN_BODY = String.raw`[^,.;:!?\n\u2013\u2014\u2026]*`;
 const CHAIN_SEP = String.raw`(?:\s*,\s*(?:and\s+|or\s+)?|\s+(?:and|or)\s+|\s*[;&\u2013\u2014]\s*(?:and\s+|or\s+)?|\s+-{1,2}\s+)`;
 const CHAIN_SPLIT = new RegExp(CHAIN_SEP, 'i');
 
-function hasNoChain(text) {
-  const head = String.raw`no[-\s]`;
+function hasChain(text, head, headTest) {
   const item = head + CHAIN_BODY;
   const chain = new RegExp(String.raw`\b${item}(?:${CHAIN_SEP}${item})+`, 'gi');
-  const headTest = /^no[-\s]/i;
   for (const m of text.matchAll(chain)) {
     const count = m[0].split(CHAIN_SPLIT).filter((part) => headTest.test(part.trim())).length;
     if (count >= 2) return true;
   }
   return false;
+}
+
+function hasNoChain(text) {
+  return hasChain(text, String.raw`no[-\s]`, /^no[-\s]/i);
+}
+
+function hasDidNotChain(text) {
+  return hasChain(
+    text,
+    String.raw`(?:did\s+not|didn['\u2019]t)\s`,
+    /^(?:did\s+not|didn['\u2019]t)\s/i,
+  );
 }
 
 const hits = RULES.filter((rule) => rule.re.test(draft)).map((rule) => rule.name);
@@ -119,6 +129,7 @@ function hasDontVerbIt(text) {
 }
 
 if (hasNoChain(draft)) hits.push('structural: no-chain');
+if (hasDidNotChain(draft)) hits.push('structural: did-not-chain');
 if (hasDontVerbIt(draft)) hits.push('structural: dont-verb-it');
 
 function hasSitWith(text) {
@@ -138,6 +149,15 @@ function hasStackedQuestions(text) {
   return /[^.!?\n]+\?(?:\s+[^.!?\n]+\?)+/.test(text);
 }
 if (hasStackedQuestions(draft)) hits.push('structural: stacked-questions');
+
+const ANAPHORA_SKIP = /^(?:i|it|the|a|an|this|that|we|you|they|he|she|there|but|and|so|in|as|if|my|his|her|their|its|these|those|for|at|on|of|to|is|was)$/i;
+function isOrdinaryImperative(sentence) {
+  const s = sentence.trim();
+  if (/^(?:Please\s+)?(?:maybe|perhaps|probably|possibly)\b/i.test(s)) return false;
+  const head = s.replace(/^Please\s+/i, '').match(/^[A-Za-z]+/);
+  if (!head || ANAPHORA_SKIP.test(head[0])) return false;
+  return /^(?:Please\s+)?[A-Za-z]+(?:\s+(?:the|a|an|your|our|this|that))?(?:\s+[\w./:-]+)+[.!?]\s*$/i.test(s);
+}
 
 function hasEchoRun(text) {
   const SENT = /[^.!?\n]+[.!?]?/g;
@@ -163,7 +183,11 @@ function hasEchoRun(text) {
       shared = common[0];
       j += 1;
     }
-    if (j - i + 1 >= 2 && shared) return true;
+    if (j - i + 1 >= 2 && shared) {
+      const run = sents.slice(i, j + 1);
+      if (run.every((s) => isOrdinaryImperative(s.text))) continue;
+      return true;
+    }
   }
   return false;
 }
@@ -173,6 +197,108 @@ function hasColonTriple(text) {
   return /:\s+[^.!?;:\n]{2,40},\s+[^.!?;:\n]{2,40},\s+(?:and\s+|or\s+)?[^.!?;:\n]{2,40}(?=[.!?\n])/.test(text);
 }
 if (hasColonTriple(draft)) hits.push('structural: colon-triple');
+function hasAlreadyKnow(text) {
+  return /\byou\s+already\s+knows?(?:\s+the\s+answer)?\b(?![ \t]+\w)/i.test(text);
+}
+if (hasAlreadyKnow(draft)) hits.push('structural: already-know');
+
+function hasPunchline(text) {
+  return /\bthe\s+punchline(?:\s+(?:is|was|being)\b|\s*[:?])/i.test(text);
+}
+if (hasPunchline(draft)) hits.push('structural: punchline');
+
+function hasHeresTheTwist(text) {
+  return /\bhere(?:['\u2019]s|\s+is)\s+the\s+(?:twist|kicker|rub)\b[\w\s-]{0,20}[:.]/i.test(text);
+}
+if (hasHeresTheTwist(draft)) hits.push('structural: heres-the-twist');
+
+function hasNotNothing(text) {
+  return /\b(?:that|this|it|which)(?:['\u2019]s|\s+(?:is|was))\s+not\s+nothing\b/i.test(text);
+}
+if (hasNotNothing(draft)) hits.push('structural: not-nothing');
+
+function hasWorthNaming(text) {
+  return /\bworth\s+naming\s*(?:that\b|:)/i.test(text);
+}
+if (hasWorthNaming(draft)) hits.push('structural: worth-naming');
+
+function hasPerformativeHonesty(text) {
+  return /\bI\s+(?:will\s+not|won['\u2019]t)\s+pretend\b|\b(?:I['\u2019]ll|let['\u2019]s)\s+be\s+honest\b/i.test(text);
+}
+if (hasPerformativeHonesty(draft)) hits.push('structural: performative-honesty');
+
+function hasTakeMyWord(text) {
+  return /\b(?:you\s+)?(?:do\s+not|don['\u2019]t)\s+(?:have\s+to\s+)?take\s+my\s+word\s+for\s+(?:it|any\s+of\s+(?:it|this|that))\b/i.test(text);
+}
+if (hasTakeMyWord(draft)) hits.push('structural: take-my-word');
+
+function hasTurnsOut(text) {
+  return /(?:^|[.!?\u2013\u2014]\s+|\n)Turns\s+out\b/i.test(text);
+}
+if (hasTurnsOut(draft)) hits.push('structural: turns-out');
+
+function hasSentenceAnaphora(text) {
+  const SENT = /[^.!?\n]+[.!?]/g;
+  const sents = [];
+  for (const m of text.matchAll(SENT)) {
+    if (/^\s*(?:[-*+]|\d+\.)\s/.test(m[0])) continue;
+    const w = m[0].match(/[A-Za-z'\u2019]+/);
+    if (!w) continue;
+    const head = w[0].toLowerCase();
+    sents.push({
+      start: m.index + m[0].indexOf(w[0]),
+      end: m.index + m[0].length,
+      head,
+      text: m[0],
+    });
+  }
+  for (let i = 0; i < sents.length; i++) {
+    let j = i;
+    while (
+      j + 1 < sents.length &&
+      sents[j + 1].head === sents[i].head &&
+      sents[j + 1].start - sents[j].end < 4
+    ) {
+      j += 1;
+    }
+    if (j - i + 1 >= 3 && !ANAPHORA_SKIP.test(sents[i].head)) {
+      const run = sents.slice(i, j + 1);
+      if (run.every((s) => isOrdinaryImperative(s.text))) continue;
+      return true;
+    }
+  }
+  return false;
+}
+if (hasSentenceAnaphora(draft)) hits.push('structural: sentence-anaphora');
+
+function hasNotJust(text) {
+  return (
+    /\bnot\s+just\s+[^.!?\n;]*?\bbut(?:\s+also)?\b/i.test(text) ||
+    /\bit(?:['\u2019]s|\s+is)\s+not\s+[^.!?\n;]{1,60}[\u2013\u2014]\s*it(?:['\u2019]s|\s+is)\b/i.test(text)
+  );
+}
+if (hasNotJust(draft)) hits.push('structural: not-just');
+
+function hasAiLeftovers(text) {
+  return /\bas\s+an\s+ai(?:\s+language)?\s+model\b|\bas\s+of\s+my\s+last\s+(?:update|training)\b|\bknowledge\s+cutoff\b|contentReference|oaicite|turn0(?:search|news|image)\d*/i.test(text);
+}
+if (hasAiLeftovers(draft)) hits.push('structural: ai-leftovers');
+
+function hasDespiteChallenges(text) {
+  return /\bdespite\s+(?:these|those|such|its|their|numerous|significant|ongoing)\s+(?:\w+\s+)?challenges\b|\bfac(?:e|es|ed|ing)\s+(?:several|numerous|many|significant|various|a\s+number\s+of)\s+challenges\b/i.test(text);
+}
+if (hasDespiteChallenges(draft)) hits.push('structural: despite-challenges');
+
+function hasParticipleTail(text) {
+  return /,\s+(?:highlighting|underscoring|showcasing)\s+the\b/i.test(text);
+}
+if (hasParticipleTail(draft)) hits.push('structural: participle-tail');
+
+function hasVagueExperts(text) {
+  return /\b(?:many|some|several|most|numerous)?\s*(?:experts|critics|observers|scholars|commentators)\s+(?:have\s+|often\s+|widely\s+)?(?:argu(?:e|es|ed)|suggest(?:s|ed)?|believ(?:e|es|ed)|agree[ds]?|contend(?:s|ed)?|observ(?:e|es|ed)|caution(?:s|ed)?|claim(?:s|ed)?|cit(?:e|es|ed)|point(?:s|ed)?\s+out|not(?:e|es|ed))\b/i.test(text);
+}
+if (hasVagueExperts(draft)) hits.push('structural: vague-experts');
+
 if (hits.length > 0) {
   for (const name of hits) console.error(`reject-slop: ${name}`);
   process.exit(1);

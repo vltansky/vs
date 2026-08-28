@@ -92,6 +92,48 @@ describe('vs-write: prose unslop pins', () => {
     expect(
       reject(path.join(FIXTURE_DIR, 'clean-deploy-note.md')).status,
     ).toBe(0);
+    expect(
+      reject(path.join(FIXTURE_DIR, 'task-6-release-announcement.md')).status,
+    ).toBe(0);
+    expect(
+      reject(path.join(FIXTURE_DIR, 'ordinary-ops-note.md')).status,
+    ).toBe(0);
+    expect(
+      reject(path.join(FIXTURE_DIR, 'ordinary-verify-replica.md')).status,
+    ).toBe(0);
+    expect(
+      reject(path.join(FIXTURE_DIR, 'ordinary-ensure-redis.md')).status,
+    ).toBe(0);
+    expect(
+      reject(path.join(FIXTURE_DIR, 'ordinary-confirm-replica.md')).status,
+    ).toBe(0);
+    expect(
+      reject(path.join(FIXTURE_DIR, 'ordinary-please-verify.md')).status,
+    ).toBe(0);
+    expect(
+      reject(path.join(FIXTURE_DIR, 'ordinary-ship-shards.md')).status,
+    ).toBe(0);
+    expect(
+      reject(path.join(FIXTURE_DIR, 'ordinary-verify-class.md')).status,
+    ).toBe(0);
+    expect(fs.readFileSync(path.join(FIXTURE_DIR, 'ordinary-verify-replica.md'), 'utf8')).toContain(
+      'Verify the redis replica is up. Verify the redis replica is up. Verify the redis replica is up.',
+    );
+    expect(fs.readFileSync(path.join(FIXTURE_DIR, 'ordinary-ensure-redis.md'), 'utf8')).toContain(
+      'Ensure redis is up. Ensure redis is up. Ensure redis is up.',
+    );
+    expect(fs.readFileSync(path.join(FIXTURE_DIR, 'ordinary-confirm-replica.md'), 'utf8')).toContain(
+      'Confirm the redis replica is healthy. Confirm the redis replica is healthy. Confirm the redis replica is healthy.',
+    );
+    expect(fs.readFileSync(path.join(FIXTURE_DIR, 'ordinary-please-verify.md'), 'utf8')).toContain(
+      'Please verify redis. Please verify redis. Please verify redis.',
+    );
+    expect(fs.readFileSync(path.join(FIXTURE_DIR, 'ordinary-ship-shards.md'), 'utf8')).toContain(
+      'Ship the canary to shard B. Ship the canary to shard C. Ship the canary to shard D.',
+    );
+    expect(fs.readFileSync(path.join(FIXTURE_DIR, 'ordinary-verify-class.md'), 'utf8')).toContain(
+      'Verify redis is up on replica 2 before the join. Verify postgres is up on replica 3 before the join. Verify the queue is draining.',
+    );
     expect(SKILL).toMatch(/skills\/vs-write\/scripts\/reject-slop\.mjs/);
     expect(SKILL).toMatch(/end the artifact on the last concrete fact/i);
     expect(SKILL).not.toMatch(/self-audit/i);
@@ -182,6 +224,185 @@ describe('vs-write: prose unslop pins', () => {
     expect(SKILL).not.toMatch(/COLONTRIP_CANARY_K7/);
     expect(SKILL).not.toMatch(/a blog post, a demo video, and a pricing page/);
   });
+
+  it('reject-slop fails structural-did-not-chain and keeps the canary out of SKILL', () => {
+    const fixture = path.join(FIXTURE_DIR, 'structural-did-not-chain.md');
+    const body = fs.readFileSync(fixture, 'utf8');
+    expect(body).toMatch(/Did not flinch, did not blink/);
+    expect(body).toMatch(/DIDNOTCHAIN_CANARY_K7/);
+    expect(reject(fixture).status).toBe(1);
+    expect(reject(SKILL_PATH).status).toBe(0);
+    expect(SKILL).not.toMatch(/DIDNOTCHAIN_CANARY_K7/);
+    expect(SKILL).not.toMatch(/Did not flinch, did not blink/);
+  });
+
+  it('reject-slop fails structural-already-know and keeps the canary out of SKILL', () => {
+    const fixture = path.join(FIXTURE_DIR, 'structural-already-know.md');
+    const body = fs.readFileSync(fixture, 'utf8');
+    expect(body).toMatch(/You already know the answer/);
+    expect(body).toMatch(/ALREADYKNOW_CANARY_K7/);
+    expect(reject(fixture).status).toBe(1);
+    expect(reject(SKILL_PATH).status).toBe(0);
+    expect(SKILL).not.toMatch(/ALREADYKNOW_CANARY_K7/);
+    expect(SKILL).not.toMatch(/You already know the answer/);
+  });
+
+
+  it('reject-slop fails structural-punchline and keeps the canary out of SKILL', () => {
+    const fixture = path.join(FIXTURE_DIR, 'structural-punchline.md');
+    const body = fs.readFileSync(fixture, 'utf8');
+    expect(body).toMatch(/The punchline is that nobody laughed/);
+    expect(body).toMatch(/PUNCHLINE_CANARY_K7/);
+    expect(reject(fixture).status).toBe(1);
+    expect(reject(SKILL_PATH).status).toBe(0);
+    expect(SKILL).not.toMatch(/PUNCHLINE_CANARY_K7/);
+    expect(SKILL).not.toMatch(/The punchline is that nobody laughed/);
+  });
+
+
+  it('reject-slop fails structural-heres-the-twist and keeps the canary out of SKILL', () => {
+    const fixture = path.join(FIXTURE_DIR, 'structural-heres-the-twist.md');
+    const body = fs.readFileSync(fixture, 'utf8');
+    expect(body).toMatch(/Here's the twist: nobody clicked it/);
+    expect(body).toMatch(/HERESTWIST_CANARY_K7/);
+    expect(reject(fixture).status).toBe(1);
+    expect(reject(SKILL_PATH).status).toBe(0);
+    expect(SKILL).not.toMatch(/HERESTWIST_CANARY_K7/);
+    expect(SKILL).not.toMatch(/Here's the twist: nobody clicked it/);
+  });
+
+
+  it('reject-slop fails structural-not-nothing and keeps the canary out of SKILL', () => {
+    const fixture = path.join(FIXTURE_DIR, 'structural-not-nothing.md');
+    const body = fs.readFileSync(fixture, 'utf8');
+    expect(body).toMatch(/That's not nothing/);
+    expect(body).toMatch(/NOTNOTHING_CANARY_K7/);
+    expect(reject(fixture).status).toBe(1);
+    expect(reject(SKILL_PATH).status).toBe(0);
+    expect(SKILL).not.toMatch(/NOTNOTHING_CANARY_K7/);
+    expect(SKILL).not.toMatch(/That's not nothing/);
+  });
+
+
+  it('reject-slop fails structural-worth-naming and keeps the canary out of SKILL', () => {
+    const fixture = path.join(FIXTURE_DIR, 'structural-worth-naming.md');
+    const body = fs.readFileSync(fixture, 'utf8');
+    expect(body).toMatch(/It's worth naming that this hurts/);
+    expect(body).toMatch(/WORTHNAMING_CANARY_K7/);
+    expect(reject(fixture).status).toBe(1);
+    expect(reject(SKILL_PATH).status).toBe(0);
+    expect(SKILL).not.toMatch(/WORTHNAMING_CANARY_K7/);
+    expect(SKILL).not.toMatch(/It's worth naming that this hurts/);
+  });
+
+
+  it('reject-slop fails structural-performative-honesty and keeps the canary out of SKILL', () => {
+    const fixture = path.join(FIXTURE_DIR, 'structural-performative-honesty.md');
+    const body = fs.readFileSync(fixture, 'utf8');
+    expect(body).toMatch(/I won't pretend the rollout was smooth/);
+    expect(body).toMatch(/PERFHONEST_CANARY_K7/);
+    expect(reject(fixture).status).toBe(1);
+    expect(reject(SKILL_PATH).status).toBe(0);
+    expect(SKILL).not.toMatch(/PERFHONEST_CANARY_K7/);
+    expect(SKILL).not.toMatch(/I won't pretend the rollout was smooth/);
+  });
+
+
+  it('reject-slop fails structural-take-my-word and keeps the canary out of SKILL', () => {
+    const fixture = path.join(FIXTURE_DIR, 'structural-take-my-word.md');
+    const body = fs.readFileSync(fixture, 'utf8');
+    expect(body).toMatch(/Don't take my word for it/);
+    expect(body).toMatch(/TAKEMYWORD_CANARY_K7/);
+    expect(reject(fixture).status).toBe(1);
+    expect(reject(SKILL_PATH).status).toBe(0);
+    expect(SKILL).not.toMatch(/TAKEMYWORD_CANARY_K7/);
+    expect(SKILL).not.toMatch(/Don't take my word for it/);
+  });
+
+
+  it('reject-slop fails structural-turns-out and keeps the canary out of SKILL', () => {
+    const fixture = path.join(FIXTURE_DIR, 'structural-turns-out.md');
+    const body = fs.readFileSync(fixture, 'utf8');
+    expect(body).toMatch(/Turns out nobody tested it/);
+    expect(body).toMatch(/TURNSOUT_CANARY_K7/);
+    expect(reject(fixture).status).toBe(1);
+    expect(reject(SKILL_PATH).status).toBe(0);
+    expect(SKILL).not.toMatch(/TURNSOUT_CANARY_K7/);
+    expect(SKILL).not.toMatch(/Turns out nobody tested it/);
+  });
+
+
+  it('reject-slop fails structural-sentence-anaphora and keeps the canary out of SKILL', () => {
+    const fixture = path.join(FIXTURE_DIR, 'structural-sentence-anaphora.md');
+    const body = fs.readFileSync(fixture, 'utf8');
+    expect(body).toMatch(/Maybe nobody needed it\. Maybe the timing was off\. Maybe both\./);
+    expect(body).toMatch(/ANAPHORA_CANARY_K7/);
+    expect(reject(fixture).status).toBe(1);
+    expect(reject(SKILL_PATH).status).toBe(0);
+    expect(SKILL).not.toMatch(/ANAPHORA_CANARY_K7/);
+    expect(SKILL).not.toMatch(/Maybe nobody needed it\. Maybe the timing was off\. Maybe both\./);
+  });
+
+
+  it('reject-slop fails structural-not-just and keeps the canary out of SKILL', () => {
+    const fixture = path.join(FIXTURE_DIR, 'structural-not-just.md');
+    const body = fs.readFileSync(fixture, 'utf8');
+    expect(body).toMatch(/This is not just a tool, but a philosophy/);
+    expect(body).toMatch(/NOTJUST_CANARY_K7/);
+    expect(reject(fixture).status).toBe(1);
+    expect(reject(SKILL_PATH).status).toBe(0);
+    expect(SKILL).not.toMatch(/NOTJUST_CANARY_K7/);
+    expect(SKILL).not.toMatch(/This is not just a tool, but a philosophy/);
+  });
+
+
+  it('reject-slop fails structural-ai-leftovers and keeps the canary out of SKILL', () => {
+    const fixture = path.join(FIXTURE_DIR, 'structural-ai-leftovers.md');
+    const body = fs.readFileSync(fixture, 'utf8');
+    expect(body).toMatch(/As of my last update, the API was in beta/);
+    expect(body).toMatch(/AILEFTOVER_CANARY_K7/);
+    expect(reject(fixture).status).toBe(1);
+    expect(reject(SKILL_PATH).status).toBe(0);
+    expect(SKILL).not.toMatch(/AILEFTOVER_CANARY_K7/);
+    expect(SKILL).not.toMatch(/As of my last update, the API was in beta/);
+  });
+
+
+  it('reject-slop fails structural-despite-challenges and keeps the canary out of SKILL', () => {
+    const fixture = path.join(FIXTURE_DIR, 'structural-despite-challenges.md');
+    const body = fs.readFileSync(fixture, 'utf8');
+    expect(body).toMatch(/Despite these challenges, growth continued/);
+    expect(body).toMatch(/DESPITECHAL_CANARY_K7/);
+    expect(reject(fixture).status).toBe(1);
+    expect(reject(SKILL_PATH).status).toBe(0);
+    expect(SKILL).not.toMatch(/DESPITECHAL_CANARY_K7/);
+    expect(SKILL).not.toMatch(/Despite these challenges, growth continued/);
+  });
+
+
+  it('reject-slop fails structural-participle-tail and keeps the canary out of SKILL', () => {
+    const fixture = path.join(FIXTURE_DIR, 'structural-participle-tail.md');
+    const body = fs.readFileSync(fixture, 'utf8');
+    expect(body).toMatch(/Sales doubled, underscoring the strength of the brand/);
+    expect(body).toMatch(/PARTICIPLE_CANARY_K7/);
+    expect(reject(fixture).status).toBe(1);
+    expect(reject(SKILL_PATH).status).toBe(0);
+    expect(SKILL).not.toMatch(/PARTICIPLE_CANARY_K7/);
+    expect(SKILL).not.toMatch(/Sales doubled, underscoring the strength of the brand/);
+  });
+
+
+  it('reject-slop fails structural-vague-experts and keeps the canary out of SKILL', () => {
+    const fixture = path.join(FIXTURE_DIR, 'structural-vague-experts.md');
+    const body = fs.readFileSync(fixture, 'utf8');
+    expect(body).toMatch(/Experts argue that the policy failed/);
+    expect(body).toMatch(/VAGUEEXPERT_CANARY_K7/);
+    expect(reject(fixture).status).toBe(1);
+    expect(reject(SKILL_PATH).status).toBe(0);
+    expect(SKILL).not.toMatch(/VAGUEEXPERT_CANARY_K7/);
+    expect(SKILL).not.toMatch(/Experts argue that the policy failed/);
+  });
+
 });
 
 describe('vs-write: the eval canaries stay out of the instructions', () => {
