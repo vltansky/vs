@@ -78,6 +78,8 @@ describe('vs-write: fixture-backed unslop pins', () => {
     expect(reject(path.join(FIXTURE_DIR, 'ordinary-ensure-redis.md')).status).toBe(0);
     expect(reject(path.join(FIXTURE_DIR, 'ordinary-confirm-replica.md')).status).toBe(0);
     expect(reject(path.join(FIXTURE_DIR, 'ordinary-please-verify.md')).status).toBe(0);
+    expect(reject(path.join(FIXTURE_DIR, 'ordinary-ship-shards.md')).status).toBe(0);
+    expect(reject(path.join(FIXTURE_DIR, 'ordinary-verify-class.md')).status).toBe(0);
     expect(fs.readFileSync(path.join(FIXTURE_DIR, 'ordinary-verify-replica.md'), 'utf8')).toContain(
       'Verify the redis replica is up. Verify the redis replica is up. Verify the redis replica is up.',
     );
@@ -89,6 +91,12 @@ describe('vs-write: fixture-backed unslop pins', () => {
     );
     expect(fs.readFileSync(path.join(FIXTURE_DIR, 'ordinary-please-verify.md'), 'utf8')).toContain(
       'Please verify redis. Please verify redis. Please verify redis.',
+    );
+    expect(fs.readFileSync(path.join(FIXTURE_DIR, 'ordinary-ship-shards.md'), 'utf8')).toContain(
+      'Ship the canary to shard B. Ship the canary to shard C. Ship the canary to shard D.',
+    );
+    expect(fs.readFileSync(path.join(FIXTURE_DIR, 'ordinary-verify-class.md'), 'utf8')).toContain(
+      'Verify redis is up on replica 2 before the join. Verify postgres is up on replica 3 before the join. Verify the queue is draining.',
     );
     expect(SKILL).toMatch(
       /end the artifact on the last concrete fact, takeaway, or next action/i,

@@ -14,7 +14,7 @@ import { fileURLToPath } from 'node:url';
 
 const SELF = fileURLToPath(import.meta.url);
 const PUBLISHED_REJECTOR_SHA256 =
-  'da033f9db37c7877f133b537b3873b3ce5ed00b92cc7669f6c52f45305d53a1c';
+  'a9df63e568242aba9282d373b70487385981f5521f7261574321aeabef045f13';
 const PUBLISHED_SKILL_SHA256 =
   '2ad0ebfd93640d3d9e277f1d98020dfd1fcbcbef0e9212bcc794917100411cc2';
 
@@ -150,6 +150,15 @@ function hasStackedQuestions(text) {
 }
 if (hasStackedQuestions(draft)) hits.push('structural: stacked-questions');
 
+const ANAPHORA_SKIP = /^(?:i|it|the|a|an|this|that|we|you|they|he|she|there|but|and|so|in|as|if|my|his|her|their|its|these|those|for|at|on|of|to|is|was)$/i;
+function isOrdinaryImperative(sentence) {
+  const s = sentence.trim();
+  if (/^(?:Please\s+)?(?:maybe|perhaps|probably|possibly)\b/i.test(s)) return false;
+  const head = s.replace(/^Please\s+/i, '').match(/^[A-Za-z]+/);
+  if (!head || ANAPHORA_SKIP.test(head[0])) return false;
+  return /^(?:Please\s+)?[A-Za-z]+(?:\s+(?:the|a|an|your|our|this|that))?(?:\s+[\w./:-]+)+[.!?]\s*$/i.test(s);
+}
+
 function hasEchoRun(text) {
   const SENT = /[^.!?\n]+[.!?]?/g;
   const grams = (s) => {
@@ -176,8 +185,7 @@ function hasEchoRun(text) {
     }
     if (j - i + 1 >= 2 && shared) {
       const run = sents.slice(i, j + 1);
-      const norm = (s) => s.text.trim().toLowerCase();
-      if (run.every((s) => norm(s) === norm(run[0]))) continue;
+      if (run.every((s) => isOrdinaryImperative(s.text))) continue;
       return true;
     }
   }
@@ -229,12 +237,6 @@ function hasTurnsOut(text) {
 }
 if (hasTurnsOut(draft)) hits.push('structural: turns-out');
 
-const ANAPHORA_SKIP = /^(?:i|it|the|a|an|this|that|we|you|they|he|she|there|but|and|so|in|as|if|my|his|her|their|its|these|those|for|at|on|of|to|is|was)$/i;
-function isOrdinaryImperative(sentence) {
-  const s = sentence.trim();
-  if (/^(?:Please\s+)?(?:maybe|perhaps|probably|possibly)\b/i.test(s)) return false;
-  return /^(?:Please\s+)?[A-Za-z]+(?:\s+(?:the|a|an|your|our|this|that))?(?:\s+[\w./:-]+)+[.!?]\s*$/i.test(s);
-}
 function hasSentenceAnaphora(text) {
   const SENT = /[^.!?\n]+[.!?]/g;
   const sents = [];
