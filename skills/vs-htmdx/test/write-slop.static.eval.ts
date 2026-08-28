@@ -13,6 +13,7 @@ const FIX = path.join(__dirname, 'fixtures', 'write-slop');
 const SLOP = path.join(FIX, 'slop-paragraph.html');
 const CLEAN = path.join(FIX, 'clean-artifact.html');
 const CLEAN_PROPOSAL = path.join(FIX, 'clean-proposal.html');
+const NAME_FM = path.join(FIX, 'name-frontmatter.html');
 const SLOP_PROPOSAL = path.join(FIX, 'slop-proposal.html');
 const EXEMPT = path.join(FIX, 'exempt-non-prose.html');
 const SLOGAN = path.join(FIX, 'slogan-only-skill.md');
@@ -40,6 +41,8 @@ describe('vs-htmdx: write-slop runner scores extracted paragraph prose', () => {
   it('passes a clean artifact paragraph and a clean proposal paragraph', () => {
     expect(run(CLEAN).status).toBe(0);
     expect(run(CLEAN_PROPOSAL).status).toBe(0);
+    expect(run(NAME_FM).status).toBe(0);
+    expect(fs.readFileSync(NAME_FM, 'utf8')).toMatch(/^name:\s/m);
     expect(fs.readFileSync(CLEAN_PROPOSAL, 'utf8')).toMatch(
       /^layout: vs-proposal$/m,
     );
