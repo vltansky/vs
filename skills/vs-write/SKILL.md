@@ -167,7 +167,7 @@ The finished piece should read as one coherent voice.
 ## Output style
 
 Apply the [shared output style](../vs-internal-shared/references/output-style.md)
-to every user-facing message. Chat shape (no preamble, no filler closers,
+to every user-facing message. Chat shape (without preamble or filler closers;
 first line is the answer) lives there. The rules below apply to the copy.
 
 ## Cut the AI tells
@@ -180,7 +180,7 @@ first line is the answer) lives there. The rules below apply to the copy.
   End the artifact on the last concrete fact, takeaway, or next action.
 - Rewrite, then run `skills/vs-write/scripts/reject-slop.mjs` on the
   draft (exit 1 is a fail), then fix remaining tells. Ask what leftover
-  rhythm, closer, or comparison still marks the draft as machine-written.
+  rhythm, closer, comparison, or structural tell still marks the draft as machine-written.
   Preserve meaning and match the intended tone.
 
 ## Workflow

@@ -197,7 +197,17 @@ export const SLOP = [
 ];
 
 /** Slop-reject fixtures scored by scripts/reject-slop.mjs, not PathGrade. */
-export const SLOP_FIXTURES = ['bad-closer.md', 'comparison-crutch.md'] as const;
+export const SLOP_FIXTURES = [
+  'bad-closer.md',
+  'comparison-crutch.md',
+  'structural-no-chain.md',
+  'structural-dont-verb-it.md',
+  'structural-sit-with.md',
+  'structural-whole-point.md',
+  'structural-stacked-questions.md',
+  'structural-echo-run.md',
+  'structural-colon-triple.md',
+] as const;
 
 const STOPWORDS = new Set([
   'a', 'an', 'and', 'are', 'as', 'at', 'be', 'but', 'by', 'for', 'from', 'has',
