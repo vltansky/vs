@@ -20,6 +20,13 @@ const REJECT_SRC = fs.readFileSync(REJECT, 'utf8');
 const CLOSER = path.join(FIXTURE_DIR, 'bad-closer.md');
 const COMPARISON = path.join(FIXTURE_DIR, 'comparison-crutch.md');
 const CLEAN = path.join(FIXTURE_DIR, 'clean-deploy-note.md');
+const NO_CHAIN = path.join(FIXTURE_DIR, 'structural-no-chain.md');
+const DONT_VERB = path.join(FIXTURE_DIR, 'structural-dont-verb-it.md');
+const SIT_WITH = path.join(FIXTURE_DIR, 'structural-sit-with.md');
+const WHOLE_POINT = path.join(FIXTURE_DIR, 'structural-whole-point.md');
+const STACKED_Q = path.join(FIXTURE_DIR, 'structural-stacked-questions.md');
+const ECHO_RUN = path.join(FIXTURE_DIR, 'structural-echo-run.md');
+const COLON_TRIPLE = path.join(FIXTURE_DIR, 'structural-colon-triple.md');
 
 function reject(file: string) {
   return spawnSync(process.execPath, [REJECT, file], { encoding: 'utf8' });
@@ -77,7 +84,95 @@ describe('vs-write: fixture-backed unslop pins', () => {
   });
 
   it('registers the slop fixtures in cases.ts', () => {
-    expect([...SLOP_FIXTURES]).toEqual(['bad-closer.md', 'comparison-crutch.md']);
+    expect([...SLOP_FIXTURES]).toEqual([
+      'bad-closer.md',
+      'comparison-crutch.md',
+      'structural-no-chain.md',
+      'structural-dont-verb-it.md',
+      'structural-sit-with.md',
+      'structural-whole-point.md',
+      'structural-stacked-questions.md',
+      'structural-echo-run.md',
+      'structural-colon-triple.md',
+    ]);
+  });
+
+  it('reject-slop fails structural-no-chain without quoting the canary in SKILL', () => {
+    const body = fs.readFileSync(NO_CHAIN, 'utf8');
+    expect(body).toMatch(/No fluff, no filler, no jargon/);
+    expect(body).toMatch(/NOXYCHAIN_CANARY_K7/);
+    expect(reject(NO_CHAIN).status).toBe(1);
+    expect(reject(SKILL_PATH).status).toBe(0);
+    expect(SKILL).not.toMatch(/NOXYCHAIN_CANARY_K7/);
+    expect(SKILL).not.toMatch(/No fluff, no filler, no jargon/);
+    expect(SKILL).not.toMatch(
+      /a draft that matches test\/fixtures\/structural-no-chain\.md fails the audit/i,
+    );
+  });
+
+  it('reject-slop fails structural-dont-verb-it without quoting the canary in SKILL', () => {
+    const body = fs.readFileSync(DONT_VERB, 'utf8');
+    expect(body).toMatch(/Don't call it a rewrite\. Call it a rescue/);
+    expect(body).toMatch(/DONTVERBIT_CANARY_K7/);
+    expect(reject(DONT_VERB).status).toBe(1);
+    expect(reject(SKILL_PATH).status).toBe(0);
+    expect(SKILL).not.toMatch(/DONTVERBIT_CANARY_K7/);
+    expect(SKILL).not.toMatch(/Don't call it a rewrite/);
+    expect(SKILL).not.toMatch(
+      /a draft that matches test\/fixtures\/structural-dont-verb-it\.md fails the audit/i,
+    );
+  });
+
+
+  it('reject-slop fails structural-sit-with without quoting the canary in SKILL', () => {
+    const body = fs.readFileSync(SIT_WITH, 'utf8');
+    expect(body).toMatch(/Sit with that for a moment/);
+    expect(body).toMatch(/SITWITH_CANARY_K7/);
+    expect(reject(SIT_WITH).status).toBe(1);
+    expect(reject(SKILL_PATH).status).toBe(0);
+    expect(SKILL).not.toMatch(/SITWITH_CANARY_K7/);
+    expect(SKILL).not.toMatch(
+      /a draft that matches test\/fixtures\/structural-sit-with\\.md fails the audit/i,
+    );
+  });
+  it('reject-slop fails structural-whole-point without quoting the canary in SKILL', () => {
+    const body = fs.readFileSync(WHOLE_POINT, 'utf8');
+    expect(body).toMatch(/That's the whole point/);
+    expect(body).toMatch(/WHOLEPOINT_CANARY_K7/);
+    expect(reject(WHOLE_POINT).status).toBe(1);
+    expect(reject(SKILL_PATH).status).toBe(0);
+    expect(SKILL).not.toMatch(/WHOLEPOINT_CANARY_K7/);
+    expect(SKILL).not.toMatch(/That's the whole point/);
+  });
+
+  it('reject-slop fails structural-stacked-questions without quoting the canary in SKILL', () => {
+    const body = fs.readFileSync(STACKED_Q, 'utf8');
+    expect(body).toMatch(/Do I know how it works\? Where it breaks\?/);
+    expect(body).toMatch(/STACKQ_CANARY_K7/);
+    expect(reject(STACKED_Q).status).toBe(1);
+    expect(reject(SKILL_PATH).status).toBe(0);
+    expect(SKILL).not.toMatch(/STACKQ_CANARY_K7/);
+    expect(SKILL).not.toMatch(/Do I know how it works\? Where it breaks\?/);
+  });
+
+  it('reject-slop fails structural-echo-run without quoting the canary in SKILL', () => {
+    const body = fs.readFileSync(ECHO_RUN, 'utf8');
+    expect(body).toMatch(/A shopping cart is an object in the system\. A chat room is an object in the system\./);
+    expect(body).toMatch(/ECHOSKEL_CANARY_K7/);
+    expect(reject(ECHO_RUN).status).toBe(1);
+    expect(reject(SKILL_PATH).status).toBe(0);
+    expect(SKILL).not.toMatch(/ECHOSKEL_CANARY_K7/);
+    expect(SKILL).not.toMatch(/is an object in the system/);
+  });
+
+  it('reject-slop fails structural-colon-triple without quoting the canary in SKILL', () => {
+    const body = fs.readFileSync(COLON_TRIPLE, 'utf8');
+    expect(body).toMatch(/three things: a blog post, a demo video, and a pricing page/);
+    expect(body).toMatch(/COLONTRIP_CANARY_K7/);
+    expect(reject(COLON_TRIPLE).status).toBe(1);
+    expect(reject(SKILL_PATH).status).toBe(0);
+    expect(SKILL).not.toMatch(/COLONTRIP_CANARY_K7/);
+    expect(SKILL).not.toMatch(/a blog post, a demo video, and a pricing page/);
   });
 
   it('does not leave hedge slogans on the artifact', () => {

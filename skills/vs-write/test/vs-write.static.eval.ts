@@ -106,6 +106,82 @@ describe('vs-write: prose unslop pins', () => {
   it('pairs the audit with preserve meaning and match tone', () => {
     expect(SKILL).toMatch(/preserve meaning and match the intended tone/i);
   });
+
+  it('reject-slop fails structural-no-chain and keeps the canary out of SKILL', () => {
+    const fixture = path.join(FIXTURE_DIR, 'structural-no-chain.md');
+    const body = fs.readFileSync(fixture, 'utf8');
+    expect(body).toMatch(/No fluff, no filler, no jargon/);
+    expect(body).toMatch(/NOXYCHAIN_CANARY_K7/);
+    expect(reject(fixture).status).toBe(1);
+    expect(reject(SKILL_PATH).status).toBe(0);
+    expect(SKILL).not.toMatch(/NOXYCHAIN_CANARY_K7/);
+    expect(SKILL).not.toMatch(/No fluff, no filler, no jargon/);
+  });
+
+  it('reject-slop fails structural-dont-verb-it and keeps the canary out of SKILL', () => {
+    const fixture = path.join(FIXTURE_DIR, 'structural-dont-verb-it.md');
+    const body = fs.readFileSync(fixture, 'utf8');
+    expect(body).toMatch(/Don't call it a rewrite\. Call it a rescue/);
+    expect(body).toMatch(/DONTVERBIT_CANARY_K7/);
+    expect(reject(fixture).status).toBe(1);
+    expect(reject(SKILL_PATH).status).toBe(0);
+    expect(SKILL).not.toMatch(/DONTVERBIT_CANARY_K7/);
+    expect(SKILL).not.toMatch(/Don't call it a rewrite/);
+  });
+
+  it('reject-slop fails structural-sit-with and keeps the canary out of SKILL', () => {
+    const fixture = path.join(FIXTURE_DIR, 'structural-sit-with.md');
+    const body = fs.readFileSync(fixture, 'utf8');
+    expect(body).toMatch(/Sit with that for a moment/);
+    expect(body).toMatch(/SITWITH_CANARY_K7/);
+    expect(reject(fixture).status).toBe(1);
+    expect(reject(SKILL_PATH).status).toBe(0);
+    expect(SKILL).not.toMatch(/SITWITH_CANARY_K7/);
+  });
+
+  it('reject-slop fails structural-whole-point and keeps the canary out of SKILL', () => {
+    const fixture = path.join(FIXTURE_DIR, 'structural-whole-point.md');
+    const body = fs.readFileSync(fixture, 'utf8');
+    expect(body).toMatch(/That's the whole point/);
+    expect(body).toMatch(/WHOLEPOINT_CANARY_K7/);
+    expect(reject(fixture).status).toBe(1);
+    expect(reject(SKILL_PATH).status).toBe(0);
+    expect(SKILL).not.toMatch(/WHOLEPOINT_CANARY_K7/);
+    expect(SKILL).not.toMatch(/That's the whole point/);
+  });
+
+  it('reject-slop fails structural-stacked-questions and keeps the canary out of SKILL', () => {
+    const fixture = path.join(FIXTURE_DIR, 'structural-stacked-questions.md');
+    const body = fs.readFileSync(fixture, 'utf8');
+    expect(body).toMatch(/Do I know how it works\? Where it breaks\?/);
+    expect(body).toMatch(/STACKQ_CANARY_K7/);
+    expect(reject(fixture).status).toBe(1);
+    expect(reject(SKILL_PATH).status).toBe(0);
+    expect(SKILL).not.toMatch(/STACKQ_CANARY_K7/);
+    expect(SKILL).not.toMatch(/Do I know how it works\? Where it breaks\?/);
+  });
+
+  it('reject-slop fails structural-echo-run and keeps the canary out of SKILL', () => {
+    const fixture = path.join(FIXTURE_DIR, 'structural-echo-run.md');
+    const body = fs.readFileSync(fixture, 'utf8');
+    expect(body).toMatch(/A shopping cart is an object in the system\. A chat room is an object in the system\./);
+    expect(body).toMatch(/ECHOSKEL_CANARY_K7/);
+    expect(reject(fixture).status).toBe(1);
+    expect(reject(SKILL_PATH).status).toBe(0);
+    expect(SKILL).not.toMatch(/ECHOSKEL_CANARY_K7/);
+    expect(SKILL).not.toMatch(/is an object in the system/);
+  });
+
+  it('reject-slop fails structural-colon-triple and keeps the canary out of SKILL', () => {
+    const fixture = path.join(FIXTURE_DIR, 'structural-colon-triple.md');
+    const body = fs.readFileSync(fixture, 'utf8');
+    expect(body).toMatch(/three things: a blog post, a demo video, and a pricing page/);
+    expect(body).toMatch(/COLONTRIP_CANARY_K7/);
+    expect(reject(fixture).status).toBe(1);
+    expect(reject(SKILL_PATH).status).toBe(0);
+    expect(SKILL).not.toMatch(/COLONTRIP_CANARY_K7/);
+    expect(SKILL).not.toMatch(/a blog post, a demo video, and a pricing page/);
+  });
 });
 
 describe('vs-write: the eval canaries stay out of the instructions', () => {
