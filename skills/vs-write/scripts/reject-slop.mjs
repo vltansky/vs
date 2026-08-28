@@ -14,7 +14,7 @@ import { fileURLToPath } from 'node:url';
 
 const SELF = fileURLToPath(import.meta.url);
 const PUBLISHED_REJECTOR_SHA256 =
-  'f11a69408ad1db23496b3028c6363604eb12c6a4ae38931d4b6e04d7e4d24a5a';
+  '12b47cbc6ffe1c72d78768de8ea4e507e465e6bfdc9f4b9b41965fb1be8cd2bc';
 const PUBLISHED_SKILL_SHA256 =
   '2ad0ebfd93640d3d9e277f1d98020dfd1fcbcbef0e9212bcc794917100411cc2';
 
@@ -161,6 +161,7 @@ function isOrdinaryImperative(sentence) {
 
 function hasEchoRun(text) {
   text = text.replace(/(^|\n)\s*\d+\.\s+/g, '$1');
+  text = text.replace(/(^|\n)\s*\[[ xX]\]\s+/g, '$1');
   const SENT = /[^.!?\n]+[.!?]?/g;
   const grams = (s) => {
     const words = s.toLowerCase().match(/[a-z0-9'’-]+/g) || [];

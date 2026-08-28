@@ -83,6 +83,8 @@ describe('vs-write: fixture-backed unslop pins', () => {
     expect(reject(path.join(FIXTURE_DIR, 'ordinary-ship-list.md')).status).toBe(0);
     expect(reject(path.join(FIXTURE_DIR, 'ordinary-ship-list-marks.md')).status).toBe(0);
     expect(reject(path.join(FIXTURE_DIR, 'ordinary-ship-numbered.md')).status).toBe(0);
+    expect(reject(path.join(FIXTURE_DIR, 'ordinary-ship-numbered-check.md')).status).toBe(0);
+    expect(reject(path.join(FIXTURE_DIR, 'ordinary-ship-numbered-checked.md')).status).toBe(0);
     expect(fs.readFileSync(path.join(FIXTURE_DIR, 'ordinary-verify-replica.md'), 'utf8')).toContain(
       'Verify the redis replica is up. Verify the redis replica is up. Verify the redis replica is up.',
     );
@@ -121,6 +123,15 @@ describe('vs-write: fixture-backed unslop pins', () => {
     );
     expect(fs.readFileSync(path.join(FIXTURE_DIR, 'ordinary-ship-numbered.md'), 'utf8')).not.toMatch(
       /1\. Ship the canary to shard B\./,
+    );
+    expect(fs.readFileSync(path.join(FIXTURE_DIR, 'ordinary-ship-numbered-check.md'), 'utf8')).toContain(
+      '1. [ ] Ship the canary to shard B',
+    );
+    expect(fs.readFileSync(path.join(FIXTURE_DIR, 'ordinary-ship-numbered-check.md'), 'utf8')).toContain(
+      '2. [ ] Ship the canary to shard C',
+    );
+    expect(fs.readFileSync(path.join(FIXTURE_DIR, 'ordinary-ship-numbered-check.md'), 'utf8')).toContain(
+      '3. [ ] Ship the canary to shard D',
     );
     expect(SKILL).toMatch(
       /end the artifact on the last concrete fact, takeaway, or next action/i,
