@@ -20,6 +20,8 @@ const SLOGAN = path.join(FIX, 'slogan-only-skill.md');
 const MENTION = path.join(FIX, 'mention-only-skill.md');
 const RUNNER_ONLY = path.join(FIX, 'runner-only-skill.md');
 const PUBLISHED = path.join(FIX, 'published-pair', 'SKILL.md');
+const SLASH_ONLY = path.join(FIX, 'slash-only-skill.md');
+const DEAD_SLASH = path.join(FIX, 'dead-slash-skill.md');
 
 function run(target: string) {
   return spawnSync(process.execPath, [RUNNER, target], { encoding: 'utf8' });
@@ -91,6 +93,17 @@ describe('vs-htmdx: write-slop exclusive is live path or published pair', () => 
     expect(SKILL).not.toMatch(/SLOGAN_ONLY_WRITE_SLOP_CANARY/);
     expect(SKILL).not.toMatch(/MENTION_ONLY_WRITE_SLOP_CANARY/);
     expect(SKILL).not.toMatch(/RUNNER_ONLY_WRITE_SLOP_CANARY/);
+  });
+
+  it('accepts /vs-show-me slash-only inherit and fails a dead /vs-htmdx slash', () => {
+    expect(fs.readFileSync(SLASH_ONLY, 'utf8')).toMatch(/`\/vs-show-me`/);
+    expect(fs.readFileSync(SLASH_ONLY, 'utf8')).not.toMatch(/vs-htmdx\/SKILL\.md/);
+    expect(run(SLASH_ONLY).status).toBe(0);
+    expect(fs.readFileSync(DEAD_SLASH, 'utf8')).toMatch(/`\/vs-htmdx`/);
+    expect(fs.readFileSync(DEAD_SLASH, 'utf8')).not.toMatch(/vs-htmdx\/SKILL\.md/);
+    expect(run(DEAD_SLASH).status).toBe(1);
+    expect(SKILL).not.toMatch(/SLASH_ONLY_POINTER_CANARY/);
+    expect(SKILL).not.toMatch(/DEAD_SLASH_POINTER_CANARY/);
   });
 
   it('accepts the live skill and a published skill-bytes pair', () => {

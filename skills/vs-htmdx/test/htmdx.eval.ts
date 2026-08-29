@@ -9,6 +9,7 @@ const TEMPLATE = fs.readFileSync(path.join(SKILL_DIR, 'assets/artifact.html'), '
 describe('vs-htmdx', () => {
   it('defines a focused HTMDX trigger and portable single-file output', () => {
     expect(SKILL).toMatch(/^name: vs-show-me$/m);
+    expect(SKILL).not.toMatch(/`\/vs-htmdx`/);
     expect(SKILL).toMatch(
       /user wants a complex topic explained or shown visually[\s\S]{0,300}create, render, or edit an HTMDX artifact/i,
     );
