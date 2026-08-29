@@ -26,7 +26,7 @@ const SELF = fileURLToPath(import.meta.url);
 const PUBLISHED_REJECTOR_SHA256 =
   'a933da4ff1d177718376da4901db772c5f1b2232f7c340cf59e3fe2c694091ef';
 const PUBLISHED_SKILL_SHA256 =
-  'c8fe8483dd55c6ac0bf5fae832228e310cda38d929c115d5b11ad3c66c71b885';
+  'dc940ce116c416a415af12b8eb6de518ca4f8279c0a3ff3feda81aa3d3a51955';
 
 const SOURCE_BLOCK = /<script[^>]*type="text\/htmdx"[^>]*>([\s\S]*?)<\/script>/;
 const REJECT_SLOP = join(

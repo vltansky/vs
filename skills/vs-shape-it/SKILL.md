@@ -712,7 +712,7 @@ topology, present it to the user as an HTMDX proposal page through
 [`../vs-htmdx/SKILL.md`](../vs-htmdx/SKILL.md) (the proposal shell) with a
 short chat TLDR — not a wall of chat text. The machine-facing handoff for
 build-it stays Markdown. When this run creates HTMDX, inherit the URL +
-first-screen shot handoff from `/vs-htmdx`. Pointer only.
+first-screen shot handoff from `/vs-show-me`. Pointer only.
 
 ## Output style
 

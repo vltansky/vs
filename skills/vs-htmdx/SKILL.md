@@ -1,9 +1,9 @@
 ---
-name: vs-htmdx
+name: vs-show-me
 description: "Use when the user wants a complex topic explained or shown visually — a system, flow, architecture, or tradeoff; a proposal, RFC, design doc, decision brief, comparison, timeline, report, or dashboard; or asks to create, render, or edit an HTMDX artifact. A page of diagrams, metrics, and structured components replaces a wall of chat text. Produces one portable HTML file with editable HTMDX source."
 ---
 
-# HTMDX
+# Show me
 
 Turn source material into one visual artifact that a human can review in a
 browser and an agent can edit without touching generated markup.

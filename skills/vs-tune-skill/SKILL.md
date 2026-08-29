@@ -33,7 +33,7 @@ Warp text, scripts, HTML, report chrome, or a factories CTA.
   `NO_SESSIONS` (widen the window), `NO_SKILLS` (creating skills is the
   finding), or `BLOCKED`
 - **Consumers:** Skill authors; `/vs-eval` after a contract change;
-  `/vs-htmdx` for the review page; `/vs-search-threads` for inventory
+  `/vs-show-me` for the review page; `/vs-search-threads` for inventory
 - **Skip conditions:** Skip when the ask is a codebase audit
   (`/vs-improve`) or a hunt for a past chat (`/vs-search-threads`)
   rather than grading one installed skill against those chats
@@ -138,7 +138,7 @@ Do not modify the user's real skill files in this step.
 
 ## 5. Human review
 
-Compose `/vs-htmdx` for one picture page. Use `layout: default`. Never
+Compose `/vs-show-me` for one picture page. Use `layout: default`. Never
 use `layout: vs`. The page shows the scorecard, three findings, and the
 proposed diffs. Do not auto-open the HTML unless the user asks.
 

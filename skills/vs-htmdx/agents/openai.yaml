@@ -1,5 +1,5 @@
 interface:
-  display_name: "vs-htmdx"
+  display_name: "vs-show-me"
   short_description: "Create or edit portable visual HTMDX artifacts."
 
 policy:
