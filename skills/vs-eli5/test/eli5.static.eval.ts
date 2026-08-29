@@ -32,7 +32,7 @@ describe('vs-eli5 thin contract', () => {
     expect(SKILL).toMatch(/few words/i);
     expect(SKILL).toMatch(/knows nothing/i);
     expect(SKILL).toMatch(/Topic: \$ARGUMENTS/);
-    expect(SKILL).toMatch(/`\/vs-htmdx`/);
+    expect(SKILL).toMatch(/`\/vs-show-me`/);
     expect(SKILL).not.toContain('disable-model-invocation');
     expect(OPENAI_CONFIG).toContain('allow_implicit_invocation: true');
   });

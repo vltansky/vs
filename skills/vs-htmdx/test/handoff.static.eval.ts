@@ -73,7 +73,7 @@ describe('vs-htmdx URL + first-screen shot', () => {
     );
     expect(SKILL_RAW).toMatch(/test\/fixtures\/handoff/);
     expect(SKILL_RAW).toMatch(
-      /7f0d132a5da87497d26b5f7fa4b821422b7964472f2d28f4787bc0f260a56648/,
+      /9ae7eac41c141aad30a11c70fa882d3a1133bb9525360a7da50b5a99939b7d83/,
     );
     expect(reject(CLEAN_SHOT).status).toBe(0);
     expect(reject(CLEAN_FAIL).status).toBe(0);

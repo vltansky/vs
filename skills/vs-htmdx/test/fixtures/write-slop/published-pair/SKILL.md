@@ -1,9 +1,9 @@
 ---
-name: vs-htmdx
+name: vs-show-me
 description: "Use when the user wants a complex topic explained or shown visually — a system, flow, architecture, or tradeoff; a proposal, RFC, design doc, decision brief, comparison, timeline, report, or dashboard; or asks to create, render, or edit an HTMDX artifact. A page of diagrams, metrics, and structured components replaces a wall of chat text. Produces one portable HTML file with editable HTMDX source."
 ---
 
-# HTMDX
+# Show me
 
 Turn source material into one visual artifact that a human can review in a
 browser and an agent can edit without touching generated markup.
@@ -359,7 +359,7 @@ reply must include an openable URL **and** an attached first-screen shot.
 If the shot fails: still send the URL. Say `Shot failed:` plus the reason.
 Do not block the handoff. Callers inherit this section; they do not restate
 it. Score handoffs with `skills/vs-htmdx/scripts/reject-htmdx-handoff.mjs`
-(identity `7f0d132a5da87497d26b5f7fa4b821422b7964472f2d28f4787bc0f260a56648`;
+(identity `9ae7eac41c141aad30a11c70fa882d3a1133bb9525360a7da50b5a99939b7d83`;
 exit 1 is a fail). Exclusive cases live under `test/fixtures/handoff`.
 `Shot:` is a real image path, or `Shot failed: <reason>`. `Shot: n/a` is not a shot.
 

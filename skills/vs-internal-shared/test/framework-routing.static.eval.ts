@@ -18,6 +18,18 @@ const SKILLS = new Map(
   ]),
 );
 
+function slashName(skill: string) {
+  return skill.match(/^name:\s*(\S+)/m)?.[1];
+}
+
+function folderOf(id: string) {
+  if (SKILLS.has(id)) return id;
+  for (const [folder, skill] of SKILLS) {
+    if (slashName(skill) === id) return folder;
+  }
+  return undefined;
+}
+
 function routeLine(skill: string, field: 'Prev' | 'Next' | 'Relevant') {
   return skill.match(new RegExp(`^\\*\\*${field}:\\*\\* .+$`, 'gm')) ?? [];
 }
@@ -92,12 +104,12 @@ describe('framework routing', () => {
           `${name} Relevant must be lateral, not Prev or Next`,
         ).toBe(false);
 
-        const targetSkill = SKILLS.get(target);
-        expect(targetSkill, `${name} links to missing ${target}`).toBeDefined();
+        const targetFolder = folderOf(target);
+        expect(targetFolder, `${name} links to missing ${target}`).toBeDefined();
 
-        const [targetRelevant] = routeLine(targetSkill!, 'Relevant');
+        const [targetRelevant] = routeLine(SKILLS.get(targetFolder!)!, 'Relevant');
         expect(
-          linkedSkills(targetRelevant),
+          linkedSkills(targetRelevant).map((id) => folderOf(id) ?? id),
           `${name} and ${target} must link both ways`,
         ).toContain(name);
       }

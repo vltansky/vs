@@ -130,7 +130,7 @@ or more relationships are central to understanding a candidate. Use HTMDX only
 when comparing several candidates across several axes materially improves the
 decision; then follow
 [`../vs-internal-shared/references/rich-artifacts.md`](../vs-internal-shared/references/rich-artifacts.md)
-and compose `/vs-htmdx`. Do not create bespoke Tailwind/CDN report code.
+and compose `/vs-show-me`. Do not create bespoke Tailwind/CDN report code.
 
 End with:
 

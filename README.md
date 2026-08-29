@@ -189,7 +189,7 @@ Architecture: /vs-architect -> /vs-shape-it -> /vs-build-it
 | `/vs-pushback` | Stress-test a formed proposal with evidence, a smaller Ponytail alternative, and targeted decision questions |
 | `/vs-prototype` | Answer one UI or logic question with throwaway code |
 | `/vs-octocode` | Find external GitHub examples, patterns, and prior art |
-| `/vs-htmdx` | Turn source material into one portable visual HTMDX artifact |
+| `/vs-show-me` | Turn source material into one portable visual HTMDX artifact |
 | `/vs-rfc-research` | Turn code and research evidence into an RFC, ADR, or proposal |
 | `/vs-tdd` | Run a red-green-refactor loop |
 | `/vs-debug-mode` | Find a root cause before proposing a fix |
@@ -201,7 +201,7 @@ Architecture: /vs-architect -> /vs-shape-it -> /vs-build-it
 | `/vs-write` | Write or reshape clear prose without losing substance |
 | `/vs-before-after` | Show the functional behavior before and after a diff |
 | `/vs-tldr` | Compress the last explanation: shorter and simpler, same meaning |
-| `/vs-eli5` | Explain from zero with big pictures and few words, via `/vs-htmdx` |
+| `/vs-eli5` | Explain from zero with big pictures and few words, via `/vs-show-me` |
 | `/vs-eval` | Write PathGrade static pins and live evals with exclusive contracts, not slogan mentions |
 | `/vs-tune-skill` | Grade one named skill from local chats and propose a scratch diff |
 | `/vs-pr-walkthrough` | Turn a large GitHub PR into an interactive diff ordered as a logical story |

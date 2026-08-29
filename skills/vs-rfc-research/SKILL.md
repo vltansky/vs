@@ -336,7 +336,7 @@ benchmark contract before recommending implementation.
    Questions, mermaid fences) carry the alternatives, risks, and flows better
    than markdown prose. The `.md` file stays the canonical machine-consumed
    RFC; link it from the artifact. Inherit the URL + first-screen shot handoff
-   from `/vs-htmdx`. Pointer only.
+   from `/vs-show-me`. Pointer only.
 3. If the user explicitly asked for the RFC itself in the response, output the full final RFC markdown in chat. Otherwise present a two-to-four-line chat TLDR with key findings, the artifact URL, and the file path.
 4. Suggest `/vs-pushback` to stress-test the proposal before committing to it — the RFC is a plan, and plans benefit from adversarial review
 

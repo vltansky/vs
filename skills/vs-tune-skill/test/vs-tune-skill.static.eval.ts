@@ -42,7 +42,7 @@ describe('vs-tune-skill thin contract', () => {
       /## Workflow[\s\S]+\*\*Prev:\*\*[\s\S]+\*\*Next:\*\*[\s\S]+\*\*Relevant:\*\*/,
     );
     expect(SKILL).toMatch(/`\/vs-eval`/);
-    expect(SKILL).toMatch(/`\/vs-htmdx`/);
+    expect(SKILL).toMatch(/`\/vs-show-me`/);
     expect(SKILL).toMatch(/`\/vs-search-threads`/);
     expect(SKILL_RAW).not.toContain('disable-model-invocation');
     expect(OPENAI_CONFIG).toContain('allow_implicit_invocation: false');
