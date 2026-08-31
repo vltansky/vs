@@ -52,6 +52,22 @@ describe('the component catalog is read from the runtime, not from the skill', (
   });
 });
 
+describe('visual explanation composition', () => {
+  it('selects a visual language before drafting without imposing a component quota', () => {
+    expect(SKILL).toMatch(/sketch a visual plan/i);
+    expect(SKILL).toMatch(/explanation mode[\s\S]{0,180}two visual layers/i);
+    expect(SKILL).toMatch(/purpose-built composition/i);
+    expect(SKILL).toMatch(/shadcn[\s\S]{0,160}Tailwind/i);
+    expect(SKILL).toMatch(/familiar UI[\s\S]{0,240}two distinct shadcn primitives/i);
+    expect(SKILL).toMatch(/Tailwind[\s\S]{0,180}(?:not a substitute|only for)/i);
+    expect(SKILL).toMatch(/visual thesis[\s\S]{0,240}(?:journey|fork|anatomy|stack|spectrum|spatial map)/i);
+    expect(SKILL).toMatch(/equal card grid[\s\S]{0,180}(?:not a composition|not the default|avoid)/i);
+    expect(SKILL).toMatch(/focal|hierarchy|asymmetr/i);
+    expect(SKILL).toMatch(/spatial|relationship|state|sequence/i);
+    expect(SKILL).toMatch(/not a (?:component )?quota|do not force/i);
+  });
+});
+
 describe('ordered lists render only from 4.10.1 onward', () => {
   // Ordered lists collapsed to a paragraph before 4.10.1, and a list nested
   // under a bullet lost its lines outright (wix-incubator/htmdx#77). Any

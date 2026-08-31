@@ -22,6 +22,12 @@
       "prompt": "Visualize how auth, billing, and notifications depend on the user service.",
       "expected_output": "Does not force HTMDX for an unqualified visualization request and routes to the host's native visualization capability.",
       "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "Create an HTMDX artifact that explains a background import job to a product manager. It moves from queued to running, then either succeeds or fails. The running example has completed 3 of 5 tasks. A failed job shows its error and can be retried.",
+      "expected_output": "Creates one portable HTML artifact, shows the lifecycle, and composes multiple shadcn primitives into a clear state view without replacing them with raw Tailwind cards or inventing metrics.",
+      "files": []
     }
   ]
 }

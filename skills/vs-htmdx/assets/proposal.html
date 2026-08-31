@@ -3520,6 +3520,7 @@ button, textarea { font: inherit; }
 }
 .vs-review-composer textarea { width: 100%; min-height: 88px; resize: vertical; border: 1px solid #3E4451; outline: 0; padding: 10px; color: #D7DAE0; background: #282C34; font-size: 12px; }
 .vs-review-composer textarea:focus { border-color: #93A4E8; }
+.vs-review-composer-note { padding-top: 8px; color: #7F848E; font-size: 11px; line-height: 1.4; }
 .vs-review-composer-actions { display: flex; justify-content: flex-end; gap: 7px; padding-top: 8px; }
 .vs-review-text-button { padding: 7px 10px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; }
 .vs-review-text-button:hover { border-color: #5C6370; color: #D7DAE0; }
@@ -3669,6 +3670,7 @@ const reviewOverlayFactory = function reviewOverlayFactory(css, resolveQuoteStar
     </div>
     <form class="vs-review-composer vs-review-interactive" aria-label="Add review comment" hidden>
       <textarea maxlength="5000" placeholder="Add a comment" required></textarea>
+      <div class="vs-review-composer-note">After adding, send the agent a message to read comments. Comments are not checked automatically.</div>
       <div class="vs-review-composer-actions">
         <button class="vs-review-text-button" data-cancel type="button">Cancel</button>
         <button class="vs-review-text-button" data-primary="true" type="submit" disabled>Add</button>
@@ -3708,7 +3710,6 @@ const reviewOverlayFactory = function reviewOverlayFactory(css, resolveQuoteStar
     const created = appendComment(state.draft.anchor, comment);
     state.focusedId = created.id;
     closeComposer();
-    setPanel(true);
     render();
   });
   listen(composer, 'keydown', (event) => {
@@ -3789,7 +3790,6 @@ const reviewOverlayFactory = function reviewOverlayFactory(css, resolveQuoteStar
     const created = appendComment(state.selection.anchor, comment, intent);
     state.focusedId = created.id;
     hideSelectionAction();
-    setPanel(true);
     render();
   }
 
@@ -3880,7 +3880,6 @@ const reviewOverlayFactory = function reviewOverlayFactory(css, resolveQuoteStar
 
     const created = appendComment(anchor, comment);
     state.focusedId = created.id;
-    setPanel(true);
     render();
     renderHighlights(anchor);
     return publicComment(created);

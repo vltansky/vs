@@ -86,6 +86,17 @@ describe('the local review overlay is one portable generated shell feature', () 
     expect(refresh.match(/renderMarkers\(\)/g)).toHaveLength(1);
   });
 
+  it('keeps comment creation quiet and explains the agent pull step', () => {
+    expect(REVIEW_SOURCE).toContain('After adding, send the agent a message to read comments.');
+    expect(REVIEW_SOURCE).toContain('Comments are not checked automatically.');
+    const submit = REVIEW_SOURCE.match(/listen\(composer, 'submit'[\s\S]*?\n  \}\);/)?.[0] ?? '';
+    const quickFeedback = REVIEW_SOURCE.match(/function addSelectionFeedback[\s\S]*?\n  \}/)?.[0] ?? '';
+    const toolAdd = REVIEW_SOURCE.match(/function addReviewComment[\s\S]*?\n  \}/)?.[0] ?? '';
+    expect(submit).not.toContain('setPanel(true)');
+    expect(quickFeedback).not.toContain('setPanel(true)');
+    expect(toolAdd).not.toContain('setPanel(true)');
+  });
+
   it('documents the local-only persistence boundary and human-first workflow', () => {
     expect(SKILL).toMatch(/select text[\s\S]{0,360}comment on an element/i);
     expect(SKILL).toMatch(/localStorage/);
@@ -95,6 +106,7 @@ describe('the local review overlay is one portable generated shell feature', () 
     expect(SKILL).toContain('`list_review_comments`');
     expect(SKILL).toContain('`add_review_comment`');
     expect(SKILL).toContain('`resolve_review_comment`');
+    expect(SKILL).toMatch(/do not trigger an agent turn[\s\S]{0,180}send the agent a message/i);
     expect(SKILL).toMatch(/\*\*Remove\*\*[\s\S]{0,180}remov/i);
     expect(SKILL).toMatch(/\*\*What\?\*\*[\s\S]{0,180}plain-language/i);
     expect(SKILL).toMatch(/simplify[\s\S]{0,260}vs-write[\s\S]{0,180}Direct mode/i);

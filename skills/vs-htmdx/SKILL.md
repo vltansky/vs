@@ -129,14 +129,34 @@ uncertainty.
    - decisive metrics, comparison, or timeline second;
    - evidence and caveats next;
    - detailed reference material last.
-5. Draw structure as diagrams, not text. The runtime renders fenced
+5. Before drafting, sketch a visual plan in working notes. Name the important
+   information shapes — relationship, state, sequence, comparison, hierarchy,
+   or spatial arrangement — and choose the clearest runtime primitive for each.
+   Choose a visual thesis before component names: journey, fork, anatomy,
+   stack, spectrum, or spatial map. An equal card grid is not a composition and
+   is not the default. Establish one focal element and a clear hierarchy; use
+   asymmetry, scale, overlap, or directional placement only when it explains
+   importance, containment, progression, or choice.
+   In explanation mode, give the core mental model two visual layers: a map of
+   the mechanism and one purpose-built composition that makes its roles, state,
+   or spatial logic recognizable at a glance. Build that composition from
+   shadcn primitives for a familiar interface pattern, or Tailwind with
+   allowlisted HTML for a bespoke mock, layered system, or state view. For a
+   familiar UI explanation, combine at least two distinct shadcn primitives in
+   one composition; Tailwind is not a substitute there. A lone `Badge`,
+   decorative card, or second rendering of the same facts does not count. This
+   is a quality bar, not a component quota: reports, proposals, and
+   genuinely one-shape explanations should not gain extra chrome. Use spatial
+   position only when it carries meaning, and let different information shapes
+   use different visual languages within one artifact.
+6. Draw structure as diagrams, not text. The runtime renders fenced
    ` ```mermaid ` blocks natively, so anything with branches, cycles, or
    topology — flowcharts, state machines, architecture graphs, ER diagrams —
    belongs in one; never ASCII-art a diagram or describe one in prose. The
    catalog's `Flow`, `Sequence`, and `Tree` cover only their strictly linear
    or hierarchical grammars; when the shape outgrows them, switch to mermaid
    rather than forcing the component.
-6. Compress the prose. The artifact is a review surface, not a transcript:
+7. Compress the prose. The artifact is a review surface, not a transcript:
    keep the lede to two sentences, one idea per paragraph and at most three
    sentences each, and route anything enumerable — options, risks, scope,
    metrics, steps — through a component instead of paragraphs. A paragraph
@@ -152,14 +172,14 @@ uncertainty.
    one pass that challenges every sentence: cut restated context, hedges, and
    narration. When a section still runs past one short screen, link the detail
    or drop it.
-7. Populate components only from the sources. A metric, score, or status the
+8. Populate components only from the sources. A metric, score, or status the
    sources do not contain is decoration, not evidence — leave a section lean
    rather than rounding it out with invented cards, filler grids, or secondary
    fact rows that restate the primary ones. Treat a gauge's maximum as a
    ceiling, not a target. Label the values that matter directly — on the
    point, the bar, the line end — and pair every color with a label or shape,
    so meaning never rides on color alone.
-8. Remove every placeholder and unused section.
+9. Remove every placeholder and unused section.
 
 ## Review comments
 
@@ -185,6 +205,10 @@ state through three WebMCP tools:
 - `add_review_comment` anchors feedback to a CSS selector or unique text
   inside it;
 - `resolve_review_comment` resolves or reopens a comment by ID.
+
+Comments do not trigger an agent turn. After leaving feedback, the user must
+send the agent a message asking it to read the comments; the agent then calls
+`list_review_comments` and acts on the returned open items.
 
 Treat `remove` and `simplify` intents as requested source changes: edit the
 canonical HTMDX, render it again, and resolve the request only after the new
@@ -242,6 +266,19 @@ must appear in the human panel and persist by the same rules.
 The catalog is the default voice, but the runtime gives an artifact more range
 when a section needs it:
 
+- **Compose the shadcn pack.** The runtime ships its component pack already;
+  load the `components` topic and combine primitives when they make a concept
+  immediately recognizable. A `Card` can frame one actor or state, a `Badge`
+  can label status, and `Progress`, `Alert`, or `Tooltip` can express a real
+  value, warning, or aside. A shadcn scene combines at least two distinct
+  primitives; raw HTML styled like cards does not exercise the component pack.
+  Start from the relationship the reader must see, then place the components
+  inside that composition: for example, one dominant active state can lead to
+  smaller outcomes instead of four equal state cards. Compose one explanatory
+  scene rather than sprinkling isolated widgets through the page. Do not add
+  controls that imply
+  behavior the artifact does not provide, and keep sequential reading in
+  ordinary sections instead of hiding it behind interactive chrome.
 - **Tailwind is live.** Every artifact loads `@tailwindcss/browser@4`, so any
   utility class works on the `class` of components and allowlisted HTML —
   arbitrary values included (`grid-cols-[240px_1fr]`, `max-w-[52ch]`). Reach
