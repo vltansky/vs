@@ -60,6 +60,8 @@ describe('vs-htmdx', () => {
     expect(TEMPLATE).toContain('data-vs-source="primary"');
     expect(TEMPLATE).toContain('@wix/htmdx@4/dist/browser.js');
     expect(TEMPLATE).not.toContain('<htmdx-code');
+    expect(TEMPLATE).toContain('// vs-review:begin');
+    expect(TEMPLATE).toContain("name: 'add_review_comment'");
   });
 
   it('requires structural and rendered proof to remain separate', () => {

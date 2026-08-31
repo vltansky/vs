@@ -26,6 +26,8 @@ An HTMDX deliverable is:
 - one portable `.html` file;
 - one editable `<script type="text/htmdx">` source block;
 - a pinned browser runtime;
+- a browser-local review overlay for text and element comments;
+- feature-detected WebMCP tools that operate on those same comments;
 - no generated HTML body and no Markdown twin.
 
 ## Load the guidance
@@ -112,8 +114,11 @@ uncertainty.
 
    Both carry the `vs` artifact metadata the other `vs` report skills share.
    Copy the complete shell; replace the title, frontmatter, and primary source
-   placeholders. The shell's inline script is the browser copy of the vs
-   catalog that the named layout renders through — keep it intact.
+   placeholders. Generate a new UUID for `vs-artifact-id`; it is the artifact's
+   stable browser-review identity and must not be reused when an existing
+   artifact is copied into a new one. The shell's inline script is the browser
+   copy of the vs catalog that the named layout renders through, plus the local
+   review overlay — keep both intact.
 3. Keep `@wix/htmdx@4` pinned in both the renderer metadata and script URL.
    Every `vs` template pins one major line — do not diverge from it for a single
    artifact. The major is the pin: `@wix/htmdx` promises compatibility within a
@@ -155,6 +160,82 @@ uncertainty.
    point, the bar, the line end — and pair every color with a label or shape,
    so meaning never rides on color alone.
 8. Remove every placeholder and unused section.
+
+## Review comments
+
+The rendered artifact supports human review without changing its canonical
+HTMDX source. Select text and choose **Comment** to write feedback, **Remove**
+to request its removal, or **What?** to request a clear, plain-language rewrite.
+The shortcuts record anchored requests; they do not mutate the source. Open **Comments** and
+choose **Add comment** to comment on an element. Mark comments resolved or
+reopen them from the panel; numbered markers return to their anchors.
+
+Comments persist in `localStorage`, scoped to the artifact ID. Moving the same
+artifact to another URL on the same origin keeps its comments; separate IDs
+cannot share them. Legacy artifacts without an ID fall back to their URL
+without its fragment. Comments do not travel with the HTML or sync to
+another browser. Use a shared review system when feedback must be shared or
+durable. This boundary is intentional: the artifact remains one portable
+authored file while local feedback stays outside its source.
+
+In browsers with `document.modelContext`, agents use the same local review
+state through three WebMCP tools:
+
+- `list_review_comments` returns IDs, intents, statuses, and anchor summaries;
+- `add_review_comment` anchors feedback to a CSS selector or unique text
+  inside it;
+- `resolve_review_comment` resolves or reopens a comment by ID.
+
+Treat `remove` and `simplify` intents as requested source changes: edit the
+canonical HTMDX, render it again, and resolve the request only after the new
+artifact reflects it. For `simplify`, apply
+[vs-write](../vs-write/SKILL.md) in Direct mode: lead with the main point, use
+familiar words and short sentences, explain necessary terms, and preserve the
+source's meaning, facts, and important details.
+
+## Authored WebMCP tools
+
+Do not register a tool merely to read the artifact—the source and rendered page
+already carry that value. Register one when an authored interaction can shorten
+a real feedback loop: choosing X or Y, accepting a bounded proposal, or
+returning structured input the agent will act on.
+
+Use the shell's generic `window.vsArtifact.registerTool(tool)` registry from an
+authored `<script data-vs-webmcp>` after the generated review script. Build the
+human control first, then connect its event and the WebMCP tool's `execute` to
+the same handler. The handler must validate input, update the visible UI, and
+return the recorded result; never create a second agent-only state path.
+Initialize controls on `htmdx:rendered` because the source renders
+asynchronously; registering the tool itself does not need to wait.
+
+```js
+const choose = ({ choice }) => {
+  if (!['X', 'Y'].includes(choice)) throw new Error(`Unknown choice: ${choice}`);
+  renderChoice(choice); // The human buttons call this same handler.
+  return { choice, status: 'recorded' };
+};
+const registration = window.vsArtifact.registerTool({
+  name: 'choose_retry_policy',
+  description: 'Choose the retry policy shown in the artifact.',
+  inputSchema: {
+    type: 'object',
+    properties: { choice: { type: 'string', enum: ['X', 'Y'] } },
+    required: ['choice'],
+    additionalProperties: false,
+  },
+  execute: choose,
+});
+void registration.ready.catch(() => {}); // The human control still works.
+```
+
+The registry feature-detects `document.modelContext` and ties registration to
+the artifact lifetime. Keep names stable and action-oriented. Do not use custom
+artifact tools for secrets or destructive external actions; those still need
+normal confirmation outside the artifact. Preserve any authored
+`script[data-vs-webmcp]` when editing an existing artifact.
+
+Do not add a polyfill or a second comment store: an agent-created review comment
+must appear in the human panel and persist by the same rules.
 
 ## Expressive range
 
@@ -218,8 +299,9 @@ Treat the source block as the canonical document.
 1. Confirm the file contains exactly one `script[type="text/htmdx"]`. A legacy
    `template[type="text/htmdx"]` artifact may be edited in place without
    migration.
-2. Preserve the doctype, runtime pin, shell markup, source container, and its
-   attributes.
+2. Preserve the doctype, runtime pin, shell markup, review overlay,
+   `vs-artifact-id`, source container, and its attributes. If a legacy artifact
+   has no ID, add a new UUID once before editing it.
 3. Edit only the source block. The text inside the existing `<title>` may also
    change when needed to keep the browser title accurate.
 4. Preserve the artifact's current runtime and component contract. Do not

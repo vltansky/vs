@@ -8,7 +8,6 @@ const RENDER_CHECK = fs.readFileSync(
   path.join(SKILL_DIR, 'assets', 'render-check.mjs'),
   'utf8',
 );
-
 describe('the component catalog is read from the runtime, not from the skill', () => {
   it('loads the guidance with the skill command before authoring', () => {
     expect(SKILL).toContain('## Load the guidance');
