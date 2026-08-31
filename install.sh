@@ -35,6 +35,25 @@ install_for() {
   rm -f "$log"
 }
 
+# The ChatGPT desktop app bundles the Codex CLI inside the app without putting
+# it on PATH, so `command -v codex` misses it. A shell function makes the
+# bundled binary answer to `codex` for both that probe and the commands below.
+resolve_codex() {
+  if command -v codex >/dev/null 2>&1; then return 0; fi
+  local candidate
+  # User-local install first, so a stubbed HOME resolves without reaching the
+  # real /Applications bundle.
+  for candidate in \
+    "$HOME/Applications/ChatGPT.app/Contents/Resources/codex" \
+    "/Applications/ChatGPT.app/Contents/Resources/codex"; do
+    [ -x "$candidate" ] || continue
+    CODEX_BIN="$candidate"
+    codex() { "$CODEX_BIN" "$@"; }
+    break
+  done
+  return 0
+}
+
 # Codex dropped plugin-manifest hooks, so the always-on Ponytail hook must be
 # registered in ~/.codex/hooks.json. The merge script ships in the plugin.
 install_codex_hook() {
@@ -82,6 +101,7 @@ install_cursor() {
 
 echo "Installing vs plugin..."
 install_for claude "claude plugin marketplace add" "claude plugin marketplace update vs" "claude plugin install" "claude plugin update"
+resolve_codex
 install_for codex  "codex plugin marketplace add"  "codex plugin marketplace upgrade vs" "codex plugin add" ""
 install_codex_hook
 install_cursor

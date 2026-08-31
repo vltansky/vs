@@ -109,6 +109,34 @@ esac
     );
   });
 
+  // The ChatGPT desktop app ships the Codex CLI inside the app bundle and never
+  // puts it on PATH, so detection has to reach into the bundle.
+  it('drives the Codex CLI bundled in the ChatGPT desktop app', () => {
+    const home = mkdtempSync(join(tmpdir(), 'vs-install-bundle-'));
+    const bin = join(home, 'bin');
+    const callsFile = join(home, 'calls.log');
+    mkdirSync(bin);
+
+    const cliStub = `#!/bin/sh\nprintf '%s %s\\n' "$(basename "$0")" "$*" >> "$CALLS_FILE"\n`;
+    writeFileSync(join(bin, 'claude'), cliStub, { mode: 0o755 });
+    const bundle = join(home, 'Applications', 'ChatGPT.app', 'Contents', 'Resources');
+    mkdirSync(bundle, { recursive: true });
+    writeFileSync(join(bundle, 'codex'), cliStub, { mode: 0o755 });
+
+    execFileSync('/bin/bash', ['install.sh'], {
+      cwd: process.cwd(),
+      env: {
+        ...process.env,
+        CALLS_FILE: callsFile,
+        HOME: home,
+        // No `codex` on PATH: only the bundled binary can answer.
+        PATH: `${bin}:/usr/bin:/bin`,
+      },
+    });
+
+    expect(readFileSync(callsFile, 'utf8').trim().split('\n')).toEqual(EXPECTED_UPDATE_CALLS);
+  });
+
   it('registers the Codex ponytail hook against the installed plugin path', () => {
     const home = mkdtempSync(join(tmpdir(), 'vs-install-hook-'));
     const bin = join(home, 'bin');
