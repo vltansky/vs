@@ -263,6 +263,7 @@ export function reviewOverlayFactory(css, resolveQuoteStartFn, reviewToolFactory
     const created = appendComment(state.draft.anchor, comment);
     state.focusedId = created.id;
     closeComposer();
+    setPanel(false);
     render();
   });
   listen(composer, 'keydown', (event) => {
@@ -343,6 +344,7 @@ export function reviewOverlayFactory(css, resolveQuoteStartFn, reviewToolFactory
     const created = appendComment(state.selection.anchor, comment, intent);
     state.focusedId = created.id;
     hideSelectionAction();
+    setPanel(false);
     render();
   }
 

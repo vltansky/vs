@@ -92,8 +92,8 @@ describe('the local review overlay is one portable generated shell feature', () 
     const submit = REVIEW_SOURCE.match(/listen\(composer, 'submit'[\s\S]*?\n  \}\);/)?.[0] ?? '';
     const quickFeedback = REVIEW_SOURCE.match(/function addSelectionFeedback[\s\S]*?\n  \}/)?.[0] ?? '';
     const toolAdd = REVIEW_SOURCE.match(/function addReviewComment[\s\S]*?\n  \}/)?.[0] ?? '';
-    expect(submit).not.toContain('setPanel(true)');
-    expect(quickFeedback).not.toContain('setPanel(true)');
+    expect(submit).toContain('setPanel(false)');
+    expect(quickFeedback).toContain('setPanel(false)');
     expect(toolAdd).not.toContain('setPanel(true)');
   });
 
