@@ -53,6 +53,7 @@ describe('the vs catalog is one source the CLI and the browser both load', () =>
     expect(catalog.components.map((c: { name: string }) => c.name)).toEqual([
       'Delta',
       'Gauge',
+      'Share',
       'Tradeoff',
       'Verdict',
       'Flow',
@@ -249,6 +250,43 @@ describe('the vs catalog is one source the CLI and the browser both load', () =>
     expect(svg.children.flat().filter((child: { type: string }) => child.type === 'circle')).toHaveLength(2);
     const onePoint = trend.Component({ body: '- 4.15: 210ms' });
     expect(onePoint.children[0].type).toBe('div');
+  });
+
+  it('reduces a Share ratio to countable cells and caps an awkward denominator', async () => {
+    const { vsCatalogFactory, vsLayoutCss } = await import(CATALOG_URL);
+    const stubReact = {
+      createElement: (type: string, props: Record<string, unknown>, ...children: unknown[]) => ({
+        type,
+        props,
+        children: children.flat(Infinity),
+      }),
+    };
+    const catalog = vsCatalogFactory(stubReact, vsLayoutCss);
+    const share = catalog.components.find((c: { name: string }) => c.name === 'Share');
+    type Cell = { props: { 'data-lit'?: string } };
+    const cellsOf = (row: { children: Array<{ children: Cell[] }> }) => row.children[1].children;
+    const litOf = (row: { children: Array<{ children: Cell[] }> }) =>
+      cellsOf(row).filter((cell) => cell.props['data-lit']).length;
+
+    const element = share.Component({ body: '- Canary: 5 / 100 percent\n- Incidents: 2 / 3' });
+    const shareRows = element.children[0].children;
+    // 5/100 reduces to 1/20, which is the whole point: a bar shows a sliver,
+    // twenty cells show one lit square the reader can count.
+    expect(cellsOf(shareRows[0])).toHaveLength(20);
+    expect(litOf(shareRows[0])).toBe(1);
+    expect(cellsOf(shareRows[1])).toHaveLength(3);
+    expect(litOf(shareRows[1])).toBe(2);
+
+    // A prime denominator past the counting limit falls back to twentieths
+    // rather than drawing 97 cells nobody can count.
+    const awkward = share.Component({ body: '- Sampled: 9 / 97 requests' });
+    expect(cellsOf(awkward.children[0].children[0])).toHaveLength(20);
+    expect(litOf(awkward.children[0].children[0])).toBe(2);
+
+    // A share above its whole is a typo, not a 110% bar: fall back to the row.
+    const overflowing = share.Component({ body: '- Broken: 7 / 3' });
+    expect(overflowing.children[0].children[0].type).toBe('div');
+    expect(overflowing.children[0].children[0].children[0]).toBe('Broken: 7 / 3');
   });
 
   it('draws Tree guides from row depth and colors diff marks', async () => {

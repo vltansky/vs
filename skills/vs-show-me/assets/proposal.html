@@ -377,7 +377,11 @@ const vsLayoutCss = `
     background: var(--md-sys-color-surface-container-lowest);
     border: 1px solid var(--md-sys-color-outline-variant);
     border-radius: var(--vs-sketch-card);
-    padding: 16px;
+    /* Extra bottom padding is the hint's lane. The hint is absolutely placed
+       over the panel, so without reserved space it lands on whatever the
+       diagram's last row draws there - on a flowchart that is the terminal
+       node, the one the reader most needs to finish the path. */
+    padding: 16px 16px 34px;
     /* Pan/zoom canvas: the factory binds panzoom to the svg, so the panel
        clips the transformed diagram instead of growing the page. */
     overflow: hidden;
@@ -623,6 +627,30 @@ const vsLayoutCss = `
   /* The pill track is the one shape --radius does not reach. Status chips and
      timeline dots keep their full round: they read as marks, not as bars. */
   .htmdx-app[data-htmdx-layout^='vs'] [data-htmdx-component='Gauge'] .rounded-full { border-radius: 2px; }
+  /* Cells wrap rather than scale: a fixed cell keeps every grid on the page
+     comparable, so 1-in-20 next to 2-in-3 reads as two counts at one size.
+     Square, not round - a round mark reads as a status dot, not a unit. */
+  .htmdx-app[data-htmdx-layout^='vs'] .vs-share-cells {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 3px;
+  }
+  .htmdx-app[data-htmdx-layout^='vs'] .vs-share-cell {
+    width: 14px;
+    height: 14px;
+    border-radius: 2px;
+    background: var(--md-sys-color-outline-variant);
+  }
+  .htmdx-app[data-htmdx-layout^='vs'] .vs-share-cell[data-lit] { background: var(--md-sys-color-primary); }
+  /* shadcn tunes --destructive for a light card. This theme's card is dark
+     slate, where that red reads at 2.7:1 - under the 4.5:1 text floor, on the
+     one component whose whole job is to be read. Repaint the alert's
+     foreground only: the same token fills destructive buttons, where the
+     darker red is correct behind white. */
+  .htmdx-app[data-htmdx-layout^='vs'] [role='alert'].text-destructive,
+  .htmdx-app[data-htmdx-layout^='vs'] [role='alert'].text-destructive [data-slot='alert-description'] {
+    color: #FCA5A5;
+  }
   /* MADR: the outcome reads above the fold - Options hoists chosen rows to
      the top and this accent marks them as the decision, not another row. */
   .htmdx-app[data-htmdx-layout^='vs'] [data-htmdx-component='Options'] [data-disposition='chosen'] {
@@ -1376,6 +1404,62 @@ const vsCatalogFactory = (React, css) => {
                 className: 'h-full rounded-full ' + fill,
                 style: { width: Math.min(100, percent) + '%' },
               }),
+            ),
+          );
+        }),
+      ),
+    );
+
+  // A bar answers "how full"; it cannot answer "how many". At small shares the
+  // fill is a few pixels and the reader takes it for a UI element rather than a
+  // measurement, so 5% slides past. Discrete cells make the share countable:
+  // reduce the ratio to its lowest terms and draw that many cells, and 5/100
+  // becomes 1 lit cell in 20 - a quantity the eye can verify without the label.
+  const gcd = (a, b) => (b ? gcd(b, a % b) : a);
+  // Past ~50 cells counting fails and the row is a bar again, so an awkward
+  // denominator is approximated to twentieths - the coarsest grid that still
+  // resolves a single percent-scale share.
+  const cellCount = (used, limit) => {
+    const divisor = gcd(Math.round(used), Math.round(limit)) || 1;
+    const parts = Math.round(limit) / divisor;
+    if (parts >= 2 && parts <= 50) return { cells: parts, lit: Math.round(used) / divisor };
+    return { cells: 20, lit: Math.round((used / limit) * 20) };
+  };
+  const Share = ({ body = '' }) =>
+    wrap(
+      'Share',
+      h(
+        'div',
+        { className: 'flex flex-col gap-4 rounded-lg border bg-card px-4 py-4' },
+        rows(body).map((row, index) => {
+          const { label, value } = labelValue(row);
+          const match = value.match(GAUGE_RATIO);
+          const used = match && Number(match[1].replaceAll(',', ''));
+          const limit = match && Number(match[2].replaceAll(',', ''));
+          if (!match || !Number.isFinite(used) || !Number.isFinite(limit) || limit <= 0 || used > limit) {
+            return h('div', { key: index, className: 'text-sm' }, plain(row));
+          }
+          const { cells, lit } = cellCount(used, limit);
+          const unit = match[3].trim();
+          return h(
+            'div',
+            { key: index },
+            h(
+              'div',
+              { className: 'flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1' },
+              h('span', { className: 'text-sm text-card-foreground' }, plain(label)),
+              h(
+                'span',
+                { className: 'text-xs tabular-nums text-muted-foreground' },
+                used.toLocaleString('en-US') + ' of ' + limit.toLocaleString('en-US') + (unit ? ' ' + unit : ''),
+              ),
+            ),
+            h(
+              'div',
+              { 'aria-hidden': 'true', className: 'vs-share-cells mt-2' },
+              Array.from({ length: cells }, (_cell, i) =>
+                h('span', { key: i, className: 'vs-share-cell', 'data-lit': i < lit ? 'true' : undefined }),
+              ),
             ),
           );
         }),
@@ -2553,6 +2637,14 @@ const vsCatalogFactory = (React, css) => {
         "Show consumption against a ceiling, written as '- label: used / limit unit' rows. The bar turns amber at 90% and red above 100%, so a budget, quota, or SLO reads at a glance. Use it only where the limit is a real published number the reader could look up; inventing a denominator to fill the bar states a constraint that does not exist. A count with no ceiling belongs in <Stat>, and a value of 0 renders as an empty bar - write it as prose instead.",
       example: '<Gauge>\n- gzip bundle: 158 / 160 KB\n- Error budget: 43 / 100 min\n</Gauge>',
       Component: asComponent(Gauge),
+    },
+    {
+      name: 'Share',
+      body: 'markdown',
+      purpose:
+        "Show a part of a whole as countable cells, written as '- label: part / whole unit' rows. The ratio is reduced to its lowest terms and drawn as that many cells with the part lit, so '5 / 100' renders as 1 cell in 20 and '2 / 3' as 2 marks in 3 - a share the reader can count instead of estimating off a bar. Use it for a proportion the reader should feel the size of: traffic on a canary, incidents from one cause, seats of a quorum. Consumption against a published ceiling stays <Gauge>, which answers how full rather than how many; magnitudes with no whole are <Bars>.",
+      example: '<Share>\n- Canary traffic: 5 / 100 percent\n- Incidents from a skipped soak: 2 / 3\n</Share>',
+      Component: asComponent(Share),
     },
     {
       name: 'Tradeoff',
