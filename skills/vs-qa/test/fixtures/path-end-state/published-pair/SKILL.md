@@ -741,6 +741,15 @@ A `PASS` without a named command is a fail. When a visual was in scope, a pass w
 Score runs with `skills/vs-qa/scripts/reject-qa-path.mjs` (exit 1 is a fail).
 Exclusive is the live skill path when it is the pinned published-rejector hash plus published skill hash. this rejector still fails the published bad set and passes the published clean set under `test/fixtures/path-end-state`. A byte-identical published pair matches those hashes. A phrase-complete SKILL.md beside the live tree, a one-line-changed copy scored by itself, or a sibling stub is not exclusive.
 
+## Verify map
+
+When `.vs/verify-map/` exists, read Launch and Doctor (and the relevant feature
+file) instead of guessing launch. QA still explores user-visible behavior; it
+uses the map for launch, doctor, and drive. When the map is missing, generate
+once per
+[`../vs-internal-shared/references/verify-map.md`](../vs-internal-shared/references/verify-map.md)
+into the project. Do not grow a factory here.
+
 ## Rules
 
 1. **Repro is everything.** Every issue needs at least one screenshot.
