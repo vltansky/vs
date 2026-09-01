@@ -100,6 +100,7 @@ describe('verify-map contract', () => {
     expect(noLive.status).toBe(1);
     const live = reject(path.join(FIX, 'live-driven'));
     expect(live.status).toBe(0);
+    expect(reject(path.join(FIX, 'stub-live-drive')).status).toBe(1);
     expect(reject(path.join(FIX, 'too-few-features')).status).toBe(1);
     expect(reject(path.join(FIX, 'missing-launch')).status).toBe(1);
   });

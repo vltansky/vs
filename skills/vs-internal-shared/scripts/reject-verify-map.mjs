@@ -5,7 +5,7 @@
 //
 // Exit 0 clean. Exit 1 reject. Exit 2 cannot check. Treat 2 as not a pass.
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
-import { basename, join } from 'node:path';
+import { basename, join, relative } from 'node:path';
 
 const target = process.argv[2];
 if (!target) {
@@ -65,9 +65,38 @@ if (
   !hasHeading(text, 'Launch') ||
   !hasHeading(text, 'Doctor') ||
   !hasHeading(text, 'Drive') ||
-  !hasHeading(text, 'Evidence')
+  !hasHeading(text, 'Evidence') ||
+  !hasHeading(text, 'Cleanup') ||
+  !hasHeading(text, 'Isolate')
 ) {
-  console.error('reject-verify-map: missing Launch/Doctor/Drive/Evidence');
+  console.error('reject-verify-map: missing Launch/Doctor/Drive/Evidence/Cleanup/Isolate');
+  process.exit(1);
+}
+
+function sectionAfter(body, name) {
+  const heading = new RegExp('^#{1,3}\\s+' + name + '\\b[^\\n]*', 'im');
+  const found = heading.exec(body);
+  if (!found) return '';
+  const rest = body.slice(found.index + found[0].length);
+  const next = rest.search(/^#{1,3}\s+/m);
+  return (next === -1 ? rest : rest.slice(0, next)).trim();
+}
+
+const readmePath = join(target, 'README.md');
+const launchBody = existsSync(readmePath) && statSync(readmePath).isFile()
+  ? sectionAfter(read(readmePath), 'Launch')
+  : sectionAfter(text, 'Launch');
+
+function launchIsStub(body) {
+  if (!body) return true;
+  if (/\bTODO\b/i.test(body) || /\bTBD\b/i.test(body)) return true;
+  if (/(^|\s)<[^>\n]+>(\s|$)/.test(body)) return true;
+  if (!/\bready\b/i.test(body) || !/\bteardown\b/i.test(body)) return true;
+  return false;
+}
+
+if (launchIsStub(launchBody)) {
+  console.error('reject-verify-map: Launch is slogan or missing ready signal/teardown');
   process.exit(1);
 }
 
@@ -102,6 +131,15 @@ if (!namedFeature) {
   process.exit(1);
 }
 
+function isMapMetaEvidence(absPath, root) {
+  const base = basename(absPath);
+  if (/^readme\.md$/i.test(base)) return true;
+  if (base === 'LIVE_DRIVE.md') return true;
+  const fromRoot = relative(root, absPath).replace(/\\/g, '/');
+  if (/^features\/[^/]+\.md$/i.test(fromRoot)) return true;
+  return false;
+}
+
 function existingEvidence(body, root) {
   const matches = [...String(body).matchAll(/[A-Za-z0-9_./-]+\/[A-Za-z0-9_.-]+/g)];
   for (const match of matches) {
@@ -109,7 +147,9 @@ function existingEvidence(body, root) {
     const candidate = rel.startsWith("/") ? rel : join(root, rel);
     try {
       const info = statSync(candidate);
-      if (info.isFile() && info.size > 0) return candidate;
+      if (!info.isFile() || info.size <= 0) continue;
+      if (isMapMetaEvidence(candidate, root)) continue;
+      return candidate;
     } catch {
     }
   }
@@ -122,4 +162,3 @@ if (!existingEvidence(liveDrive, target)) {
 }
 
 process.exit(0);
-
