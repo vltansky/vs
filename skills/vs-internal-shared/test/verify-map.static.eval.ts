@@ -63,6 +63,21 @@ describe('verify-map contract', () => {
     expect(shared).toMatch(/references\/verify-map\.md/);
   });
 
+  it('names .vs/verify-map/ as committed source-of-truth, distinct from session artifacts', () => {
+    const shared = fs.readFileSync(SHARED_SKILL, 'utf8');
+    const section =
+      shared.match(/## What does NOT go here[\s\S]*?(?=\n## |\n*$)/)?.[0] ?? '';
+    expect(section).toMatch(/session artifacts/);
+    expect(section).toMatch(/`docs\//);
+    expect(section).toMatch(/`\.context\//);
+    expect(section).toMatch(/`\.octocode\//);
+    expect(section).toMatch(/committed source-of-truth/);
+    expect(section).toMatch(/`skills\//);
+    expect(section).toMatch(/`evals\//);
+    expect(section).toMatch(/`\.vs\/verify-map\//);
+    expect(section).toMatch(/committed source-of-truth[\s\S]*`\.vs\/verify-map\//);
+  });
+
   it('keeps vs-verify a claim checker with a pointer, not a factory', () => {
     const verify = fs.readFileSync(path.join(SKILLS_DIR, 'vs-verify', 'SKILL.md'), 'utf8');
     expect(verify).toMatch(/verify-map\.md/);

@@ -115,7 +115,7 @@ contract, the interview axes, the live-drive gate, and the project-local
 
 ## What does NOT go here
 
-Never write into the project tree (`docs/`, `.context/`, `.octocode/`) for session artifacts. Those are reserved for committed source-of-truth files: skill definitions (`skills/`), evals (`evals/`), and any RFC/spec the user explicitly asked to keep in the repo.
+Never write into the project tree (`docs/`, `.context/`, `.octocode/`) for session artifacts. Those are reserved for committed source-of-truth files: skill definitions (`skills/`), evals (`evals/`), verify maps (`.vs/verify-map/`), and any RFC/spec the user explicitly asked to keep in the repo.
 
 ## Skill kinds
 
