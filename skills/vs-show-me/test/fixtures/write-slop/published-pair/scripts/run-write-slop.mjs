@@ -24,9 +24,9 @@ import { fileURLToPath } from 'node:url';
 
 const SELF = fileURLToPath(import.meta.url);
 const PUBLISHED_REJECTOR_SHA256 =
-  '28f8e09593426bf1890a522d724f37925c4f4b2a6bf9700d5d524bba975cb2a8';
+  '76955fec80dace5a96afcc65d9c694ee044349c8646b62899496a53eb2061e08';
 const PUBLISHED_SKILL_SHA256 =
-  'a2db2fdf605a968963aafb884c27ca1388a92a75a559e3a1f7f3a3d386550c5c';
+  '146204530b06276439ec26cc1a70af1f2f57244dae6a0c13f56ff9b7d0ea926b';
 
 const SOURCE_BLOCK = /<script[^>]*type="text\/htmdx"[^>]*>([\s\S]*?)<\/script>/;
 const REJECT_SLOP = join(
@@ -92,7 +92,7 @@ function hasRunner(body) {
   return /run-write-slop\.mjs|reject-slop\.mjs/.test(body);
 }
 function hasPointer(body) {
-  return /vs-htmdx\/SKILL\.md|\/vs-show-me/.test(body);
+  return /vs-show-me\/SKILL\.md|\/vs-show-me(?!\/)/.test(body);
 }
 function ownerPaste(body) {
   return /source-block paragraphs only/.test(body) && /rewrite the tells/.test(body);

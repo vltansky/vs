@@ -5,12 +5,12 @@ description: "Explain a topic like I'm a 5 year old. Use when the user types /vs
 
 # eli5
 
-Explain like I'm someone who knows nothing about this topic, using an HTML artifact with big pictures and few words. Use `/vs-show-me` for that artifact, not raw HTML. Start from `../vs-htmdx/assets/artifact.html`
+Explain like I'm someone who knows nothing about this topic, using an HTML artifact with big pictures and few words. Use `/vs-show-me` for that artifact, not raw HTML. Start from `../vs-show-me/assets/artifact.html`
 `/vs-show-me` owns capture: inherit its URL + first-screen shot handoff. Pointer only.
 
 `/vs-show-me` owns the page write-slop pass. Inherit only. Pointer:
-[../vs-htmdx/SKILL.md](../vs-htmdx/SKILL.md). Run
-`skills/vs-htmdx/scripts/run-write-slop.mjs` on the page. Do not paste
+[../vs-show-me/SKILL.md](../vs-show-me/SKILL.md). Run
+`skills/vs-show-me/scripts/run-write-slop.mjs` on the page. Do not paste
 that write procedure here.
 
 Also run `skills/vs-write/scripts/reject-slop.mjs` on the 2-4 line chat

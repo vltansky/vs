@@ -84,7 +84,7 @@ state the blocker's cause first, then put every required step in `Your action`.
 
 Non-trivial runs write one portable HTMDX report to
 `~/.vs/$PROJECT_ID/build-it/YYYY-MM-DD-<slug>.html` via
-`/vs-show-me` ([`../vs-htmdx/SKILL.md`](../vs-htmdx/SKILL.md)), and the handoff links it. The
+`/vs-show-me` ([`../vs-show-me/SKILL.md`](../vs-show-me/SKILL.md)), and the handoff links it. The
 visual report follows the problem-first recipe in the shared explanation
 contract: concrete problem, real before-and-after examples, one-sentence
 proposal, a few rules, and the next review action. It is not an audit dump.

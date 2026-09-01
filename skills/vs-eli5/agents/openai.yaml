@@ -1,6 +1,6 @@
 interface:
   display_name: "vs-eli5"
-  short_description: "Explain like I'm 5: big pictures, few words, via vs-htmdx."
+  short_description: "Explain like I'm 5: big pictures, few words, via vs-show-me."
 
 policy:
   allow_implicit_invocation: true

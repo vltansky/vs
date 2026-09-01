@@ -98,7 +98,7 @@ call, or per test run.
 Non-trivial runs write one portable HTMDX file and give the user its path.
 Follow [`rich-artifacts.md`](./rich-artifacts.md) for the single-file source
 contract, the pinned runtime, and the sensitive-data fallback; follow
-`/vs-show-me` ([`../../vs-htmdx/SKILL.md`](../../vs-htmdx/SKILL.md)) for authoring.
+`/vs-show-me` ([`../../vs-show-me/SKILL.md`](../../vs-show-me/SKILL.md)) for authoring.
 
 A run is non-trivial when it changed observable behavior, captured
 before-and-after evidence, ran QA, or made a durable decision. A one-line

@@ -22,7 +22,7 @@ function reject(target: string) {
   return spawnSync(process.execPath, [REJECT, target], { encoding: 'utf8' });
 }
 
-describe('vs-htmdx URL + first-screen shot', () => {
+describe('vs-show-me URL + first-screen shot', () => {
   it('presents local artifacts as rendered UI when the host has a browser panel', () => {
     expect(SKILL_RAW).toMatch(/serve the artifact over localhost/i);
     expect(SKILL_RAW).toMatch(
@@ -69,11 +69,11 @@ describe('vs-htmdx URL + first-screen shot', () => {
 
   it('accepts URL+shot, URL+shot-failed, this skill, and inherit pointers', () => {
     expect(SKILL_RAW).toMatch(
-      /skills\/vs-htmdx\/scripts\/reject-htmdx-handoff\.mjs/,
+      /skills\/vs-show-me\/scripts\/reject-htmdx-handoff\.mjs/,
     );
     expect(SKILL_RAW).toMatch(/test\/fixtures\/handoff/);
     expect(SKILL_RAW).toMatch(
-      /9ae7eac41c141aad30a11c70fa882d3a1133bb9525360a7da50b5a99939b7d83/,
+      /785c48021f874e6ec5b61cbdd4919886a2c003c1ad14d12426c9f1080ca0a217/,
     );
     expect(reject(CLEAN_SHOT).status).toBe(0);
     expect(reject(CLEAN_FAIL).status).toBe(0);
@@ -88,7 +88,7 @@ describe('vs-htmdx URL + first-screen shot', () => {
         'utf8',
       );
       expect(skill, workflow).toMatch(/inherit/i);
-      expect(skill, workflow).toMatch(/vs-htmdx/);
+      expect(skill, workflow).toMatch(/vs-show-me/);
       expect(skill, workflow).toMatch(/first-screen shot/i);
       expect(reject(path.join(ROOT, 'skills', workflow, 'SKILL.md')).status).toBe(
         0,
@@ -111,7 +111,7 @@ describe('vs-htmdx URL + first-screen shot', () => {
     expect(qa).toContain('vs-internal-shared/references/rich-artifacts.md');
     expect(rich).toMatch(/inherit/i);
     expect(rich).toMatch(/first-screen shot/i);
-    expect(rich).toMatch(/vs-htmdx\/SKILL\.md/);
+    expect(rich).toMatch(/vs-show-me\/SKILL\.md/);
   });
 
   it('exits 2 when a target is missing', () => {

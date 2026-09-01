@@ -94,7 +94,7 @@ uncertainty.
    - use the exact path when the user supplies one;
    - otherwise resolve `$PROJECT_ID` with
      [../vs-internal-shared/SKILL.md](../vs-internal-shared/SKILL.md) and write
-     `~/.vs/$PROJECT_ID/vs-htmdx/YYYY-MM-DD-<slug>.html`.
+     `~/.vs/$PROJECT_ID/vs-show-me/YYYY-MM-DD-<slug>.html`.
 2. Pick the template shell by document kind:
    - [assets/artifact.html](assets/artifact.html) (`layout: vs`) for reports,
      briefs, and analyses — the default;
@@ -285,9 +285,9 @@ Exit `0` is clean. Exit `1` means rewrite the tells — do not handoff.
 Exit `2` means it never ran; treat 2 as not checked, not a pass. Do
 not claim `READY_FOR_REVIEW` if this runner did not run or exited 1.
 
-Score the page pass with `skills/vs-htmdx/scripts/run-write-slop.mjs`
-(identity `d936b14140b4bf11f1d1c4115c96b2be753c93bfd86b287c459bd573169779ba`;
-exit 1 is a fail). Exclusive is the live `skills/vs-htmdx/SKILL.md` path
+Score the page pass with `skills/vs-show-me/scripts/run-write-slop.mjs`
+(identity `76955fec80dace5a96afcc65d9c694ee044349c8646b62899496a53eb2061e08`;
+exit 1 is a fail). Exclusive is the live `skills/vs-show-me/SKILL.md` path
 or a published skill-bytes pair. Exclusive cases live under
 `test/fixtures/write-slop`.
 
@@ -358,8 +358,8 @@ reply must include an openable URL **and** an attached first-screen shot.
 
 If the shot fails: still send the URL. Say `Shot failed:` plus the reason.
 Do not block the handoff. Callers inherit this section; they do not restate
-it. Score handoffs with `skills/vs-htmdx/scripts/reject-htmdx-handoff.mjs`
-(identity `9ae7eac41c141aad30a11c70fa882d3a1133bb9525360a7da50b5a99939b7d83`;
+it. Score handoffs with `skills/vs-show-me/scripts/reject-htmdx-handoff.mjs`
+(identity `785c48021f874e6ec5b61cbdd4919886a2c003c1ad14d12426c9f1080ca0a217`;
 exit 1 is a fail). Exclusive cases live under `test/fixtures/handoff`.
 `Shot:` is a real image path, or `Shot failed: <reason>`. `Shot: n/a` is not a shot.
 

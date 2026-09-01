@@ -1,5 +1,5 @@
 ---
-name: vs-htmdx
+name: vs-show-me
 ---
 # HTMDX
 node scripts/run-write-slop.mjs

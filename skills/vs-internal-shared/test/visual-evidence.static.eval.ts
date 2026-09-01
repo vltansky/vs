@@ -27,11 +27,11 @@ const RICH_ARTIFACTS = fs.readFileSync(
 );
 const CHECK = path.join(SHARED_DIR, 'scripts', 'check-visual-evidence.mjs');
 const HTMDX_SKILL = fs.readFileSync(
-  path.join(SKILLS_DIR, 'vs-htmdx', 'SKILL.md'),
+  path.join(SKILLS_DIR, 'vs-show-me', 'SKILL.md'),
   'utf8',
 );
 const RENDER_CHECK = fs.readFileSync(
-  path.join(SKILLS_DIR, 'vs-htmdx', 'assets', 'render-check.mjs'),
+  path.join(SKILLS_DIR, 'vs-show-me', 'assets', 'render-check.mjs'),
   'utf8',
 );
 const BROWSER_API = fs.readFileSync(

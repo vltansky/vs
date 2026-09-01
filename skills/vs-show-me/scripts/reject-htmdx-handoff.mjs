@@ -13,7 +13,7 @@ import { fileURLToPath } from 'node:url';
 
 const SELF = fileURLToPath(import.meta.url);
 const PUBLISHED_REJECTOR_SHA256 =
-  '9ae7eac41c141aad30a11c70fa882d3a1133bb9525360a7da50b5a99939b7d83';
+  '785c48021f874e6ec5b61cbdd4919886a2c003c1ad14d12426c9f1080ca0a217';
 
 function sha256(buf) {
   return createHash('sha256').update(buf).digest('hex');
@@ -83,7 +83,7 @@ function exclusiveFromText(body) {
   );
 }
 
-const hasPointer = /vs-htmdx\/SKILL\.md|\/vs-show-me/.test(text);
+const hasPointer = /vs-show-me\/SKILL\.md|\/vs-show-me(?!\/)/.test(text);
 const ownerPaste =
   /first-screen/i.test(text) &&
   /shot failed/i.test(text) &&

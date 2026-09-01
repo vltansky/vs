@@ -27,7 +27,7 @@ function run(target: string) {
   return spawnSync(process.execPath, [RUNNER, target], { encoding: 'utf8' });
 }
 
-describe('vs-htmdx: write-slop runner scores extracted paragraph prose', () => {
+describe('vs-show-me: write-slop runner scores extracted paragraph prose', () => {
   it('fails a source-block paragraph with a locked no-chain tell', () => {
     const html = fs.readFileSync(SLOP, 'utf8');
     expect(html).toMatch(/No fluff, no filler, no jargon/);
@@ -67,7 +67,7 @@ describe('vs-htmdx: write-slop runner scores extracted paragraph prose', () => {
   });
 });
 
-describe('vs-htmdx: write-slop exclusive is live path or published pair', () => {
+describe('vs-show-me: write-slop exclusive is live path or published pair', () => {
   it('names the runner after verbosity and refuses READY_FOR_REVIEW without it', () => {
     expect(SKILL).toMatch(/assets\/check-verbosity\.mjs/);
     expect(SKILL).toMatch(/scripts\/run-write-slop\.mjs/);
@@ -97,10 +97,13 @@ describe('vs-htmdx: write-slop exclusive is live path or published pair', () => 
 
   it('accepts /vs-show-me slash-only inherit and fails a dead /vs-htmdx slash', () => {
     expect(fs.readFileSync(SLASH_ONLY, 'utf8')).toMatch(/`\/vs-show-me`/);
-    expect(fs.readFileSync(SLASH_ONLY, 'utf8')).not.toMatch(/vs-htmdx\/SKILL\.md/);
+    expect(fs.readFileSync(SLASH_ONLY, 'utf8')).not.toMatch(/vs-show-me\/SKILL\.md/);
     expect(run(SLASH_ONLY).status).toBe(0);
+    // The dead fixture still cites the renamed runner path, so the pointer check
+    // must not accept `skills/vs-show-me/...` as the `/vs-show-me` slash pointer.
     expect(fs.readFileSync(DEAD_SLASH, 'utf8')).toMatch(/`\/vs-htmdx`/);
-    expect(fs.readFileSync(DEAD_SLASH, 'utf8')).not.toMatch(/vs-htmdx\/SKILL\.md/);
+    expect(fs.readFileSync(DEAD_SLASH, 'utf8')).toMatch(/skills\/vs-show-me\//);
+    expect(fs.readFileSync(DEAD_SLASH, 'utf8')).not.toMatch(/vs-show-me\/SKILL\.md/);
     expect(run(DEAD_SLASH).status).toBe(1);
     expect(SKILL).not.toMatch(/SLASH_ONLY_POINTER_CANARY/);
     expect(SKILL).not.toMatch(/DEAD_SLASH_POINTER_CANARY/);
@@ -109,7 +112,7 @@ describe('vs-htmdx: write-slop exclusive is live path or published pair', () => 
   it('accepts the live skill and a published skill-bytes pair', () => {
     expect(run(SKILL_PATH).status).toBe(0);
     expect(run(PUBLISHED).status).toBe(0);
-    expect(SKILL).toMatch(/live `?skills\/vs-htmdx\/SKILL\.md/);
+    expect(SKILL).toMatch(/live `?skills\/vs-show-me\/SKILL\.md/);
     expect(SKILL).toMatch(/published skill-bytes pair/);
   });
 
@@ -118,7 +121,7 @@ describe('vs-htmdx: write-slop exclusive is live path or published pair', () => 
   });
 });
 
-describe('vs-htmdx: proposal copy is the same HTMDX write-slop pass', () => {
+describe('vs-show-me: proposal copy is the same HTMDX write-slop pass', () => {
   it('names proposal.html / vs-proposal as covered by the runner', () => {
     expect(SKILL).toMatch(/assets\/proposal\.html/);
     expect(SKILL).toMatch(/layout: vs-proposal/);
@@ -137,7 +140,7 @@ describe('vs-htmdx: proposal copy is the same HTMDX write-slop pass', () => {
   });
 });
 
-describe('vs-htmdx: no new skill and no copied write procedure elsewhere', () => {
+describe('vs-show-me: no new skill and no copied write procedure elsewhere', () => {
   it('does not add a slash skill for write-slop', () => {
     expect(fs.existsSync(path.join(ROOT, 'skills', 'vs-write-slop'))).toBe(
       false,

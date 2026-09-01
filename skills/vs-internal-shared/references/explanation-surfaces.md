@@ -29,7 +29,7 @@ For a complex human-facing explanation:
    reason, and the next action or decision. Link the artifact. Do not duplicate
    its detailed prose, tables, evidence, or history.
 2. **Visual artifact:** create one HTMDX artifact through
-   `/vs-show-me` ([`../../vs-htmdx/SKILL.md`](../../vs-htmdx/SKILL.md)). It is the canonical
+   `/vs-show-me` ([`../../vs-show-me/SKILL.md`](../../vs-show-me/SKILL.md)). It is the canonical
    human review surface. Validate, render, and open it when the host can.
 
 Machine-consumed specs, plans, issue drafts, and `GOALS.md` may remain Markdown.

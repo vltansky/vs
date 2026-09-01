@@ -331,7 +331,7 @@ benchmark contract before recommending implementation.
 
    Save the RFC to `~/.vs/$PROJECT_ID/rfcs/NNNN-[slug].md` (create the directory if missing; pick `NNNN` as the next sequential number in that folder)
 2. Render the RFC for human review as an HTMDX proposal page through
-   [`../vs-htmdx/SKILL.md`](../vs-htmdx/SKILL.md) — its proposal shell's section
+   [`../vs-show-me/SKILL.md`](../vs-show-me/SKILL.md) — its proposal shell's section
    order matches the RFC template, and its components (Options, Risks, Scope,
    Questions, mermaid fences) carry the alternatives, risks, and flows better
    than markdown prose. The `.md` file stays the canonical machine-consumed

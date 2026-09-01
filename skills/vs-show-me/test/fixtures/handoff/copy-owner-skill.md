@@ -1,5 +1,5 @@
 ---
-name: vs-htmdx
+name: vs-show-me
 ---
 # HTMDX
 first-screen shot failed openable URL file:///tmp/vs/artifact.html

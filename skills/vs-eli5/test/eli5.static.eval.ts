@@ -14,7 +14,7 @@ const TLDR = fs.readFileSync(
   path.join(ROOT, 'skills', 'vs-tldr', 'SKILL.md'),
   'utf8',
 );
-const RUNNER = path.join(ROOT, 'skills', 'vs-htmdx', 'scripts', 'run-write-slop.mjs');
+const RUNNER = path.join(ROOT, 'skills', 'vs-show-me', 'scripts', 'run-write-slop.mjs');
 const FIX = path.join(__dirname, 'fixtures');
 const MENTION = path.join(FIX, 'mention-only-write-slop-skill.md');
 const TLDR_SLOP = path.join(FIX, 'tldr-slop.md');
@@ -25,7 +25,7 @@ function run(target: string) {
 }
 
 describe('vs-eli5 thin contract', () => {
-  it('matches Claude eli5 plus vs-htmdx', () => {
+  it('matches Claude eli5 plus vs-show-me', () => {
     expect(SKILL).toMatch(/^name: vs-eli5$/m);
     expect(SKILL).toMatch(/\/vs-eli5/);
     expect(SKILL).toMatch(/big pictures/i);
@@ -64,8 +64,8 @@ describe('vs-eli5 thin contract', () => {
 
 
 describe('vs-eli5 rendering', () => {
-  it('starts from the shared vs-htmdx artifact', () => {
-    expect(SKILL).toContain('../vs-htmdx/assets/artifact.html');
+  it('starts from the shared vs-show-me artifact', () => {
+    expect(SKILL).toContain('../vs-show-me/assets/artifact.html');
   });
 
   it('always puts a chat TLDR of the page', () => {
@@ -87,7 +87,7 @@ describe('vs-eli5: inherit htmdx write-slop, score the chat TLDR', () => {
 
   it('passes pointer plus runner without pasting the write procedure', () => {
     expect(SKILL).toMatch(/inherit/i);
-    expect(SKILL).toMatch(/vs-htmdx/);
+    expect(SKILL).toMatch(/vs-show-me/);
     expect(SKILL).toMatch(/run-write-slop\.mjs/);
     expect(SKILL).toMatch(/reject-slop\.mjs/);
     expect(SKILL).toMatch(/do not (?:report|pretend|claim)\s+`?READY_FOR_REVIEW/i);

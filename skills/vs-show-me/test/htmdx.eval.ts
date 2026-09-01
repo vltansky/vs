@@ -6,7 +6,7 @@ const SKILL_DIR = path.resolve(__dirname, '..');
 const SKILL = fs.readFileSync(path.join(SKILL_DIR, 'SKILL.md'), 'utf8');
 const TEMPLATE = fs.readFileSync(path.join(SKILL_DIR, 'assets/artifact.html'), 'utf8');
 
-describe('vs-htmdx', () => {
+describe('vs-show-me', () => {
   it('defines a focused HTMDX trigger and portable single-file output', () => {
     expect(SKILL).toMatch(/^name: vs-show-me$/m);
     expect(SKILL).not.toMatch(/`\/vs-htmdx`/);

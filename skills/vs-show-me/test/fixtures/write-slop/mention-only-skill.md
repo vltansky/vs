@@ -1,5 +1,5 @@
 ---
-name: vs-htmdx
+name: vs-show-me
 ---
 # HTMDX
 Use vs-write when authoring the page.

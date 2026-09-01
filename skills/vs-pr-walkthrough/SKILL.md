@@ -169,7 +169,7 @@ Verify both mechanics and the rendered page:
 
 The page needs custom stateful behavior, so it is bespoke HTML rather than
 HTMDX. Inherit the URL and first-screen shot handoff from
-`/vs-show-me` ([`../vs-htmdx/SKILL.md`](../vs-htmdx/SKILL.md)), but do not route rendering
+`/vs-show-me` ([`../vs-show-me/SKILL.md`](../vs-show-me/SKILL.md)), but do not route rendering
 through HTMDX.
 
 ## Re-running after the PR changes
