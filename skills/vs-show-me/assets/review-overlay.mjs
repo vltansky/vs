@@ -14,8 +14,15 @@ button, textarea { font: inherit; }
   padding: 0 14px; background: #21252C; color: #D7DAE0; cursor: pointer;
   display: flex; align-items: center; gap: 9px; font-size: 12px; font-weight: 600;
   box-shadow: 0 8px 24px rgb(0 0 0 / 36%);
-  transition: transform 140ms ease, border-color 140ms ease, color 140ms ease;
+  transition: transform 140ms ease, border-color 140ms ease, color 140ms ease, opacity 140ms ease;
+  /* An empty review affordance is the tool talking about itself inside a
+     document about something else, and it floats over the content at every
+     scroll position. It recedes rather than hides so a reviewer can still find
+     it - and once it carries a count it is reporting real state, so it holds
+     full strength without being reached for. */
+  opacity: 0.45;
 }
+.vs-review-fab:is(:hover, :focus-visible), .vs-review-fab:has([data-count]:not(:empty)) { opacity: 1; }
 .vs-review-fab:hover { border-color: #93A4E8; color: #93A4E8; transform: translate(-1px, -1px); }
 .vs-review-fab [data-count]:not(:empty) { color: #21252C; background: #93A4E8; padding: 1px 5px; border-radius: 999px; }
 .vs-review-panel {
@@ -76,6 +83,8 @@ button, textarea { font: inherit; }
 .vs-review-text-button:disabled { opacity: .45; cursor: default; }
 .vs-review-surface :focus-visible { outline: 2px solid #93A4E8; outline-offset: 2px; }
 @media (prefers-reduced-motion: reduce) { .vs-review-panel, .vs-review-fab { transition: none; } }
+/* No hover to reveal with, so the resting state has to be the reachable one. */
+@media (hover: none) { .vs-review-fab { opacity: 1; } }
 `;
 
 export function resolveQuoteStart(text, quote) {

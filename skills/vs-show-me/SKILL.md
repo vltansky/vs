@@ -191,7 +191,14 @@ uncertainty.
    fact rows that restate the primary ones. Treat a gauge's maximum as a
    ceiling, not a target. Label the values that matter directly — on the
    point, the bar, the line end — and pair every color with a label or shape,
-   so meaning never rides on color alone.
+   so meaning never rides on color alone. A figure the artifact worked out
+   rather than read — a percentage change, a total, a rate, a projection —
+   carries the inputs it came from, because the reader cannot check arithmetic
+   they cannot see and a wrong derived number is indistinguishable from a
+   sourced one. Show both operands beside the result (`240 → 3,100`, not a bare
+   `13× higher`), keep the derived figure at or below the precision of its least
+   precise input, and never derive across units, scopes, or time windows the
+   sources kept apart.
 9. Remove every placeholder and unused section.
 
 ## Review comments
@@ -299,7 +306,12 @@ when a section needs it:
   the catalog does not cover. When a mock or SVG needs categorical color, use
   the theme's series tokens (`var(--vs-series-1)` … `var(--vs-series-6)`) in
   order rather than hand-picking hexes — they are the palette every chart on
-  the page already speaks.
+  the page already speaks. Series text on a *tinted* ground takes the wash
+  utilities (`bg-blue-50`, `bg-red-50`), whose alpha is calibrated to keep the
+  matching accent above 4.5:1; a hand-mixed
+  `color-mix(in srgb, var(--vs-series-4) 24%, transparent)` under
+  `color: var(--vs-series-4)` lifts the ground toward the text and drops the
+  label under AA no matter which accent it is.
 - **Tooltips are declarative.** Put `data-tip="text"` on any allowlisted
   element for a hover-and-focus tooltip — add `tabindex="0"` so keyboard
   readers reach it too. It is for the aside a label has no room for (a

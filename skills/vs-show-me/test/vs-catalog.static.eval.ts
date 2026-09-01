@@ -392,6 +392,42 @@ describe('the vs catalog is one source the CLI and the browser both load', () =>
     expect(noColumns.children[0].type).toBe('div');
   });
 
+  it('states a Delta change in the unit the reader is looking at', async () => {
+    const { vsCatalogFactory, vsLayoutCss } = await import(CATALOG_URL);
+    const stubReact = {
+      createElement: (type: string, props: Record<string, unknown>, ...children: unknown[]) => ({
+        type,
+        props,
+        children: children.flat(Infinity),
+      }),
+    };
+    const catalog = vsCatalogFactory(stubReact, vsLayoutCss);
+    const delta = catalog.components.find((c: { name: string }) => c.name === 'Delta');
+    const badges = (body: string) =>
+      delta
+        .Component({ body })
+        .children[0].children.map(
+          (card: { children: { children: { children: string[] }[] }[] }) =>
+            card.children[1].children.at(-1).children.join(''),
+        );
+    expect(
+      badges(
+        [
+          // A grouped thousand must not be read as its first group.
+          '- Queue depth: 240 → 3,100',
+          // Two rates differ by points; their ratio is a number nobody can act on.
+          '- Hit rate: 71% → 94%',
+          '- Hit rate: 94% → 89%',
+          // A four-digit percentage off two-significant-figure inputs is
+          // precision the reader cannot check.
+          '- Footprint: 2.1 GB → 0.3 GB',
+          // Inside 5x a percentage still reads, so it stays one.
+          '- Save p95: 480ms → 120ms',
+        ].join('\n'),
+      ),
+    ).toEqual(['13× higher', '+23 points', '-5 points', '7× lower', '-75%']);
+  });
+
   it('degrades to the body text when no React is available', async () => {
     // The plugin cache ships this skill without node_modules; lint never
     // renders, so a text fallback keeps the CLI path working there.

@@ -169,13 +169,20 @@ export const vsLayoutCss = `
     /* Series palette: the One Dark terminal accents in fixed order, so
        charts, mocks, and hand-drawn SVGs pick colors by position instead of
        hand-mixing hexes. 1 is the theme accent; pair every color with a
-       label or shape - meaning never rides on color alone. */
+       label or shape - meaning never rides on color alone.
+
+       Every entry clears 4.5:1 on the card, because the label naming a series
+       is written in that series' color - that is what a positional palette is
+       for, and a token that is only safe as a fill is a trap for the one use
+       it invites. So 4 and 6 are One Dark's red and magenta lightened past AA
+       (3.80 and 4.12 raw) rather than the terminal values; 4 is the same red
+       .text-red-700 already resolves to, so the two never disagree. */
     --vs-series-1: #93A4E8;
     --vs-series-2: #98C379;
     --vs-series-3: #E5C07B;
-    --vs-series-4: #E06C75;
+    --vs-series-4: #F2A2A8;
     --vs-series-5: #56B6C2;
-    --vs-series-6: #C678DD;
+    --vs-series-6: #DBA6EC;
   }
   /* Every face here is fetched from the CDN, never assumed installed - the
      artifact is a single file that has to look the same on a reader's machine
@@ -290,20 +297,29 @@ export const vsLayoutCss = `
     align-items: baseline;
   }
   .htmdx-app[data-htmdx-layout^='vs'] .text-emerald-700 { color: #98C379; }
-  /* One Dark's own red (#E06C75) measures 4.03:1 on the card and 3.46:1 on its
-     12% wash - under AA for body text. Lightened just enough to clear both
-     (5.77 / 4.66) while staying the same red. */
-  .htmdx-app[data-htmdx-layout^='vs'] .text-red-700 { color: #F0949B; }
+  /* Accent text is measured against the wash it sits on, not the card - a
+     chip's ground is its own 12% tint over whatever container it landed on,
+     and every step up that ladder (low, container, high) eats headroom. One
+     Dark's red is 4.03:1 on the card and 3.46:1 on its wash; even the first
+     lightening pass only reached 4.42 on a high container. These clear 4.5
+     everywhere the wash utilities can land, without leaving the hue. */
+  .htmdx-app[data-htmdx-layout^='vs'] .text-red-700 { color: #F2A2A8; }
   .htmdx-app[data-htmdx-layout^='vs'] .text-amber-700 { color: #E5C07B; }
-  .htmdx-app[data-htmdx-layout^='vs'] .text-blue-700 { color: #93A4E8; }
+  /* The theme accent itself is 3.80:1 on a blue wash over a high container, so
+     blue as running text is a lightened sibling of --md-sys-color-primary, not
+     the token: the token still paints borders, strokes and fills, which carry
+     no contrast floor. */
+  .htmdx-app[data-htmdx-layout^='vs'] .text-blue-700 { color: #AAB7ED; }
   /* Washes are translucent tints of their own accent, not hand-mixed dark
      hexes: they stay in hue with the text on any container they land on. */
   .htmdx-app[data-htmdx-layout^='vs'] .bg-emerald-50 { background-color: rgb(152 195 121 / 12%); }
   .htmdx-app[data-htmdx-layout^='vs'] .bg-red-50 { background-color: rgb(240 148 155 / 12%); }
   .htmdx-app[data-htmdx-layout^='vs'] .bg-amber-50 { background-color: rgb(229 192 123 / 12%); }
   .htmdx-app[data-htmdx-layout^='vs'] .bg-blue-50 { background-color: rgb(147 164 232 / 12%); }
-  .htmdx-app[data-htmdx-layout^='vs'] .bg-violet-50 { background-color: rgb(198 120 221 / 12%); }
-  .htmdx-app[data-htmdx-layout^='vs'] .text-violet-700 { color: #C678DD; }
+  .htmdx-app[data-htmdx-layout^='vs'] .bg-violet-50 { background-color: rgb(219 166 236 / 12%); }
+  /* Same treatment as the red above: One Dark's magenta is 4.12:1 on the card,
+     and lightening it clears AA (6.17) without leaving the hue. */
+  .htmdx-app[data-htmdx-layout^='vs'] .text-violet-700 { color: #DBA6EC; }
   /* The runtime pairs every wash with a dark: variant, but the document never
      enters dark mode - the vs palette is a scoped repaint, not a theme switch -
      so the light wash is what lands. Column tints (DecisionMatrix's chosen
@@ -334,9 +350,9 @@ export const vsLayoutCss = `
   .htmdx-app[data-htmdx-layout^='vs'] .text-emerald-500 { color: #98C379; }
   .htmdx-app[data-htmdx-layout^='vs'] .text-green-500 { color: #98C379; }
   .htmdx-app[data-htmdx-layout^='vs'] .text-amber-500 { color: #E5C07B; }
-  .htmdx-app[data-htmdx-layout^='vs'] .text-red-500 { color: #F0949B; }
-  .htmdx-app[data-htmdx-layout^='vs'] .text-blue-500 { color: #93A4E8; }
-  .htmdx-app[data-htmdx-layout^='vs'] .text-violet-500 { color: #C678DD; }
+  .htmdx-app[data-htmdx-layout^='vs'] .text-red-500 { color: #F2A2A8; }
+  .htmdx-app[data-htmdx-layout^='vs'] .text-blue-500 { color: #AAB7ED; }
+  .htmdx-app[data-htmdx-layout^='vs'] .text-violet-500 { color: #DBA6EC; }
   /* Outline chips pair a -300 border with a dark: variant that never fires
      here, so a pastel hairline lands on the dark card. Same tones at 45%. */
   .htmdx-app[data-htmdx-layout^='vs'] :is(.border-emerald-300, .border-green-300) { border-color: rgb(152 195 121 / 45%); }
@@ -364,7 +380,12 @@ export const vsLayoutCss = `
     margin-bottom: 20px;
   }
   /* Text and a single figure share one measure so the left edge never breaks;
-     only genuinely wide media (a Compare pair, a table) uses the full canvas. */
+     only genuinely wide media (a Compare pair, a table) uses the full canvas.
+     The diagram panel belongs on the narrow measure even though it reads as a
+     component: mermaid stamps the drawing's intrinsic width on the svg as an
+     inline max-width, so a panel wider than the drawing is dead canvas, not a
+     bigger diagram - and forcing the svg past that cap scales its height by the
+     same factor, which on a tall flowchart is a screen and a half of nothing. */
   :is(.htmdx-app[data-htmdx-layout='vs'], .vs-p-main) > div > :is(p, ul, ol, blockquote, h1, h3, h4, h5, h6),
   :is(.htmdx-app[data-htmdx-layout='vs'], .vs-p-main) > div .htmdx-image,
   :is(.htmdx-app[data-htmdx-layout='vs'], .vs-p-main) > div > svg,
@@ -401,9 +422,35 @@ export const vsLayoutCss = `
     .htmdx-app[data-htmdx-layout^='vs'] .htmdx-mermaid { resize: vertical; }
     :is(.htmdx-app[data-htmdx-layout^='vs'] .htmdx-mermaid, .vs-mermaid-dialog) svg { cursor: grab; }
     :is(.htmdx-app[data-htmdx-layout^='vs'] .htmdx-mermaid, .vs-mermaid-dialog) svg:active { cursor: grabbing; }
-    /* Hint and controls stay visible: a reader who never hovers - on touch, or
-       scanning a printout of the page on screen - still has to learn the panel
-       pans, zooms, and opens full view. */
+    /* Chrome recedes until it is wanted. A keyboard shortcut legend printed
+       permanently over the diagram is the tool talking about itself in a
+       document meant to explain something else; at rest it competes with the
+       content it annotates. It stays present rather than hidden so a reader
+       still learns the panel pans, zooms, and opens full view - dimmed, then
+       full strength on hover or keyboard focus.
+
+       Hint and controls repeat as separate selectors rather than sharing an
+       :is(): a pseudo-element cannot live inside one, and the forgiving list
+       drops that branch and keeps the rest, so the paired form silently styles
+       only the controls. */
+    .htmdx-app[data-htmdx-layout^='vs'] .htmdx-mermaid::after,
+    .vs-mermaid-controls {
+      opacity: 0.4;
+      transition: opacity 140ms ease;
+    }
+    .htmdx-app[data-htmdx-layout^='vs'] .htmdx-mermaid:is(:hover, :focus-within)::after,
+    .htmdx-app[data-htmdx-layout^='vs'] .htmdx-mermaid:is(:hover, :focus-within) .vs-mermaid-controls {
+      opacity: 1;
+    }
+    /* No hover to reveal with, so the hint has to carry itself. */
+    @media (hover: none) {
+      .htmdx-app[data-htmdx-layout^='vs'] .htmdx-mermaid::after,
+      .vs-mermaid-controls { opacity: 1; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .htmdx-app[data-htmdx-layout^='vs'] .htmdx-mermaid::after,
+      .vs-mermaid-controls { transition: none; }
+    }
     .htmdx-app[data-htmdx-layout^='vs'] .htmdx-mermaid::after {
       content: 'drag pans - ctrl+scroll zooms - double-click resets';
       position: absolute;
@@ -982,7 +1029,7 @@ ${flowRailCss(".htmdx-app[data-htmdx-layout^='vs'] .vs-flow")}
   .vs-p-pill[data-phase='Superseded'] { background: #B45309; color: #FEF3C7; }
   /* PEP-style banner: a dead proposal says so between the hero and the body,
      before anyone reads three sections and acts on it. */
-  .vs-p-notice[data-phase='Rejected'] { background: rgb(224 108 117 / 14%); color: #E06C75; }
+  .vs-p-notice[data-phase='Rejected'] { background: rgb(242 162 168 / 14%); color: #F2A2A8; }
   .vs-p-notice[data-phase='Superseded'] { background: rgb(229 192 123 / 14%); color: #E5C07B; }
   .vs-p-notice-inner {
     max-width: 54rem;
@@ -1282,13 +1329,35 @@ export const vsCatalogFactory = (React, css) => {
     gain: 'bg-emerald-50 text-emerald-700',
     cost: 'bg-red-50 text-red-700',
   };
-  const changePercent = (before, after) => {
-    const from = Number((before.match(/-?\d+(?:\.\d+)?/) || [])[0]);
-    const to = Number((after.match(/-?\d+(?:\.\d+)?/) || [])[0]);
+  // Thousands separators are how an author writes a number a reader can scan,
+  // so the grammar has to accept one. Matching \d+ first stops at the comma and
+  // turns 3,100 into 3 - a wrong figure that still renders, which is the worst
+  // kind. Mirrors GAUGE_RATIO's comma-aware shape below.
+  const deltaNumber = (text) => {
+    const match = String(text).match(/-?\d[\d,]*(?:\.\d+)?/);
+    return match ? Number(match[0].replaceAll(',', '')) : Number.NaN;
+  };
+  const round = (value) => (Math.abs(value) >= 10 ? Math.round(value) : Math.round(value * 10) / 10);
+  const changeBadge = (before, after) => {
+    const from = deltaNumber(before);
+    const to = deltaNumber(after);
     if (!Number.isFinite(from) || !Number.isFinite(to) || from === 0) return undefined;
-    const change = ((to - from) / Math.abs(from)) * 100;
-    const rounded = Math.abs(change) >= 10 ? Math.round(change) : Math.round(change * 10) / 10;
-    return (rounded > 0 ? '+' : '') + rounded + '%';
+    // Both sides are already rates: the ratio of two percentages is a number
+    // nobody can act on, and printed next to two percent signs it reads as a
+    // point difference. 71% to 94% moved 23 points, not 32 percent - so report
+    // the subtraction the reader is looking straight at.
+    if (/%/.test(String(before)) && /%/.test(String(after))) {
+      const points = round(to - from);
+      return (points > 0 ? '+' : '') + points + (Math.abs(points) === 1 ? ' point' : ' points');
+    }
+    const ratio = to / from;
+    // Past 5x, a percentage needs four digits to stay accurate, and four digits
+    // derived from two-significant-figure inputs is precision the reader cannot
+    // check. A multiple carries the same fact at a size the eye holds: 240 to
+    // 3,100 is 13x, which lands where +1192% does not.
+    if (from > 0 && ratio >= 5) return round(ratio) + '× higher';
+    if (from > 0 && ratio > 0 && ratio <= 0.2) return round(1 / ratio) + '× lower';
+    return (to > from ? '+' : '') + round(((to - from) / Math.abs(from)) * 100) + '%';
   };
   const DELTA_ARROW = /\s*(?:→|->)\s*/;
   const Delta = ({ body = '' }) =>
@@ -1304,7 +1373,7 @@ export const vsCatalogFactory = (React, css) => {
             return h('div', { key: index, className: 'rounded-lg border bg-card px-4 py-3 text-sm' }, plain(row));
           }
           const { kind, rest } = valence(label);
-          const percent = changePercent(before, after);
+          const percent = changeBadge(before, after);
           return h(
             'div',
             { key: index, className: 'rounded-lg border bg-card px-4 py-3' },
