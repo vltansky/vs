@@ -90,8 +90,8 @@ const launchBody = existsSync(readmePath) && statSync(readmePath).isFile()
 function launchIsStub(body) {
   if (!body) return true;
   if (/\bTODO\b/i.test(body) || /\bTBD\b/i.test(body)) return true;
-  if (/(^|\s)<[^>\n]+>(\s|$)/.test(body)) return true;
-  if (!/\bready\b/i.test(body) || !/\bteardown\b/i.test(body)) return true;
+  if (/<[^>\n]+>/.test(body)) return true;
+  if (!/ready when/i.test(body) || !/teardown\s*:/i.test(body)) return true;
   return false;
 }
 
