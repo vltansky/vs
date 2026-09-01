@@ -103,6 +103,8 @@ describe('verify-map contract', () => {
     expect(reject(path.join(FIX, 'stub-live-drive')).status).toBe(1);
     expect(reject(path.join(FIX, 'too-few-features')).status).toBe(1);
     expect(reject(path.join(FIX, 'missing-launch')).status).toBe(1);
+    expect(reject(path.join(FIX, 'placeholder-period-launch')).status).toBe(1);
+    expect(reject(path.join(FIX, 'keyword-slogan-launch')).status).toBe(1);
   });
 });
 
