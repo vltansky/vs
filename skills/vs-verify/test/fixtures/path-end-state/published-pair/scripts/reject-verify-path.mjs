@@ -31,7 +31,10 @@ function walk(dir) {
   for (const name of readdirSync(dir)) {
     const next = join(dir, name);
     const nextStat = statSync(next);
-    if (nextStat.isDirectory()) walk(next);
+    if (nextStat.isDirectory()) {
+      if (name === "verify-map") continue;
+      walk(next);
+    }
     else files.push(next);
   }
 }
@@ -75,8 +78,8 @@ function sha256(buf) {
 function identityBytes(buf) {
   return Buffer.from(String(buf).replace(/[a-f0-9]{64}/g, ''));
 }
-const PUBLISHED_REJECTOR_SHA256 = '4d359f5bf56388522ed69d5c9d051843407635e6410a75abba3723590e54113a';
-const PUBLISHED_SKILL_SHA256 = '14914a72c4d7476bca0c5453150daf9e94881fac1e1d5488d590c7b65e776191';
+const PUBLISHED_REJECTOR_SHA256 = '9cad5e19e344fdb58d8b486ca6e38991a2d4142aeb4d1002349ab886d02de721';
+const PUBLISHED_SKILL_SHA256 = '6f6e8f75c8f772ae8b3fd90e69e96606e02946ab84ef2f46f8fe44e90640c11c';
 function repoSkillPath() {
   let dir = dirname(SELF);
   for (let i = 0; i < 10; i++) {
@@ -146,8 +149,9 @@ const BAD = [
   'baseline-path-only',
   'clean-path-end-state',
   'clean-path-end-baseline',
+  'pass-map-unread',
 ];
-const CLEAN = ['clean-command-shot', 'clean-no-visual', 'published-pair/SKILL.md'];
+const CLEAN = ['clean-command-shot', 'clean-no-visual', 'pass-map-read', 'published-pair/SKILL.md'];
 
 function wiredExclusive(skillFile) {
   if (process.env.VS_PATH_WIRED_CHECK === '1') return false;
@@ -427,4 +431,66 @@ if (claimsPass(text) && visualInScope(text) && !hasShotOrBaseline(text)) {
   process.exit(1);
 }
 
+
+function findVerifyMapDir(root) {
+  const candidates = [
+    join(root, ".vs", "verify-map"),
+    join(root, "verify-map"),
+    join(dirname(root), ".vs", "verify-map"),
+    join(dirname(root), "verify-map"),
+  ];
+  for (const dir of candidates) {
+    if (existsSync(join(dir, "README.md"))) return dir;
+  }
+  return "";
+}
+function mapFilesWithSection(mapDir, heading) {
+  const found = [];
+  function walkMd(dir) {
+    if (!existsSync(dir)) return;
+    for (const name of readdirSync(dir)) {
+      const next = join(dir, name);
+      const st = statSync(next);
+      if (st.isDirectory()) walkMd(next);
+      else if (/\.md$/i.test(name)) {
+        const body = read(next);
+        if (new RegExp("^#{1,3}\\s+" + heading + "\\b", "im").test(body)) found.push(next);
+      }
+    }
+  }
+  walkMd(mapDir);
+  return found;
+}
+function filesReadLines(root) {
+  const file = join(root, "FILES_READ");
+  if (!existsSync(file) || !statSync(file).isFile()) return [];
+  return read(file).split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+}
+const MAP_ERR = "reject-verify-path: pass without reading verify-map Launch/Doctor";
+function lineResolvesTo(line, wanted, roots) {
+  const cleaned = line.replace(/^[^A-Za-z0-9._\/-]+|[^A-Za-z0-9._\/-]+$/g, "");
+  for (const base of roots) {
+    try {
+      if (resolve(base, cleaned) === resolve(wanted)) return true;
+    } catch {}
+  }
+  return false;
+}
+function mapLaunchDoctorRead(runDir, mapDir) {
+  const launchFiles = mapFilesWithSection(mapDir, "Launch");
+  const doctorFiles = mapFilesWithSection(mapDir, "Doctor");
+  if (launchFiles.length === 0 || doctorFiles.length === 0) return false;
+  const lines = filesReadLines(runDir);
+  const roots = [runDir, mapDir, dirname(mapDir)];
+  const readLaunch = launchFiles.every((file) => lines.some((line) => lineResolvesTo(line, file, roots)));
+  const readDoctor = doctorFiles.every((file) => lines.some((line) => lineResolvesTo(line, file, roots)));
+  return readLaunch && readDoctor;
+}
+if (claimsPass(text)) {
+  const mapDir = findVerifyMapDir(runRoot);
+  if (mapDir && !mapLaunchDoctorRead(runRoot, mapDir)) {
+    console.error(MAP_ERR);
+    process.exit(1);
+  }
+}
 process.exit(0);

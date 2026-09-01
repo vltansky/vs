@@ -72,6 +72,15 @@ Verify may pin a screenshot or baseline path. New shots compare to that pin.
 Do not invent a show-me skill. If the user names an Expo or device screenshot
 path, consume that file as evidence; do not add an Expo agent-device skill.
 
+## Verify map
+
+When `.vs/verify-map/` exists, read Launch and Doctor (and the relevant feature
+file) before claiming PASS — do not guess launch. When it is missing, generate
+once per
+[`../vs-internal-shared/references/verify-map.md`](../vs-internal-shared/references/verify-map.md)
+into the project. Keep this skill a cheapest-sufficient claim checker; the
+factory lives in that shared contract, not here.
+
 ## Rules
 
 - Never report `PASS` without naming the command, check, or observation that
