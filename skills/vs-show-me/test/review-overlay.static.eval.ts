@@ -59,7 +59,7 @@ describe('the local review overlay is one portable generated shell feature', () 
 
   it('uses the artifact reading face and reserves mono for metadata', () => {
     expect(reviewOverlayCss).toMatch(/\.vs-review-surface[^}]*font-family:\s*'Figtree'/);
-    expect(reviewOverlayCss).toMatch(/\.vs-review-thread-head[^}]*'JetBrains Mono'/);
+    expect(reviewOverlayCss).toMatch(/\.vs-review-thread-head[^}]*'Geist Mono'/);
     expect(reviewOverlayCss).not.toMatch(/:host[^}]*font-family/);
   });
 

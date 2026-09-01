@@ -41,7 +41,7 @@ button, textarea { font: inherit; }
 .vs-review-thread { border: 0; border-bottom: 1px solid #3E4451; background: transparent; padding: 14px 4px 14px 10px; cursor: pointer; }
 .vs-review-thread:hover, .vs-review-thread[data-focused='true'] { background: #282C34; box-shadow: inset 2px 0 0 #93A4E8; }
 .vs-review-thread[data-resolved='true'] { opacity: .58; }
-.vs-review-thread-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; color: #7F848E; font: 10px/1.4 'JetBrains Mono', ui-monospace, monospace; text-transform: uppercase; }
+.vs-review-thread-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; color: #7F848E; font: 10px/1.4 'Geist Mono', ui-monospace, monospace; text-transform: uppercase; }
 .vs-review-thread p { margin: 8px 0 0; color: #D7DAE0; font-size: 14px; line-height: 1.5; white-space: pre-wrap; }
 .vs-review-empty { color: #7F848E; text-align: left; padding: 36px 6px; font-size: 13px; line-height: 1.55; }
 .vs-review-marker {

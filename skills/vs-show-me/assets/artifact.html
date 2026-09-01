@@ -138,10 +138,20 @@ const vsLayoutCss = `
     --muted: var(--md-sys-color-surface-variant);
     --muted-foreground: var(--md-sys-color-on-surface-variant);
     --border: var(--md-sys-color-outline-variant);
-    --vs-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, monospace;
-    /* Terminal theme: everything reads in the terminal face, like the
-       Ghostty session the palette comes from. */
-    font-family: var(--vs-mono);
+    /* Two faces, one job each. The mono is reserved for what is literally in a
+       file - identifiers, paths, code, figures - so setting it in mono is a
+       claim that the reader can copy the characters verbatim. Everything the
+       author wrote in their own words reads in the sans. A single mono page
+       erases that distinction and makes prose as dense as a stack trace.
+       Geist Mono is ligature-free on purpose: a face that fuses an arrow or a
+       not-equals into one glyph misreports the source the artifact quotes. */
+    --vs-mono: 'Geist Mono', ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, monospace;
+    /* Code blocks are painted by the runtime off its own token; point it at the
+       theme face or fenced code renders in the browser default while every
+       other mono on the page is Geist. */
+    --htmdx-mono: var(--vs-mono);
+    --vs-sans: 'Space Grotesk', ui-sans-serif, system-ui, sans-serif;
+    font-family: var(--vs-sans);
     --vs-hand: 'Excalifont', 'Segoe Print', 'Bradley Hand', 'Comic Sans MS', cursive;
     /* Hand-drawn outlines: uneven four-corner radii (slash syntax offsets each
        corner's horizontal and vertical curve) so no card edge repeats. Two
@@ -159,40 +169,75 @@ const vsLayoutCss = `
     --vs-series-5: #56B6C2;
     --vs-series-6: #C678DD;
   }
-  /* Ghostty's default face, from fontsource on the same CDN family the
-     runtime already uses. Latin subsets; 400/500/700 cover the weights the
-     tokens ask for, italic covers emphasis. */
+  /* Every face here is fetched from the CDN, never assumed installed - the
+     artifact is a single file that has to look the same on a reader's machine
+     as it did on the author's. Latin subsets, and one @font-face per weight
+     the theme actually asks for: a weight with no face is silently remapped to
+     a neighbour, so dropping one here quietly flattens the type scale.
+
+     The coding face. */
   @font-face {
-    font-family: 'JetBrains Mono';
-    src: url('https://cdn.jsdelivr.net/npm/@fontsource/jetbrains-mono@5/files/jetbrains-mono-latin-400-normal.woff2') format('woff2');
+    font-family: 'Geist Mono';
+    src: url('https://cdn.jsdelivr.net/npm/@fontsource/geist-mono@5/files/geist-mono-latin-400-normal.woff2') format('woff2');
     font-weight: 400;
     font-style: normal;
     font-display: swap;
   }
   @font-face {
-    font-family: 'JetBrains Mono';
-    src: url('https://cdn.jsdelivr.net/npm/@fontsource/jetbrains-mono@5/files/jetbrains-mono-latin-500-normal.woff2') format('woff2');
+    font-family: 'Geist Mono';
+    src: url('https://cdn.jsdelivr.net/npm/@fontsource/geist-mono@5/files/geist-mono-latin-500-normal.woff2') format('woff2');
     font-weight: 500;
     font-style: normal;
     font-display: swap;
   }
   @font-face {
-    font-family: 'JetBrains Mono';
-    src: url('https://cdn.jsdelivr.net/npm/@fontsource/jetbrains-mono@5/files/jetbrains-mono-latin-700-normal.woff2') format('woff2');
+    font-family: 'Geist Mono';
+    src: url('https://cdn.jsdelivr.net/npm/@fontsource/geist-mono@5/files/geist-mono-latin-700-normal.woff2') format('woff2');
     font-weight: 700;
     font-style: normal;
     font-display: swap;
   }
   @font-face {
-    font-family: 'JetBrains Mono';
-    src: url('https://cdn.jsdelivr.net/npm/@fontsource/jetbrains-mono@5/files/jetbrains-mono-latin-400-italic.woff2') format('woff2');
+    font-family: 'Geist Mono';
+    src: url('https://cdn.jsdelivr.net/npm/@fontsource/geist-mono@5/files/geist-mono-latin-400-italic.woff2') format('woff2');
     font-weight: 400;
     font-style: italic;
     font-display: swap;
   }
-  /* Excalidraw's own face, served from the same CDN family the runtime already
-     uses. Latin subset only; other scripts fall through to the system hand
-     fonts in --vs-hand. It stays the voice of the hand-drawn diagrams. */
+  /* The body face. No italic is published for it, so emphasis is synthesised
+     by the browser - keep emphasis carried by weight or wording where it has
+     to be exact. */
+  @font-face {
+    font-family: 'Space Grotesk';
+    src: url('https://cdn.jsdelivr.net/npm/@fontsource/space-grotesk@5/files/space-grotesk-latin-400-normal.woff2') format('woff2');
+    font-weight: 400;
+    font-style: normal;
+    font-display: swap;
+  }
+  @font-face {
+    font-family: 'Space Grotesk';
+    src: url('https://cdn.jsdelivr.net/npm/@fontsource/space-grotesk@5/files/space-grotesk-latin-500-normal.woff2') format('woff2');
+    font-weight: 500;
+    font-style: normal;
+    font-display: swap;
+  }
+  @font-face {
+    font-family: 'Space Grotesk';
+    src: url('https://cdn.jsdelivr.net/npm/@fontsource/space-grotesk@5/files/space-grotesk-latin-600-normal.woff2') format('woff2');
+    font-weight: 600;
+    font-style: normal;
+    font-display: swap;
+  }
+  @font-face {
+    font-family: 'Space Grotesk';
+    src: url('https://cdn.jsdelivr.net/npm/@fontsource/space-grotesk@5/files/space-grotesk-latin-700-normal.woff2') format('woff2');
+    font-weight: 700;
+    font-style: normal;
+    font-display: swap;
+  }
+  /* Excalidraw's own face. Latin subset only; other scripts fall through to
+     the system hand fonts in --vs-hand. It stays the voice of the hand-drawn
+     diagrams. */
   @font-face {
     font-family: 'Excalifont';
     src: url('https://cdn.jsdelivr.net/npm/@excalidraw/excalidraw@0.18.1/dist/prod/fonts/Excalifont/Excalifont-Regular-a88b72a24fb54c9f94e3b5fdaa7481c9.woff2') format('woff2');
@@ -551,6 +596,10 @@ const vsLayoutCss = `
     font-family: var(--vs-mono);
     font-size: 0.875em;
   }
+  /* The rule above only reaches prose, which lives in one div under the app;
+     components mount as its siblings, so their inline code needs the face
+     named again or it falls back to the browser's monospace. */
+  .htmdx-app[data-htmdx-layout^='vs'] :not(pre) > code { font-family: var(--vs-mono); }
   :is(.htmdx-app[data-htmdx-layout='vs'], .vs-p-main) > div table {
     margin: 20px 0 24px;
     border-collapse: collapse;
@@ -769,28 +818,32 @@ const vsLayoutCss = `
     line-height: 18px;
     font-weight: 700;
   }
-  /* Catalog is a reference table, not a deck: twenty records as twenty bordered
-     cards is twenty boxes of chrome the reader has to look past. One hairline
-     between records and a fixed name column give the page a single scan axis -
-     names down the left edge, the same field labels down the middle. */
+  /* Catalog is a reference table, not a deck. What keeps it scannable at twenty
+     records is not more chrome but less: one key column width for the whole
+     block, keys demoted below the values they introduce, and a capped measure
+     so a long value stops before the reader loses the line. */
   .htmdx-app[data-htmdx-layout^='vs'] .vs-catalog-record {
     display: grid;
-    grid-template-columns: 15rem 1fr;
+    grid-template-columns: 13rem minmax(0, 1fr);
     gap: 4px 20px;
-    padding: 14px 0;
+    padding: 16px 0;
     border-top: 1px solid var(--md-sys-color-outline-variant);
   }
   .htmdx-app[data-htmdx-layout^='vs'] .vs-catalog-record:first-child { border-top: 0; padding-top: 0; }
   .htmdx-app[data-htmdx-layout^='vs'] .vs-catalog-name { align-self: start; }
   .htmdx-app[data-htmdx-layout^='vs'] .vs-catalog-fields {
     display: grid;
-    grid-template-columns: auto 1fr;
-    gap: 4px 12px;
+    grid-template-columns: var(--vs-catalog-key, 7ch) minmax(0, 1fr);
+    gap: 7px 12px;
     margin: 0;
     align-content: start;
   }
-  .htmdx-app[data-htmdx-layout^='vs'] .vs-catalog-fields dt { padding-top: 2px; white-space: nowrap; }
-  .htmdx-app[data-htmdx-layout^='vs'] .vs-catalog-fields dd { margin: 0; }
+  .htmdx-app[data-htmdx-layout^='vs'] .vs-catalog-fields dt {
+    padding-top: 1px;
+    white-space: nowrap;
+    opacity: 0.45;
+  }
+  .htmdx-app[data-htmdx-layout^='vs'] .vs-catalog-fields dd { margin: 0; max-width: 76ch; }
   .htmdx-app[data-htmdx-layout^='vs'] .vs-catalog-fields dd.vs-catalog-note { grid-column: 1 / -1; }
   .htmdx-app[data-htmdx-layout^='vs'] img.vs-catalog-thumb {
     display: block;
@@ -1571,11 +1624,20 @@ const vsCatalogFactory = (React, css) => {
       const { label, value } = labelValue(row);
       record.fields.push(value ? { label, value } : { label: '', value: label });
     }
+    // One key column for the whole block: sized from the longest label anywhere
+    // in it, so a record whose labels are short does not park its values left of
+    // its neighbour's. Labels set in the sans, where ch is the width of a zero
+    // rather than of every glyph, so the two-character slack absorbs the error.
+    let widest = 0;
+    for (const record of records) {
+      for (const field of record.fields) widest = Math.max(widest, field.label.length);
+    }
+    const keyStyle = widest ? { '--vs-catalog-key': widest + 2 + 'ch' } : undefined;
     return wrap(
       'Catalog',
       h(
         'div',
-        { className: 'flex flex-col' },
+        { className: 'flex flex-col', style: keyStyle },
         records.map((record, index) =>
           h(
             'div',
@@ -1592,7 +1654,7 @@ const vsCatalogFactory = (React, css) => {
                       'span',
                       {
                         className:
-                          'rounded-full px-2 py-0.5 text-xs font-semibold ' +
+                          'whitespace-nowrap rounded-full px-2 py-0.5 text-xs font-semibold ' +
                           (CATALOG_TONE[catalogTone(record.status)] || 'bg-muted text-muted-foreground'),
                       },
                       record.status.replace(/^[+−~-]\s*/, ''),
@@ -1614,14 +1676,7 @@ const vsCatalogFactory = (React, css) => {
                   record.fields.flatMap((field, position) =>
                     field.label
                       ? [
-                          h(
-                            'dt',
-                            {
-                              key: 'k' + position,
-                              className: 'text-xs font-semibold tracking-wider text-muted-foreground uppercase',
-                            },
-                            field.label,
-                          ),
+                          h('dt', { key: 'k' + position, className: 'text-xs text-muted-foreground' }, field.label),
                           h(
                             'dd',
                             { key: 'v' + position, className: 'text-sm text-card-foreground' },
@@ -3410,7 +3465,7 @@ button, textarea { font: inherit; }
 .vs-review-thread { border: 0; border-bottom: 1px solid #3E4451; background: transparent; padding: 14px 4px 14px 10px; cursor: pointer; }
 .vs-review-thread:hover, .vs-review-thread[data-focused='true'] { background: #282C34; box-shadow: inset 2px 0 0 #93A4E8; }
 .vs-review-thread[data-resolved='true'] { opacity: .58; }
-.vs-review-thread-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; color: #7F848E; font: 10px/1.4 'JetBrains Mono', ui-monospace, monospace; text-transform: uppercase; }
+.vs-review-thread-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; color: #7F848E; font: 10px/1.4 'Geist Mono', ui-monospace, monospace; text-transform: uppercase; }
 .vs-review-thread p { margin: 8px 0 0; color: #D7DAE0; font-size: 14px; line-height: 1.5; white-space: pre-wrap; }
 .vs-review-empty { color: #7F848E; text-align: left; padding: 36px 6px; font-size: 13px; line-height: 1.55; }
 .vs-review-marker {

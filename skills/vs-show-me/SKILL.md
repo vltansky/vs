@@ -58,6 +58,19 @@ npx -y @wix/htmdx@<pinned-version> skill --definitions ./assets/definitions.mjs
 predates the vs layout — drop the flag there; those artifacts name
 `layout: default` and lint without the catalog.
 
+`--definitions` renders the catalog to read it, so it needs Node 22 or newer —
+below that the call dies on `ReferenceError: navigator is not defined` before
+printing anything. Rerun the same command through a newer runtime rather than
+dropping the flag, since dropping it silently costs you the catalog:
+
+```bash
+fnm exec --using=24 -- npx -y @wix/htmdx@4 skill --definitions ./assets/definitions.mjs
+# or: nvm exec 24 npx -y @wix/htmdx@4 skill --definitions ./assets/definitions.mjs
+```
+
+Whichever runtime answers, keep using it for every later `htmdx` call in the
+task — the lint step takes `--definitions` too and fails the same way.
+
 Follow that output as the source of truth for the artifact contract, component
 choice, body grammar, attributes, and the CLI. Load a companion topic when the
 task calls for it, at the same version that answered the first call:
@@ -304,12 +317,11 @@ when a section needs it:
   stays editable. When the mock depicts a real product, style it in that
   product's own colors, type, and chrome — the artifact theme is the report's
   voice, not the product's — and show one realistic state instead of an
-  invented dashboard. Type is the one thing you must set yourself: the `vs`
-  theme puts the whole page in its mono face, so a mock that does not carry an
-  explicit `font-sans` (or its own `style="font-family: …"`) renders a
-  consumer product in JetBrains Mono and stops reading as that product.
-  Promote a mock into `assets/definitions.mjs` only when a second artifact
-  needs it.
+  invented dashboard. Type is the one thing you must set yourself: a mock
+  inherits Space Grotesk, the report's own display sans, so give it the
+  product's face with `style="font-family: …"` or it reads as the report
+  wearing a screenshot's layout. Promote a mock into `assets/definitions.mjs`
+  only when a second artifact needs it.
 - **Generated images embed.** When a picture explains better than markup — an
   illustration, a produced chart, a captured screenshot — generate it and embed
   it with `![alt](...)` or `<img>`: a file saved next to the artifact (relative
