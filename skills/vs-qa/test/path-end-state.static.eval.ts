@@ -32,6 +32,8 @@ const SOS_NO_SCAN = path.join(FIX, "sos-no-scan");
 const VP8_1BYTE = path.join(FIX, "vp8-1byte");
 const ARRAY_JSON = path.join(FIX, "array-json-baseline");
 const PUBLISHED = path.join(FIX, "published-pair", "SKILL.md");
+const MAP_UNREAD = path.join(FIX, "pass-map-unread");
+const MAP_READ = path.join(FIX, "pass-map-read");
 const TEMPLATE = path.join(DIR, "references", "qa-report-template.md");
 const HTML_TEMPLATE = path.join(DIR, "references", "qa-report-template.html");
 
@@ -71,6 +73,8 @@ describe("vs-qa user path, end state, and visual baseline", () => {
     expect(SKILL_RAW).not.toMatch(/ARRAY_JSON_BASELINE_QA_CANARY/);
     expect(SKILL_RAW).not.toMatch(/SHOW_ME_SKILL_CANARY/);
     expect(SKILL_RAW).not.toMatch(/EXPO_AGENT_DEVICE_CANARY/);
+    expect(SKILL_RAW).not.toMatch(/PASS_MAP_UNREAD_QA_CANARY/);
+    expect(SKILL_RAW).not.toMatch(/PASS_MAP_READ_QA_CANARY/);
     expect(SKILL_RAW).not.toMatch(/\/vs-show-me|\/vs-expo-device/i);
   });
 
@@ -152,5 +156,10 @@ describe("vs-qa user path, end state, and visual baseline", () => {
 
   it("exits 2 when a target is missing", () => {
     expect(reject(path.join(FIX, "missing-run.md")).status).toBe(2);
+  });
+
+  it("rejects PASS when a verify-map is unread and accepts PASS when FILES_READ includes Launch/Doctor", () => {
+    expect(reject(MAP_UNREAD).status).toBe(1);
+    expect(reject(MAP_READ).status).toBe(0);
   });
 });

@@ -1,0 +1,5 @@
+# Features
+
+- checkout
+- settings
+- search

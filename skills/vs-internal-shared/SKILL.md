@@ -106,9 +106,16 @@ when screenshots, DOM snapshots, transcripts, diffs, logs, recordings, or other
 large evidence could consume model context. It defines the content-addressed
 manifest, bounded summaries, and targeted retrieval contract.
 
+## Verify map
+
+Use [`references/verify-map.md`](./references/verify-map.md) when a consumer
+repo needs a scripted launch, doctor, and drive path. It defines the cold-read
+contract, the interview axes, the live-drive gate, and the project-local
+`.vs/verify-map/` output. Generate a map, not a skill.
+
 ## What does NOT go here
 
-Never write into the project tree (`docs/`, `.context/`, `.octocode/`) for session artifacts. Those are reserved for committed source-of-truth files: skill definitions (`skills/`), evals (`evals/`), and any RFC/spec the user explicitly asked to keep in the repo.
+Never write into the project tree (`docs/`, `.context/`, `.octocode/`) for session artifacts. Those are reserved for committed source-of-truth files: skill definitions (`skills/`), evals (`evals/`), verify maps (`.vs/verify-map/`), and any RFC/spec the user explicitly asked to keep in the repo.
 
 ## Skill kinds
 
