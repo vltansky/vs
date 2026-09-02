@@ -212,7 +212,9 @@ On a Playwright surface, pass `recordVideo` when constructing the context. That
 normally means deciding to record before the first navigation rather than at the
 moment the bug appears — build a second context from the live one's
 `storageState` instead and replay the repro there, which both defers the
-decision and carries localStorage across.
+decision and carries localStorage across. Follow
+[the recording contract](../vs-internal-shared/references/recording.md) for the
+capture shape, the two reasons a recorded click is invisible, and the transcode.
 
 Probe for tab-scoped CDP and an attachable CDP endpoint before concluding a
 surface cannot record. Codex in-app Browser exposes the former through its
@@ -239,9 +241,12 @@ state that the CDP frame route cannot prove it.
 This route records the current tab and session; do not bridge it through
 `agent-browser`. If no local WebM encoder is available, state that exact
 blocker. A raw CDP screencast does not show the pointer or an interaction that
-leaves pixels unchanged. For that class of failure, use it only when the page
-shows a visible focus, pressed, or navigation state; otherwise state that the
-capture cannot prove the action instead of shipping a static clip.
+leaves pixels unchanged. When the route can inject script into the page and
+drives real pointer events, draw the pointer per
+[the recording contract](../vs-internal-shared/references/recording.md).
+Otherwise use it only when the page shows a visible focus, pressed, or
+navigation state, and state that the capture cannot prove the action instead of
+shipping a static clip.
 
 For an attachable endpoint, `agent-browser get cdp-url` reports one for a
 session it owns, and `agent-browser connect <port-or-ws-url>` attaches to

@@ -76,7 +76,7 @@ function identityBytes(buf) {
   return Buffer.from(String(buf).replace(/[a-f0-9]{64}/g, ''));
 }
 const PUBLISHED_REJECTOR_SHA256 = '319e48014bd28e18085563c86d914c4536e06f6776a9cbf43f0a1eceabc739e2';
-const PUBLISHED_SKILL_SHA256 = '65560665bb516c73aa911171d8f22dc2e4eadde35d5bec0eadc6c148e89dc33c';
+const PUBLISHED_SKILL_SHA256 = '81a69289c959cc9ba2bde78f580954a974f4d1eeaffba1dd73d73a5248c955ee';
 function repoSkillPath() {
   let dir = dirname(SELF);
   for (let i = 0; i < 10; i++) {

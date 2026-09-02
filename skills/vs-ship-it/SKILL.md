@@ -142,9 +142,24 @@ for local media that directly proves the changed behavior.
 - Use short matched recordings for motion, timing, scrolling, dragging,
   resizing, or multi-step interactions.
 - Reuse valid existing proof. Do not rerun QA or start a browser/server solely
-  to manufacture media during shipping.
+  to manufacture screenshots during shipping.
 - If no valid media exists, continue without asking the user to find it. State
   the exact visual-proof gap under Evidence.
+
+One narrow exception: when the change is motion-shaped by the rule above and no
+valid recording exists, a recording is the only honest proof and stills cannot
+replace it. Ask the user first — recording starts a browser and a preview, which
+shipping otherwise never does. Use the host's ask-user question tool when one is
+available; offer recording it now versus shipping with the gap named. Do not
+start the browser before the answer.
+
+If the user declines or does not answer, ship immediately and state the exact
+recording gap under Evidence. If they approve, follow
+[`../vs-internal-shared/references/recording.md`](../vs-internal-shared/references/recording.md)
+for the capture, the invisible-click failure modes, and the transcode, and
+[`../vs-internal-shared/references/preview.md`](../vs-internal-shared/references/preview.md)
+for the surface. This exception covers recording only; it does not reopen QA,
+broad verification, or screenshot manufacture.
 
 Upload each available image or video directly to GitHub's user-attachments CDN.
 This is the same hosting surface as drag-and-drop, inherits repository
@@ -313,6 +328,8 @@ separate `vs-baby-sit` goal only when the user explicitly requested a Codex goal
 - [ ] The PR description was prepared without unnecessary user input.
 - [ ] Available screenshots/video were uploaded before PR creation and render,
       or the exact media gap is visible in Evidence.
+- [ ] A browser was started for a recording only after the user approved it for
+      a motion-shaped change with no valid recording.
 - [ ] Draft PR state, branch, and head SHA were re-resolved successfully.
 - [ ] A 10+ file PR started one exact-head walkthrough child without delaying
       babysitting; a smaller PR spawned none.
