@@ -75,6 +75,16 @@ describe('vs-eli5 rendering', () => {
     expect(SKILL).toMatch(/write nothing else\s+to chat/);
     expect(SKILL).toMatch(/Do not call `\/vs-tldr`/);
   });
+
+  it('teaches one usable mental model instead of only simplifying presentation', () => {
+    expect(SKILL).toMatch(/one tightly scoped (?:idea|mental model)/i);
+    expect(SKILL).toMatch(/tangible win/i);
+    expect(SKILL).toMatch(/familiar analogy/i);
+    expect(SKILL).toMatch(/map\s+each part/i);
+    expect(SKILL).toMatch(/prediction or recall/i);
+    expect(SKILL).toMatch(/immediate feedback/i);
+    expect(SKILL).toMatch(/do not create.*MISSION\.md/i);
+  });
 });
 
 describe('vs-eli5: inherit htmdx write-slop, score the chat TLDR', () => {

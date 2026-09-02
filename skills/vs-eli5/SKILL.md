@@ -8,6 +8,19 @@ description: "Explain a topic like I'm a 5 year old. Use when the user types /vs
 Explain like I'm someone who knows nothing about this topic, using an HTML artifact with big pictures and few words. Use `/vs-show-me` for that artifact, not raw HTML. Start from `../vs-show-me/assets/artifact.html`
 `/vs-show-me` owns capture: inherit its URL + first-screen shot handoff. Pointer only.
 
+Teach one tightly scoped mental model that gives the user a tangible win. Ground
+it in why the topic matters from the ask and available context; do not block on
+a question when that context is enough. Start with a familiar analogy, then map
+each part of the analogy to the real thing and show only the causal steps needed
+to use the model. Beginner-friendly means no assumed vocabulary, not childish
+language.
+
+End the page with one quick prediction or recall prompt. Put its answer and a
+one-sentence reason close enough to give immediate feedback, without adding a
+custom interaction or hiding the explanation behind controls. This is one
+explanation, not a stateful course: do not create `MISSION.md`, learning records,
+lesson directories, or other teaching-workspace files.
+
 `/vs-show-me` owns the page write-slop pass. Inherit only. Pointer:
 [../vs-show-me/SKILL.md](../vs-show-me/SKILL.md). Run
 `skills/vs-show-me/scripts/run-write-slop.mjs` on the page. Do not paste
