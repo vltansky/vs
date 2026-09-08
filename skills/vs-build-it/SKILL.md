@@ -1,7 +1,6 @@
 ---
 name: vs-build-it
 description: "Use when the user says build-it, implement this plan, take it from here, or wants autonomous plan-to-code execution."
-disable-model-invocation: true
 ---
 
 # Build It
