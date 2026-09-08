@@ -63,7 +63,7 @@ describe('vs-ship-it publishing boundary', () => {
     expect(README).toMatch(/Prepare PR description<br\/>feature_area: title/);
     expect(README).toMatch(/Problem \+ Before\/After<br\/>Why this change/);
     expect(README).toMatch(/User impact<br\/>Evidence \+ gaps<br\/>Review focus/);
-    expect(README).toMatch(/Attach available proof<br\/>matched screenshots/);
+    expect(README).toMatch(/Reuse or capture proof<br\/>matched Before\/After screenshots/);
     expect(README).toMatch(/short video for interactions/);
   });
 });
@@ -80,11 +80,11 @@ describe('vs-ship-it independent PR preparation', () => {
   });
 
   it('does not make ceremony part of default PR creation', () => {
-    expect(PR_WORKFLOW).toMatch(/Do not add brief generation, broad\s+verification, reviewer discovery, preview startup, or QA unless the user\s+explicitly requested/i);
+    expect(PR_WORKFLOW).toMatch(/Do not add brief generation, broad\s+verification, reviewer discovery, or broad QA unless the user explicitly\s+requested/i);
     expect(PR_WORKFLOW).toMatch(
       /do not introduce `vs-before-after`, `vs-verify`/i,
     );
-    expect(PR_WORKFLOW).toMatch(/Do not suggest reviewers, start a\s+preview, or run QA by default/i);
+    expect(PR_WORKFLOW).toMatch(/Do not suggest reviewers or run broad QA by default/i);
   });
 
   it('uses body files for create and edit', () => {
@@ -93,6 +93,26 @@ describe('vs-ship-it independent PR preparation', () => {
     );
     expect(PR_WORKFLOW).toMatch(/never pass[\s\S]*inline `--body`/i);
     expect(PR_WORKFLOW).toContain('gh pr edit --body-file');
+  });
+});
+
+describe('vs-ship-it before and after', () => {
+  it('requires a concrete comparison even for new and internal changes', () => {
+    expect(PR_WORKFLOW).toMatch(/Every PR description must include.*Before.*After/i);
+    expect(PR_WORKFLOW).toMatch(/same actor, input, and precondition/i);
+    expect(PR_WORKFLOW).toMatch(/new feature[\s\S]*previous absence/i);
+    expect(PR_WORKFLOW).toMatch(/internal[\s\S]*unchanged/i);
+    expect(PR_WORKFLOW).not.toMatch(/omit Before\/After/);
+    expect(PR_WORKFLOW).toMatch(/Source-derived/);
+  });
+
+  it('makes the difference visible and captures missing frontend evidence', () => {
+    expect(PR_WORKFLOW).toMatch(/comparison table/);
+    expect(PR_WORKFLOW).toMatch(/Mermaid/);
+    expect(PR_WORKFLOW).toMatch(/For frontend changes, capture missing/i);
+    expect(PR_WORKFLOW).toMatch(/same route, data, viewport, and interaction/);
+    expect(PR_WORKFLOW).toMatch(/caption.*what to notice/i);
+    expect(PR_WORKFLOW).not.toMatch(/Ask the user first — recording/);
   });
 });
 
@@ -106,7 +126,7 @@ describe('vs-ship-it media preparation', () => {
 
   it('does not block when media is unavailable', () => {
     expect(PR_WORKFLOW).toMatch(/If no valid media exists, continue without asking/i);
-    expect(PR_WORKFLOW).toMatch(/state\s+the exact visual-proof gap under Evidence/i);
+    expect(PR_WORKFLOW).toMatch(/state\s+the exact visual-proof gap\s+under Evidence/i);
     expect(PR_WORKFLOW).toMatch(/On upload failure, continue creating the PR/i);
   });
 

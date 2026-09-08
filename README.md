@@ -104,7 +104,7 @@ flowchart TD
     I[Permission to publish] --> D{PR or direct push?}
     D -- PR --> C["Check, commit, push<br/>/vs-eval for skill contracts"]
     C --> B["Prepare PR description<br/>feature_area: title<br/>Problem + Before/After<br/>Why this change<br/>User impact<br/>Evidence + gaps<br/>Review focus"]
-    B --> M["Attach available proof<br/>matched screenshots for static states<br/>short video for interactions"]
+    B --> M["Reuse or capture proof<br/>matched Before/After screenshots<br/>short video for interactions"]
     M --> O[Create and verify draft PR] --> L{10+ changed files?}
     L -- yes --> T["Start exact-head walkthrough asynchronously<br/>/vs-pr-walkthrough"] --> W["Earn ready-for-review, then follow CI and GitHub review<br/>/vs-baby-sit"]
     L -- no --> W

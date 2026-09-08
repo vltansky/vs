@@ -129,31 +129,21 @@ describe('an agent that starts a process owns its lifetime', () => {
 });
 
 describe('ship-it creates the PR without rebuilding delivery evidence', () => {
-  it('prepares available media but does not start preview or QA work', () => {
+  it('reuses proof and limits new capture to frontend evidence', () => {
     expect(SHIP_IT).toContain('### Step 3: Prepare screenshots and video');
     expect(SHIP_IT).toMatch(/Reuse valid existing proof/);
-    expect(SHIP_IT).toMatch(
-      /Do not rerun QA or start a browser\/server solely\s+to manufacture screenshots/i,
-    );
+    expect(SHIP_IT).toMatch(/For frontend changes, capture missing matched screenshots/);
+    expect(SHIP_IT).toMatch(/Do not rerun broad QA/);
     expect(SHIP_IT).toMatch(/If no valid media exists, continue without asking/i);
   });
 
-  it('gates the motion-only recording exception behind the user', () => {
-    expect(SHIP_IT).toMatch(
-      /when the change is motion-shaped[\s\S]{0,120}no\s+valid recording exists/i,
-    );
-    expect(SHIP_IT).toMatch(
-      /Ask the user first[\s\S]{0,320}Do not\s+start the browser before the answer/i,
-    );
-    expect(SHIP_IT).toMatch(
-      /If the user declines or does not answer, ship immediately and state the\s+exact\s+recording gap/i,
-    );
-    expect(SHIP_IT).toMatch(
-      /it does not reopen QA,\s+broad verification, or screenshot manufacture/i,
-    );
-    expect(SHIP_IT).toMatch(
-      /references\/recording\.md/,
-    );
+  it('captures interactions without an extra question and reports blockers honestly', () => {
+    expect(SHIP_IT).toMatch(/add short matched recordings for interaction or motion changes/);
+    expect(SHIP_IT).toMatch(/needs no extra permission question/);
+    expect(SHIP_IT).toMatch(/honor an explicit no-browser\/no-capture constraint/);
+    expect(SHIP_IT).toMatch(/capture is blocked by missing tools, access, or a runnable baseline/);
+    expect(SHIP_IT).toMatch(/references\/recording\.md/);
+    expect(SHIP_IT).toMatch(/references\/preview\.md/);
   });
 
   it('hands back the verified PR and concrete media state', () => {

@@ -51,8 +51,9 @@ available media, create plus verify a draft PR, start an exact-head walkthrough
 for a large PR, and hand it to `vs-baby-sit`.
 
 Code review is outside this workflow. Do not add brief generation, broad
-verification, reviewer discovery, preview startup, or QA unless the user
-explicitly requested that work.
+verification, reviewer discovery, or broad QA unless the user explicitly
+requested that work. Focused frontend evidence capture in Step 3 is part of
+PR preparation.
 Babysitting is the default after PR verification unless the user opts out.
 
 ### Step 1: Inspect and prepare the branch
@@ -85,7 +86,13 @@ copy. If motivation cannot be established honestly, describe the observable
 problem without inventing business impact; omit inapplicable optional detail.
 
 The first screen answers what was wrong, why this repair is appropriate, and
-what visibly changed. Use this structure:
+what visibly changed. Every PR description must include **Before** and **After**:
+compare the same actor, input, and precondition, then state the concrete result
+on each side and why the difference matters. Prefer a compact comparison table
+for several outcomes; use a small paired Mermaid flow when a backend or
+lifecycle change is easier to understand visually. Neither replaces evidence.
+Label source-derived comparisons **Source-derived**, not observed or tested.
+Use this structure:
 
 ```markdown
 <feature_area>: <Title> (80 chars max)
@@ -126,8 +133,10 @@ for a trivial change.>
 ```
 
 For CLI/API behavior, replace visual proof with exact paired output from the
-same input. For a new feature with no honest baseline, show a Demo. For internal
-work with no observable output, omit Before/After. Never fabricate evidence,
+same input. For a new feature, describe the previous absence or workaround under Before
+and the new capability under After; keep the pair even when only After has media.
+For internal work, compare the old and new mechanism and explicitly state when
+observable behavior is unchanged. Never fabricate evidence,
 include AI-session narration, or add a file-by-file changelog.
 
 Write Markdown to a temporary body file and use `--body-file`; never pass
@@ -141,25 +150,28 @@ for local media that directly proves the changed behavior.
 - Use matched screenshots for static visual states.
 - Use short matched recordings for motion, timing, scrolling, dragging,
   resizing, or multi-step interactions.
-- Reuse valid existing proof. Do not rerun QA or start a browser/server solely
-  to manufacture screenshots during shipping.
-- If no valid media exists, continue without asking the user to find it. State
-  the exact visual-proof gap under Evidence.
-
-One narrow exception: when the change is motion-shaped by the rule above and no
-valid recording exists, a recording is the only honest proof and stills cannot
-replace it. Ask the user first — recording starts a browser and a preview, which
-shipping otherwise never does. Use the host's ask-user question tool when one is
-available; offer recording it now versus shipping with the gap named. Do not
-start the browser before the answer.
-
-If the user declines or does not answer, ship immediately and state the exact
-recording gap under Evidence. If they approve, follow
-[`../vs-internal-shared/references/recording.md`](../vs-internal-shared/references/recording.md)
-for the capture, the invisible-click failure modes, and the transcode, and
-[`../vs-internal-shared/references/preview.md`](../vs-internal-shared/references/preview.md)
-for the surface. This exception covers recording only; it does not reopen QA,
-broad verification, or screenshot manufacture.
+- Reuse valid existing proof tied to the actual base and head being compared.
+- For frontend changes, capture missing matched screenshots before publishing;
+  add short matched recordings for interaction or motion changes. Use the
+  same route, data, viewport, and interaction on both revisions. Label each
+  revision and caption each image or recording with what to notice.
+- Use the base revision in an isolated worktree or a verified base preview;
+  preserve the user's working tree. Never recreate the Before state by editing
+  the After screenshot or present head media as baseline evidence.
+- Follow
+  [`../vs-internal-shared/references/preview.md`](../vs-internal-shared/references/preview.md)
+  to reuse a surface or start a focused preview, and
+  [`../vs-internal-shared/references/recording.md`](../vs-internal-shared/references/recording.md)
+  for recording, visible pointer/clicks, matched stills, and transcoding.
+  This capture needs no extra permission question within the authorized task;
+  honor an explicit no-browser/no-capture constraint. Do not rerun broad QA.
+  For this capture-only path, stop previews you started after capture unless
+  the user requested a live preview; leave pre-existing servers alone. This
+  overrides the shared preview's leave-running rule for human handoffs.
+- If capture is blocked by missing tools, access, or a runnable baseline, keep
+  the textual Before/After and any valid media; state the exact visual-proof gap
+  under Evidence. If no valid media exists, continue without asking the user to
+  find it. Never fabricate or silently omit the missing side.
 
 Upload each available image or video directly to GitHub's user-attachments CDN.
 This is the same hosting surface as drag-and-drop, inherits repository
@@ -237,8 +249,8 @@ Re-open the PR description read-only and verify every uploaded image renders and
 every video exposes a player. If rendering fails, remove or correct only the
 broken embed with `gh pr edit --body-file`; do not claim the proof is attached.
 
-Apply only explicitly requested PR modifiers. Do not suggest reviewers, start a
-preview, or run QA by default.
+Apply only explicitly requested PR modifiers. Do not suggest reviewers or run broad QA by default. Preview startup is
+limited to the focused evidence capture in Step 3.
 
 ### Step 5: Start the walkthrough and babysitting
 
@@ -328,14 +340,16 @@ separate `vs-baby-sit` goal only when the user explicitly requested a Codex goal
 - [ ] The PR description was prepared without unnecessary user input.
 - [ ] Available screenshots/video were uploaded before PR creation and render,
       or the exact media gap is visible in Evidence.
-- [ ] A browser was started for a recording only after the user approved it for
-      a motion-shaped change with no valid recording.
+- [ ] Every PR has a concrete Before/After comparison, including new features
+      and internal changes; source-derived claims are labeled.
+- [ ] Frontend changes have matched screenshots and interaction video where
+      relevant, or an exact capture blocker; captions explain the difference.
 - [ ] Draft PR state, branch, and head SHA were re-resolved successfully.
 - [ ] A 10+ file PR started one exact-head walkthrough child without delaying
       babysitting; a smaller PR spawned none.
 - [ ] Any surfaced walkthrough matches the current PR head; repair pushes caused
       at most one final refresh.
-- [ ] No brief, broad verify, reviewer lookup, preview, or QA ran without an
+- [ ] No brief, broad verify, reviewer lookup, or broad QA ran without an
       explicit request or repository requirement.
 - [ ] `vs-baby-sit` started after PR verification unless the user explicitly opted out.
 - [ ] The handoff reports PR URL, head, media, and checks.

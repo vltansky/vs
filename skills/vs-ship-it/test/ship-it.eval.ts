@@ -16,6 +16,34 @@ function assistantOutput(log: Array<{ type: string; assistant_message?: string }
 }
 
 describe('vs-ship-it behavior', () => {
+  it('explains before and after and obtains frontend proof', async () => {
+    const agent = await createAgent({ agent: EVAL_AGENT, timeout: 360, skillDir: SKILL_DIR });
+    try {
+      await promptOnce(agent, `Use $vs-ship-it. Prepare the description and evidence plan only; do not publish or invoke tools beyond reading the skill.
+The PR fixes checkout: with an expired coupon, clicking Pay previously spun forever; now an inline error lets the customer remove the coupon and retry. This is source-derived; tests and media have not been supplied. Base and head previews and browser recording tools are available. No screenshots or videos exist. The user said create pr and do not watch.
+Then give the Before/After copy for a separate internal refactor that preserves the API response while consolidating duplicate parsing, and a new CSV export feature where export was previously unavailable.`);
+      const result = await evaluate(agent, [
+        check('paired-concrete-behavior', ({ log }) => {
+          const output = assistantOutput(log);
+          return /before/i.test(output) && /after/i.test(output) && /spinn|spinner/i.test(output) && /inline error/i.test(output);
+        }),
+        check('capture-missing-frontend-proof', ({ log }) => {
+          const output = assistantOutput(log);
+          return /captur|record/i.test(output) && /video|recording/i.test(output) && /screenshot|still/i.test(output)
+            && !/would you like|shall I|ask.*(?:permission|approval)|approve.*record/i.test(output);
+        }),
+        check('honest-new-and-internal-comparisons', ({ log }) => {
+          const output = assistantOutput(log);
+          return /source-derived/i.test(output) && /unchanged|same.*response|response.*same/i.test(output)
+            && /(?:no|unavailable|could not|cannot).*export|export.*(?:unavailable|not available)/i.test(output);
+        }),
+      ], { failFast: false, onScorerError: 'zero' });
+      expect(result.score).toBe(1);
+    } finally {
+      await agent.dispose();
+    }
+  });
+
   it('hands a newly created PR to babysitting by default', async () => {
     const agent = await createAgent({
       agent: EVAL_AGENT,
