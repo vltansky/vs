@@ -56,7 +56,7 @@ Then give the Before/After copy for a separate internal refactor that preserves 
         agent,
         `Use $vs-ship-it. The user said only "create pr" and did not ask to skip watching.
 
-Assume the scoped changes are already validated and committed, PR #542 was just created as a draft, and the PR verification resolved its URL, branch, draft state, exact head SHA, and 12 changed files. CI and automated review are pending.
+Assume the scoped changes are already validated and committed, PR #542 was just created as a regular non-draft PR, and the PR verification resolved its URL, branch, open state, exact head SHA, and 12 changed files. CI and automated review are pending.
 
 Describe what you do next. Do not perform real GitHub writes or start a real watcher.`,
       );
@@ -92,17 +92,11 @@ Describe what you do next. Do not perform real GitHub writes or start a real wat
             );
             return verifiedPr >= 0 && babysit > verifiedPr;
           }),
-          check('keeps-pr-draft-until-babysit-gates-pass', ({ log }) => {
+          check('keeps-the-pr-regular-until-a-repair', ({ log }) => {
             const output = assistantOutput(log);
             return (
-              /draft/i.test(output) &&
-              /(?:baby-?sit|babysitting).*ready for review|ready for review.*(?:baby-?sit|babysitting)|babysit.*transition/is.test(
-                output,
-              ) &&
-              (/(?:after|once|only when).*(?:CI|exact head).*(?:pass|green|success)/is.test(
-                output,
-              ) ||
-                /CI[\s\S]*automated review[\s\S]*once both pass/i.test(output))
+              !/keeps? (?:it|the PR) (?:as a |in )?draft|draft until|gh pr ready(?! --undo)/i.test(output) &&
+              !/auto-?merge/i.test(output)
             );
           }),
           check('uses-the-babysit-contract', ({ log }) => {

@@ -89,7 +89,7 @@ describe('vs-ship-it independent PR preparation', () => {
 
   it('uses body files for create and edit', () => {
     expect(PR_WORKFLOW).toContain(
-      'gh pr create --draft --title "<title>" --body-file "$BODY_FILE"',
+      'gh pr create --title "<title>" --body-file "$BODY_FILE"',
     );
     expect(PR_WORKFLOW).toMatch(/never pass[\s\S]*inline `--body`/i);
     expect(PR_WORKFLOW).toContain('gh pr edit --body-file');
@@ -113,6 +113,32 @@ describe('vs-ship-it before and after', () => {
     expect(PR_WORKFLOW).toMatch(/same route, data, viewport, and interaction/);
     expect(PR_WORKFLOW).toMatch(/caption.*what to notice/i);
     expect(PR_WORKFLOW).not.toMatch(/Ask the user first — recording/);
+  });
+});
+
+describe('vs-ship-it visual PR description', () => {
+  it('leads with proof shaped by what changed', () => {
+    expect(PR_WORKFLOW).toMatch(/Make the description visual first/);
+    expect(PR_WORKFLOW).toMatch(/Paired output blocks copied verbatim from the same input/);
+    expect(PR_WORKFLOW).toMatch(/both operands beside any derived figure/);
+    expect(PR_WORKFLOW).toMatch(/fenced `mermaid` diagram of the changed path/);
+    expect(PR_WORKFLOW).toMatch(/fenced `diff` block of the key hunk/);
+    expect(PR_WORKFLOW).toContain('```mermaid');
+    expect(PR_WORKFLOW).toContain('```diff');
+    expect(PR_WORKFLOW).toMatch(/\| \| Before \| After \|/);
+    expect(PR_WORKFLOW).toContain('<details><summary>');
+    expect(PR_WORKFLOW).toMatch(/Never paste the whole diff/);
+    expect(PR_WORKFLOW).toMatch(/Drop any template row, block, or section the evidence does not fill/);
+  });
+
+  it('borrows the explaining skills inline instead of composing them', () => {
+    expect(PR_WORKFLOW).toMatch(/apply it inline;\s+do not\s+spawn them as shipping phases/i);
+    expect(PR_WORKFLOW).toMatch(/observed, tested, or source-derived/);
+    expect(PR_WORKFLOW).toMatch(/no metric or\s+status the evidence does not contain/i);
+    expect(PR_WORKFLOW).toMatch(/one familiar analogy mapped to the real parts/);
+    expect(PR_WORKFLOW).toContain('gh api repos/{owner}/{repo} --jq .id');
+    expect(PR_WORKFLOW).not.toContain('databaseId');
+    expect(PR_WORKFLOW).toMatch(/this line is the `--title`, and the\s+body file starts at the first heading/);
   });
 });
 
@@ -159,13 +185,17 @@ describe('vs-ship-it media preparation', () => {
 });
 
 describe('vs-ship-it PR association and stopping point', () => {
-  it('creates and verifies a draft before babysitting starts', () => {
-    expect(PR_WORKFLOW).toContain('gh pr create --draft');
+  it('creates and verifies a regular PR before babysitting starts', () => {
+    expect(DESCRIPTION).toMatch(/Creates and verifies regular PRs/);
+    expect(PR_WORKFLOW).not.toContain('gh pr create --draft');
+    expect(PR_WORKFLOW).not.toMatch(/gh pr merge --auto/);
+    expect(PR_WORKFLOW).toMatch(/Do not pass `--draft`/);
     expect(PR_WORKFLOW).toContain('isDraft');
-    expect(PR_WORKFLOW).toContain('.isDraft == true');
+    expect(PR_WORKFLOW).toContain('.isDraft == false');
+    expect(PR_WORKFLOW).not.toContain('.isDraft == true');
     expect(PR_WORKFLOW).toMatch(/babysit.*owns.*ready for review/is);
     expect(SKILL).toMatch(
-      /State: draft[\s\S]*exact head[\s\S]*CI[\s\S]*automated review[\s\S]*ready for review/i,
+      /State: open, ready for review[\s\S]*exact head[\s\S]*repair converts it to draft/i,
     );
   });
 
@@ -185,7 +215,7 @@ describe('vs-ship-it PR association and stopping point', () => {
     expect(PR_WORKFLOW).toMatch(/Fewer than 10 changed files[\s\S]*do not start a walkthrough child/i);
     expect(PR_WORKFLOW).toMatch(/10 or more changed files[\s\S]*vs-pr-walkthrough\/SKILL\.md/i);
     expect(PR_WORKFLOW).toMatch(/fresh-context child/i);
-    expect(PR_WORKFLOW).toMatch(/hand the verified draft PR to\s+`vs-baby-sit`\s+immediately without waiting/i);
+    expect(PR_WORKFLOW).toMatch(/hand the verified PR to\s+`vs-baby-sit`\s+immediately without waiting/i);
     expect(PR_WORKFLOW).toMatch(/exactly those two active children/i);
   });
 
@@ -205,7 +235,7 @@ describe('vs-ship-it PR association and stopping point', () => {
 
   it('starts babysitting after PR verification unless declined', () => {
     expect(DESCRIPTION).toMatch(/babysits them by default/i);
-    expect(SKILL).toMatch(/Hand the verified draft PR to `vs-baby-sit`/i);
+    expect(SKILL).toMatch(/Hand the verified PR to `vs-baby-sit`/i);
     expect(SKILL).toMatch(/unless the user explicitly says not to watch/i);
     expect(SKILL).toMatch(/visibly separate\s+babysitting phase/i);
   });
