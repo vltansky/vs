@@ -456,6 +456,14 @@ The Evidence plan is what the user is really deciding: how the result will be
 judged. Name the concrete thing build-it will point a browser or a command at.
 "Tests pass" is a guardrail, not evidence of the outcome.
 
+For interaction changes, put a small demo scenario table in that Evidence plan:
+scenario, shared route/fixture/viewport, action, expected Before/After, and the
+assertion that proves the result. Usually 3–4 scenarios cover the main flow and
+the relevant failure/retry, cancellation, or boundary case; use fewer for a
+small change. Map them to Success criteria, not a separate approval gate. This
+is a capture plan for build-it/ship-it, not permission to record or implement
+during shaping. Static changes need matched stills, not invented interactions.
+
 If nothing today can prove the outcome, that is a strategic open decision — the
 options are building a surface, accepting a weaker proof, or descoping. Carry it
 into the closing interaction with a recommendation. Do not defer it to build-it
