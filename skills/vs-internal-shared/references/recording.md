@@ -11,6 +11,38 @@ screenshot of it.
 
 ## Capture
 
+Reuse the approved Evidence plan's scenarios. For an existing Playwright route,
+use [`../scripts/capture-demo.mjs`](../scripts/capture-demo.mjs) to avoid rebuilding
+cursor installation, click pacing, asserted checkpoints, stills, and video
+cleanup. It adds no dependency and takes the browser already selected for the
+task; keep using native recording when that is the authorized browser route.
+
+```js
+import { captureDemo } from '<vs-internal-shared>/scripts/capture-demo.mjs';
+
+await captureDemo({
+  browser, directory: '/tmp/demo-after', revision: headSha,
+  scenario: 'Expired coupon: remove and retry', viewport: { width: 390, height: 844 },
+  // Pass approved storageState or other context options only when needed.
+  async run({ page, click, checkpoint }) {
+    await page.goto(previewUrl);
+    await click(page.getByRole('button', { name: 'Pay', exact: true }));
+    await checkpoint('Expired coupon shows an inline error', async () => {
+      await page.getByRole('alert').filter({ hasText: 'Coupon expired' }).waitFor();
+    });
+  },
+});
+```
+
+Use a fresh output directory per revision/scenario (create its parent first).
+Keep setup and fault injection in the callback, using existing fixtures. Every
+checkpoint requires a real assertion; captions alone prove nothing. A failed
+assertion closes the owned context and leaves partial media but no success
+manifest. The manifest records the supplied revision, viewport, scenario, and
+media paths; verify the preview actually serves that revision. It leaves visual
+inspection pending: inspect the pointer mid-press and the decisive result frame
+using the guidance below. Do not infer visible correctness from the manifest.
+
 Record through the browser automation the run already uses. With Playwright,
 recording is a context option and the file only exists after the context closes:
 

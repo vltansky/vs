@@ -209,6 +209,10 @@ for local media that directly proves the changed behavior.
 - Use short matched recordings for motion, timing, scrolling, dragging,
   resizing, or multi-step interactions.
 - Reuse valid existing proof tied to the actual base and head being compared.
+- Reuse demo scenarios from the approved Evidence plan; fill only missing
+  scenarios from the changed behavior. Use the shared `capture-demo.mjs` helper
+  when the selected recording route is Playwright; do not switch browser routes
+  merely to use it.
 - For frontend changes, capture missing matched screenshots before publishing;
   add short matched recordings for interaction or motion changes. Use the
   same route, data, viewport, and interaction on both revisions. Label each
@@ -264,6 +268,13 @@ Embed images as `![concise caption](<returned-url>)`. Embed videos as the
 returned URL on its own bare line; `![]()` does not render GitHub's video player.
 Insert the URLs into the body file before `gh pr create` so the initial PR
 description is complete.
+
+Keep each clip's scenario, viewport/fixture, recorded revision, and uploaded URL
+with the evidence. After a later push, compare the recorded revision with the
+current head for that demonstrated flow. Rerecord affected clips when visible
+behavior changed; retain unaffected clips with their original revision and a
+short reason they still apply. Do not relabel an old recording as current-head
+proof. Preserve this mapping when refreshing the PR description.
 
 Treat HTTP 422 as an unsupported media type and HTTP 404 as a bad repository ID
 or missing push access. On upload failure, continue creating the PR, omit the
