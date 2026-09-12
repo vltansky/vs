@@ -1,7 +1,6 @@
 ---
 name: vs-pushback
 description: "Use when a formed idea, plan, spec, RFC, or agent-made decision needs skeptical review before implementation or high-risk execution. Investigates evidence, challenges premise and scope, asks targeted decision questions, applies Ponytail to find a smaller complete alternative, and returns concise actionable findings with a qualitative verdict."
-disable-model-invocation: true
 ---
 
 # Pushback

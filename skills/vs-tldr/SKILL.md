@@ -1,7 +1,6 @@
 ---
 name: vs-tldr
 description: "User-invoked compression of the explanation the agent just gave. Use when the user types `/vs-tldr`, says `tldr`, `too long`, `simpler`, `in plain english`, `what do you mean?`, `wait, what?`, or `lost me`; re-pitch the relevant context shorter and simpler without dropping the premise, the decision, or the caveats."
-disable-model-invocation: true
 ---
 
 # TLDR

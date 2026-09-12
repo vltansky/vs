@@ -11,14 +11,14 @@ const OPENAI_CONFIG = fs.readFileSync(
 );
 
 describe('vs-tldr compression contract', () => {
-  it('is an explicit-only comprehension repair', () => {
+  it('is a comprehension repair the model may also reach for', () => {
     expect(SKILL).toMatch(/^name: vs-tldr$/m);
-    expect(SKILL).toContain('disable-model-invocation: true');
+    expect(SKILL).not.toContain('disable-model-invocation');
     expect(SKILL).toMatch(/`\/vs-tldr`/);
     expect(SKILL).toMatch(/materially shorter/i);
     expect(SKILL).toMatch(/missing premise/i);
     expect(SKILL).toMatch(/plain English/i);
-    expect(OPENAI_CONFIG).toContain('allow_implicit_invocation: false');
+    expect(OPENAI_CONFIG).toContain('allow_implicit_invocation: true');
   });
 
   it('preserves meaning while repairing the current explanation', () => {

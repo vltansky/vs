@@ -38,7 +38,6 @@ describe('vs-eli5 thin contract', () => {
   });
 
   it('does not replace tldr', () => {
-    expect(TLDR).toContain('disable-model-invocation: true');
     expect(TLDR).toMatch(/Compress and simplify/);
     expect(SKILL).not.toMatch(/compress the last explanation/i);
     expect(SKILL).not.toMatch(/Re-pitch \*\*that\*\*/);

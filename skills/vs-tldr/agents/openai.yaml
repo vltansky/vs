@@ -3,4 +3,4 @@ interface:
   short_description: "Compress the last explanation: shorter and simpler, same meaning."
 
 policy:
-  allow_implicit_invocation: false
+  allow_implicit_invocation: true

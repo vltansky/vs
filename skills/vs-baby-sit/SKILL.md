@@ -1,7 +1,6 @@
 ---
 name: vs-baby-sit
 description: "Use when asked to watch a PR, fix CI, address review comments, or keep a branch merge-ready in a loop."
-disable-model-invocation: true
 ---
 
 # Baby Sit PR
