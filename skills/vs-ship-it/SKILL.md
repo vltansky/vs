@@ -222,9 +222,26 @@ for local media that directly proves the changed behavior.
   the After screenshot or present head media as baseline evidence.
 - Follow
   [`../vs-internal-shared/references/preview.md`](../vs-internal-shared/references/preview.md)
-  to reuse a surface or start a focused preview, and
+  to reuse a surface or start a focused preview, then capture with
+  [`../vs-internal-shared/scripts/record-flow.mjs`](../vs-internal-shared/scripts/record-flow.mjs).
+  Write the captions as data before capturing: a `flow.json` whose steps
+  each carry a `caption` (what to notice), an action, and a `still` name.
+  Run it once per revision from the project that has Playwright installed
+  (or set `PLAYWRIGHT_MODULE`):
+
+  ```bash
+  node <vs-internal-shared>/scripts/record-flow.mjs flow.json --out "$EVIDENCE_DIR/after"
+  ```
+
+  The script draws the caption and pointer into every still and video frame,
+  writes `captions.vtt`, and prints a manifest (paths, captions, bytes,
+  sha256). Write the PR body from that manifest. Do not Read the captured
+  images or video: the manifest already states what each one shows, and a
+  1280x720 PNG costs more context than the whole PR body. Open a still only
+  when the user asks or when a capture step failed and the failure text points
+  at the frame.
   [`../vs-internal-shared/references/recording.md`](../vs-internal-shared/references/recording.md)
-  for recording, visible pointer/clicks, matched stills, and transcoding.
+  covers hand-rolled recordings, visible pointer/clicks, and transcoding.
   This capture needs no extra permission question within the authorized task;
   honor an explicit no-browser/no-capture constraint. Do not rerun broad QA.
   For this capture-only path, stop previews you started after capture unless
@@ -267,7 +284,25 @@ ffmpeg -i in.webm -c:v libx264 -pix_fmt yuv420p out.mp4
 Embed images as `![concise caption](<returned-url>)`. Embed videos as the
 returned URL on its own bare line; `![]()` does not render GitHub's video player.
 Insert the URLs into the body file before `gh pr create` so the initial PR
-description is complete.
+description is complete. Use the manifest caption as the image caption.
+
+Then run the proof gate on the body file. It reads git and the body, never the
+media, and refuses a PR that shows nothing:
+
+```bash
+node <vs-internal-shared>/scripts/pr-media-gate.mjs "$BODY_FILE" --base origin/<base>
+```
+
+- Exit 0: the body carries both a **Before** and an **After** marker, and
+  hosted media is embedded, or the body states `**Still unverified:** visual
+  proof; <exact blocker>`, or it states `No visual change: <why>` for a
+  refactor with identical output, or no frontend path changed.
+- Exit 1: add the missing side of the comparison, or capture with
+  `record-flow.mjs` and upload, or write the exact gap in the body. Do not
+  create the PR from a failing body. Local paths never count: the reviewer
+  cannot open them. Never fabricate the missing side to clear the gate.
+- Exit 2: the gate could not check (no base ref); pass `--base` and re-run.
+  Never report a not-checked run as a pass.
 
 Keep each clip's scenario, viewport/fixture, recorded revision, and uploaded URL
 with the evidence. After a later push, compare the recorded revision with the
@@ -413,9 +448,12 @@ separate `vs-baby-sit` goal only when the user explicitly requested a Codex goal
 - [ ] Available screenshots/video were uploaded before PR creation and render,
       or the exact media gap is visible in Evidence.
 - [ ] Every PR has a concrete Before/After comparison, including new features
-      and internal changes; source-derived claims are labeled.
+      and internal changes; source-derived claims are labeled. The gate enforces
+      the pair on every PR, not only frontend ones.
 - [ ] Frontend changes have matched screenshots and interaction video where
       relevant, or an exact capture blocker; captions explain the difference.
+- [ ] `pr-media-gate.mjs` exited 0 on the final body file before `gh pr create`;
+      captured images were not read into context.
 - [ ] Open non-draft PR state, branch, and head SHA were re-resolved
       successfully.
 - [ ] A 10+ file PR started one exact-head walkthrough child without delaying

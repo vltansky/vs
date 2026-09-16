@@ -11,6 +11,13 @@ screenshot of it.
 
 ## Capture
 
+Prefer [`../scripts/record-flow.mjs`](../scripts/record-flow.mjs): it takes a
+`flow.json` with per-step captions, drives real pointer events, draws the
+caption and cursor into every frame, captures stills and video in one pass,
+writes `captions.vtt`, and prints a manifest so the agent never has to read
+the pixels. Everything below is what that script does, for when the flow needs
+something it does not support.
+
 Reuse the approved Evidence plan's scenarios. For an existing Playwright route,
 use [`../scripts/capture-demo.mjs`](../scripts/capture-demo.mjs) to avoid rebuilding
 cursor installation, click pacing, asserted checkpoints, stills, and video
