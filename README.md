@@ -210,6 +210,7 @@ Architecture: /vs-architect -> /vs-shape-it -> /vs-build-it
 | `/vs-steal` | Find ideas worth porting from another repository |
 | `/vs-setup-adr` | Add an ADR convention and scaffolding to a repository |
 | `/vs-decide-for-me` | Resolve tactical uncertainty before interrupting you |
+| `/vs-ask` | Recommend the best currently installed VS skill for your goal without starting it |
 | `/vs-next` | Decide whether the current work should continue, delegate, hand off, compact, clear, or stop |
 | `/vs-search-threads` | Find and diagnose Codex, Claude Code, or Cursor conversations from transcript evidence |
 | `/vs-recap` | Explain the current situation or recent changes from zero prior context, with next actions |
