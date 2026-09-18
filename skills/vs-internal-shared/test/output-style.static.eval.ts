@@ -19,10 +19,29 @@ const COMMUNICATION = fs.readFileSync(
 function markdownFiles(dir: string): string[] {
   return fs.readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
     const full = path.join(dir, entry.name);
+    if (entry.isSymbolicLink()) return [];
     if (entry.isDirectory() && entry.name === 'pathgrade-debug') return [];
+    if (entry.isDirectory() && entry.name === '.vs') return [];
+    if (
+      entry.isDirectory() &&
+      entry.name === 'fixtures' &&
+      path.basename(dir) === 'test'
+    ) {
+      return [];
+    }
     if (entry.isDirectory()) return markdownFiles(full);
-    return entry.isFile() && entry.name.endsWith('.md') ? [full] : [];
+    if (!entry.isFile() || !entry.name.endsWith('.md')) return [];
+    try {
+      if (!fs.statSync(full).isFile()) return [];
+    } catch {
+      return [];
+    }
+    return [full];
   });
+}
+
+function authoredMarkdownFiles(): string[] {
+  return markdownFiles(SKILLS_DIR).filter((file) => file !== CONTRACT_PATH);
 }
 
 // The contract quotes the banned phrases in order to ban them, and any line
@@ -121,9 +140,6 @@ describe('output style contract', () => {
 });
 
 describe('skill text obeys its own output style', () => {
-  const files = markdownFiles(SKILLS_DIR).filter(
-    (file) => file !== CONTRACT_PATH,
-  );
   const userFacingSkillFiles = fs
     .readdirSync(SKILLS_DIR, { withFileTypes: true })
     .filter(
@@ -136,7 +152,7 @@ describe('skill text obeys its own output style', () => {
     .map((entry) => path.join(SKILLS_DIR, entry.name, 'SKILL.md'));
 
   it('finds skill markdown to check', () => {
-    expect(files.length).toBeGreaterThan(30);
+    expect(authoredMarkdownFiles().length).toBeGreaterThan(30);
   });
 
   it('is directly reachable from every user-facing skill', () => {
@@ -158,7 +174,8 @@ describe('skill text obeys its own output style', () => {
   });
 
   it('has no closing pleasantries in authored templates', () => {
-    for (const file of files) {
+    for (const file of authoredMarkdownFiles()) {
+      if (!fs.existsSync(file)) continue;
       const offenders = fs
         .readFileSync(file, 'utf8')
         .split('\n')
@@ -168,7 +185,8 @@ describe('skill text obeys its own output style', () => {
   });
 
   it('has no figurative idioms in authored templates', () => {
-    for (const file of files) {
+    for (const file of authoredMarkdownFiles()) {
+      if (!fs.existsSync(file)) continue;
       const offenders = fs
         .readFileSync(file, 'utf8')
         .split('\n')

@@ -86,9 +86,24 @@ copy. If motivation cannot be established honestly, describe the observable
 problem without inventing business impact; omit inapplicable optional detail.
 
 Make the description visual first. A reviewer should see the change before
-reading about it: matched Before/After proof leads, prose stays short, and
-anything enumerable goes in a table, a code block, or a diagram instead of a
-paragraph. Every PR description must include **Before** and **After**:
+reading about it: the leading summary shape is one visual (not a prose wall),
+matched Before/After proof follows, and anything enumerable goes in a table, a
+code block, or a diagram instead of a paragraph.
+
+For the leading summary under **What Problem This Solves**, pick **one** visual
+type from this menu (use one; never all):
+
+| Shape | When |
+| --- | --- |
+| Pseudocode | Logic or algorithm |
+| Call tree | Runtime control flow |
+| Component tree | UI structure, state, module boundaries |
+| File tree | File responsibility or a broad refactor |
+| Mermaid | Interaction, control flow, or data flow |
+| Matched diff of that shape | The point is what changed and the surrounding shape already exists |
+
+Keep Mermaid and key-hunk `diff` short; fold longer captures into details.
+Every PR description must include **Before** and **After**:
 compare the same actor, input, and precondition, then state the concrete result
 on each side and why the difference matters. Choose the proof shape from what
 actually changed:
@@ -128,8 +143,9 @@ body file starts at the first heading)
 
 ## What Problem This Solves
 
-<Observed problem, impact, diagnosis, and important system boundary, in two or
-three sentences.>
+<One short sentence of context, then the single chosen visual — pseudocode,
+call tree, component tree, file tree, Mermaid, or a matched diff of that shape.
+Not a wall of prose.>
 
 **Before** <same-state setup and what to notice>
 
@@ -180,6 +196,11 @@ flowchart LR
 <long capture or wider hunk>
 
 </details>
+
+## Merge risk
+
+**Door:** one-way | two-way — <short reason you can or cannot walk this back>
+**Blast radius:** <what can break / who is affected>
 
 ## Review focus
 
