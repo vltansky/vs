@@ -103,7 +103,7 @@ Publishes the scoped work and reports its CI and review status.
 flowchart TD
     I[Permission to publish] --> D{PR or direct push?}
     D -- PR --> C["Check, commit, push<br/>/vs-eval for skill contracts"]
-    C --> B["Prepare PR description<br/>feature_area: title<br/>Problem + Before/After<br/>Why this change<br/>User impact<br/>Evidence + gaps<br/>Review focus"]
+    C --> B["Prepare PR description<br/>feature_area: title<br/>Problem + one visual + Before/After<br/>Why this change<br/>User impact<br/>Evidence + gaps<br/>Merge risk<br/>Review focus"]
     B --> M["Reuse or capture proof<br/>matched Before/After screenshots<br/>short video for interactions<br/>paired output, key diff hunk, mermaid flow"]
     M --> O[Create and verify a regular PR] --> L{10+ changed files?}
     L -- yes --> T["Start exact-head walkthrough asynchronously<br/>/vs-pr-walkthrough"] --> W["Follow CI and GitHub review<br/>repairs go draft until the new head is green<br/>/vs-baby-sit"]

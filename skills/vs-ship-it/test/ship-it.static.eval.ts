@@ -61,8 +61,8 @@ describe('vs-ship-it publishing boundary', () => {
   it('shows the PR format and available proof in the README flow', () => {
     expect(README).not.toContain('Review explicitly approved?');
     expect(README).toMatch(/Prepare PR description<br\/>feature_area: title/);
-    expect(README).toMatch(/Problem \+ Before\/After<br\/>Why this change/);
-    expect(README).toMatch(/User impact<br\/>Evidence \+ gaps<br\/>Review focus/);
+    expect(README).toMatch(/Problem \+ one visual \+ Before\/After<br\/>Why this change/);
+    expect(README).toMatch(/User impact<br\/>Evidence \+ gaps<br\/>Merge risk<br\/>Review focus/);
     expect(README).toMatch(/Reuse or capture proof<br\/>matched Before\/After screenshots/);
     expect(README).toMatch(/short video for interactions/);
   });
@@ -249,5 +249,32 @@ describe('vs-ship-it PR association and stopping point', () => {
   it('keeps evidence boundaries honest', () => {
     expect(SKILL).toMatch(/Do not describe CI, deployment, preview behavior, or production as verified/i);
     expect(SKILL).toMatch(/Media: <N screenshots, N videos attached/);
+  });
+});
+
+describe('vs-ship-it door, blast radius, and summary visual', () => {
+  it('requires Door and Blast radius in the PR body template', () => {
+    expect(PR_WORKFLOW).toMatch(/\*\*Door:\*\*.*one-way.*two-way/i);
+    expect(PR_WORKFLOW).toMatch(/\*\*Blast [Rr]adius:\*\*/);
+    expect(PR_WORKFLOW).toMatch(/## Merge risk|## Blast [Rr]adius|## Door/i);
+  });
+
+  it('requires the leading summary shape to pick one visual from an explicit menu', () => {
+    expect(PR_WORKFLOW).toMatch(/pseudocode/i);
+    expect(PR_WORKFLOW).toMatch(/call tree/i);
+    expect(PR_WORKFLOW).toMatch(/component tree/i);
+    expect(PR_WORKFLOW).toMatch(/file tree/i);
+    expect(PR_WORKFLOW).toMatch(/Mermaid/i);
+    expect(PR_WORKFLOW).toMatch(/matched diff|diff.*match/i);
+    expect(PR_WORKFLOW).toMatch(
+      /use one,?\s+occasionally two;\s+never all|pick one|one visual/i,
+    );
+  });
+
+  it('does not add a vs-pr skill or slash', () => {
+    const skillsRoot = path.resolve(__dirname, '..', '..');
+    expect(fs.existsSync(path.join(skillsRoot, 'vs-pr'))).toBe(false);
+    expect(SKILL).not.toContain('`/vs-pr`');
+    expect(SKILL).not.toMatch(/(?:^|[^-\w])\/vs-pr(?:[^-\w]|$)/);
   });
 });
