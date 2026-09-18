@@ -1,5 +1,6 @@
 import { spawnSync } from "node:child_process";
 import * as fs from "node:fs";
+import * as os from "node:os";
 import * as path from "node:path";
 import { describe, expect, it } from "vitest";
 
@@ -113,7 +114,10 @@ describe("vs-verify user path and observable end state", () => {
     expect(reject(ARRAY_JSON).status).toBe(1);
     expect(reject(COMMAND_XX).status).toBe(1);
     expect(reject(COMMAND_XX).stderr).toMatch(/pass with no named command/);
-    const beside = path.join(DIR, "phrase-complete-beside.md");
+    const beside = path.join(
+      os.tmpdir(),
+      `phrase-complete-beside-${process.pid}-${Date.now()}.md`,
+    );
     fs.writeFileSync(beside, fs.readFileSync(PHRASE));
     try {
       expect(reject(beside).status).toBe(1);

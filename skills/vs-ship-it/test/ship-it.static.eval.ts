@@ -62,7 +62,7 @@ describe('vs-ship-it publishing boundary', () => {
     expect(README).not.toContain('Review explicitly approved?');
     expect(README).toMatch(/Prepare PR description<br\/>feature_area: title/);
     expect(README).toMatch(/Problem \+ one visual \+ Before\/After<br\/>Why this change/);
-    expect(README).toMatch(/User impact<br\/>Evidence \+ gaps<br\/>Merge risk<br\/>Review focus/);
+    expect(README).toMatch(/User impact<br\/>Evidence \+ gaps<br\/>Merge risk \(Door \/ Blast\)<br\/>Review focus/);
     expect(README).toMatch(/Reuse or capture proof<br\/>matched Before\/After screenshots/);
     expect(README).toMatch(/short video for interactions/);
   });
@@ -265,10 +265,9 @@ describe('vs-ship-it door, blast radius, and summary visual', () => {
     expect(PR_WORKFLOW).toMatch(/component tree/i);
     expect(PR_WORKFLOW).toMatch(/file tree/i);
     expect(PR_WORKFLOW).toMatch(/Mermaid/i);
-    expect(PR_WORKFLOW).toMatch(/matched diff|diff.*match/i);
-    expect(PR_WORKFLOW).toMatch(
-      /use one,?\s+occasionally two;\s+never all|pick one|one visual/i,
-    );
+    expect(PR_WORKFLOW).toMatch(/Matched diff of that shape/);
+    expect(PR_WORKFLOW).not.toMatch(/occasionally two|sometimes two/i);
+    expect(PR_WORKFLOW).toMatch(/pick \*\*one\*\*|use one|one visual/i);
   });
 
   it('does not add a vs-pr skill or slash', () => {

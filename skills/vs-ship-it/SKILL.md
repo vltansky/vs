@@ -91,7 +91,7 @@ matched Before/After proof follows, and anything enumerable goes in a table, a
 code block, or a diagram instead of a paragraph.
 
 For the leading summary under **What Problem This Solves**, pick **one** visual
-type from this menu (use one, occasionally two; never all):
+type from this menu (use one; never all):
 
 | Shape | When |
 | --- | --- |
