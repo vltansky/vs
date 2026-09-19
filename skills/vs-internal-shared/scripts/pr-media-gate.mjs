@@ -1,13 +1,15 @@
 #!/usr/bin/env node
-// Refuses a PR body that shows the reviewer nothing: no Before/After comparison at all, or
-// frontend changes with no hosted media.
+// Refuses a PR body that shows the reviewer nothing: no Before/After comparison at all,
+// no merge-danger classification, or frontend changes with no hosted media.
 //
 //   node pr-media-gate.mjs <body-file> [--base <ref>] [--frontend <regex>]
 //
 // Reads git (which paths changed against the base) and the body text. It never opens the
 // media, so it costs the model no context. Exit codes match check-visual-evidence.mjs:
-//   0  passes: a Before/After pair is present, and media is present, gapped, or not needed
-//   1  fails:  the body omits Before/After, or shows nothing for a frontend change
+//   0  passes: Before/After and Door/Blast Radius are present, and media is present,
+//      gapped, or not needed
+//   1  fails:  the body omits a comparison side, omits merge danger, or shows nothing for
+//      a frontend change
 //   2  not checked: body missing or git cannot resolve the base
 //
 // Output is one JSON object on stdout so the caller can quote counts instead of re-reading.
@@ -30,17 +32,22 @@ const BARE_URL = /^\s*<?(https?:\/\/\S+?)>?\s*$/;
 // stop silence, not to force a screenshot of a refactor.
 const STATED_GAP = /(?:\*\*)?Still unverified:?(?:\*\*)?[^\n]*|No (?:visual|UI|user-visible) change[^\n]*/i;
 
-// Before/After is required on every PR, so the marker must be a deliberate label — a bold run,
-// a heading, or a comparison-table header — never the word inside a prose sentence.
-const sideMarker = (side) =>
+// Before/After and the merge-danger pair are required on every PR, so each marker must be a
+// deliberate label — a bold run, a heading, or a comparison-table header — never the word
+// inside a prose sentence.
+const labelMarker = (label) =>
   new RegExp(
-    String.raw`(?:\*\*|__)[ \t]*${side}\b[^*_\n]*(?:\*\*|__)` +
-      String.raw`|^[ \t]*#{1,6}[ \t]*${side}\b` +
-      String.raw`|^[ \t]*\|.*\|[ \t]*${side}[ \t]*\|`,
+    String.raw`(?:\*\*|__)[ \t]*${label}\b[^*_\n]*(?:\*\*|__)` +
+      String.raw`|^[ \t]*#{1,6}[ \t]*${label}\b` +
+      String.raw`|^[ \t]*\|.*\|[ \t]*${label}[ \t]*\|`,
     'im',
   );
-const BEFORE_MARKER = sideMarker('Before');
-const AFTER_MARKER = sideMarker('After');
+const BEFORE_MARKER = labelMarker('Before');
+const AFTER_MARKER = labelMarker('After');
+// Merge danger routes review attention: a one-way door or a wide blast radius earns a slow
+// read, everything else earns a fast one. Silence here reads as "safe" by default.
+const DOOR_MARKER = labelMarker('Door');
+const BLAST_MARKER = labelMarker(String.raw`Blast[ \t]+Radius`);
 
 const args = process.argv.slice(2);
 const bodyPath = args.find((arg) => !arg.startsWith('--'));
@@ -106,12 +113,14 @@ const videos = hosted.filter((ref) => ref.kind === 'video').length;
 const gapStated = body.match(STATED_GAP)?.[0].trim() ?? null;
 
 const beforeAfter = { before: BEFORE_MARKER.test(body), after: AFTER_MARKER.test(body) };
+const mergeDanger = { door: DOOR_MARKER.test(body), blastRadius: BLAST_MARKER.test(body) };
 const mediaOk = frontendFiles.length === 0 || images + videos > 0 || gapStated !== null;
 const beforeAfterOk = beforeAfter.before && beforeAfter.after;
-const valid = mediaOk && beforeAfterOk;
+const mergeDangerOk = mergeDanger.door && mergeDanger.blastRadius;
+const valid = mediaOk && beforeAfterOk && mergeDangerOk;
 
 process.stdout.write(
-  `${JSON.stringify({ valid, base, frontendFiles, images, videos, localRefs: localRefs.map((ref) => ref.url), gapStated, beforeAfter }, null, 2)}\n`,
+  `${JSON.stringify({ valid, base, frontendFiles, images, videos, localRefs: localRefs.map((ref) => ref.url), gapStated, beforeAfter, mergeDanger }, null, 2)}\n`,
 );
 
 if (valid) process.exit(0);
@@ -127,6 +136,17 @@ const next = [
         '  A new feature describes the previous absence or workaround under Before; an internal change compares the',
         '  old and new mechanism and says observable behavior is unchanged. A heading or a | Before | After | table',
         '  header counts. Never fabricate the missing side.',
+      ].join('\n')
+    : null,
+  !mergeDangerOk
+    ? [
+        `pr-media-gate: the PR body has no ${[!mergeDanger.door && 'Door', !mergeDanger.blastRadius && 'Blast radius'].filter(Boolean).join(' and ')} line. Every PR states its merge risk.`,
+        '  Next: classify from the diff, one line each, under a "## Merge risk" heading:',
+        '    **Door:** Two-way — <what makes reverting cheap>, or One-way — <the irreversible step and its cost>',
+        '    **Blast radius:** <who breaks and how widely> — <the adjacent surfaces this does not touch>',
+        '  One-way signals: migration, backfill, destructive write, released artifact, public API or wire',
+        '  contract, auth/billing/send side effects. Everything a plain `git revert` undoes is two-way.',
+        '  Name the recovery path (flag, staged rollout, backup) or say none exists. Never guess reassuringly.',
       ].join('\n')
     : null,
   !mediaOk

@@ -76,6 +76,7 @@ describe('vs-ship-it independent PR preparation', () => {
     expect(PR_WORKFLOW).toContain('## Why This Change Was Made');
     expect(PR_WORKFLOW).toContain('## User Impact');
     expect(PR_WORKFLOW).toContain('## Evidence');
+    expect(PR_WORKFLOW).toContain('## Merge risk');
     expect(PR_WORKFLOW).toContain('## Review focus');
   });
 

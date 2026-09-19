@@ -26,8 +26,12 @@ const HOSTED_IMAGE =
   '![After: toggle is dark](https://github.com/user-attachments/assets/0f0e1c2a-1111-4c3b-9d8e-abcdefabcdef)';
 const HOSTED_VIDEO =
   'https://github.com/user-attachments/assets/1a2b3c4d-2222-4c3b-9d8e-abcdefabcdef';
-// Every body the gate should pass carries both sides; media is the second, narrower duty.
-const BEFORE_AFTER = '**Before** toggle is light\n\n**After** toggle is dark\n';
+// Every body the gate should pass carries both sides and its merge danger; media is the
+// third, narrower duty.
+const MERGE_DANGER =
+  '## Merge risk\n\n**Door:** two-way — a revert restores the old styling.\n' +
+  '**Blast radius:** the toggle only; no API or schema change.\n';
+const BEFORE_AFTER = `**Before** toggle is light\n\n**After** toggle is dark\n\n${MERGE_DANGER}`;
 
 function git(cwd: string, ...args: string[]) {
   const result = spawnSync('git', args, { cwd, encoding: 'utf8' });
@@ -132,7 +136,10 @@ describe('pr-media-gate blocks a frontend PR body that shows nothing', () => {
 
   it('stays quiet about media for a branch that touched no frontend path', () => {
     const cwd = repoWithBranch(['src/server/auth.ts', 'src/components/Toggle.test.tsx']);
-    const result = gate(cwd, '**Before** 401 on refresh\n\n**After** 200 on refresh\n');
+    const result = gate(
+      cwd,
+      `**Before** 401 on refresh\n\n**After** 200 on refresh\n\n${MERGE_DANGER}`,
+    );
 
     expect(result.status).toBe(0);
     expect(result.json).toMatchObject({ valid: true, frontendFiles: [] });
@@ -195,13 +202,16 @@ describe('pr-media-gate requires Before and After on every PR', () => {
   it('accepts a heading pair and a comparison-table header as the labels', () => {
     const cwd = repoWithBranch(['src/server/auth.ts']);
 
-    const headings = gate(cwd, '## Before\n\n401 on refresh\n\n## After\n\n200 on refresh\n');
+    const headings = gate(
+      cwd,
+      `## Before\n\n401 on refresh\n\n## After\n\n200 on refresh\n\n${MERGE_DANGER}`,
+    );
     expect(headings.status).toBe(0);
     expect(headings.json.beforeAfter).toEqual({ before: true, after: true });
 
     const table = gate(
       cwd,
-      '| | Before | After |\n| --- | --- | --- |\n| refresh latency | 240 ms | 90 ms |\n',
+      `| | Before | After |\n| --- | --- | --- |\n| refresh latency | 240 ms | 90 ms |\n\n${MERGE_DANGER}`,
     );
     expect(table.status).toBe(0);
     expect(table.json.beforeAfter).toEqual({ before: true, after: true });
@@ -214,6 +224,59 @@ describe('pr-media-gate requires Before and After on every PR', () => {
     expect(result.status).toBe(1);
     expect(result.stderr).toMatch(/Before and After/);
     expect(result.stderr).toMatch(/embeds no hosted media/);
+  });
+});
+
+// A reviewer's attention is the scarce resource. An unclassified PR reads as safe by
+// default, so a migration and a copy tweak get the same skim.
+describe('pr-media-gate requires a merge-risk classification', () => {
+  it('fails a body that compares both sides but never says how dangerous the merge is', () => {
+    const cwd = repoWithBranch(['src/server/auth.ts']);
+    const result = gate(cwd, '**Before** 401 on refresh\n\n**After** 200 on refresh\n');
+
+    expect(result.status).toBe(1);
+    expect(result.json).toMatchObject({
+      valid: false,
+      beforeAfter: { before: true, after: true },
+      mergeDanger: { door: false, blastRadius: false },
+    });
+    expect(result.stderr).toMatch(/Door and Blast radius/);
+    // The failure teaches the classification instead of only naming the missing line.
+    expect(result.stderr).toMatch(/migration, backfill, destructive write/);
+  });
+
+  it('names only the missing half of the classification', () => {
+    const cwd = repoWithBranch(['src/server/auth.ts']);
+    const result = gate(
+      cwd,
+      '**Before** 401\n\n**After** 200\n\n**Door:** one-way — the token table is migrated.\n',
+    );
+
+    expect(result.status).toBe(1);
+    expect(result.json.mergeDanger).toEqual({ door: true, blastRadius: false });
+    expect(result.stderr).toMatch(/no Blast radius line/);
+  });
+
+  it('does not accept the words inside a prose sentence as the classification', () => {
+    const cwd = repoWithBranch(['src/server/auth.ts']);
+    const result = gate(
+      cwd,
+      '**Before** 401\n\n**After** 200\n\nThis is a two-way door with a small blast radius.\n',
+    );
+
+    expect(result.status).toBe(1);
+    expect(result.json.mergeDanger).toEqual({ door: false, blastRadius: false });
+  });
+
+  it('accepts headings as the labels', () => {
+    const cwd = repoWithBranch(['src/server/auth.ts']);
+    const result = gate(
+      cwd,
+      '**Before** 401\n\n**After** 200\n\n### Door\n\nTwo-way.\n\n### Blast radius\n\nOne route.\n',
+    );
+
+    expect(result.status).toBe(0);
+    expect(result.json.mergeDanger).toEqual({ door: true, blastRadius: true });
   });
 });
 
@@ -270,6 +333,17 @@ describe('vs-ship-it runs the gate and never reads the pixels', () => {
   it('states the Before/After requirement as unconditional and checks it in the contract', () => {
     expect(SHIP_IT).toMatch(/Every PR description must include \*\*Before\*\* and \*\*After\*\*/);
     expect(SHIP_IT).toMatch(/- \[ \] Every PR has a concrete Before\/After comparison/);
+  });
+
+  it('classifies merge risk from the diff and reports it in the handoff', () => {
+    expect(SHIP_IT).toContain('## Merge risk');
+    expect(SHIP_IT).toMatch(/\*\*Merge risk\*\* is not\s+droppable/);
+    expect(SHIP_IT).toMatch(/Classify merge risk from the scoped diff, never from/);
+    expect(SHIP_IT).toMatch(/Schema migration, data backfill, destructive write, deletion \| One-way/);
+    expect(SHIP_IT).toMatch(/Behavior behind a flag, internal refactor, copy, styling, tests \| Two-way/);
+    expect(SHIP_IT).toMatch(/adjacent surfaces the change does \*\*not\*\* touch/);
+    expect(SHIP_IT).toMatch(/- Merge risk: <two-way \| one-way> door/);
+    expect(SHIP_IT).toMatch(/- \[ \] Every PR classifies merge risk/);
   });
 
   it('gates the body file on hosted media before gh pr create', () => {

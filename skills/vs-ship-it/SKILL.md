@@ -199,8 +199,10 @@ flowchart LR
 
 ## Merge risk
 
-**Door:** one-way | two-way — <short reason you can or cannot walk this back>
-**Blast radius:** <what can break / who is affected>
+**Door:** one-way | two-way — <the irreversible step and what undoing it costs,
+or what makes reverting cheap>
+**Blast radius:** <who breaks and how widely, plus the adjacent surfaces this
+does not touch>
 
 ## Review focus
 
@@ -209,7 +211,25 @@ for a trivial change.>
 ````
 
 Drop any template row, block, or section the evidence does not fill; an empty
-diagram or a table of one row is worse than prose.
+diagram or a table of one row is worse than prose. **Merge risk** is not
+droppable: it is how the reviewer decides how much attention this PR deserves.
+
+Classify merge risk from the scoped diff, never from the change's intent:
+
+| Signal in the diff | Door | Reason |
+| --- | --- | --- |
+| Schema migration, data backfill, destructive write, deletion | One-way | Reverting the code does not revert the data |
+| Published artifact, release, public API or wire-contract change | One-way | Consumers pin the old shape |
+| Auth, permissions, billing, or anything with a side effect on send | One-way | The effect escapes before a revert lands |
+| Behavior behind a flag, internal refactor, copy, styling, tests | Two-way | `git revert` restores the previous behavior |
+
+State the blast radius as who breaks and how widely, not as a severity word:
+one route, one command, every caller of a shared helper, every tenant. Name the
+adjacent surfaces the change does **not** touch — the bounded half is what lets
+a reviewer skip the rest. When the diff is one-way or broad, say what makes it
+recoverable (flag, staged rollout, backup, reversible migration) or state that
+nothing does. Two lines is the whole budget; if the classification is uncertain,
+write the uncertainty rather than the reassuring guess.
 
 For CLI/API behavior, replace visual proof with exact paired output from the
 same input. For a new feature, describe the previous absence or workaround under Before
@@ -314,14 +334,16 @@ media, and refuses a PR that shows nothing:
 node <vs-internal-shared>/scripts/pr-media-gate.mjs "$BODY_FILE" --base origin/<base>
 ```
 
-- Exit 0: the body carries both a **Before** and an **After** marker, and
-  hosted media is embedded, or the body states `**Still unverified:** visual
-  proof; <exact blocker>`, or it states `No visual change: <why>` for a
-  refactor with identical output, or no frontend path changed.
-- Exit 1: add the missing side of the comparison, or capture with
-  `record-flow.mjs` and upload, or write the exact gap in the body. Do not
-  create the PR from a failing body. Local paths never count: the reviewer
-  cannot open them. Never fabricate the missing side to clear the gate.
+- Exit 0: the body carries both a **Before** and an **After** marker, carries a
+  **Door** and a **Blast radius** line, and hosted media is embedded, or the
+  body states `**Still unverified:** visual proof; <exact blocker>`, or it
+  states `No visual change: <why>` for a refactor with identical output, or no
+  frontend path changed.
+- Exit 1: add the missing side of the comparison, add the missing merge-risk
+  line, or capture with `record-flow.mjs` and upload, or write the exact gap in
+  the body. Do not create the PR from a failing body. Local paths never count:
+  the reviewer cannot open them. Never fabricate the missing side to clear the
+  gate.
 - Exit 2: the gate could not check (no base ref); pass `--base` and re-run.
   Never report a not-checked run as a pass.
 
@@ -438,6 +460,7 @@ PR created and verified: [#<N> — <title>](<PR_URL>)
 - State: open, ready for review — babysit follows CI and automated review on
   the exact head; a repair converts it to draft and returns it to ready for
   review only when the new head is green.
+- Merge risk: <two-way | one-way> door, <blast radius in a few words>
 - Media: <N screenshots, N videos attached | none available | exact upload gap>
 - Walkthrough: <[open walkthrough](<URL>) — exact <short SHA> | generating for
   exact head | skipped — small PR | exact gap>
@@ -471,6 +494,8 @@ separate `vs-baby-sit` goal only when the user explicitly requested a Codex goal
 - [ ] Every PR has a concrete Before/After comparison, including new features
       and internal changes; source-derived claims are labeled. The gate enforces
       the pair on every PR, not only frontend ones.
+- [ ] Every PR classifies merge risk: a one-way/two-way **Door** line and a
+      **Blast radius** line, both derived from the diff, both in the handoff.
 - [ ] Frontend changes have matched screenshots and interaction video where
       relevant, or an exact capture blocker; captions explain the difference.
 - [ ] `pr-media-gate.mjs` exited 0 on the final body file before `gh pr create`;
