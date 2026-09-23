@@ -35,7 +35,7 @@
 const vsLayoutCss = `
   /* vs: one column of source-order content, no rail, no hero, no section
      cards. vs-proposal: the same tokens and components under a proposal
-     shell - dark hero, sticky contents rail. Scoped to the layouts so every
+     shell - a title band, sticky contents rail. Scoped to the layouts so every
      other artifact this runtime renders keeps its stock look; the ^= prefix
      match is the sharing seam - it reaches both 'vs' and 'vs-proposal'. */
   /* Corners come from two scales - the shadcn built-ins compile theirs from
@@ -48,46 +48,47 @@ const vsLayoutCss = `
     min-height: 100vh;
     background: var(--md-sys-color-surface);
     color: var(--md-sys-color-on-surface);
-    --radius: 4px;
-    --md-sys-shape-corner-small: 3px;
-    --md-sys-shape-corner-medium: 4px;
-    --md-sys-shape-corner-large: 5px;
-    --md-sys-shape-corner-extra-large: 5px;
-    /* The vs palette: the terminal theme - Ghostty's stock #282C34 surface
-       (One Dark lineage) with Claude Code's periwinkle accent carrying links,
-       code spans, gauge fills, and the contents-rail numbers. Neutrals are a
-       ladder in the same slate hue; the semantic colors (emerald/red/amber in
-       the components) follow One Dark's ANSI set. Scoped to the layout. */
-    --md-sys-color-primary: #93A4E8;
-    --md-sys-color-on-primary: #10182E;
-    --md-sys-color-primary-container: #2A3352;
-    --md-sys-color-on-primary-container: #C8D2F4;
-    --md-sys-color-secondary: #A9B0BD;
-    --md-sys-color-on-secondary: #14161B;
-    --md-sys-color-secondary-container: #383E4A;
-    --md-sys-color-on-secondary-container: #E4E8EF;
-    --md-sys-color-tertiary: #A9B0BD;
-    --md-sys-color-on-tertiary: #14161B;
-    --md-sys-color-tertiary-container: #383E4A;
-    --md-sys-color-on-tertiary-container: #E4E8EF;
-    --md-sys-color-surface: #282C34;
-    --md-sys-color-on-surface: #D7DCE4;
-    --md-sys-color-surface-variant: #333845;
-    --md-sys-color-on-surface-variant: #A9B0BD;
-    --md-sys-color-outline: #6C7484;
-    --md-sys-color-outline-variant: #3B414C;
-    --md-sys-color-surface-container-lowest: #21252C;
-    --md-sys-color-surface-container-low: #2D323B;
-    --md-sys-color-surface-container: #31363F;
-    --md-sys-color-surface-container-high: #363B45;
-    --md-sys-color-surface-container-highest: #3C424D;
+    --radius: 6px;
+    --md-sys-shape-corner-small: 4px;
+    --md-sys-shape-corner-medium: 6px;
+    --md-sys-shape-corner-large: 8px;
+    --md-sys-shape-corner-extra-large: 8px;
+    /* The vs palette: warm paper. Light is the default and the only print
+       scheme; the dark variant below re-declares these same tokens under
+       prefers-color-scheme, so every other rule reads tokens and never has to
+       know the scheme. One oxblood accent carries links, gauge fills, and the
+       contents-rail numbers; the neutrals are one ladder in the paper's warm
+       hue, so cards separate from the page by a step, not by a new color. */
+    --md-sys-color-primary: #8B2C2A;
+    --md-sys-color-on-primary: #FFFDF8;
+    --md-sys-color-primary-container: #F5E6DF;
+    --md-sys-color-on-primary-container: #5E1B19;
+    --md-sys-color-secondary: #5E574C;
+    --md-sys-color-on-secondary: #FFFDF8;
+    --md-sys-color-secondary-container: #ECE5D6;
+    --md-sys-color-on-secondary-container: #1D1B18;
+    --md-sys-color-tertiary: #5E574C;
+    --md-sys-color-on-tertiary: #FFFDF8;
+    --md-sys-color-tertiary-container: #ECE5D6;
+    --md-sys-color-on-tertiary-container: #1D1B18;
+    --md-sys-color-surface: #FAF7F0;
+    --md-sys-color-on-surface: #1D1B18;
+    --md-sys-color-surface-variant: #F4EFE4;
+    --md-sys-color-on-surface-variant: #5E574C;
+    --md-sys-color-outline: #8C8270;
+    --md-sys-color-outline-variant: #E4DCCB;
+    --md-sys-color-surface-container-lowest: #FFFDF8;
+    --md-sys-color-surface-container-low: #FFFDF8;
+    --md-sys-color-surface-container: #F7F2E8;
+    --md-sys-color-surface-container-high: #F4EFE4;
+    --md-sys-color-surface-container-highest: #ECE5D6;
     /* One soft shadow per level instead of Material's key + ambient pair: the
        flat surfaces separate with a hairline, so elevation only has to lift a
        floating element off the page. */
     --md-sys-elevation-level0: none;
-    --md-sys-elevation-level1: 0 1px 2px rgb(0 0 0 / 40%);
-    --md-sys-elevation-level2: 0 2px 6px rgb(0 0 0 / 45%);
-    --md-sys-elevation-level3: 0 8px 24px rgb(0 0 0 / 55%);
+    --md-sys-elevation-level1: 0 1px 2px rgb(60 40 20 / 10%);
+    --md-sys-elevation-level2: 0 2px 6px rgb(60 40 20 / 12%);
+    --md-sys-elevation-level3: 0 12px 32px -12px rgb(60 40 20 / 30%);
     --md-sys-state-hover-opacity: 0.08;
     /* The runtime derives these aliases on :root, where custom properties
        compute once and inherit as values, not as var() references - so every
@@ -108,29 +109,28 @@ const vsLayoutCss = `
     --htmdx-gray: var(--md-sys-color-on-surface-variant);
     --htmdx-gray-light: var(--md-sys-color-outline);
     --htmdx-gray-bg: var(--md-sys-color-surface-variant);
-    /* The runtime's syntax palette is fixed light-theme ink on :root, so plain
-       code text lands near-black on the dark code panel. Re-pointed at One
-       Dark, the same lineage as the surface: unhighlighted text reads as body
-       ink, every token color keeps AA contrast on the panel. */
+    /* The runtime's syntax palette is light-theme ink, which already suits
+       paper; it is re-declared here only so the dark variant has the same
+       names to repoint. */
     --htmdx-code-text: var(--md-sys-color-on-surface);
-    --htmdx-code-comment: #7F848E;
-    --htmdx-code-keyword: #C678DD;
-    --htmdx-code-string: #98C379;
-    --htmdx-code-number: #D19A66;
-    --htmdx-code-function: #61AFEF;
-    --htmdx-code-type: #E5C07B;
-    --htmdx-code-property: #E06C75;
-    --htmdx-code-punctuation: #A9B0BD;
-    --htmdx-code-inserted: #98C379;
-    --htmdx-code-deleted: #E06C75;
+    --htmdx-code-comment: #71809B;
+    --htmdx-code-keyword: #7A2E6B;
+    --htmdx-code-string: #2E6B3A;
+    --htmdx-code-number: #8A5A00;
+    --htmdx-code-function: #2F5596;
+    --htmdx-code-type: #0E6B73;
+    --htmdx-code-property: #A8322D;
+    --htmdx-code-punctuation: #8A94A6;
+    --htmdx-code-inserted: #2E6B3A;
+    --htmdx-code-deleted: #A8322D;
     --primary: var(--md-sys-color-primary);
     --primary-foreground: var(--md-sys-color-on-primary);
     --ring: var(--md-sys-color-primary);
     --accent: var(--md-sys-color-primary-container);
     --accent-foreground: var(--md-sys-color-on-primary-container);
     /* The shadcn utilities (bg-card, text-muted-foreground, border) read
-       these names from :root, where the runtime declares light values - the
-       scoped re-declarations point them at the dark ladder. */
+       these names from :root, where the runtime declares its own neutrals -
+       the scoped re-declarations point them at the paper ladder. */
     --background: var(--md-sys-color-surface);
     --foreground: var(--md-sys-color-on-surface);
     --card: var(--md-sys-color-surface-container-low);
@@ -138,11 +138,13 @@ const vsLayoutCss = `
     --muted: var(--md-sys-color-surface-variant);
     --muted-foreground: var(--md-sys-color-on-surface-variant);
     --border: var(--md-sys-color-outline-variant);
-    /* Two faces, one job each. The mono is reserved for what is literally in a
-       file - identifiers, paths, code, figures - so setting it in mono is a
-       claim that the reader can copy the characters verbatim. Everything the
-       author wrote in their own words reads in the sans. A single mono page
-       erases that distinction and makes prose as dense as a stack trace.
+    /* Three faces, one job each. The mono is reserved for what is literally
+       in a file - identifiers, paths, code, figures - so setting it in mono is
+       a claim that the reader can copy the characters verbatim. Everything the
+       author wrote in their own words reads in the sans, chosen for long
+       reading: wide letterforms and open counters keep a dense page legible.
+       The serif is display only - page and section titles - so headings are
+       found by shape while scanning, not by weight alone.
        Geist Mono is ligature-free on purpose: a face that fuses an arrow or a
        not-equals into one glyph misreports the source the artifact quotes. */
     --vs-mono: 'Geist Mono', ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, monospace;
@@ -150,31 +152,26 @@ const vsLayoutCss = `
        theme face or fenced code renders in the browser default while every
        other mono on the page is Geist. */
     --htmdx-mono: var(--vs-mono);
-    --vs-sans: 'Space Grotesk', ui-sans-serif, system-ui, sans-serif;
+    --vs-sans: 'Atkinson Hyperlegible Next', ui-sans-serif, system-ui, sans-serif;
+    --vs-serif: 'Newsreader', 'Source Serif 4', Georgia, serif;
     font-family: var(--vs-sans);
-    --vs-hand: 'Excalifont', 'Segoe Print', 'Bradley Hand', 'Comic Sans MS', cursive;
-    /* Hand-drawn outlines: uneven four-corner radii (slash syntax offsets each
-       corner's horizontal and vertical curve) so no card edge repeats. Two
-       scales: cards wobble gently, pills keep the classic sketch-button arc. */
-    --vs-sketch-card: 14px 5px 13px 6px / 6px 12px 5px 15px;
-    --vs-sketch-pill: 255px 15px 225px 15px / 15px 225px 15px 255px;
-    /* Series palette: the One Dark terminal accents in fixed order, so
-       charts, mocks, and hand-drawn SVGs pick colors by position instead of
-       hand-mixing hexes. 1 is the theme accent; pair every color with a
-       label or shape - meaning never rides on color alone.
+    --vs-radius-card: 8px;
+    --vs-radius-pill: 999px;
+    /* Series palette: fixed order, so charts, mocks, and hand-drawn SVGs pick
+       colors by position instead of hand-mixing hexes. 1 is the theme accent;
+       pair every color with a label or shape - meaning never rides on color
+       alone.
 
-       Every entry clears 4.5:1 on the card, because the label naming a series
-       is written in that series' color - that is what a positional palette is
-       for, and a token that is only safe as a fill is a trap for the one use
-       it invites. So 4 and 6 are One Dark's red and magenta lightened past AA
-       (3.80 and 4.12 raw) rather than the terminal values; 4 is the same red
-       .text-red-700 already resolves to, so the two never disagree. */
-    --vs-series-1: #93A4E8;
-    --vs-series-2: #98C379;
-    --vs-series-3: #E5C07B;
-    --vs-series-4: #F2A2A8;
-    --vs-series-5: #56B6C2;
-    --vs-series-6: #DBA6EC;
+       Every entry clears 4.5:1 on the card in both schemes, because the label
+       naming a series is written in that series' color - that is what a
+       positional palette is for, and a token that is only safe as a fill is a
+       trap for the one use it invites. */
+    --vs-series-1: #8B2C2A;
+    --vs-series-2: #2E6B3A;
+    --vs-series-3: #8A5A00;
+    --vs-series-4: #2F5596;
+    --vs-series-5: #0E6B73;
+    --vs-series-6: #7A2E6B;
   }
   /* Every face here is fetched from the CDN, never assumed installed - the
      artifact is a single file that has to look the same on a reader's machine
@@ -211,71 +208,71 @@ const vsLayoutCss = `
     font-style: italic;
     font-display: swap;
   }
-  /* The body face. No italic is published for it, so emphasis is synthesised
-     by the browser - keep emphasis carried by weight or wording where it has
-     to be exact. */
+  /* The reading face. */
   @font-face {
-    font-family: 'Space Grotesk';
-    src: url('https://cdn.jsdelivr.net/npm/@fontsource/space-grotesk@5/files/space-grotesk-latin-400-normal.woff2') format('woff2');
+    font-family: 'Atkinson Hyperlegible Next';
+    src: url('https://cdn.jsdelivr.net/npm/@fontsource/atkinson-hyperlegible-next@5/files/atkinson-hyperlegible-next-latin-400-normal.woff2') format('woff2');
     font-weight: 400;
     font-style: normal;
     font-display: swap;
   }
   @font-face {
-    font-family: 'Space Grotesk';
-    src: url('https://cdn.jsdelivr.net/npm/@fontsource/space-grotesk@5/files/space-grotesk-latin-500-normal.woff2') format('woff2');
+    font-family: 'Atkinson Hyperlegible Next';
+    src: url('https://cdn.jsdelivr.net/npm/@fontsource/atkinson-hyperlegible-next@5/files/atkinson-hyperlegible-next-latin-500-normal.woff2') format('woff2');
     font-weight: 500;
     font-style: normal;
     font-display: swap;
   }
   @font-face {
-    font-family: 'Space Grotesk';
-    src: url('https://cdn.jsdelivr.net/npm/@fontsource/space-grotesk@5/files/space-grotesk-latin-600-normal.woff2') format('woff2');
+    font-family: 'Atkinson Hyperlegible Next';
+    src: url('https://cdn.jsdelivr.net/npm/@fontsource/atkinson-hyperlegible-next@5/files/atkinson-hyperlegible-next-latin-600-normal.woff2') format('woff2');
     font-weight: 600;
     font-style: normal;
     font-display: swap;
   }
   @font-face {
-    font-family: 'Space Grotesk';
-    src: url('https://cdn.jsdelivr.net/npm/@fontsource/space-grotesk@5/files/space-grotesk-latin-700-normal.woff2') format('woff2');
+    font-family: 'Atkinson Hyperlegible Next';
+    src: url('https://cdn.jsdelivr.net/npm/@fontsource/atkinson-hyperlegible-next@5/files/atkinson-hyperlegible-next-latin-700-normal.woff2') format('woff2');
     font-weight: 700;
     font-style: normal;
     font-display: swap;
   }
-  /* Excalidraw's own face. Latin subset only; other scripts fall through to
-     the system hand fonts in --vs-hand. It stays the voice of the hand-drawn
-     diagrams. */
   @font-face {
-    font-family: 'Excalifont';
-    src: url('https://cdn.jsdelivr.net/npm/@excalidraw/excalidraw@0.18.1/dist/prod/fonts/Excalifont/Excalifont-Regular-a88b72a24fb54c9f94e3b5fdaa7481c9.woff2') format('woff2');
+    font-family: 'Atkinson Hyperlegible Next';
+    src: url('https://cdn.jsdelivr.net/npm/@fontsource/atkinson-hyperlegible-next@5/files/atkinson-hyperlegible-next-latin-400-italic.woff2') format('woff2');
+    font-weight: 400;
+    font-style: italic;
+    font-display: swap;
+  }
+  /* The display face, for titles only. */
+  @font-face {
+    font-family: 'Newsreader';
+    src: url('https://cdn.jsdelivr.net/npm/@fontsource/newsreader@5/files/newsreader-latin-500-normal.woff2') format('woff2');
+    font-weight: 500;
+    font-style: normal;
+    font-display: swap;
+  }
+  @font-face {
+    font-family: 'Newsreader';
+    src: url('https://cdn.jsdelivr.net/npm/@fontsource/newsreader@5/files/newsreader-latin-600-normal.woff2') format('woff2');
+    font-weight: 600;
     font-style: normal;
     font-display: swap;
   }
   /* Overscroll past the app container shows the document canvas - paint it
-     the same dark surface so the page has no white edges. The 17px root em
-     scales every rem-sized token up one notch for reading comfort. */
-  html:has(.htmdx-app[data-htmdx-layout^='vs']) { background: #282C34; font-size: 17px; }
-  /* Tailwind's *-700/*-50 semantic pairs are tuned for a white surface; on
-     dark the text tones lighten and the wash backgrounds deepen so the
-     emerald/red/amber meanings survive the flip. */
-  /* Tailwind's bare border/divide utilities default to currentColor - on the
-     dark surface that is the near-white text color, so every card edge glows.
-     Pin them to the hairline token instead. */
+     the same surface so the page has no mismatched edges. The 19px root em is
+     the reading size: body size is what moves reading speed most, and every
+     rem-sized component scales with it instead of staying at UI size. */
+  html:has(.htmdx-app[data-htmdx-layout^='vs']) { background: #FAF7F0; font-size: 19px; }
+  @media (max-width: 720px) {
+    html:has(.htmdx-app[data-htmdx-layout^='vs']) { font-size: 18px; }
+  }
+  /* Tailwind's bare border/divide utilities default to currentColor - the
+     body ink - so every card edge would read as a heavy rule. Pin them to the
+     hairline token instead. */
   .htmdx-app[data-htmdx-layout^='vs'] .border,
   .htmdx-app[data-htmdx-layout^='vs'] :is(.divide-y, .divide-x) > * {
     border-color: var(--md-sys-color-outline-variant);
-  }
-  /* Sketch pass: the whole theme follows the hand-drawn mermaid look. Cards
-     and chips get wobbly outlines; dots, gauge tracks, and figure markers are
-     excluded - a wobbly 8px circle reads as a rendering bug, not a sketch.
-     The px-2 guard limits the pill arc to text chips, keeping progress-bar
-     fills and timeline dots perfectly round. */
-  .htmdx-app[data-htmdx-layout^='vs'] [data-htmdx-component] .rounded-lg {
-    border-radius: var(--vs-sketch-card);
-  }
-  .htmdx-app[data-htmdx-layout^='vs'] [class*='px-2'].rounded-full {
-    border-radius: var(--vs-sketch-pill);
-    letter-spacing: 0.02em;
   }
   /* Sources ships each entry as one nowrap pill, so an entry naming several
      paths widens the whole document instead of wrapping - the flex row only
@@ -288,71 +285,141 @@ const vsLayoutCss = `
     flex-wrap: wrap;
     align-items: baseline;
   }
-  .htmdx-app[data-htmdx-layout^='vs'] .text-emerald-700 { color: #98C379; }
-  /* Accent text is measured against the wash it sits on, not the card - a
-     chip's ground is its own 12% tint over whatever container it landed on,
-     and every step up that ladder (low, container, high) eats headroom. One
-     Dark's red is 4.03:1 on the card and 3.46:1 on its wash; even the first
-     lightening pass only reached 4.42 on a high container. These clear 4.5
-     everywhere the wash utilities can land, without leaving the hue. */
-  .htmdx-app[data-htmdx-layout^='vs'] .text-red-700 { color: #F2A2A8; }
-  .htmdx-app[data-htmdx-layout^='vs'] .text-amber-700 { color: #E5C07B; }
-  /* The theme accent itself is 3.80:1 on a blue wash over a high container, so
-     blue as running text is a lightened sibling of --md-sys-color-primary, not
-     the token: the token still paints borders, strokes and fills, which carry
-     no contrast floor. */
-  .htmdx-app[data-htmdx-layout^='vs'] .text-blue-700 { color: #AAB7ED; }
-  /* Washes are translucent tints of their own accent, not hand-mixed dark
-     hexes: they stay in hue with the text on any container they land on. */
-  .htmdx-app[data-htmdx-layout^='vs'] .bg-emerald-50 { background-color: rgb(152 195 121 / 12%); }
-  .htmdx-app[data-htmdx-layout^='vs'] .bg-red-50 { background-color: rgb(240 148 155 / 12%); }
-  .htmdx-app[data-htmdx-layout^='vs'] .bg-amber-50 { background-color: rgb(229 192 123 / 12%); }
-  .htmdx-app[data-htmdx-layout^='vs'] .bg-blue-50 { background-color: rgb(147 164 232 / 12%); }
-  .htmdx-app[data-htmdx-layout^='vs'] .bg-violet-50 { background-color: rgb(219 166 236 / 12%); }
-  /* Same treatment as the red above: One Dark's magenta is 4.12:1 on the card,
-     and lightening it clears AA (6.17) without leaving the hue. */
-  .htmdx-app[data-htmdx-layout^='vs'] .text-violet-700 { color: #DBA6EC; }
-  /* The runtime pairs every wash with a dark: variant, but the document never
-     enters dark mode - the vs palette is a scoped repaint, not a theme switch -
-     so the light wash is what lands. Column tints (DecisionMatrix's chosen
-     column) use the /60 opacity form of the same class, and a full column
-     carries more area than a chip, so it tints lighter. Matched as attributes,
-     not escaped class selectors: the sync script escapes backslashes on its way
-     into the template shells, and the drift test compares raw text. */
-  .htmdx-app[data-htmdx-layout^='vs'] [class~='bg-emerald-50/60'] { background-color: rgb(152 195 121 / 8%); }
-  .htmdx-app[data-htmdx-layout^='vs'] [class~='bg-red-50/60'] { background-color: rgb(240 148 155 / 8%); }
-  .htmdx-app[data-htmdx-layout^='vs'] [class~='bg-amber-50/60'] { background-color: rgb(229 192 123 / 8%); }
-  .htmdx-app[data-htmdx-layout^='vs'] [class~='bg-blue-50/60'] { background-color: rgb(147 164 232 / 8%); }
-  .htmdx-app[data-htmdx-layout^='vs'] [class~='bg-violet-50/60'] { background-color: rgb(198 120 221 / 8%); }
   /* Solid severity chips (IntentList's BLOCKER banner, Gauge's over-budget
      fill) ship raw Tailwind -500 fills with white ink - white on amber-500
-     measures 2.15:1. Repainted to the vs tones and flipped to the layout's
-     near-black ink, the lightest pair still clears 6:1. */
-  .htmdx-app[data-htmdx-layout^='vs'] .bg-emerald-500 { background-color: #98C379; }
-  .htmdx-app[data-htmdx-layout^='vs'] .bg-green-500 { background-color: #98C379; }
-  .htmdx-app[data-htmdx-layout^='vs'] .bg-amber-500 { background-color: #E5C07B; }
-  .htmdx-app[data-htmdx-layout^='vs'] .bg-red-500 { background-color: #F0949B; }
-  .htmdx-app[data-htmdx-layout^='vs'] .bg-blue-500 { background-color: #93A4E8; }
-  .htmdx-app[data-htmdx-layout^='vs'] .bg-violet-500 { background-color: #C678DD; }
-  .htmdx-app[data-htmdx-layout^='vs'] .bg-gray-400 { background-color: #A9B0BD; }
-  .htmdx-app[data-htmdx-layout^='vs'] :is(.bg-emerald-500, .bg-green-500, .bg-amber-500, .bg-red-500, .bg-blue-500, .bg-violet-500, .bg-gray-400).text-white,
-  .htmdx-app[data-htmdx-layout^='vs'] :is(.bg-emerald-500, .bg-green-500, .bg-amber-500, .bg-red-500, .bg-blue-500, .bg-violet-500, .bg-gray-400) .text-white {
-    color: var(--md-sys-color-on-secondary);
+     measures 2.15:1. On paper they take their saturated counterparts, which
+     keep the white ink above 4.5:1; the -500 text tones follow so a mark and
+     its label never disagree. */
+  .htmdx-app[data-htmdx-layout^='vs'] :is(.bg-emerald-500, .bg-green-500) { background-color: #047857; }
+  .htmdx-app[data-htmdx-layout^='vs'] .bg-amber-500 { background-color: #B45309; }
+  .htmdx-app[data-htmdx-layout^='vs'] .bg-red-500 { background-color: #B91C1C; }
+  .htmdx-app[data-htmdx-layout^='vs'] .bg-blue-500 { background-color: #1D4ED8; }
+  .htmdx-app[data-htmdx-layout^='vs'] .bg-violet-500 { background-color: #6D28D9; }
+  .htmdx-app[data-htmdx-layout^='vs'] .bg-gray-400 { background-color: #6B7280; }
+  .htmdx-app[data-htmdx-layout^='vs'] :is(.text-emerald-500, .text-green-500) { color: #047857; }
+  .htmdx-app[data-htmdx-layout^='vs'] .text-amber-500 { color: #B45309; }
+  .htmdx-app[data-htmdx-layout^='vs'] .text-red-500 { color: #B91C1C; }
+  .htmdx-app[data-htmdx-layout^='vs'] .text-blue-500 { color: #1D4ED8; }
+  .htmdx-app[data-htmdx-layout^='vs'] .text-violet-500 { color: #6D28D9; }
+  /* Dark variant: the same token names on a warm near-black ladder. Screen
+     only, so paper always prints the light scheme. Tailwind's *-700/*-50
+     semantic pairs are tuned for a white surface; on dark the text tones
+     lighten and the wash backgrounds become translucent tints so the
+     emerald/red/amber meanings survive the flip. */
+  @media screen and (prefers-color-scheme: dark) {
+    .htmdx-app[data-htmdx-layout^='vs'] {
+      --md-sys-color-primary: #E8998F;
+      --md-sys-color-on-primary: #2A0F0D;
+      --md-sys-color-primary-container: #3A2220;
+      --md-sys-color-on-primary-container: #F3C9C2;
+      --md-sys-color-secondary: #A89F90;
+      --md-sys-color-on-secondary: #151412;
+      --md-sys-color-secondary-container: #2A2621;
+      --md-sys-color-on-secondary-container: #EDE8DE;
+      --md-sys-color-tertiary: #A89F90;
+      --md-sys-color-on-tertiary: #151412;
+      --md-sys-color-tertiary-container: #2A2621;
+      --md-sys-color-on-tertiary-container: #EDE8DE;
+      --md-sys-color-surface: #151412;
+      --md-sys-color-on-surface: #EDE8DE;
+      --md-sys-color-surface-variant: #2A2621;
+      --md-sys-color-on-surface-variant: #A89F90;
+      --md-sys-color-outline: #7A7063;
+      --md-sys-color-outline-variant: #332E27;
+      --md-sys-color-surface-container-lowest: #121110;
+      --md-sys-color-surface-container-low: #1B1916;
+      --md-sys-color-surface-container: #221F1B;
+      --md-sys-color-surface-container-high: #26231E;
+      --md-sys-color-surface-container-highest: #2E2A24;
+      --md-sys-elevation-level1: 0 1px 2px rgb(0 0 0 / 40%);
+      --md-sys-elevation-level2: 0 2px 6px rgb(0 0 0 / 45%);
+      --md-sys-elevation-level3: 0 8px 24px rgb(0 0 0 / 55%);
+      /* Light-theme syntax ink lands near-black on the dark code panel, so the
+         dark scheme swaps in One Dark's token colors, each AA on the panel. */
+      --htmdx-code-comment: #7F848E;
+      --htmdx-code-keyword: #C678DD;
+      --htmdx-code-string: #98C379;
+      --htmdx-code-number: #D19A66;
+      --htmdx-code-function: #61AFEF;
+      --htmdx-code-type: #E5C07B;
+      --htmdx-code-property: #E06C75;
+      --htmdx-code-punctuation: #A9B0BD;
+      --htmdx-code-inserted: #98C379;
+      --htmdx-code-deleted: #E06C75;
+      --vs-series-1: #E8998F;
+      --vs-series-2: #98C379;
+      --vs-series-3: #E5C07B;
+      --vs-series-4: #AAB7ED;
+      --vs-series-5: #56B6C2;
+      --vs-series-6: #DBA6EC;
+    }
+    html:has(.htmdx-app[data-htmdx-layout^='vs']) { background: #151412; }
+    .htmdx-app[data-htmdx-layout^='vs'] .text-emerald-700 { color: #98C379; }
+    /* Accent text is measured against the wash it sits on, not the card - a
+       chip's ground is its own 12% tint over whatever container it landed on,
+       and every step up that ladder (low, container, high) eats headroom. One
+       Dark's red is 4.03:1 on the card and 3.46:1 on its wash; even the first
+       lightening pass only reached 4.42 on a high container. These clear 4.5
+       everywhere the wash utilities can land, without leaving the hue. */
+    .htmdx-app[data-htmdx-layout^='vs'] .text-red-700 { color: #F2A2A8; }
+    .htmdx-app[data-htmdx-layout^='vs'] .text-amber-700 { color: #E5C07B; }
+    /* Periwinkle measures 3.80:1 on its own wash over a high container, so
+       blue running text takes a lightened sibling; the fills and strokes that
+       carry no contrast floor keep the stronger tone. */
+    .htmdx-app[data-htmdx-layout^='vs'] .text-blue-700 { color: #AAB7ED; }
+    /* Washes are translucent tints of their own accent, not hand-mixed dark
+       hexes: they stay in hue with the text on any container they land on. */
+    .htmdx-app[data-htmdx-layout^='vs'] .bg-emerald-50 { background-color: rgb(152 195 121 / 12%); }
+    .htmdx-app[data-htmdx-layout^='vs'] .bg-red-50 { background-color: rgb(240 148 155 / 12%); }
+    .htmdx-app[data-htmdx-layout^='vs'] .bg-amber-50 { background-color: rgb(229 192 123 / 12%); }
+    .htmdx-app[data-htmdx-layout^='vs'] .bg-blue-50 { background-color: rgb(147 164 232 / 12%); }
+    .htmdx-app[data-htmdx-layout^='vs'] .bg-violet-50 { background-color: rgb(219 166 236 / 12%); }
+    /* Same treatment as the red above: One Dark's magenta is 4.12:1 on the card,
+       and lightening it clears AA (6.17) without leaving the hue. */
+    .htmdx-app[data-htmdx-layout^='vs'] .text-violet-700 { color: #DBA6EC; }
+    /* The runtime pairs every wash with a dark: variant, but that variant keys
+       off a class the document never sets - the vs dark scheme is a scoped
+       repaint, not a theme switch - so the light wash is what lands. Column
+       tints (DecisionMatrix's chosen column) use the /60 opacity form of the
+       same class, and a full column carries more area than a chip, so it tints
+       lighter. Matched as attributes, not escaped class selectors: the sync
+       script escapes backslashes on its way into the template shells, and the
+       drift test compares raw text. */
+    .htmdx-app[data-htmdx-layout^='vs'] [class~='bg-emerald-50/60'] { background-color: rgb(152 195 121 / 8%); }
+    .htmdx-app[data-htmdx-layout^='vs'] [class~='bg-red-50/60'] { background-color: rgb(240 148 155 / 8%); }
+    .htmdx-app[data-htmdx-layout^='vs'] [class~='bg-amber-50/60'] { background-color: rgb(229 192 123 / 8%); }
+    .htmdx-app[data-htmdx-layout^='vs'] [class~='bg-blue-50/60'] { background-color: rgb(147 164 232 / 8%); }
+    .htmdx-app[data-htmdx-layout^='vs'] [class~='bg-violet-50/60'] { background-color: rgb(198 120 221 / 8%); }
+    /* Solid severity chips (IntentList's BLOCKER banner, Gauge's over-budget
+       fill) ship raw Tailwind -500 fills with white ink - white on amber-500
+       measures 2.15:1. On the dark surface they take the light tones and flip to
+       the layout's near-black ink; the lightest pair still clears 6:1. */
+    .htmdx-app[data-htmdx-layout^='vs'] .bg-emerald-500 { background-color: #98C379; }
+    .htmdx-app[data-htmdx-layout^='vs'] .bg-green-500 { background-color: #98C379; }
+    .htmdx-app[data-htmdx-layout^='vs'] .bg-amber-500 { background-color: #E5C07B; }
+    .htmdx-app[data-htmdx-layout^='vs'] .bg-red-500 { background-color: #F0949B; }
+    .htmdx-app[data-htmdx-layout^='vs'] .bg-blue-500 { background-color: #93A4E8; }
+    .htmdx-app[data-htmdx-layout^='vs'] .bg-violet-500 { background-color: #C678DD; }
+    .htmdx-app[data-htmdx-layout^='vs'] .bg-gray-400 { background-color: #A9B0BD; }
+    .htmdx-app[data-htmdx-layout^='vs'] :is(.bg-emerald-500, .bg-green-500, .bg-amber-500, .bg-red-500, .bg-blue-500, .bg-violet-500, .bg-gray-400).text-white,
+    .htmdx-app[data-htmdx-layout^='vs'] :is(.bg-emerald-500, .bg-green-500, .bg-amber-500, .bg-red-500, .bg-blue-500, .bg-violet-500, .bg-gray-400) .text-white {
+      color: var(--md-sys-color-on-secondary);
+    }
+    .htmdx-app[data-htmdx-layout^='vs'] .text-emerald-500 { color: #98C379; }
+    .htmdx-app[data-htmdx-layout^='vs'] .text-green-500 { color: #98C379; }
+    .htmdx-app[data-htmdx-layout^='vs'] .text-amber-500 { color: #E5C07B; }
+    .htmdx-app[data-htmdx-layout^='vs'] .text-red-500 { color: #F2A2A8; }
+    .htmdx-app[data-htmdx-layout^='vs'] .text-blue-500 { color: #AAB7ED; }
+    .htmdx-app[data-htmdx-layout^='vs'] .text-violet-500 { color: #DBA6EC; }
+    /* Outline chips pair a -300 border with a dark: variant that never fires
+       here, so a pastel hairline would land on the dark card. Same tones at 45%. */
+    .htmdx-app[data-htmdx-layout^='vs'] :is(.border-emerald-300, .border-green-300) { border-color: rgb(152 195 121 / 45%); }
+    .htmdx-app[data-htmdx-layout^='vs'] .border-amber-300 { border-color: rgb(229 192 123 / 45%); }
+    .htmdx-app[data-htmdx-layout^='vs'] .border-red-300 { border-color: rgb(240 148 155 / 45%); }
+    .htmdx-app[data-htmdx-layout^='vs'] .border-blue-300 { border-color: rgb(147 164 232 / 45%); }
+    .htmdx-app[data-htmdx-layout^='vs'] .border-violet-300 { border-color: rgb(198 120 221 / 45%); }
+    .htmdx-app[data-htmdx-layout^='vs'] .border-gray-300 { border-color: var(--md-sys-color-outline-variant); }
   }
-  .htmdx-app[data-htmdx-layout^='vs'] .text-emerald-500 { color: #98C379; }
-  .htmdx-app[data-htmdx-layout^='vs'] .text-green-500 { color: #98C379; }
-  .htmdx-app[data-htmdx-layout^='vs'] .text-amber-500 { color: #E5C07B; }
-  .htmdx-app[data-htmdx-layout^='vs'] .text-red-500 { color: #F2A2A8; }
-  .htmdx-app[data-htmdx-layout^='vs'] .text-blue-500 { color: #AAB7ED; }
-  .htmdx-app[data-htmdx-layout^='vs'] .text-violet-500 { color: #DBA6EC; }
-  /* Outline chips pair a -300 border with a dark: variant that never fires
-     here, so a pastel hairline lands on the dark card. Same tones at 45%. */
-  .htmdx-app[data-htmdx-layout^='vs'] :is(.border-emerald-300, .border-green-300) { border-color: rgb(152 195 121 / 45%); }
-  .htmdx-app[data-htmdx-layout^='vs'] .border-amber-300 { border-color: rgb(229 192 123 / 45%); }
-  .htmdx-app[data-htmdx-layout^='vs'] .border-red-300 { border-color: rgb(240 148 155 / 45%); }
-  .htmdx-app[data-htmdx-layout^='vs'] .border-blue-300 { border-color: rgb(147 164 232 / 45%); }
-  .htmdx-app[data-htmdx-layout^='vs'] .border-violet-300 { border-color: rgb(198 120 221 / 45%); }
-  .htmdx-app[data-htmdx-layout^='vs'] .border-gray-300 { border-color: var(--md-sys-color-outline-variant); }
   .htmdx-app[data-htmdx-layout='vs'] { padding: 44px 24px 64px; }
   .htmdx-app[data-htmdx-layout='vs'] > * {
     width: 100%;
@@ -383,21 +450,19 @@ const vsLayoutCss = `
   :is(.htmdx-app[data-htmdx-layout='vs'], .vs-p-main) > div > svg,
   :is(.htmdx-app[data-htmdx-layout='vs'], .vs-p-main) > div .htmdx-code-figure,
   :is(.htmdx-app[data-htmdx-layout='vs'], .vs-p-main) > div .htmdx-mermaid {
-    max-width: 40rem;
+    max-width: 36rem;
   }
   :is(.htmdx-app[data-htmdx-layout='vs'], .vs-p-main) > div .htmdx-mermaid svg { margin: 0; }
   /* The runtime initializes mermaid with a fixed config (no theme hook), so
      dark mode is the Catppuccin Mocha palette ported as CSS over the rendered
      SVG. Mermaid injects id-prefixed styles inside the SVG, hence !important.
-     Screen-scoped: print keeps mermaid's stock light theme on white paper.
-     Diagrams opting into look: handDrawn draw shapes as rough.js paths inside
-     g.basic.label-container; those color themselves via the init directive's
-     themeVariables, so the shape override skips them or it repaints the
-     sketch hatching into an unreadable smear. */
+     The light scheme is painted by the init directive's themeVariables; this
+     layer only repaints the dark scheme, screen-scoped so print keeps paper
+     colors. */
   .htmdx-app[data-htmdx-layout^='vs'] .htmdx-mermaid {
     background: var(--md-sys-color-surface-container-lowest);
     border: 1px solid var(--md-sys-color-outline-variant);
-    border-radius: var(--vs-sketch-card);
+    border-radius: var(--vs-radius-card);
     /* Extra bottom padding is the hint's lane. The hint is absolutely placed
        over the panel, so without reserved space it lands on whatever the
        diagram's last row draws there - on a flowchart that is the terminal
@@ -453,7 +518,7 @@ const vsLayoutCss = `
       color: var(--md-sys-color-outline);
       background: var(--md-sys-color-surface-container-lowest);
       padding: 2px 8px;
-      border-radius: var(--vs-sketch-pill);
+      border-radius: var(--vs-radius-pill);
       pointer-events: none;
     }
     .vs-mermaid-controls {
@@ -471,7 +536,7 @@ const vsLayoutCss = `
       gap: 6px;
       font: 500 11px/1.4 var(--vs-mono, monospace);
       letter-spacing: 0.04em;
-      border-radius: var(--vs-sketch-pill, 999px);
+      border-radius: var(--vs-radius-pill, 999px);
       cursor: pointer;
     }
     .vs-mermaid-controls button {
@@ -483,7 +548,8 @@ const vsLayoutCss = `
     .vs-mermaid-controls .vs-mermaid-zoom { width: 26px; padding: 3px 0; }
     .vs-mermaid-expand svg { width: 12px; height: 12px; }
     /* The dialog mounts on body, outside the runtime's theme scope, so it
-       hardcodes the screen dark palette instead of the --md-sys tokens. */
+       hardcodes the paper palette instead of the --md-sys tokens; the dark
+       scheme repeats the literals below. */
     .vs-mermaid-dialog {
       width: 94vw;
       height: 92vh;
@@ -491,14 +557,14 @@ const vsLayoutCss = `
          that centers a native dialog - restore it explicitly. */
       margin: auto;
       padding: 0;
-      background: #21252C;
-      border: 1px solid #3B414C;
-      border-radius: var(--vs-sketch-card, 12px);
+      background: #FFFDF8;
+      border: 1px solid #E4DCCB;
+      border-radius: var(--vs-radius-card, 8px);
       overflow: hidden;
       overscroll-behavior: contain;
     }
     .vs-mermaid-dialog::backdrop {
-      background: rgba(0, 0, 0, 0.65);
+      background: rgb(29 27 24 / 55%);
     }
     /* showModal() does not block background scroll on its own. */
     html:has(.vs-mermaid-dialog[open]) {
@@ -520,9 +586,9 @@ const vsLayoutCss = `
       gap: 4px;
     }
     .vs-mermaid-dialog-controls button {
-      color: #A9B0BD;
-      background: #2D323B;
-      border: 1px solid #3B414C;
+      color: #5E574C;
+      background: #F7F2E8;
+      border: 1px solid #E4DCCB;
       padding: 4px 12px;
     }
     .vs-mermaid-dialog-controls .vs-mermaid-zoom { width: 28px; padding: 4px 0; }
@@ -533,51 +599,56 @@ const vsLayoutCss = `
       bottom: 10px;
       font: 500 10px/1.4 var(--vs-mono, monospace);
       letter-spacing: 0.04em;
-      color: #596070;
+      color: #8C8270;
       pointer-events: none;
     }
   }
   @media print {
     .vs-mermaid-controls { display: none; }
   }
-  @media screen {
-    :is(.htmdx-app[data-htmdx-layout^='vs'] .htmdx-mermaid, .vs-mermaid-dialog) svg :is(.node, .statediagram-state, .actor) :is(rect, circle, ellipse, polygon, path):not(g.basic.label-container path),
+  @media screen and (prefers-color-scheme: dark) {
+    .vs-mermaid-dialog { background: #121110; border-color: #332E27; }
+    .vs-mermaid-dialog::backdrop { background: rgb(0 0 0 / 65%); }
+    .vs-mermaid-dialog-controls button { color: #A89F90; background: #1B1916; border-color: #332E27; }
+    .vs-mermaid-dialog::after { color: #7A7063; }
+    :is(.htmdx-app[data-htmdx-layout^='vs'] .htmdx-mermaid, .vs-mermaid-dialog) svg :is(.node, .statediagram-state, .actor) :is(rect, circle, ellipse, polygon, path),
     :is(.htmdx-app[data-htmdx-layout^='vs'] .htmdx-mermaid, .vs-mermaid-dialog) svg rect.actor {
-      fill: #31363F !important;
-      stroke: #93A4E8 !important;
+      fill: #221F1B !important;
+      stroke: #E8998F !important;
     }
     :is(.htmdx-app[data-htmdx-layout^='vs'] .htmdx-mermaid, .vs-mermaid-dialog) svg :is(text, .nodeLabel, .stateLabel, .label) {
-      fill: #D7DCE4 !important;
-      color: #D7DCE4 !important;
+      fill: #EDE8DE !important;
+      color: #EDE8DE !important;
     }
     :is(.htmdx-app[data-htmdx-layout^='vs'] .htmdx-mermaid, .vs-mermaid-dialog) svg :is(.edgePath .path, .flowchart-link, .transition, .messageLine0, .messageLine1) {
-      stroke: #6C7484 !important;
+      stroke: #7A7063 !important;
     }
     :is(.htmdx-app[data-htmdx-layout^='vs'] .htmdx-mermaid, .vs-mermaid-dialog) svg .marker {
-      fill: #6C7484 !important;
-      stroke: #6C7484 !important;
+      fill: #7A7063 !important;
+      stroke: #7A7063 !important;
     }
     :is(.htmdx-app[data-htmdx-layout^='vs'] .htmdx-mermaid, .vs-mermaid-dialog) svg .edgeLabel rect {
-      fill: #21252C !important;
+      fill: #121110 !important;
     }
     :is(.htmdx-app[data-htmdx-layout^='vs'] .htmdx-mermaid, .vs-mermaid-dialog) svg .edgeLabel text {
-      fill: #A9B0BD !important;
+      fill: #A89F90 !important;
     }
     :is(.htmdx-app[data-htmdx-layout^='vs'] .htmdx-mermaid, .vs-mermaid-dialog) svg .cluster rect {
-      fill: #2D323B !important;
-      stroke: #596070 !important;
+      fill: #1B1916 !important;
+      stroke: #4A4239 !important;
     }
     :is(.htmdx-app[data-htmdx-layout^='vs'] .htmdx-mermaid, .vs-mermaid-dialog) svg .node circle.state-start {
-      fill: #93A4E8 !important;
-      stroke: #93A4E8 !important;
+      fill: #E8998F !important;
+      stroke: #E8998F !important;
     }
   }
   :is(.htmdx-app[data-htmdx-layout='vs'], .vs-p-main) > div > h1 {
     margin: 0 0 14px;
-    font-size: clamp(1.75rem, 3vw, 2.25rem);
-    line-height: 1.12;
-    font-weight: 600;
-    letter-spacing: 0;
+    font-family: var(--vs-serif);
+    font-size: clamp(1.9rem, 4vw, 2.5rem);
+    line-height: 1.1;
+    font-weight: 500;
+    letter-spacing: -0.015em;
     color: var(--md-sys-color-on-surface);
     text-wrap: balance;
   }
@@ -585,14 +656,14 @@ const vsLayoutCss = `
      same separation as a 64px gap while keeping the next block on screen,
      which is the whole point of this layout. */
   :is(.htmdx-app[data-htmdx-layout='vs'], .vs-p-main) > div h2 {
-    margin: 40px 0 12px;
-    padding-top: 20px;
-    /* Dashed rule: the pen-stroke section separator of the sketch theme. */
-    border-top: 1px dashed var(--md-sys-color-outline);
-    font-size: 1.375rem;
-    line-height: 1.3;
-    font-weight: 600;
-    letter-spacing: 0;
+    margin: 44px 0 12px;
+    padding-top: 22px;
+    border-top: 1px solid var(--md-sys-color-outline-variant);
+    font-family: var(--vs-serif);
+    font-size: 1.6rem;
+    line-height: 1.2;
+    font-weight: 500;
+    letter-spacing: -0.01em;
     color: var(--md-sys-color-on-surface);
   }
   :is(.htmdx-app[data-htmdx-layout='vs'], .vs-p-main) > div:first-child > h2:first-child {
@@ -607,7 +678,7 @@ const vsLayoutCss = `
   }
   :is(.htmdx-app[data-htmdx-layout='vs'], .vs-p-main) > div > :is(p, ul, ol) {
     font-size: 1rem;
-    line-height: 1.6;
+    line-height: 1.7;
     margin: 0 0 14px;
   }
   :is(.htmdx-app[data-htmdx-layout='vs'], .vs-p-main) > div :is(.htmdx-image, .htmdx-code-figure, .htmdx-mermaid),
@@ -639,10 +710,10 @@ const vsLayoutCss = `
      inline code back to the surrounding x-height. */
   :is(.htmdx-app[data-htmdx-layout='vs'], .vs-p-main) > div :not(pre) > code {
     /* A neutral surface pill, not the primary container: code is quotation,
-       not action, and the navy wash read muddy against the dark surface. */
+       not action, and an accent wash would read as a link. */
     background: var(--md-sys-color-surface-container-highest);
     color: var(--md-sys-color-on-surface);
-    border-radius: 6px 3px 7px 4px / 4px 7px 3px 6px;
+    border-radius: 4px;
     padding: 1px 4px;
     font-family: var(--vs-mono);
     font-size: 0.875em;
@@ -689,19 +760,21 @@ const vsLayoutCss = `
     background: var(--md-sys-color-outline-variant);
   }
   .htmdx-app[data-htmdx-layout^='vs'] .vs-share-cell[data-lit] { background: var(--md-sys-color-primary); }
-  /* shadcn tunes --destructive for a light card. This theme's card is dark
-     slate, where that red reads at 2.7:1 - under the 4.5:1 text floor, on the
-     one component whose whole job is to be read. Repaint the alert's
-     foreground only: the same token fills destructive buttons, where the
-     darker red is correct behind white. */
-  .htmdx-app[data-htmdx-layout^='vs'] [role='alert'].text-destructive,
-  .htmdx-app[data-htmdx-layout^='vs'] [role='alert'].text-destructive [data-slot='alert-description'] {
-    color: #FCA5A5;
+  /* shadcn tunes --destructive for a light card. On the dark card that red
+     reads at 2.7:1 - under the 4.5:1 text floor, on the one component whose
+     whole job is to be read. Repaint the alert's foreground only: the same
+     token fills destructive buttons, where the darker red is correct behind
+     white. */
+  @media screen and (prefers-color-scheme: dark) {
+    .htmdx-app[data-htmdx-layout^='vs'] [role='alert'].text-destructive,
+    .htmdx-app[data-htmdx-layout^='vs'] [role='alert'].text-destructive [data-slot='alert-description'] {
+      color: #FCA5A5;
+    }
   }
   /* MADR: the outcome reads above the fold - Options hoists chosen rows to
      the top and this accent marks them as the decision, not another row. */
   .htmdx-app[data-htmdx-layout^='vs'] [data-htmdx-component='Options'] [data-disposition='chosen'] {
-    box-shadow: inset 2px 0 0 #98C379;
+    box-shadow: inset 2px 0 0 var(--vs-series-2);
   }
   /* A Compare of two screenshots is a pair of figures, not a pair of cards: the
      border would frame the caption as well and read as two separate panels. A
@@ -1011,19 +1084,248 @@ const vsLayoutCss = `
   }
 
   }
+  /* Summary-first reading: a section opens with <Tldr>, the claims a reader
+     keeps if they stop there, and parks the proof in a Foldout - the deep
+     dive. The built-in Foldout ships as a bordered card with an accent
+     chevron tile; here the summary shrinks to an inline control and the body
+     reads as ordinary prose, so opening it continues the section instead of
+     dropping the reader into a box. */
+  .htmdx-app[data-htmdx-layout^='vs'] .vs-tldr { max-width: 36rem; }
+  .htmdx-app[data-htmdx-layout^='vs'] .vs-tldr-k {
+    display: block;
+    margin-bottom: 6px;
+    font-size: 0.66rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    color: var(--md-sys-color-primary);
+  }
+  .htmdx-app[data-htmdx-layout^='vs'] .vs-tldr ul { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
+  .htmdx-app[data-htmdx-layout^='vs'] .vs-tldr li { position: relative; padding-left: 18px; line-height: 1.55; }
+  .htmdx-app[data-htmdx-layout^='vs'] .vs-tldr li::before {
+    content: '';
+    position: absolute;
+    left: 2px;
+    top: 0.75em;
+    width: 7px;
+    height: 2px;
+    border-radius: 1px;
+    background: var(--md-sys-color-primary);
+  }
+  .htmdx-app[data-htmdx-layout^='vs'] [data-htmdx-component='Foldout'] > details {
+    overflow: visible;
+    border: 0;
+    border-radius: 0;
+    background: none;
+  }
+  /* Attribute-qualified so it outranks the compact px/py padding pass above. */
+  .htmdx-app[data-htmdx-layout^='vs'] [data-htmdx-component='Foldout'] > details > summary[class] {
+    display: inline-flex;
+    flex-direction: row-reverse;
+    gap: 8px;
+    min-height: 36px;
+    padding: 6px 12px 6px 8px;
+    border: 1px solid var(--md-sys-color-outline);
+    border-radius: 6px;
+    background: var(--md-sys-color-surface-container-low);
+    font-size: 0.74rem;
+    user-select: none;
+  }
+  .htmdx-app[data-htmdx-layout^='vs'] [data-htmdx-component='Foldout'] > details > summary:hover { background: var(--md-sys-color-surface-container); }
+  .htmdx-app[data-htmdx-layout^='vs'] [data-htmdx-component='Foldout'] > details > summary > :first-child { font-weight: 500; }
+  .htmdx-app[data-htmdx-layout^='vs'] [data-htmdx-component='Foldout'] > details > summary > [aria-hidden] {
+    width: 18px;
+    height: 18px;
+    background: none;
+    color: var(--md-sys-color-primary);
+  }
+  .htmdx-app[data-htmdx-layout^='vs'] [data-htmdx-component='Foldout'] > details > div[class] {
+    padding: 20px 0 0;
+    border: 0;
+    font-size: 1rem;
+  }
+  /* A one-paragraph body arrives wrapped in an extra div; block bodies do not. */
+  :is(.htmdx-app[data-htmdx-layout^='vs'] [data-htmdx-component='Foldout'] > details > div, .htmdx-app[data-htmdx-layout^='vs'] [data-htmdx-component='Foldout'] > details > div > div) > :is(p, ul, ol) {
+    max-width: 36rem;
+    margin: 0 0 14px;
+    line-height: 1.7;
+  }
+  :is(.htmdx-app[data-htmdx-layout^='vs'] [data-htmdx-component='Foldout'] > details > div, .htmdx-app[data-htmdx-layout^='vs'] [data-htmdx-component='Foldout'] > details > div > div) > ul { padding-left: 1.5rem; list-style: disc; }
+  :is(.htmdx-app[data-htmdx-layout^='vs'] [data-htmdx-component='Foldout'] > details > div, .htmdx-app[data-htmdx-layout^='vs'] [data-htmdx-component='Foldout'] > details > div > div) > ol { padding-left: 1.5rem; list-style: decimal; }
+  /* Only the block axis clips while the disclosure animates: wide children
+     (a scrolling table, a sticky header) keep their inline overflow. */
+  .htmdx-app[data-htmdx-layout^='vs'] [data-htmdx-component='Foldout'] > details::details-content { overflow: visible clip; }
+  @media (prefers-reduced-motion: no-preference) {
+    .htmdx-app[data-htmdx-layout^='vs'] { interpolate-size: allow-keywords; }
+    .htmdx-app[data-htmdx-layout^='vs'] [data-htmdx-component='Foldout'] > details::details-content {
+      block-size: 0;
+      opacity: 0;
+      transition:
+        block-size 0.34s cubic-bezier(0.2, 0.7, 0.2, 1),
+        opacity 0.24s ease,
+        content-visibility 0.34s allow-discrete;
+    }
+    .htmdx-app[data-htmdx-layout^='vs'] [data-htmdx-component='Foldout'] > details[open]::details-content { block-size: auto; opacity: 1; }
+  }
+  /* Print is the whole document: every deep dive prints open with no
+     toggles. The factory's beforeprint hook opens them; this keeps a
+     half-finished transition from printing a collapsed body. */
+  @media print {
+    .htmdx-app[data-htmdx-layout^='vs'] [data-htmdx-component='Foldout'] > details::details-content {
+      block-size: auto !important;
+      opacity: 1 !important;
+      content-visibility: visible !important;
+    }
+    .htmdx-app[data-htmdx-layout^='vs'] [data-htmdx-component='Foldout'] > details > summary { display: none !important; }
+    .htmdx-app[data-htmdx-layout^='vs'] [data-htmdx-component='Foldout'] > details > div[class] { padding-top: 0; }
+  }
+  /* Brief: the 60-second read. Equal cards, each a label and one sentence;
+     the colored top edge names the card's role, and the label repeats it in
+     words, so the tone is never the only carrier. */
+  .htmdx-app[data-htmdx-layout^='vs'] .vs-brief {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+    gap: 12px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .htmdx-app[data-htmdx-layout^='vs'] .vs-brief-card {
+    --vs-tone: var(--md-sys-color-on-surface-variant);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 0;
+    padding: 12px 14px;
+    border: 1px solid var(--md-sys-color-outline-variant);
+    border-top: 2px solid var(--vs-tone);
+    border-radius: 0 0 8px 8px;
+    background: var(--md-sys-color-surface-container-low);
+  }
+  .htmdx-app[data-htmdx-layout^='vs'] .vs-brief-k {
+    font-size: 0.63rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--vs-tone);
+  }
+  .htmdx-app[data-htmdx-layout^='vs'] .vs-brief-v { margin: 0; font-family: var(--vs-serif); font-size: 0.95rem; line-height: 1.42; }
+  /* Tones are the semantic reds and greens, not series slots: a series color
+     means "the nth thing", these mean "good" and "at risk". */
+  .htmdx-app[data-htmdx-layout^='vs'] :is(.vs-brief-card, .vs-crossing-lane)[data-tone='answer'] { --vs-tone: var(--md-sys-color-primary); }
+  .htmdx-app[data-htmdx-layout^='vs'] :is(.vs-brief-card, .vs-crossing-lane)[data-tone='gain'] { --vs-tone: #2E6B3A; }
+  .htmdx-app[data-htmdx-layout^='vs'] :is(.vs-brief-card, .vs-crossing-lane)[data-tone='risk'] { --vs-tone: #A8322D; }
+  .htmdx-app[data-htmdx-layout^='vs'] :is(.vs-brief-card, .vs-crossing-lane)[data-tone='open'] { --vs-tone: #8A5A00; }
+  @media screen and (prefers-color-scheme: dark) {
+    .htmdx-app[data-htmdx-layout^='vs'] :is(.vs-brief-card, .vs-crossing-lane)[data-tone='gain'] { --vs-tone: #98C379; }
+    .htmdx-app[data-htmdx-layout^='vs'] :is(.vs-brief-card, .vs-crossing-lane)[data-tone='risk'] { --vs-tone: #F2A2A8; }
+    .htmdx-app[data-htmdx-layout^='vs'] :is(.vs-brief-card, .vs-crossing-lane)[data-tone='open'] { --vs-tone: #E5C07B; }
+  }
+  /* Zones and Crossing share one vocabulary: a dashed outline is the
+     contained side of a boundary, a solid filled box the side that persists
+     or owns the resource. */
+  .htmdx-app[data-htmdx-layout^='vs'] :is(.vs-zones, .vs-crossing) {
+    padding: 16px;
+    border: 1px solid var(--md-sys-color-outline-variant);
+    border-radius: var(--vs-radius-card);
+    background: var(--md-sys-color-surface-container-low);
+  }
+  .htmdx-app[data-htmdx-layout^='vs'] .vs-zones { display: grid; grid-template-columns: minmax(0, 1fr) 2.75rem minmax(0, 1fr); }
+  .htmdx-app[data-htmdx-layout^='vs'] .vs-zone { display: grid; align-content: start; gap: 8px; padding: 12px; border-radius: 8px; }
+  .htmdx-app[data-htmdx-layout^='vs'] .vs-zone[data-side='inside'] { border: 1.5px dashed var(--md-sys-color-outline); }
+  .htmdx-app[data-htmdx-layout^='vs'] .vs-zone[data-side='outside'] {
+    border: 1px solid var(--md-sys-color-outline);
+    background: var(--md-sys-color-surface-container);
+  }
+  .htmdx-app[data-htmdx-layout^='vs'] :is(.vs-zone-h, .vs-crossing-end) { display: grid; gap: 2px; }
+  .htmdx-app[data-htmdx-layout^='vs'] :is(.vs-zone-h, .vs-crossing-end) b { font-size: 0.86rem; font-weight: 600; line-height: 1.3; }
+  .htmdx-app[data-htmdx-layout^='vs'] :is(.vs-zone-h, .vs-crossing-end) span {
+    font-size: 0.68rem;
+    line-height: 1.4;
+    color: var(--md-sys-color-on-surface-variant);
+  }
+  .htmdx-app[data-htmdx-layout^='vs'] .vs-zone-item {
+    display: grid;
+    gap: 2px;
+    padding: 8px 10px;
+    border: 1px solid var(--md-sys-color-outline-variant);
+    border-radius: 6px;
+    background: var(--md-sys-color-surface-container-lowest);
+  }
+  .htmdx-app[data-htmdx-layout^='vs'] .vs-zone-item b { font-size: 0.8rem; font-weight: 600; line-height: 1.3; }
+  .htmdx-app[data-htmdx-layout^='vs'] .vs-zone-item span { font-size: 0.74rem; line-height: 1.4; color: var(--md-sys-color-on-surface-variant); }
+  .htmdx-app[data-htmdx-layout^='vs'] .vs-zone-wall {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.6rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--md-sys-color-on-surface-variant);
+  }
+  .htmdx-app[data-htmdx-layout^='vs'] .vs-zone-wall::before,
+  .htmdx-app[data-htmdx-layout^='vs'] .vs-zone-wall::after { content: ''; flex: 1; border-left: 2px dashed var(--md-sys-color-outline); }
+  .htmdx-app[data-htmdx-layout^='vs'] .vs-zone-wall span { writing-mode: vertical-rl; }
+  .htmdx-app[data-htmdx-layout^='vs'] .vs-zones-rest { grid-column: 1 / -1; margin: 12px 0 0; font-size: 0.8rem; }
+  /* The ends never stack: a crossing drawn top-to-bottom would point its
+     arrows at nothing, so narrow screens shrink the ends instead. */
+  .htmdx-app[data-htmdx-layout^='vs'] .vs-crossing {
+    display: grid;
+    grid-template-columns: minmax(4.5rem, 9rem) minmax(0, 1fr) minmax(4.5rem, 9rem);
+    gap: 0 14px;
+  }
+  .htmdx-app[data-htmdx-layout^='vs'] .vs-crossing-end {
+    align-content: center;
+    padding: 12px;
+    border: 1px solid var(--md-sys-color-outline);
+    border-radius: 8px;
+    background: var(--md-sys-color-surface-container);
+    overflow-wrap: anywhere;
+  }
+  .htmdx-app[data-htmdx-layout^='vs'] .vs-crossing-lanes { display: grid; align-content: center; gap: 14px; margin: 0; padding: 0; list-style: none; }
+  .htmdx-app[data-htmdx-layout^='vs'] .vs-crossing-lane { --vs-tone: var(--md-sys-color-outline); font-size: 0.8rem; line-height: 1.4; }
+  .htmdx-app[data-htmdx-layout^='vs'] .vs-crossing-lane b { font-weight: 600; }
+  .htmdx-app[data-htmdx-layout^='vs'] .vs-crossing-lane[data-tone] b { color: var(--vs-tone); }
+  .htmdx-app[data-htmdx-layout^='vs'] .vs-crossing-line { display: flex; align-items: center; height: 14px; margin: 4px 0; color: var(--vs-tone); }
+  .htmdx-app[data-htmdx-layout^='vs'] .vs-crossing-line::before { content: ''; flex: 1; border-top: 2px solid currentColor; }
+  .htmdx-app[data-htmdx-layout^='vs'] .vs-crossing-lane[data-tone='risk'] .vs-crossing-line::before { border-top-style: dashed; }
+  .htmdx-app[data-htmdx-layout^='vs'] .vs-crossing-line svg { flex: none; width: 10px; height: 12px; }
+  .htmdx-app[data-htmdx-layout^='vs'] .vs-crossing-stop {
+    flex: none;
+    display: inline-grid;
+    place-items: center;
+    width: 18px;
+    height: 18px;
+    border: 1.5px solid currentColor;
+    border-radius: 50%;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1;
+  }
+  .htmdx-app[data-htmdx-layout^='vs'] .vs-crossing-detail { color: var(--md-sys-color-on-surface-variant); font-size: 0.72rem; }
+  @media (max-width: 720px) {
+    .htmdx-app[data-htmdx-layout^='vs'] .vs-zones { grid-template-columns: minmax(0, 1fr); gap: 10px; }
+    .htmdx-app[data-htmdx-layout^='vs'] .vs-zone-wall { flex-direction: row; }
+    .htmdx-app[data-htmdx-layout^='vs'] .vs-zone-wall::before,
+    .htmdx-app[data-htmdx-layout^='vs'] .vs-zone-wall::after { border-left: 0; border-top: 2px dashed var(--md-sys-color-outline); }
+    .htmdx-app[data-htmdx-layout^='vs'] .vs-zone-wall span { writing-mode: horizontal-tb; }
+    /* Ends shrink to their names so the lanes keep most of a phone width. */
+    .htmdx-app[data-htmdx-layout^='vs'] .vs-crossing { grid-template-columns: fit-content(5.5rem) minmax(0, 1fr) fit-content(5.5rem); gap: 0 8px; padding: 12px; }
+    .htmdx-app[data-htmdx-layout^='vs'] .vs-crossing-end { padding: 8px; }
+  }
   /* vs-proposal shell: the report tokens and components above, under a
-     proposal chrome - one dark hero surface carrying title, eyebrow, and
-     phase, then a sticky contents rail beside the ruled document. The main
+     proposal chrome - one title band carrying title, eyebrow, and phase,
+     then a sticky contents rail beside the ruled document. The main
      column is a content root: the :is() rules above reach it via .vs-p-main,
      and the component rules via the ^= layout match. */
   .htmdx-app[data-htmdx-layout='vs-proposal'] { padding: 0 0 72px; }
-  /* The hero is dark slate ink with a periwinkle glow, not the primary token:
-     a full accent surface would shout, and the pills need a dark ground. */
+  /* The band is one step up the surface ladder, not the primary token: a
+     full accent surface would shout over the title it frames. */
   .vs-p-hero {
-    background:
-      radial-gradient(circle at 82% -20%, #5A6FD6 0, transparent 46%),
-      #1B1F28;
-    color: #E2E6EF;
+    background: var(--md-sys-color-surface-container-high);
+    color: var(--md-sys-color-on-surface);
+    border-bottom: 1px solid var(--md-sys-color-outline-variant);
   }
   .vs-p-hero-inner { max-width: 54rem; margin: 0 auto; padding: 30px 28px 26px; }
   .vs-p-eyebrow {
@@ -1033,15 +1335,16 @@ const vsLayoutCss = `
     font-weight: 700;
     letter-spacing: 0.16em;
     text-transform: uppercase;
-    color: #93A4E8;
+    color: var(--md-sys-color-primary);
   }
   .vs-p-title {
     margin: 0;
     max-width: 44rem;
-    font-size: clamp(1.5rem, 3vw, 2rem);
-    line-height: 1.15;
-    font-weight: 700;
-    letter-spacing: 0;
+    font-family: var(--vs-serif);
+    font-size: clamp(1.75rem, 3.6vw, 2.4rem);
+    line-height: 1.1;
+    font-weight: 500;
+    letter-spacing: -0.015em;
     text-wrap: balance;
   }
   .vs-p-meta { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
@@ -1049,26 +1352,28 @@ const vsLayoutCss = `
     display: inline-flex;
     align-items: center;
     padding: 4px 12px;
-    border: 1px solid rgb(255 255 255 / 28%);
-    border-radius: var(--vs-sketch-pill);
+    border: 1px solid var(--md-sys-color-outline);
+    border-radius: var(--vs-radius-pill);
     font-size: 0.75rem;
     font-weight: 700;
-    /* The hero is fixed navy in every theme, so the pill ink is a literal
-       light tone, not a surface token that flips with the ladder. */
-    color: #C3CEE8;
+    color: var(--md-sys-color-on-surface-variant);
   }
-  /* The phase pill is the one colored mark on the hero: the lifecycle state
-     is semantic, everything else on the dark surface stays monochrome. */
+  /* The phase pill is the one colored mark on the band: the lifecycle state
+     is semantic, everything else stays monochrome. */
   .vs-p-pill[data-phase] { border-color: transparent; }
-  .vs-p-pill[data-phase='Draft'] { background: rgb(255 255 255 / 14%); }
+  .vs-p-pill[data-phase='Draft'] { background: var(--md-sys-color-surface-variant); }
   .vs-p-pill[data-phase='Proposed'] { background: #1D4ED8; color: #DBEAFE; }
   .vs-p-pill[data-phase='Accepted'] { background: #047857; color: #D1FAE5; }
   .vs-p-pill[data-phase='Rejected'] { background: #B91C1C; color: #FEE2E2; }
   .vs-p-pill[data-phase='Superseded'] { background: #B45309; color: #FEF3C7; }
   /* PEP-style banner: a dead proposal says so between the hero and the body,
      before anyone reads three sections and acts on it. */
-  .vs-p-notice[data-phase='Rejected'] { background: rgb(242 162 168 / 14%); color: #F2A2A8; }
-  .vs-p-notice[data-phase='Superseded'] { background: rgb(229 192 123 / 14%); color: #E5C07B; }
+  .vs-p-notice[data-phase='Rejected'] { background: rgb(185 28 28 / 8%); color: #B91C1C; }
+  .vs-p-notice[data-phase='Superseded'] { background: rgb(180 83 9 / 8%); color: #B45309; }
+  @media screen and (prefers-color-scheme: dark) {
+    .vs-p-notice[data-phase='Rejected'] { background: rgb(242 162 168 / 14%); color: #F2A2A8; }
+    .vs-p-notice[data-phase='Superseded'] { background: rgb(229 192 123 / 14%); color: #E5C07B; }
+  }
   .vs-p-notice-inner {
     max-width: 54rem;
     margin: 0 auto;
@@ -1143,77 +1448,13 @@ const vsLayoutCss = `
     .vs-p-toc-label { display: none; }
   }
   @media print {
-    /* Paper is white and browsers drop backgrounds by default, so the dark
-       ladder would print near-white text on white - re-declare the light
-       neutrals for print. */
-    .htmdx-app[data-htmdx-layout^='vs'] {
-      --md-sys-color-primary: #1D4ED8;
-      --md-sys-color-on-primary: #FFFFFF;
-      --md-sys-color-primary-container: #E8EEFF;
-      --md-sys-color-on-primary-container: #14337D;
-      --md-sys-color-secondary: #5C5C5C;
-      --md-sys-color-secondary-container: #F2F2F2;
-      --md-sys-color-on-secondary-container: #000000;
-      --md-sys-color-tertiary: #5C5C5C;
-      --md-sys-color-tertiary-container: #F2F2F2;
-      --md-sys-color-on-tertiary-container: #000000;
-      --md-sys-color-surface: #FFFFFF;
-      --md-sys-color-on-surface: #000000;
-      --md-sys-color-surface-variant: #F2F2F2;
-      --md-sys-color-on-surface-variant: #444444;
-      --md-sys-color-outline: #B3B3B3;
-      --md-sys-color-outline-variant: #E2E2E2;
-      --md-sys-color-surface-container-lowest: #FFFFFF;
-      --md-sys-color-surface-container-low: #FAFAFA;
-      --md-sys-color-surface-container: #F7F7F7;
-      --md-sys-color-surface-container-high: #F2F2F2;
-      --md-sys-color-surface-container-highest: #EBEBEB;
-    }
-    .htmdx-app[data-htmdx-layout^='vs'] .text-emerald-700 { color: #047857; }
-    .htmdx-app[data-htmdx-layout^='vs'] .text-red-700 { color: #B91C1C; }
-    .htmdx-app[data-htmdx-layout^='vs'] .text-amber-700 { color: #B45309; }
-    .htmdx-app[data-htmdx-layout^='vs'] .text-blue-700 { color: #1D4ED8; }
-    .htmdx-app[data-htmdx-layout^='vs'] .text-violet-700 { color: #6D28D9; }
+    /* The dark scheme is screen-only, so print already lands on the paper
+       ladder; washes still drop, because browsers skip backgrounds by default
+       and a half-printed tint reads as a smudge. */
     .htmdx-app[data-htmdx-layout^='vs'] :is(.bg-emerald-50, .bg-red-50, .bg-amber-50, .bg-blue-50, .bg-violet-50, [class~='bg-emerald-50/60'], [class~='bg-red-50/60'], [class~='bg-amber-50/60'], [class~='bg-blue-50/60'], [class~='bg-violet-50/60']) { background-color: transparent; }
-    /* The screen tones are tuned to sit on the dark card; on white they need
-       their saturated counterparts, and the solid chips get their white ink
-       back. */
-    .htmdx-app[data-htmdx-layout^='vs'] :is(.bg-emerald-500, .bg-green-500, .bg-amber-500, .bg-red-500, .bg-blue-500, .bg-violet-500, .bg-gray-400).text-white,
-    .htmdx-app[data-htmdx-layout^='vs'] :is(.bg-emerald-500, .bg-green-500, .bg-amber-500, .bg-red-500, .bg-blue-500, .bg-violet-500, .bg-gray-400) .text-white {
-      color: #FFFFFF;
-    }
-    .htmdx-app[data-htmdx-layout^='vs'] :is(.bg-emerald-500, .bg-green-500) { background-color: #047857; }
-    .htmdx-app[data-htmdx-layout^='vs'] .bg-amber-500 { background-color: #B45309; }
-    .htmdx-app[data-htmdx-layout^='vs'] .bg-red-500 { background-color: #B91C1C; }
-    .htmdx-app[data-htmdx-layout^='vs'] .bg-blue-500 { background-color: #1D4ED8; }
-    .htmdx-app[data-htmdx-layout^='vs'] .bg-violet-500 { background-color: #6D28D9; }
-    .htmdx-app[data-htmdx-layout^='vs'] .bg-gray-400 { background-color: #6B7280; }
-    .htmdx-app[data-htmdx-layout^='vs'] :is(.text-emerald-500, .text-green-500) { color: #047857; }
-    .htmdx-app[data-htmdx-layout^='vs'] .text-amber-500 { color: #B45309; }
-    .htmdx-app[data-htmdx-layout^='vs'] .text-red-500 { color: #B91C1C; }
-    .htmdx-app[data-htmdx-layout^='vs'] .text-blue-500 { color: #1D4ED8; }
-    .htmdx-app[data-htmdx-layout^='vs'] .text-violet-500 { color: #6D28D9; }
-    .htmdx-app[data-htmdx-layout^='vs'] :is(.border-emerald-300, .border-green-300, .border-amber-300, .border-red-300, .border-blue-300, .border-violet-300, .border-gray-300) { border-color: var(--md-sys-color-outline); }
-    /* Ink on paper: the screen's One Dark syntax palette washes out on white,
-       so print restores the runtime's own light-theme code colors. */
-    .htmdx-app[data-htmdx-layout^='vs'] {
-      --htmdx-code-comment: #71809B;
-      --htmdx-code-keyword: #7C3AED;
-      --htmdx-code-string: #047857;
-      --htmdx-code-number: #B45309;
-      --htmdx-code-function: #2563EB;
-      --htmdx-code-type: #0E7490;
-      --htmdx-code-property: #BE185D;
-      --htmdx-code-punctuation: #8A94A6;
-      --htmdx-code-inserted: #047857;
-      --htmdx-code-deleted: #B91C1C;
-    }
-    .vs-p-notice[data-phase='Rejected'] { background: none; color: #B91C1C; }
-    .vs-p-notice[data-phase='Superseded'] { background: none; color: #B45309; }
-    .vs-p-hero { background: none; color: var(--md-sys-color-on-surface); border-bottom: 2px solid var(--md-sys-color-on-surface); }
-    .vs-p-eyebrow, .vs-p-pill { color: var(--md-sys-color-on-surface-variant); }
-    .vs-p-pill { border-color: var(--md-sys-color-outline); }
-    .vs-p-pill[data-phase] { background: none; border-color: var(--md-sys-color-outline); }
+    .vs-p-notice[data-phase] { background: none; }
+    .vs-p-hero { background: none; border-bottom: 2px solid var(--md-sys-color-on-surface); }
+    .vs-p-pill[data-phase] { background: none; color: var(--md-sys-color-on-surface-variant); border-color: var(--md-sys-color-outline); }
     .vs-p-toc { display: none; }
     .vs-p-body,
     .vs-p-body:has(> .vs-p-toc) { grid-template-columns: minmax(0, 1fr); }
@@ -1242,10 +1483,9 @@ const vsLayoutCss = `
     font: 400 11px/1.5 var(--vs-mono);
     letter-spacing: normal;
     text-align: left;
-    color: #D7DCE4;
-    background: #21252C;
-    border: 1px solid #3B414C;
-    border-radius: 8px;
+    color: var(--md-sys-color-surface);
+    background: var(--md-sys-color-on-surface);
+    border-radius: 6px;
     opacity: 0;
     pointer-events: none;
     transition: opacity 0.15s ease;
@@ -2567,6 +2807,136 @@ const vsCatalogFactory = (React, css) => {
   // History: dated state transitions with their evidence, oldest first. An
   // "updated" stamp says something changed; this says what, when, and where
   // the decision artifact lives.
+  // Tldr leads a section with the claims a reader keeps if they stop there;
+  // the proof goes in the <Foldout> that follows it.
+  const Tldr = ({ body = '' }) =>
+    wrap(
+      'Tldr',
+      h(
+        'div',
+        { className: 'vs-tldr' },
+        h('span', { className: 'vs-tldr-k' }, 'TL;DR'),
+        h(
+          'ul',
+          null,
+          rows(body).map((row, index) => h('li', { key: index }, inline(row))),
+        ),
+      ),
+    );
+
+  // Brief is the page-top read: one card per question a skimming reader asks.
+  // The [tone] tag colors the card edge; the label says the same in words.
+  const BRIEF_TONES = new Set(['answer', 'gain', 'risk', 'open']);
+  const Brief = ({ body = '' }) =>
+    wrap(
+      'Brief',
+      h(
+        'ul',
+        { className: 'vs-brief' },
+        rows(body).map((row, index) => {
+          const { tag, rest } = bracketTag(row);
+          const { label, value } = labelValue(rest);
+          return h(
+            'li',
+            { key: index, className: 'vs-brief-card', 'data-tone': BRIEF_TONES.has(tag) ? tag : undefined },
+            h('span', { className: 'vs-brief-k' }, plain(label)),
+            h('p', { className: 'vs-brief-v' }, inline(value)),
+          );
+        }),
+      ),
+    );
+
+  // "Title — caption" props: the caption is what the side means (what
+  // survives, who owns it), set smaller under the name.
+  const titled = (text) => {
+    const [title, ...caption] = String(text).split(NOTE_SPLIT);
+    return [h('b', { key: 'title' }, plain(title)), caption.length ? h('span', { key: 'caption' }, plain(caption.join(' — '))) : null];
+  };
+  const ZONE_SIDES = ['inside', 'outside'];
+  const Zones = ({ body = '', inside = 'Inside', outside = 'Outside', boundary = '' }) => {
+    const items = rows(body).map((row) => ({ row, ...labelValue(row) }));
+    const side = (item) => item.label.toLowerCase();
+    const zone = (name, heading) =>
+      h(
+        'div',
+        { key: name, className: 'vs-zone', 'data-side': name },
+        h('div', { className: 'vs-zone-h' }, titled(heading)),
+        items
+          .filter((item) => side(item) === name)
+          .map((item, index) => {
+            const [label, ...detail] = item.value.split(NOTE_SPLIT);
+            return h(
+              'div',
+              { key: index, className: 'vs-zone-item' },
+              h('b', null, inline(label)),
+              detail.length ? h('span', null, inline(detail.join(' — '))) : null,
+            );
+          }),
+      );
+    // A row naming neither side still renders, below the map: a typo in the
+    // side label must not silently drop an item from the picture.
+    const rest = items.filter((item) => !ZONE_SIDES.includes(side(item)));
+    return wrap(
+      'Zones',
+      h(
+        'div',
+        { className: 'vs-zones' },
+        zone('inside', inside),
+        h('div', { className: 'vs-zone-wall' }, boundary ? h('span', null, plain(boundary)) : null),
+        zone('outside', outside),
+        rest.length ? h('p', { className: 'vs-zones-rest' }, rest.map((item) => plain(item.row)).join(' · ')) : null,
+      ),
+    );
+  };
+
+  // Crossing reuses the +/− valence grammar: + crosses, − is stopped at the
+  // boundary, unmarked is a neutral channel. The status word is repeated for
+  // screen readers because the line itself is decoration.
+  const CROSSING_KIND = { gain: ['gain', 'Allowed: '], cost: ['risk', 'Blocked: '] };
+  const Crossing = ({ body = '', from = '', to = '' }) =>
+    wrap(
+      'Crossing',
+      h(
+        'div',
+        { className: 'vs-crossing' },
+        h('div', { className: 'vs-crossing-end' }, titled(from)),
+        h(
+          'ul',
+          { className: 'vs-crossing-lanes' },
+          rows(body).map((row, index) => {
+            const { kind, rest } = valence(row);
+            const [tone, status] = CROSSING_KIND[kind] || [];
+            const { label, value } = labelValue(rest);
+            return h(
+              'li',
+              { key: index, className: 'vs-crossing-lane', 'data-tone': tone },
+              h('b', null, status ? h('span', { className: 'sr-only' }, status) : null, plain(label)),
+              h(
+                'span',
+                { className: 'vs-crossing-line', 'aria-hidden': 'true' },
+                tone === 'risk'
+                  ? h('span', { className: 'vs-crossing-stop' }, '✕')
+                  : h(
+                      'svg',
+                      { viewBox: '0 0 10 12' },
+                      h('path', {
+                        d: 'M1 1l8 5-8 5',
+                        fill: 'none',
+                        stroke: 'currentColor',
+                        strokeWidth: 1.8,
+                        strokeLinecap: 'round',
+                        strokeLinejoin: 'round',
+                      }),
+                    ),
+              ),
+              value ? h('div', { className: 'vs-crossing-detail' }, inline(value)) : null,
+            );
+          }),
+        ),
+        h('div', { className: 'vs-crossing-end' }, titled(to)),
+      ),
+    );
+
   const History = ({ body = '' }) =>
     wrap(
       'History',
@@ -2967,6 +3337,51 @@ const vsCatalogFactory = (React, css) => {
         '<History>\n- 2026-08-12: Draft opened — after the plugin-boundary incident\n- 2026-08-25: Proposed — review thread PR #45\n</History>',
       Component: asComponent(History),
     },
+    {
+      name: 'Tldr',
+      body: 'markdown',
+      purpose:
+        "Open a section with the two or three claims a reader keeps if they stop reading there, written as '- claim' rows. Put it right under the section heading, and move the evidence, tables, and diagrams that prove the claims into a <Foldout title=\"Deep dive\"> after it, so skimming the page is reading every TL;DR. Each row is one complete sentence with its number or name in it; a row that only says what the section is about summarizes nothing.",
+      example:
+        '<Tldr>\n- The cache cuts **p95 from 480ms to 120ms** on warm reads.\n- Cold starts are unchanged, so the win depends on the hit rate.\n</Tldr>',
+      Component: asComponent(Tldr),
+    },
+    {
+      name: 'Brief',
+      body: 'markdown',
+      purpose:
+        "Give the whole document a 60-second read at the top, written as '- [tone] Label: one sentence' rows - typically the answer, why, the main constraint, and the top open question. The tag is optional and one of answer, gain, risk, or open; it colors the card edge while the label says the same in words. Three to four cards read best; each value is the claim itself, not a pointer to the section that holds it.",
+      example:
+        '<Brief>\n- [answer] Answer: Ship the cache behind a flag this sprint.\n- [gain] Why: Warm reads drop from 480ms to 120ms.\n- [risk] Main constraint: Every write path must invalidate its keys.\n- [open] Open question: Who owns the eviction policy?\n</Brief>',
+      Component: asComponent(Brief),
+    },
+    {
+      name: 'Zones',
+      body: 'markdown',
+      purpose:
+        "Show what sits on each side of a boundary - what a restart wipes and what survives, what runs in the isolated process and what stays outside - written as '- inside: item — note' and '- outside: item — note' rows. `inside` and `outside` title the two sides and take an optional ' — caption' for what the side means; `boundary` labels the wall between them. The inside draws dashed (contained, disposable), the outside solid (persistent, owning). For traffic across the boundary use <Crossing>.",
+      example:
+        '<Zones inside="Worker process — reset on restart" outside="Durable store — survives restarts" boundary="restart">\n- inside: In-memory queue — lost on crash\n- inside: Local temp files\n- outside: Job records — replayed on start\n- outside: Uploaded files\n</Zones>',
+      props: [
+        { name: 'inside', type: 'string', default: 'Inside', description: "Title of the contained side, with an optional ' — caption'." },
+        { name: 'outside', type: 'string', default: 'Outside', description: "Title of the outer side, with an optional ' — caption'." },
+        { name: 'boundary', type: 'string', description: 'Label on the wall between the two sides.' },
+      ],
+      Component: asComponent(Zones),
+    },
+    {
+      name: 'Crossing',
+      body: 'markdown',
+      purpose:
+        "Show which channels cross a boundary between two parties, written as '- + channel: detail' rows for what crosses and '- − channel: detail' for what is stopped at the boundary; unmarked rows draw as a neutral channel. `from` and `to` name the two ends and take an optional ' — caption'. Use it for trust boundaries, network edges, and API surfaces - one row per channel, so the reader sees the whole allowed surface at once. Multi-hop paths belong in a mermaid diagram.",
+      example:
+        '<Crossing from="Browser" to="API — owns the data">\n- + HTTPS requests: authenticated and rate-limited\n- + Webhooks: signed payloads only\n- − Direct database access: refused at the network edge\n</Crossing>',
+      props: [
+        { name: 'from', type: 'string', description: "The left end, with an optional ' — caption'." },
+        { name: 'to', type: 'string', description: "The right end, with an optional ' — caption'." },
+      ],
+      Component: asComponent(Crossing),
+    },
   ];
 
   const layouts = [
@@ -2992,6 +3407,31 @@ const vsCatalogFactory = (React, css) => {
   ];
 
   const themes = [{ id: 'vs', css }];
+
+  // Print is the whole document: open every closed disclosure before the
+  // browser paginates and restore the reader's state after, so a printout
+  // never drops the deep dives. Guarded per document like the lightbox.
+  if (
+    typeof window !== 'undefined' &&
+    !document.documentElement.hasAttribute('data-vs-print-open')
+  ) {
+    document.documentElement.setAttribute('data-vs-print-open', 'true');
+    let opened = [];
+    window.addEventListener('beforeprint', () => {
+      opened = Array.from(
+        document.querySelectorAll(".htmdx-app[data-htmdx-layout^='vs'] details:not([open])"),
+      );
+      opened.forEach((details) => {
+        details.open = true;
+      });
+    });
+    window.addEventListener('afterprint', () => {
+      opened.forEach((details) => {
+        details.open = false;
+      });
+      opened = [];
+    });
+  }
 
   // Click-to-zoom for content images. The factory is the only code both
   // loaders run, so the listener attaches here: a no-op under the CLI's node
@@ -3060,7 +3500,7 @@ const vsCatalogFactory = (React, css) => {
     dedash(document);
   }
 
-  // Sketch-by-default mermaid. The runtime initializes mermaid with a locked
+  // Paper-themed mermaid. The runtime initializes mermaid with a locked
   // config and no theme hook, but look/theme/themeVariables are absent from
   // its secure list, so a per-diagram init directive still applies. Importing
   // the runtime's own mermaid URL yields the same module instance (ESM cache),
@@ -3071,30 +3511,32 @@ const vsCatalogFactory = (React, css) => {
   if (
     typeof document !== 'undefined' &&
     globalThis.Htmdx?.DEFAULT_MERMAID_SRC &&
-    !document.documentElement.hasAttribute('data-vs-sketch-mermaid')
+    !document.documentElement.hasAttribute('data-vs-theme-mermaid')
   ) {
-    document.documentElement.setAttribute('data-vs-sketch-mermaid', 'true');
-    const sketchDirective = `%%{init: ${JSON.stringify({
-      look: 'handDrawn',
+    document.documentElement.setAttribute('data-vs-theme-mermaid', 'true');
+    // Light values only: mermaid bakes colors into the svg at render time, so
+    // the dark scheme is a CSS repaint over them (see vsLayoutCss), which also
+    // follows a scheme switch without re-rendering.
+    const themeDirective = `%%{init: ${JSON.stringify({
       theme: 'base',
       themeVariables: {
-        darkMode: true,
         // No quotes inside the value: mermaid's directive parser rewrites
         // single quotes to double before JSON.parse, corrupting the whole
-        // init block and silently dropping the sketch look.
-        fontFamily: 'Excalifont, cursive',
-        primaryColor: '#31363F',
-        primaryBorderColor: '#93A4E8',
-        primaryTextColor: '#D7DCE4',
-        lineColor: '#6C7484',
-        textColor: '#D7DCE4',
-        mainBkg: '#31363F',
-        background: '#21252C',
-        labelBackgroundColor: '#21252C',
-        clusterBkg: '#2D323B',
-        clusterBorder: '#596070',
-        noteBkgColor: '#2D323B',
-        noteTextColor: '#D7DCE4',
+        // init block and silently dropping the theme. No hyphens either: a
+        // hyphenated family (sans-serif) makes mermaid drop fontFamily alone.
+        fontFamily: 'Atkinson Hyperlegible Next, Helvetica, Arial',
+        primaryColor: '#F7F2E8',
+        primaryBorderColor: '#8B2C2A',
+        primaryTextColor: '#1D1B18',
+        lineColor: '#8C8270',
+        textColor: '#1D1B18',
+        mainBkg: '#F7F2E8',
+        background: '#FFFDF8',
+        labelBackgroundColor: '#FFFDF8',
+        clusterBkg: '#FCF9F2',
+        clusterBorder: '#CFC4AE',
+        noteBkgColor: '#F4EFE4',
+        noteTextColor: '#1D1B18',
       },
     })}}%%\n`;
     import(globalThis.Htmdx.DEFAULT_MERMAID_SRC)
@@ -3103,7 +3545,7 @@ const vsCatalogFactory = (React, css) => {
         const originalRender = mermaid.render.bind(mermaid);
         mermaid.render = (id, text, ...rest) => {
           const authored = text.includes('%%{init') || text.trimStart().startsWith('---');
-          return originalRender(id, authored ? text : sketchDirective + text, ...rest);
+          return originalRender(id, authored ? text : themeDirective + text, ...rest);
         };
         // The runtime can render diagrams before this patch lands (it mounts
         // the doc while the catalog module is still loading), and
@@ -3124,7 +3566,7 @@ const vsCatalogFactory = (React, css) => {
         // the per-block source check before any re-render.
         const missedDirective = (block) => {
           const svg = block.querySelector('svg');
-          return !!svg && !svg.outerHTML.includes('Excalifont');
+          return !!svg && !svg.outerHTML.includes('Atkinson Hyperlegible Next');
         };
         const repaint = () => {
           const blocks = Array.from(document.querySelectorAll('.htmdx-mermaid'));
@@ -3142,10 +3584,10 @@ const vsCatalogFactory = (React, css) => {
                 if (!missedDirective(block)) return;
                 const text = sources[index];
                 if (text.includes('%%{init') || text.trimStart().startsWith('---')) return;
-                if (block.hasAttribute('data-vs-sketch-repair')) return;
-                block.setAttribute('data-vs-sketch-repair', 'true');
+                if (block.hasAttribute('data-vs-theme-repair')) return;
+                block.setAttribute('data-vs-theme-repair', 'true');
                 repairSeq += 1;
-                originalRender(`vs-sketch-repair-${repairSeq}`, sketchDirective + text)
+                originalRender(`vs-theme-repair-${repairSeq}`, themeDirective + text)
                   .then(({ svg: markup }) => {
                     const current = block.querySelector('svg');
                     if (current) current.outerHTML = markup;
@@ -3166,7 +3608,7 @@ const vsCatalogFactory = (React, css) => {
       .catch(() => {});
     // Pan/zoom for oversized diagrams. panzoom applies a CSS transform to the
     // svg without restructuring it (unlike svg-pan-zoom's injected viewport
-    // <g>), so the sketch repair swap and the palette selectors stay valid.
+    // <g>), so the theme repair swap and the palette selectors stay valid.
     // Plain wheel keeps scrolling the page - zoom needs ctrl/cmd. The repair
     // pass replaces svg.outerHTML, orphaning any bound instance, so binding is
     // keyed per block on the current svg node and rebinds after a swap.

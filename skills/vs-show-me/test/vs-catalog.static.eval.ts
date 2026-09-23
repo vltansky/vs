@@ -74,6 +74,10 @@ describe('the vs catalog is one source the CLI and the browser both load', () =>
       'Compat',
       'Signoff',
       'History',
+      'Tldr',
+      'Brief',
+      'Zones',
+      'Crossing',
     ]);
     for (const component of catalog.components) {
       expect(component.body).toBe('markdown');
@@ -369,6 +373,72 @@ describe('the vs catalog is one source the CLI and the browser both load', () =>
     expect(stages[0].props['data-status']).toBe('done');
     expect(stages[0].children[0].children).toEqual(['✓ · LAND']);
     expect(stages[1].props['data-status']).toBe('active');
+  });
+
+  it('leads with Tldr claims, tones Brief cards, and sorts Zones and Crossing rows', async () => {
+    const { vsCatalogFactory, vsLayoutCss } = await import(CATALOG_URL);
+    type Node = { type: string; props: Record<string, unknown> | null; children: unknown[] };
+    const stubReact = {
+      createElement: (type: string, props: Record<string, unknown>, ...children: unknown[]) => ({
+        type,
+        props,
+        children: children.flat(Infinity),
+      }),
+    };
+    const isNode = (value: unknown): value is Node => !!value && typeof value === 'object';
+    const text = (value: unknown): string =>
+      isNode(value) ? value.children.map(text).join('') : value == null ? '' : String(value);
+    const byClass = (root: unknown, name: string): Node[] =>
+      !isNode(root)
+        ? []
+        : [
+            ...(String(root.props?.className ?? '').split(' ').includes(name) ? [root] : []),
+            ...root.children.flatMap((child) => byClass(child, name)),
+          ];
+    const catalog = vsCatalogFactory(stubReact, vsLayoutCss);
+    const render = (name: string, props: Record<string, string>) =>
+      catalog.components.find((c: { name: string }) => c.name === name).Component(props);
+
+    const tldr = render('Tldr', { body: '- First **claim**.\n- Second claim.' });
+    expect(text(byClass(tldr, 'vs-tldr-k')[0])).toBe('TL;DR');
+    expect(text(tldr)).toContain('First claim.');
+
+    const cards = byClass(render('Brief', { body: '- [risk] Constraint: Writes must invalidate.\n- Why: Faster reads.' }), 'vs-brief-card');
+    expect(cards.map((card) => card.props?.['data-tone'])).toEqual(['risk', undefined]);
+    expect(text(byClass(cards[0], 'vs-brief-k')[0])).toBe('Constraint');
+
+    const zones = render('Zones', {
+      body: '- inside: Queue — lost on crash\n- outside: Records\n- elsewhere: Stray row',
+      inside: 'Process — reset on restart',
+      boundary: 'restart',
+    });
+    const [inside, outside] = byClass(zones, 'vs-zone');
+    expect(byClass(inside, 'vs-zone-item').map(text)).toEqual(['Queuelost on crash']);
+    expect(byClass(outside, 'vs-zone-item').map(text)).toEqual(['Records']);
+    // A mistyped side label renders below the map instead of vanishing.
+    expect(text(byClass(zones, 'vs-zones-rest')[0])).toBe('elsewhere: Stray row');
+
+    const lanes = byClass(
+      render('Crossing', { body: '- + Requests: signed\n- − Database: refused\n- Logs: mirrored', from: 'Client', to: 'Server' }),
+      'vs-crossing-lane',
+    );
+    expect(lanes.map((lane) => lane.props?.['data-tone'])).toEqual(['gain', 'risk', undefined]);
+    expect(text(lanes[1].children[0])).toBe('Blocked: Database');
+  });
+
+  it('keeps the dark scheme screen-only so print always lands on paper', async () => {
+    const { vsLayoutCss } = await import(CATALOG_URL);
+    expect(vsLayoutCss).toContain('@media screen and (prefers-color-scheme: dark)');
+    expect(vsLayoutCss).not.toMatch(/@media \(prefers-color-scheme: dark\)/);
+    expect(vsLayoutCss).not.toContain('handDrawn');
+  });
+
+  it('gives mermaid a font list its directive sanitizer keeps', () => {
+    const definitions = fs.readFileSync(path.join(SKILL_DIR, 'assets', 'definitions.mjs'), 'utf8');
+    const fontFamily = definitions.match(/fontFamily: '([^']+)'/)?.[1];
+    expect(fontFamily).toContain('Atkinson Hyperlegible Next');
+    // mermaid drops a hyphenated family list (sans-serif) and falls back to trebuchet.
+    expect(fontFamily).not.toContain('-');
   });
 
   it('marks Compat cells from column headings and degrades without them', async () => {
