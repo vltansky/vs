@@ -142,6 +142,13 @@ uncertainty.
    - decisive metrics, comparison, or timeline second;
    - evidence and caveats next;
    - detailed reference material last.
+
+   Lead summary-first: open with a `Brief` (answer, why, main constraint, open
+   question), start each long section with a `Tldr` of the claims a skimmer
+   keeps, and park that section's proof in a `<Foldout title="Deep dive">`
+   right after it. A reader who only reads the Brief and the TL;DRs still
+   gets the whole argument. For "what lives where" reach for `Zones`; for
+   what may and may not pass between two sides, `Crossing`.
 5. Before drafting, sketch a visual plan in working notes. Name the important
    information shapes — relationship, state, sequence, comparison, hierarchy,
    or spatial arrangement — and choose the clearest runtime primitive for each.
@@ -330,7 +337,7 @@ when a section needs it:
   product's own colors, type, and chrome — the artifact theme is the report's
   voice, not the product's — and show one realistic state instead of an
   invented dashboard. Type is the one thing you must set yourself: a mock
-  inherits Space Grotesk, the report's own display sans, so give it the
+  inherits Atkinson Hyperlegible Next, the report's own reading sans, so give it the
   product's face with `style="font-family: …"` or it reads as the report
   wearing a screenshot's layout. Promote a mock into `assets/definitions.mjs`
   only when a second artifact needs it.
