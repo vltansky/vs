@@ -187,6 +187,12 @@ describe('verification ends at a rendered artifact', () => {
     expect(RENDER_CHECK).toMatch(/await chromium\.launch\(\);\n\} catch[\s\S]{0,400}process\.exit\(2\)/);
   });
 
+  it('lets the caller point render-check at a playwright install', () => {
+    // A worktree with no node_modules exited 2 with no way to name a cached install.
+    expect(RENDER_CHECK).toMatch(/process\.env\.PLAYWRIGHT_MODULE/);
+    expect(RENDER_CHECK).toMatch(/PLAYWRIGHT_MODULE=\/abs\/path\/node_modules\/playwright/);
+  });
+
   it('fails entity text a nested component leaked onto the page', () => {
     expect(RENDER_CHECK).toMatch(/&\(\?:gt\|lt\|amp\|quot\);/);
     expect(RENDER_CHECK).toMatch(/Escaped entity rendered as literal text/);

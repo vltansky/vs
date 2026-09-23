@@ -146,6 +146,9 @@ export const vsLayoutCss = `
     --muted: var(--md-sys-color-surface-variant);
     --muted-foreground: var(--md-sys-color-on-surface-variant);
     --border: var(--md-sys-color-outline-variant);
+    /* shadcn's destructive red is cold against the oxblood accent; this is
+       the palette's own warm red (the dark alert repaint below still applies). */
+    --destructive: #A8322D;
     /* Three faces, one job each. The mono is reserved for what is literally
        in a file - identifiers, paths, code, figures - so setting it in mono is
        a claim that the reader can copy the characters verbatim. Everything the
@@ -487,6 +490,15 @@ export const vsLayoutCss = `
     overflow: hidden;
     position: relative;
   }
+  /* On a phone, fit-to-width shrinks a diagram past reading size (a 661px
+     flowchart drew 6px text in a 350px panel). Hold it at three quarters of
+     its drawn size and let the panel scroll sideways; Full view still zooms. */
+  @media screen and (max-width: 720px) {
+    .htmdx-app[data-htmdx-layout^='vs'] .htmdx-mermaid { overflow-x: auto; }
+    .htmdx-app[data-htmdx-layout^='vs'] .htmdx-mermaid svg[id] {
+      min-width: calc(var(--vs-mermaid-width, 0px) * 0.75);
+    }
+  }
   @media screen {
     /* A wide diagram fits to width, so its panel can be a short letterbox;
        the native resize handle lets the reader pull the canvas taller. */
@@ -619,6 +631,12 @@ export const vsLayoutCss = `
   }
   @media print {
     .vs-mermaid-controls { display: none; }
+  }
+  /* Touch gets no inline pan/zoom (see the panzoom binding), so its hint and
+     zoom buttons would describe gestures that do nothing. After
+     the screen block that sets the hint: same specificity, so order decides. */
+  @media screen and (pointer: coarse) {
+    .htmdx-app[data-htmdx-layout^='vs'] .htmdx-mermaid::after { content: none; }
   }
   @media screen and (prefers-color-scheme: dark) {
     .vs-mermaid-dialog { background: #121110; border-color: #332E27; }
@@ -2553,7 +2571,7 @@ export const vsCatalogFactory = (React, css) => {
               'li',
               { key: index, className: 'flex gap-2 text-sm text-card-foreground' },
               h('span', { 'aria-hidden': 'true', className: 'font-bold ' + tone }, glyph),
-              h('span', null, plain(item.text)),
+              h('span', null, inline(item.text)),
             ),
           ),
         ),
@@ -2900,7 +2918,7 @@ export const vsCatalogFactory = (React, css) => {
             return h(
               'li',
               { key: index, className: 'vs-crossing-lane', 'data-tone': tone },
-              h('b', null, status ? h('span', { className: 'sr-only' }, status) : null, plain(label)),
+              h('b', null, status ? h('span', { className: 'sr-only' }, status) : null, inline(label)),
               h(
                 'span',
                 { className: 'vs-crossing-line', 'aria-hidden': 'true' },
@@ -3523,6 +3541,8 @@ export const vsCatalogFactory = (React, css) => {
         mainBkg: '#F7F2E8',
         background: '#FFFDF8',
         labelBackgroundColor: '#FFFDF8',
+        // Unset, mermaid derives a lavender fill for flowchart edge labels.
+        edgeLabelBackground: '#FFFDF8',
         clusterBkg: '#FCF9F2',
         clusterBorder: '#CFC4AE',
         noteBkgColor: '#F4EFE4',
@@ -3618,6 +3638,10 @@ export const vsCatalogFactory = (React, css) => {
       .then((mod) => {
         const panzoom = mod.default ?? mod;
         const bindings = new WeakMap();
+        // panzoom preventDefaults touchstart on the whole panel, so on a phone
+        // a page scroll that began on a diagram went nowhere. Touch keeps the
+        // native scroll (the panel scrolls sideways); Full view still pans.
+        const touch = typeof matchMedia === 'function' && matchMedia('(pointer: coarse)').matches;
         // panzoom binds its drag listeners to the owner (the svg's parent), so
         // a control sitting inside the panel would start a pan on mousedown.
         const controlBar = (className) => {
@@ -3728,16 +3752,19 @@ export const vsCatalogFactory = (React, css) => {
             if (!svg) return;
             if (!block.querySelector('.vs-mermaid-controls')) {
               const bar = controlBar('vs-mermaid-controls');
-              zoomButtons(
-                bar,
-                () => bindings.get(block)?.instance,
-                () => block,
-              );
+              if (!touch) {
+                zoomButtons(
+                  bar,
+                  () => bindings.get(block)?.instance,
+                  () => block,
+                );
+              }
               const expand = button('vs-mermaid-expand', 'Full view', () => openDialog(block));
               expand.innerHTML = expandIcon() + '<span>Full view</span>';
               bar.appendChild(expand);
               block.appendChild(bar);
             }
+            if (touch) return;
             const bound = bindings.get(block);
             if (bound?.svg === svg) return;
             bound?.instance.dispose();

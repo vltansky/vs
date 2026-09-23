@@ -15,8 +15,8 @@ if (!files.length) {
 }
 
 // This script runs from the installed plugin, but playwright lives in the
-// project being worked on — resolve from cwd before falling back to our own
-// module path.
+// project being worked on — resolve PLAYWRIGHT_MODULE, then cwd, before
+// falling back to our own module path.
 import { createRequire } from 'node:module';
 import { pathToFileURL } from 'node:url';
 import { resolve } from 'node:path';
@@ -24,7 +24,7 @@ import { resolve } from 'node:path';
 const fromCwd = createRequire(pathToFileURL(process.cwd() + '/'));
 
 let chromium;
-for (const specifier of ['playwright', 'playwright-core']) {
+for (const specifier of [process.env.PLAYWRIGHT_MODULE, 'playwright', 'playwright-core'].filter(Boolean)) {
   for (const load of [
     () => import(pathToFileURL(fromCwd.resolve(specifier)).href),
     () => import(specifier),
@@ -45,6 +45,7 @@ if (!chromium) {
   console.error(
     'Cannot render: playwright is not installed here.\n' +
       'Install it (npm i -D playwright && npx playwright install chromium),\n' +
+      'point at an existing install with PLAYWRIGHT_MODULE=/abs/path/node_modules/playwright,\n' +
       'use the host browser tooling, or open the file:// path manually.\n' +
       'Do not report rendered proof without one of these.',
   );

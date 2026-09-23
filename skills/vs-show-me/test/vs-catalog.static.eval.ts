@@ -383,6 +383,24 @@ describe('the vs catalog is one source the CLI and the browser both load', () =>
     expect(tree).not.toContain('`npm test`');
   });
 
+  it('renders inline code in Scope rows and Crossing labels', async () => {
+    const { vsCatalogFactory, vsLayoutCss } = await import(CATALOG_URL);
+    const stubReact = {
+      createElement: (type: string, props: Record<string, unknown>, ...children: unknown[]) => ({
+        type,
+        props,
+        children: children.flat(Infinity),
+      }),
+    };
+    const catalog = vsCatalogFactory(stubReact, vsLayoutCss);
+    const render = (name: string, body: string) =>
+      JSON.stringify(catalog.components.find((c: { name: string }) => c.name === name).Component({ body, from: 'A', to: 'B' }));
+    for (const tree of [render('Scope', '- + run `npm test`'), render('Crossing', '- + `npm test`: allowed')]) {
+      expect(tree).toContain('"type":"code"');
+      expect(tree).not.toContain('`npm test`');
+    }
+  });
+
   it('chips Options dispositions, Risks levels, and Flow stage status', async () => {
     const { vsCatalogFactory, vsLayoutCss } = await import(CATALOG_URL);
     const stubReact = {
@@ -489,6 +507,25 @@ describe('the vs catalog is one source the CLI and the browser both load', () =>
     const definitions = fs.readFileSync(path.join(SKILL_DIR, 'assets', 'definitions.mjs'), 'utf8');
     expect(definitions).toMatch(/max-width: max\(36rem, calc\(var\(--vs-mermaid-width, 0px\) \+ 2\.25rem\)\);/);
     expect(definitions).toMatch(/setProperty\('--vs-mermaid-width', svg\.style\.maxWidth\)/);
+  });
+
+  it('keeps a wide diagram readable on a phone and leaves touch scrolling to the page', () => {
+    // A 661px flowchart squeezed into a 350px panel drew 6px text, and panzoom
+    // preventDefaults touchstart, so a scroll starting on the diagram was eaten.
+    const definitions = fs.readFileSync(path.join(SKILL_DIR, 'assets', 'definitions.mjs'), 'utf8');
+    expect(definitions).toMatch(/min-width: calc\(var\(--vs-mermaid-width, 0px\) \* 0\.75\);/);
+    expect(definitions).toMatch(/matchMedia\('\(pointer: coarse\)'\)/);
+    // Same specificity as the rule that sets the hint, so it must come after it.
+    expect(definitions.indexOf('::after { content: none; }')).toBeGreaterThan(
+      definitions.indexOf("content: 'drag pans - ctrl+scroll zooms - double-click resets'"),
+    );
+  });
+
+  it('paints mermaid edge labels and destructive alerts from the paper palette', () => {
+    const definitions = fs.readFileSync(path.join(SKILL_DIR, 'assets', 'definitions.mjs'), 'utf8');
+    // Unset, mermaid fills edge labels lavender and shadcn paints alerts a cold red.
+    expect(definitions).toMatch(/edgeLabelBackground: '#FFFDF8'/);
+    expect(definitions).toMatch(/--destructive: #A8322D;/);
   });
 
   it('gives mermaid a font list its directive sanitizer keeps', () => {
