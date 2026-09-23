@@ -448,9 +448,15 @@ const vsLayoutCss = `
   :is(.htmdx-app[data-htmdx-layout='vs'], .vs-p-main) > div > :is(p, ul, ol, blockquote, h1, h3, h4, h5, h6),
   :is(.htmdx-app[data-htmdx-layout='vs'], .vs-p-main) > div .htmdx-image,
   :is(.htmdx-app[data-htmdx-layout='vs'], .vs-p-main) > div > svg,
-  :is(.htmdx-app[data-htmdx-layout='vs'], .vs-p-main) > div .htmdx-code-figure,
-  :is(.htmdx-app[data-htmdx-layout='vs'], .vs-p-main) > div .htmdx-mermaid {
+  :is(.htmdx-app[data-htmdx-layout='vs'], .vs-p-main) > div .htmdx-code-figure {
     max-width: 36rem;
+  }
+  /* A drawing wider than the measure gets the canvas it needs instead of being
+     scaled down to unreadable text: the mermaid script copies the svg's
+     intrinsic width into --vs-mermaid-width, and the panel grows to it (plus
+     its padding), never past the page. Unset, the panel stays on the measure. */
+  :is(.htmdx-app[data-htmdx-layout='vs'], .vs-p-main) > div .htmdx-mermaid {
+    max-width: max(36rem, calc(var(--vs-mermaid-width, 0px) + 2.25rem));
   }
   :is(.htmdx-app[data-htmdx-layout='vs'], .vs-p-main) > div .htmdx-mermaid svg { margin: 0; }
   /* The runtime initializes mermaid with a fixed config (no theme hook), so
@@ -1146,9 +1152,14 @@ const vsLayoutCss = `
   /* A one-paragraph body arrives wrapped in an extra div; block bodies do not. */
   :is(.htmdx-app[data-htmdx-layout^='vs'] [data-htmdx-component='Foldout'] > details > div, .htmdx-app[data-htmdx-layout^='vs'] [data-htmdx-component='Foldout'] > details > div > div) > :is(p, ul, ol) {
     max-width: 36rem;
-    margin: 0 0 14px;
+    margin-bottom: 0;
     line-height: 1.7;
   }
+  /* Prose, tables, and components stack here with no flow spacing of their own. */
+  :is(.htmdx-app[data-htmdx-layout^='vs'] [data-htmdx-component='Foldout'] > details > div, .htmdx-app[data-htmdx-layout^='vs'] [data-htmdx-component='Foldout'] > details > div > div) > * + * { margin-top: 16px; }
+  /* A grid item's min-width defaults to its content, so one wide <pre> in an
+     authored Tailwind grid pushes the whole page sideways on a phone. */
+  :where(.htmdx-app[data-htmdx-layout^='vs'] .grid) > :not([class*='min-w-']) { min-width: 0; }
   :is(.htmdx-app[data-htmdx-layout^='vs'] [data-htmdx-component='Foldout'] > details > div, .htmdx-app[data-htmdx-layout^='vs'] [data-htmdx-component='Foldout'] > details > div > div) > ul { padding-left: 1.5rem; list-style: disc; }
   :is(.htmdx-app[data-htmdx-layout^='vs'] [data-htmdx-component='Foldout'] > details > div, .htmdx-app[data-htmdx-layout^='vs'] [data-htmdx-component='Foldout'] > details > div > div) > ol { padding-left: 1.5rem; list-style: decimal; }
   /* Only the block axis clips while the disclosure animates: wide children
@@ -1543,8 +1554,13 @@ const vsCatalogFactory = (React, css) => {
   const wrap = (name, children) =>
     h('section', { 'data-htmdx-component': name, className: 'htmdx-component' }, children);
   const plain = (text) => String(text).replace(/\*\*([^*]+)\*\*/g, '$1');
+  // A component nested in a built-in like <Foldout> receives its body
+  // entity-escaped, so `->` arrives as `-&gt;`; decode once so row grammars
+  // parse the same text at any depth.
+  const ENTITY = { gt: '>', lt: '<', amp: '&', quot: '"', '#39': "'" };
+  const decodeEntities = (text) => text.replace(/&(gt|lt|amp|quot|#39);/g, (_, name) => ENTITY[name]);
   const rows = (body) =>
-    String(body)
+    decodeEntities(String(body))
       .split('\n')
       .map((line) => line.trim())
       .filter((line) => line.startsWith('- '))
@@ -1909,7 +1925,7 @@ const vsCatalogFactory = (React, css) => {
               { className: 'font-mono text-xs font-bold tracking-widest text-card-foreground' },
               (status === 'done' ? '✓' : index + 1) + ' · ' + plain(name).toUpperCase(),
             ),
-            value ? h('div', { className: 'mt-1 text-sm text-muted-foreground' }, plain(value)) : null,
+            value ? h('div', { className: 'mt-1 text-sm text-muted-foreground' }, inline(value)) : null,
           );
           return index
             ? [h('span', { key: 'arrow' + index, 'aria-hidden': 'true', className: 'vs-flow-arrow' }, '→'), stage]
@@ -3597,9 +3613,21 @@ const vsCatalogFactory = (React, css) => {
             })
             .catch(() => {});
         };
-        repaint();
+        // Feeds the panel width rule in vsLayoutCss. svg[id] skips the icon
+        // svgs in the panel's zoom controls.
+        const fitPanels = () => {
+          for (const block of document.querySelectorAll('.htmdx-mermaid')) {
+            const svg = block.querySelector('svg[id]');
+            if (svg?.style.maxWidth) block.style.setProperty('--vs-mermaid-width', svg.style.maxWidth);
+          }
+        };
+        const onMutation = () => {
+          fitPanels();
+          repaint();
+        };
+        onMutation();
         if (typeof MutationObserver !== 'undefined') {
-          new MutationObserver(repaint).observe(document.documentElement, {
+          new MutationObserver(onMutation).observe(document.documentElement, {
             childList: true,
             subtree: true,
           });

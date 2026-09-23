@@ -180,6 +180,18 @@ describe('verification ends at a rendered artifact', () => {
     expect(RENDER_CHECK).toMatch(/Check the pinned version exists/);
   });
 
+  it('reports a browser that will not launch as not verified, not failed', () => {
+    // playwright present without its browser build crashed with exit 1, which
+    // reads as "the artifact failed" when nothing was checked.
+    expect(RENDER_CHECK).toMatch(/Cannot launch a browser/);
+    expect(RENDER_CHECK).toMatch(/await chromium\.launch\(\);\n\} catch[\s\S]{0,400}process\.exit\(2\)/);
+  });
+
+  it('fails entity text a nested component leaked onto the page', () => {
+    expect(RENDER_CHECK).toMatch(/&\(\?:gt\|lt\|amp\|quot\);/);
+    expect(RENDER_CHECK).toMatch(/Escaped entity rendered as literal text/);
+  });
+
   it('resolves a relative artifact path instead of crashing on it', () => {
     expect(RENDER_CHECK).toMatch(/pathToFileURL\(resolve\(file\)\)\.href/);
     expect(RENDER_CHECK).toMatch(/Treat this as not verified, not as a pass/);

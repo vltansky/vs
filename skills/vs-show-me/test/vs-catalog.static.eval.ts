@@ -343,6 +343,46 @@ describe('the vs catalog is one source the CLI and the browser both load', () =>
     expect(onlyProse.children[0].type).toBe('div');
   });
 
+  it('decodes the entity-escaped body a Foldout hands a nested component', async () => {
+    // A component nested in <Foldout> receives its body with > escaped, so a
+    // Sequence arrow arrives as -&gt; and the diagram fell back to literal text.
+    const { vsCatalogFactory, vsLayoutCss } = await import(CATALOG_URL);
+    const stubReact = {
+      createElement: (type: string, props: Record<string, unknown>, ...children: unknown[]) => ({
+        type,
+        props,
+        children: children.flat(Infinity),
+      }),
+    };
+    const catalog = vsCatalogFactory(stubReact, vsLayoutCss);
+    const sequence = catalog.components.find((c: { name: string }) => c.name === 'Sequence');
+    const element = sequence.Component({
+      body: '- CLI -&gt; Registry: resolve &amp; pin\n- Registry --&gt; CLI: tarball',
+    });
+    const figure = element.children[0];
+    expect(figure.type).toBe('figure');
+    const svg = figure.children.find((child: { type: string }) => child.type === 'svg');
+    const groups = svg.children.filter(Boolean).filter((child: { type: string }) => child.type === 'g');
+    expect(groups).toHaveLength(4);
+    expect(JSON.stringify(groups[2])).toContain('resolve & pin');
+  });
+
+  it('renders inline code in Flow stage details instead of literal backticks', async () => {
+    const { vsCatalogFactory, vsLayoutCss } = await import(CATALOG_URL);
+    const stubReact = {
+      createElement: (type: string, props: Record<string, unknown>, ...children: unknown[]) => ({
+        type,
+        props,
+        children: children.flat(Infinity),
+      }),
+    };
+    const catalog = vsCatalogFactory(stubReact, vsLayoutCss);
+    const flow = catalog.components.find((c: { name: string }) => c.name === 'Flow');
+    const tree = JSON.stringify(flow.Component({ body: '- Test: run `npm test` first' }));
+    expect(tree).toContain('"type":"code","props":{"key":1},"children":["npm test"]');
+    expect(tree).not.toContain('`npm test`');
+  });
+
   it('chips Options dispositions, Risks levels, and Flow stage status', async () => {
     const { vsCatalogFactory, vsLayoutCss } = await import(CATALOG_URL);
     const stubReact = {
@@ -431,6 +471,24 @@ describe('the vs catalog is one source the CLI and the browser both load', () =>
     expect(vsLayoutCss).toContain('@media screen and (prefers-color-scheme: dark)');
     expect(vsLayoutCss).not.toMatch(/@media \(prefers-color-scheme: dark\)/);
     expect(vsLayoutCss).not.toContain('handDrawn');
+  });
+
+  it('spaces the Deep dive body and keeps authored grids inside the page', async () => {
+    const { vsLayoutCss } = await import(CATALOG_URL);
+    const css = vsLayoutCss.replace(/\s+/g, ' ');
+    // Components stacked in a Deep dive touched each other with no gap.
+    expect(css).toMatch(/\[data-htmdx-component='Foldout'\] > details > div > div\) > \* \+ \* \{ margin-top: 16px; \}/);
+    // A margin shorthand on the more specific prose rule would zero that gap.
+    expect(css).not.toMatch(/Foldout'\] > details > div > div\) > :is\(p, ul, ol\) \{[^}]*margin: /);
+    // A grid child with a wide <pre> stretched a phone page 250px sideways.
+    expect(css).toMatch(/\.grid\) > :not\(\[class\*='min-w-'\]\) \{ min-width: 0; \}/);
+  });
+
+  it('widens a mermaid panel to the diagram it holds, capped by the page', () => {
+    // The narrow measure squeezed a 1386px flowchart into 684px (7px text).
+    const definitions = fs.readFileSync(path.join(SKILL_DIR, 'assets', 'definitions.mjs'), 'utf8');
+    expect(definitions).toMatch(/max-width: max\(36rem, calc\(var\(--vs-mermaid-width, 0px\) \+ 2\.25rem\)\);/);
+    expect(definitions).toMatch(/setProperty\('--vs-mermaid-width', svg\.style\.maxWidth\)/);
   });
 
   it('gives mermaid a font list its directive sanitizer keeps', () => {

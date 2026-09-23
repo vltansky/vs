@@ -51,7 +51,17 @@ if (!chromium) {
   process.exit(2);
 }
 
-const browser = await chromium.launch();
+// playwright can be installed without its browser build; that is a check that
+// never ran, not an artifact that failed.
+let browser;
+try {
+  browser = await chromium.launch();
+} catch (error) {
+  console.error(`Cannot launch a browser: ${error.message.split('\n')[0]}`);
+  console.error('Run npx playwright install chromium, or use the host browser tooling.');
+  console.error('Treat this as not verified, not as a pass.');
+  process.exit(2);
+}
 let failed = 0;
 
 for (const file of files) {
@@ -96,11 +106,24 @@ for (const file of files) {
   // instead of failing, so the only symptom is a tag the reader can read.
   const escaped = body.match(/<\/?(?:video|audio|source|iframe|details|summary|div|figure)\b/i);
 
+  // A component nested in a built-in gets its body entity-escaped; when its
+  // parser misses that, the reader sees `-&gt;` where a diagram should be.
+  // Code and scripts may show entities on purpose, so only prose counts.
+  const leakedEntity = await page.evaluate(() => {
+    const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+    for (let node; (node = walker.nextNode()); ) {
+      if (node.parentElement?.closest('pre, code, script, style, textarea')) continue;
+      const hit = node.textContent.match(/&(?:gt|lt|amp|quot);/);
+      if (hit) return hit[0];
+    }
+    return null;
+  });
+
   // An unreachable runtime — unpublished pin, offline, blocked CDN — leaves the
   // page blank with no error of its own. Empty is never a rendered artifact.
   const blank = body.length < 40;
 
-  if (diagnostic || runtimeErrors.length || escaped || blank || brokenImages.length) {
+  if (diagnostic || runtimeErrors.length || escaped || leakedEntity || blank || brokenImages.length) {
     failed++;
     console.log(`FAIL  ${file}`);
     if (diagnostic) console.log('  ' + diagnostic[0].split('\n').filter(Boolean).slice(0, 3).join('\n  '));
@@ -111,6 +134,10 @@ for (const file of files) {
     if (escaped) {
       console.log(`  Raw HTML rendered as literal text: ${escaped[0]}`);
       console.log('  The pinned runtime predates the raw-HTML allowlist. Bump the pin.');
+    }
+    if (leakedEntity) {
+      console.log(`  Escaped entity rendered as literal text: ${leakedEntity}`);
+      console.log('  A nested component printed its body instead of parsing it. Move it out of the parent or fix its parser.');
     }
     if (blank) {
       console.log(`  Rendered ${body.length} chars — the runtime never loaded.`);
