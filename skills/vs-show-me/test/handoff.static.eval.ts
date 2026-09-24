@@ -80,7 +80,7 @@ describe('vs-show-me URL + first-screen shot', () => {
     expect(reject(path.join(DIR, 'SKILL.md')).status).toBe(0);
     for (const workflow of [
       'vs-eli5',
-      'vs-roast-ui',
+      'vs-ui',
       'vs-pr-walkthrough',
     ]) {
       const skill = fs.readFileSync(

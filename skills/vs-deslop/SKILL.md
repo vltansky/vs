@@ -178,4 +178,4 @@ Direct: emit **Next** only. Composed: return to caller.
 
 **Prev:** `/vs-build-it` | `/vs-roast-code` | `/vs-qa`
 **Next:** `/vs-verify`
-**Relevant:** `/vs-roast-ui`
+**Relevant:** `/vs-ui`

@@ -1,6 +1,6 @@
 {
   "name": "vs",
-  "version": "1.8.30",
+  "version": "1.9.0",
   "description": "Plan-to-ship workflow skills for shaping ideas, building autonomously, reviewing code, and shipping PRs with agent discipline.",
   "author": {
     "name": "Vlad Tansky",
@@ -40,7 +40,7 @@
     "./skills/vs-retro",
     "./skills/vs-rfc-research",
     "./skills/vs-roast-code",
-    "./skills/vs-roast-ui",
+    "./skills/vs-ui",
     "./skills/vs-setup-adr",
     "./skills/vs-shape-it",
     "./skills/vs-ship-it",

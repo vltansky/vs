@@ -55,11 +55,11 @@ const TRY_SKILL = fs.readFileSync(
   path.resolve(SHARED_DIR, '..', 'vs-try-skill', 'SKILL.md'),
   'utf8',
 );
-const ROAST_UI_CRITIQUE = fs.readFileSync(
+const UI_CRITIQUE = fs.readFileSync(
   path.resolve(
     SHARED_DIR,
     '..',
-    'vs-roast-ui',
+    'vs-ui',
     'references',
     'critique.md',
   ),
@@ -133,9 +133,9 @@ describe('subagent budget', () => {
 
   it('uses the current Codex fresh-context field at child call sites', () => {
     expect(TRY_SKILL).toMatch(/fork_turns[=:] ["`]none["`]/);
-    expect(ROAST_UI_CRITIQUE).toMatch(/fork_turns[=:] ["`]none["`]/);
+    expect(UI_CRITIQUE).toMatch(/fork_turns[=:] ["`]none["`]/);
     expect(TRY_SKILL).not.toContain('fork_context');
-    expect(ROAST_UI_CRITIQUE).not.toContain('fork_context');
+    expect(UI_CRITIQUE).not.toContain('fork_context');
   });
 
   it('is applied by build and review workflows', () => {

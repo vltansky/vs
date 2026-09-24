@@ -194,7 +194,7 @@ Architecture: /vs-architect -> /vs-shape-it -> /vs-build-it
 | `/vs-tdd` | Run a red-green-refactor loop |
 | `/vs-debug-mode` | Find a root cause before proposing a fix |
 | `/vs-roast-code` | Review a diff in two passes, with a second opinion for substantial changes |
-| `/vs-roast-ui` | Review a UI for hierarchy, accessibility, responsiveness, and generic design |
+| `/vs-ui` | Design, build, critique, and improve UI: layout, color, type, motion, and interaction feel |
 | `/vs-qa` | Test a web interface in a browser, fix issues, and verify again |
 | `/vs-verify` | Prove a change works with concrete evidence |
 | `/vs-deslop` | Simplify bloated or repetitive code without changing behavior |

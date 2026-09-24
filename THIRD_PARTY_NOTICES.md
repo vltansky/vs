@@ -133,25 +133,59 @@ is vendored. Strunk's rules assume a trusted author writing their own claims, so
 ## Impeccable
 
 - Project: https://github.com/pbakaus/impeccable
-- Used in: `skills/vs-roast-ui`
+- Used in: `skills/vs-ui`
 - Source: https://github.com/pbakaus/impeccable/blob/main/skill/SKILL.src.md
 - License: Apache-2.0
 
-The `vs-roast-ui` skill copies and adapts Paul Bakaus' Impeccable skill tree,
+The `vs-ui` skill copies and adapts Paul Bakaus' Impeccable skill tree,
 including its references, scripts, and nested helper agents. The copied
 Apache-2.0 license text is included at
-`skills/vs-roast-ui/LICENSE.impeccable`.
+`skills/vs-ui/LICENSE.impeccable`.
 
 ## oh-my-claudecode
 
 - Project: https://github.com/Yeachan-Heo/oh-my-claudecode
-- Used in: `skills/vs-roast-ui/reference/verdict.md`
+- Used in: `skills/vs-ui/reference/verdict.md`
 - Source: https://github.com/Yeachan-Heo/oh-my-claudecode/blob/main/skills/visual-verdict/SKILL.md
 - License: MIT
 
-The `vs-roast-ui` `verdict` command adapts Yeachan Heo's `visual-verdict` skill.
+The `vs-ui` `verdict` command adapts Yeachan Heo's `visual-verdict` skill.
 The copied MIT license notice is included at
-`skills/vs-roast-ui/LICENSE.oh-my-claudecode`.
+`skills/vs-ui/LICENSE.oh-my-claudecode`.
+
+## Emil Kowalski design engineering
+
+- Project: https://github.com/emilkowalski/skills
+- Used in: `skills/vs-ui/SKILL.md` (Motion, Interaction), `skills/vs-ui/references/animate.md`
+- Source: https://github.com/emilkowalski/skills/blob/main/skills/emil-design-eng/SKILL.md
+- License: MIT
+
+The `vs-ui` motion guidance adapts Emil Kowalski's `emil-design-eng` skill:
+the frequency gate, easing and duration rules, component rules, springs,
+gestures, performance notes, and the Before/After/Why review format. The copied
+MIT license notice is included at `skills/vs-ui/LICENSE.emil-design-eng`.
+
+## better-ui
+
+- Project: https://github.com/jakubkrehel/skills
+- Used in: `skills/vs-ui/SKILL.md` (Surfaces)
+- Source: https://github.com/jakubkrehel/skills/tree/main/skills/better-ui
+- License: MIT
+
+The `vs-ui` Surfaces rules adapt Jakub Krehel's `better-ui` skill: concentric
+border radius, shadows for elevation versus borders for structure, optical
+alignment, and image outlines. The copied MIT license notice is included at
+`skills/vs-ui/LICENSE.better-ui`.
+
+## UI Skills
+
+- Project: https://www.ui-skills.com/ (https://github.com/ibelick/ui-skills)
+- Used in: `skills/vs-ui`
+- Source: catalog and playbook (inspiration only)
+
+The UI Skills catalog by ibelick surfaced the upstream skills above, and its
+playbook informed the `tabular-nums`, 44px touch target, and `aspect-ratio`
+rules in the `vs-ui` Surfaces block. No UI Skills text is vendored.
 
 ## Warp skill-doctor
 

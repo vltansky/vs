@@ -98,7 +98,7 @@ describe('disk-backed evidence contract', () => {
     );
     const review = fs.readFileSync(path.join(ROOT, 'skills', 'vs-roast-code', 'SKILL.md'), 'utf8');
     const live = fs.readFileSync(
-      path.join(ROOT, 'skills', 'vs-roast-ui', 'references', 'live.md'),
+      path.join(ROOT, 'skills', 'vs-ui', 'references', 'live.md'),
       'utf8',
     );
 
