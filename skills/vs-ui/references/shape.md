@@ -111,7 +111,7 @@ The probes should differ in primary visual direction (hierarchy, topology, densi
 
 - Do **not** skip discovery because image generation is available.
 - Do **not** treat generated imagery as final UX specification, final copy, or final accessibility behavior.
-- Do **not** use this step for minor refinements of existing work. It's for shaping a new surface or clarifying a big directional choice.
+- Do **not** use this step for minor refinements of existing work. It's for shaping a new surface or clarifying a big directional choice, including a structural redesign of an existing surface (use a screenshot of it as the reference).
 
 If image generation isn't natively available, announce the skip in one line and proceed to the design brief.
 

@@ -25,7 +25,7 @@ Jakub Krehel's MIT-licensed `better-ui` skill
 
 When running bundled scripts, first resolve this skill directory and use it as
 `$VS_UI_SKILL_DIR`. In this repository the source path is
-`plugins/vs/skills/vs-ui`; in an installed agent runtime, use the installed
+`skills/vs-ui`; in an installed agent runtime, use the installed
 skill directory exposed by that runtime.
 
 ## Setup

@@ -51,13 +51,14 @@ If browser automation is available, each assessment creates its own new tab. Nev
 Read relevant source files and visually inspect the live page when browser automation is available. Think like a design director.
 
 Evaluate:
+- **Primary job**: before scoring anything, name what the user comes to this surface to do most often and the one primary action per item (open, approve, reply, pay). Derive it from routes, handlers, and navigation targets; ask only if the code leaves it ambiguous. Every later finding is judged against this job.
 - **AI slop**: Would someone believe "AI made this" immediately? Check all DON'T guidance from the parent VS skill.
 - **Holistic design**: hierarchy, IA, emotional fit, discoverability, composition, typography, color, accessibility, states, copy, and edge cases.
 - **Cognitive load**: consult the [Cognitive Load Assessment](#cognitive-load-assessment) section below; report checklist failures and decision points with >4 visible options.
 - **Emotional journey**: peak-end rule, emotional valleys, reassurance at high-stakes moments.
 - **Nielsen heuristics**: consult the [Heuristics Scoring Guide](#heuristics-scoring-guide) section below; score all 10 heuristics 0-4.
 
-Return: AI slop verdict, heuristic scores, cognitive load, emotional journey, 2-3 strengths, 3-5 priority issues, persona red flags, minor observations, and provocative questions.
+Return: primary job, AI slop verdict, heuristic scores, cognitive load, emotional journey, 2-3 strengths, 3-5 priority issues, persona red flags, minor observations, and provocative questions.
 
 ### Assessment B: Detector + Browser Evidence
 
@@ -143,6 +144,19 @@ accessibility problems; exact copies can still be bad interfaces.
 
 #### Overall Impression
 A brief gut reaction: what works, what doesn't, and the single biggest opportunity.
+
+#### Structural Directions
+
+A list of polish fixes cannot tell the user whether the layout itself is wrong. When the primary job is poorly served by the current structure (no clear primary action, wrong density for the volume, navigation that fights the task), or the user asked to improve or redesign the surface rather than fix specific issues, propose **2-3 structural directions** before the Priority Issues. Skip this section only when the structure already fits the job; say so in one line.
+
+- Directions differ in topology or density (e.g. compact table/queue, cards, list + detail panel), not in palette or spacing.
+- For each: a name, what changes, and the condition under which it is the right pick ("if staff manage dozens of reports a day").
+- Give **one pick**, tied to its condition, plus the cross-cutting improvement that applies whichever direction wins.
+- Keep the existing shell, navigation, language, and direction (RTL/LTR); only the surface under critique changes.
+
+**Visualize each direction when the harness has native image generation** (Codex's `image_gen`, an image-generation MCP tool, or similar). Generate one mock per direction, using a screenshot of the current surface as the reference so brand, nav, and copy language carry over. Show the mocks inline with their direction and note that mock content is illustrative. If image generation is not natively available, state in one line that mocks are skipped for that reason and describe the directions in prose; do not ask the user to install tooling.
+
+Mocks are direction tests, not specs: the chosen direction still goes through `shape` or `craft` for states, copy, and accessibility.
 
 #### What's Working
 Highlight 2-3 things done well. Be specific about why they work.
@@ -630,6 +644,8 @@ Tag each individual issue found during scoring with a priority level:
 | **P3** | Polish | Nice-to-fix, no real user impact | Fix if time permits |
 
 **Tip**: If you're unsure between two levels, ask: "Would a user contact support about this?" If yes, it's at least P1.
+
+**Seeded data**: if you seeded or mocked data to populate the surface, a finding that only appears with that data (empty list, hidden rows, denied writes) is unverified. Check intent in code, tests, and `git log` before tagging it; a filter or rule that is working as designed is not a P0, and the seed is what needs fixing.
 
 ---
 
