@@ -492,8 +492,10 @@ export const vsLayoutCss = `
   }
   /* On a phone, fit-to-width shrinks a diagram past reading size (a 661px
      flowchart drew 6px text in a 350px panel). Hold it at three quarters of
-     its drawn size and let the panel scroll sideways; Full view still zooms. */
-  @media screen and (max-width: 720px) {
+     its drawn size and let the panel scroll sideways; Full view still zooms.
+     Touch only: a narrow desktop window has pan/zoom, and there the overlay
+     scrollbar hid the clipped half of the drawing. */
+  @media screen and (max-width: 720px) and (pointer: coarse) {
     .htmdx-app[data-htmdx-layout^='vs'] .htmdx-mermaid { overflow-x: auto; }
     .htmdx-app[data-htmdx-layout^='vs'] .htmdx-mermaid svg[id] {
       min-width: calc(var(--vs-mermaid-width, 0px) * 0.75);
@@ -648,7 +650,7 @@ export const vsLayoutCss = `
       fill: #221F1B !important;
       stroke: #E8998F !important;
     }
-    :is(.htmdx-app[data-htmdx-layout^='vs'] .htmdx-mermaid, .vs-mermaid-dialog) svg :is(text, .nodeLabel, .stateLabel, .label) {
+    :is(.htmdx-app[data-htmdx-layout^='vs'] .htmdx-mermaid, .vs-mermaid-dialog) svg :is(text, text > tspan, .nodeLabel, .stateLabel, .label) {
       fill: #EDE8DE !important;
       color: #EDE8DE !important;
     }
