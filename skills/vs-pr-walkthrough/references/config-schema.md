@@ -29,7 +29,8 @@ version files, and snapshots.
 | `id` | string, required | Unique anchor beginning with a letter; letters, digits, `_`, and `-` only |
 | `title` | string, required | Behavioral step, such as `Step 2 · The request becomes a persisted job` |
 | `files` | string array, required | Exact repo-relative diff paths in first-needed reading order |
-| `lede` | string | What this step establishes and why it comes here |
+| `lede` | string | Optional one-line context; not the primary spine |
+| `pseudocode` | string, required | Short language-agnostic spine (~12 lines max) rendered as a fenced code block above this section's files |
 | `watch` | string array | Decisions, assumptions, workarounds, or uncertainties to inspect |
 | `notes` | `{file, text}` array | A short paragraph above one exact file path in this section |
 | `fold` | boolean | Start every file in this section folded |
@@ -37,6 +38,10 @@ version files, and snapshots.
 Every changed path must appear exactly once across all `files` arrays. The
 renderer rejects missing, duplicated, and unknown paths. A note path must
 exactly match a file in its own section; basename matching is not allowed.
+
+Each section must include `pseudocode`: the short fenced spine the reader
+predicts from before opening the real diff hunks. `lede` may stay as one-line
+context; it is not the primary spine.
 
 ## Formatting in narrative fields
 
@@ -49,6 +54,11 @@ exactly match a file in its own section; basename matching is not allowed.
 The tags accept no attributes. Everything else is escaped and displayed as
 literal text, including an allowed tag with an attribute. `title`, section
 titles, file paths, and source code are always fully escaped.
+
+`pseudocode` is not rich HTML. It is plain language-agnostic text rendered as a
+short fenced code block (escaped `<pre class="pseudocode"><code>…</code></pre>`).
+Do not put real TypeScript/Python dumps or a line-by-line prose tour in it.
+The renderer rejects more than 12 non-empty lines.
 
 ## Example
 
@@ -66,7 +76,8 @@ titles, file paths, and source code are always fully escaped.
     {
       "id": "retry-policy",
       "title": "Step 1 · The retry rule",
-      "lede": "The <code>attempts</code> policy constrains every later transition.",
+      "lede": "The attempts policy constrains every later transition.",
+      "pseudocode": "IF attempts >= limit THEN\n  mark job terminal\nELSE\n  enqueue retry with attempts+1",
       "watch": [
         "The third attempt becomes terminal; verify that this matches the public contract."
       ],
@@ -85,6 +96,7 @@ titles, file paths, and source code are always fully escaped.
       "id": "plumbing",
       "title": "Aside · Plumbing",
       "lede": "Registration and dependency changes.",
+      "pseudocode": "REGISTER package\nLOCK dependencies",
       "fold": true,
       "files": ["package-lock.json"]
     }
