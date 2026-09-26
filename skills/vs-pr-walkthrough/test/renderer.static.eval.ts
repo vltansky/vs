@@ -37,6 +37,7 @@ new file mode 100644
         id: 'policy',
         title: 'Step 1 · The retry rule',
         lede: 'This rule shapes the UI.',
+        pseudocode: 'IF attempts >= limit THEN\n  mark terminal\nELSE\n  enqueue retry',
         watch: ['Three attempts is part of the API contract.'],
         files: ['src/policy.ts'],
       },
@@ -44,6 +45,7 @@ new file mode 100644
         id: 'verification',
         title: 'Step 2 · The screen proves it',
         lede: 'The test verifies the surfaced state.',
+        pseudocode: 'WHEN banner mounts\n  ASSERT attempts shown',
         files: ['src/screen.spec.ts'],
       },
     ],
@@ -117,6 +119,7 @@ describe('walkthrough renderer', () => {
           id: 'policy',
           title: 'Step 1 · The retry rule',
           lede: 'The <code>attempts</code> value shapes the UI.',
+          pseudocode: 'IF attempts >= limit THEN\n  mark terminal\nELSE\n  enqueue retry',
           watch: ['Keep <em>terminal</em> behavior explicit.', '<strong onclick="bad()">unsafe</strong>'],
           notes: [{ file: 'src/policy.ts', text: 'Read this <b>first</b>.' }],
           files: ['src/policy.ts'],
@@ -125,6 +128,7 @@ describe('walkthrough renderer', () => {
           id: 'verification',
           title: 'Step 2 · The screen proves it',
           lede: 'The test verifies the surfaced state.',
+          pseudocode: 'WHEN banner mounts\n  ASSERT attempts shown',
           files: ['src/screen.spec.ts'],
         },
       ],
@@ -182,7 +186,7 @@ esac
 
   it('fails when a changed file is not placed', () => {
     const files = fixture({
-      sections: [{ id: 'policy', title: 'Step 1 · Policy', lede: 'The rule.', files: ['src/policy.ts'] }],
+      sections: [{ id: 'policy', title: 'Step 1 · Policy', lede: 'The rule.', pseudocode: 'apply policy', files: ['src/policy.ts'] }],
     });
     const result = render(files);
     expect(result.status).toBe(1);
@@ -193,8 +197,8 @@ esac
   it('fails on duplicate and stale paths', () => {
     const files = fixture({
       sections: [
-        { id: 'one', title: 'Step 1 · One', lede: 'One.', files: ['src/policy.ts', 'missing.ts'] },
-        { id: 'two', title: 'Step 2 · Two', lede: 'Two.', files: ['src/policy.ts', 'src/screen.spec.ts'] },
+        { id: 'one', title: 'Step 1 · One', lede: 'One.', pseudocode: 'step one', files: ['src/policy.ts', 'missing.ts'] },
+        { id: 'two', title: 'Step 2 · Two', lede: 'Two.', pseudocode: 'step two', files: ['src/policy.ts', 'src/screen.spec.ts'] },
       ],
     });
     const result = render(files);
@@ -210,14 +214,99 @@ esac
           id: 'one',
           title: 'Step 1 · One',
           lede: 'One.',
+          pseudocode: 'step one',
           notes: [{ file: 'policy.ts', text: 'Ambiguous basename.' }],
           files: ['src/policy.ts'],
         },
-        { id: 'two', title: 'Step 2 · Two', lede: 'Two.', files: ['src/screen.spec.ts'] },
+        { id: 'two', title: 'Step 2 · Two', lede: 'Two.', pseudocode: 'step two', files: ['src/screen.spec.ts'] },
       ],
     });
     const result = render(files);
     expect(result.status).toBe(1);
     expect(result.stderr).toContain('note paths must exactly match a file in their section: policy.ts');
   });
+
+  it('renders per-section pseudocode above the files as an escaped code block', () => {
+    const files = fixture({
+      sections: [
+        {
+          id: 'policy',
+          title: 'Step 1 · The retry rule',
+          lede: 'One-line context.',
+          pseudocode: 'IF attempts >= limit THEN\n  mark terminal\nELSE\n  enqueue retry',
+          watch: ['Three attempts is part of the API contract.'],
+          files: ['src/policy.ts'],
+        },
+        {
+          id: 'verification',
+          title: 'Step 2 · The screen proves it',
+          lede: 'Proof.',
+          pseudocode: 'WHEN banner mounts\n  ASSERT attempts shown',
+          files: ['src/screen.spec.ts'],
+        },
+      ],
+    });
+    const result = render(files);
+    expect(result.status, result.stderr).toBe(0);
+    const html = fs.readFileSync(files.outPath, 'utf8');
+    expect(html).toMatch(/class="pseudocode"/);
+    const policyIdx = html.indexOf('id="policy"');
+    const pseudoIdx = html.indexOf('class="pseudocode"', policyIdx);
+    const fileIdx = html.indexOf('data-path="src/policy.ts"', policyIdx);
+    expect(pseudoIdx).toBeGreaterThan(policyIdx);
+    expect(fileIdx).toBeGreaterThan(pseudoIdx);
+    expect(html).toContain('IF attempts &gt;= limit THEN');
+    expect(html).toContain('mark terminal');
+    // Real diff hunks remain as evidence.
+    expect(html.replace(/<[^>]+>/g, '')).toContain('export const attempts = 3;');
+  });
+
+  it('rejects section pseudocode longer than about 12 lines', () => {
+    const long = Array.from({ length: 13 }, (_, i) => `step ${i + 1}`).join('\n');
+    const files = fixture({
+      sections: [
+        {
+          id: 'policy',
+          title: 'Step 1 · Policy',
+          lede: 'Rule.',
+          pseudocode: long,
+          files: ['src/policy.ts'],
+        },
+        {
+          id: 'verification',
+          title: 'Step 2 · Proof',
+          lede: 'Proof.',
+          pseudocode: 'assert shown',
+          files: ['src/screen.spec.ts'],
+        },
+      ],
+    });
+    const result = render(files);
+    expect(result.status).toBe(1);
+    expect(result.stderr).toMatch(/pseudocode.*12|12.*lines/i);
+  });
+
+  it('requires per-section pseudocode', () => {
+    const files = fixture({
+      sections: [
+        {
+          id: 'policy',
+          title: 'Step 1 · Policy',
+          lede: 'Rule.',
+          files: ['src/policy.ts'],
+        },
+        {
+          id: 'verification',
+          title: 'Step 2 · Proof',
+          lede: 'Proof.',
+          pseudocode: 'assert shown',
+          files: ['src/screen.spec.ts'],
+        },
+      ],
+    });
+    const result = render(files);
+    expect(result.status).toBe(1);
+    expect(result.stderr).toMatch(/pseudocode/i);
+  });
+
 });

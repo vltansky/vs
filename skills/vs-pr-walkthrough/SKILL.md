@@ -103,17 +103,41 @@ Each section must:
 
 - say what happens, not name a directory;
 - contain files in first-needed reading order;
-- explain what the step establishes for the next section;
+- carry a short fenced language-agnostic `pseudocode` spine (required) that
+  the reader can use to predict the next step before opening the real hunks;
+- keep `lede` optional and secondary — at most one line of context, not the
+  primary spine;
 - use `watch` for a verified decision, assumption, workaround, or uncertainty
   the diff cannot explain by itself.
+
+### Pseudocode spine (not prose tour)
+
+The section spine is short fenced language-agnostic pseudocode rendered above
+that section's files. Real diff hunks stay as evidence — do not remove the
+diff surface or replace hunks with narration.
+
+Constraints:
+
+- Language-agnostic: not a real TypeScript/Python dump, not a line-by-line
+  prose tour of the algorithm.
+- About **~12 lines** max (the renderer rejects more than 12 non-empty lines).
+- Litmus inspired by `/vs-show-me`: use full conditional pseudocode when the
+  reader must **predict the next step under a condition**; keep
+  **who/what connects** sections lighter (still a short `pseudocode` block,
+  just fewer branches). Do not turn every section into three surfaces.
+- This does **not** change `/vs-ship-it` Summary pick-one — that firewall stays
+  untouched. Walkthrough stacks spine + evidence; ship-it still picks one
+  Summary visual.
 
 Place each file exactly once. Cross-reference a file in prose instead of
 duplicating its diff. Put generated files, registrations, snapshots, and
 lockfiles in a final `Aside · Plumbing` section.
 
-Narrative fields accept only `<b>`, `<i>`, `<em>`, `<strong>`, `<code>`, and
+Narrative fields (`intro`, `subtitle`, `pr_label`, `lede`, `watch`,
+`notes[].text`) accept only `<b>`, `<i>`, `<em>`, `<strong>`, `<code>`, and
 `<br>` with no attributes. Everything else is escaped, including private source
-code. Use `notes` sparingly for context immediately above one exact file path,
+code. `pseudocode` is plain text rendered as an escaped fenced block, not rich
+HTML. Use `notes` sparingly for context immediately above one exact file path,
 and `path_prefix` when a monorepo prefix adds visual noise.
 
 ## 4. Render strictly
@@ -154,7 +178,8 @@ The saved page must provide:
 - self-contained syntax highlighting for TypeScript/JavaScript, JVM languages,
   Python, JSON, CSS, shell, and YAML;
 - optional ticket/team subtitle, custom PR label, shortened display paths, and
-  exact-path notes.
+  exact-path notes;
+- per-section short fenced pseudocode above the real diff hunks.
 
 ## 5. Verify the artifact
 
@@ -176,8 +201,8 @@ through HTMDX.
 
 Start from the previous config, capture the new exact head and diff, then
 re-read every changed or newly added file before updating the narrative. Never
-carry a `watch`, note, or lede forward merely because its file path still
-exists. Viewed state intentionally starts fresh for the new head SHA.
+carry a `watch`, note, `lede`, or `pseudocode` forward merely because its file
+path still exists. Viewed state intentionally starts fresh for the new head SHA.
 
 ## VS adaptations
 

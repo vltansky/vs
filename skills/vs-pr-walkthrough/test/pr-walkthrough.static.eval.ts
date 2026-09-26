@@ -98,3 +98,29 @@ describe('vs-pr-walkthrough strict rendering', () => {
     expect(readme).toMatch(/\| `\/vs-pr-walkthrough` \|/);
   });
 });
+
+describe('vs-pr-walkthrough pseudocode spine', () => {
+  it('makes short fenced language-agnostic pseudocode the section spine, not prose lede', () => {
+    expect(SKILL).toMatch(/pseudocode/i);
+    expect(SKILL).toMatch(/short fenced pseudocode|fenced.*pseudocode|language-agnostic/i);
+    expect(SKILL).toMatch(/not (?:a )?(?:real[- ]language|TypeScript|Python|prose)|language-agnostic/i);
+    expect(SKILL).toMatch(/lede.{0,120}(?:not|secondary|context|one[- ]line)|(?:not|secondary).{0,80}lede|primary spine.{0,80}pseudocode|pseudocode.{0,80}(?:spine|primary)/is);
+    expect(SCHEMA).toMatch(/`pseudocode`/);
+  });
+
+  it('caps section pseudocode at about 12 lines and keeps real diff hunks as evidence', () => {
+    expect(SKILL).toMatch(/~?\s*12\s*lines?|12[- ]line/i);
+    expect(SKILL).toMatch(/complete(?:\s+real)?\s+(?:diff|hunk)|real diff hunk|diff surface|evidence/i);
+    expect(SKILL).toMatch(/Do not remove|keep(?:s)? (?:the )?(?:complete |full )?diff|hunks stay/i);
+  });
+
+  it('uses the show-me litmus: predict next step under a condition vs who/what connects', () => {
+    expect(SKILL).toMatch(/predict(?:\s+the)?\s+next\s+step/i);
+    expect(SKILL).toMatch(/condition/i);
+    expect(SKILL).toMatch(/who\/what connects|who or what connects/i);
+  });
+
+  it('does not change ship-it Summary pick-one', () => {
+    expect(SKILL).toMatch(/not (?:change|touch|alter|inherit).{0,80}ship-it|ship-it.{0,80}(?:pick-one|Summary).{0,80}(?:unchanged|untouched|stays)|unlike.{0,40}ship-it|do not.{0,40}ship-it/is);
+  });
+});
