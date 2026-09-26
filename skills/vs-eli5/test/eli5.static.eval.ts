@@ -124,5 +124,7 @@ describe('vs-eli5 inherits show-me logic pseudocode stack', () => {
     expect(SKILL).toMatch(/diagram/i);
     expect(SKILL).toMatch(/inherit/i);
     expect(SKILL).toMatch(/do not pick one|don't pick one/i);
+    // Align with show-me: logic | branching | mechanism (do not drop mechanism).
+    expect(SKILL).toMatch(/logic[\s|,]+branching[\s|,]+(?:or\s+)?(?:a\s+)?mechanism|logic\|branching\|mechanism/i);
   });
 });
