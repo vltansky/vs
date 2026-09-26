@@ -34,8 +34,8 @@ describe('vs-pr-walkthrough boundary', () => {
 });
 
 describe('vs-pr-walkthrough story contract', () => {
-  it('orders the complete diff by behavior rather than directory', () => {
-    expect(SKILL).toMatch(/cause to effect/i);
+  it('orders the walkthrough as a product or execution story rather than directory dump', () => {
+    expect(SKILL).toMatch(/cause to effect|product|execution (?:story|path)|story/i);
     expect(SKILL).toMatch(/Aim for four to eight sections/i);
     expect(SKILL).toMatch(/never split one stage merely to hit a number/i);
     expect(SKILL).toMatch(/User journey/);
@@ -62,12 +62,11 @@ describe('vs-pr-walkthrough strict rendering', () => {
     expect(SCHEMA).toMatch(/rejects missing, duplicated, and unknown paths/i);
   });
 
-  it('keeps the complete original feature surface', () => {
+  it('keeps the original CLI and narrative surface without rendered hunk panels', () => {
     expect(SKILL).toMatch(/original positional CLI/i);
     expect(SKILL).toMatch(/renderer-side diff fetching/i);
-    expect(SKILL).toMatch(/self-contained syntax highlighting/i);
     expect(SKILL).toMatch(/Re-running after the PR changes/i);
-    for (const field of ['subtitle', 'pr_label', 'path_prefix', 'fold', 'notes']) {
+    for (const field of ['subtitle', 'pr_label', 'fold', 'notes']) {
       expect(SCHEMA).toContain(`\`${field}\``);
     }
     expect(SCHEMA).toMatch(/<b> <i> <em> <strong> <code> <br>/);
@@ -85,9 +84,8 @@ describe('vs-pr-walkthrough strict rendering', () => {
   it('uses bespoke HTML for the interactive review surface', () => {
     expect(SKILL).toMatch(/render-walkthrough\.mjs/);
     expect(SKILL).toMatch(/bespoke HTML rather than\s+HTMDX/i);
-    expect(SKILL).toMatch(/original GitHub-native, single-column walkthrough UI/i);
-    expect(SKILL).toMatch(/per-file and per-section viewed controls/i);
-    expect(SKILL).toMatch(/direct GitHub links/i);
+    expect(SKILL).toMatch(/single-column walkthrough UI|GitHub-native/i);
+    expect(SKILL).toMatch(/direct GitHub links|PR URL|head SHA/i);
     expect(SKILL).toMatch(/first-screen screenshot/i);
   });
 
@@ -108,10 +106,26 @@ describe('vs-pr-walkthrough pseudocode spine', () => {
     expect(SCHEMA).toMatch(/`pseudocode`/);
   });
 
-  it('caps section pseudocode at about 12 lines and keeps real diff hunks as evidence', () => {
+  it('caps section pseudocode at about 12 lines and does not render unified diffs in the HTML', () => {
     expect(SKILL).toMatch(/~?\s*12\s*lines?|12[- ]line/i);
-    expect(SKILL).toMatch(/complete(?:\s+real)?\s+(?:diff|hunk)|real diff hunk|diff surface|evidence/i);
-    expect(SKILL).toMatch(/Do not remove|keep(?:s)? (?:the )?(?:complete |full )?diff|hunks stay/i);
+    expect(SKILL).toMatch(/must not (?:show|render) (?:actual )?code diffs|no (?:green\/?red|unified[- ]?diff)|(?:drop|stop rendering|does not render).{0,40}(?:hunk|file panel|unified[- ]?diff)|HTML must not show.{0,40}diff/is);
+    expect(SKILL).not.toMatch(/Real diff hunks stay as evidence/i);
+    expect(SKILL).not.toMatch(/Do not remove the\s+diff surface/i);
+  });
+
+  it('keeps PR URL, head SHA, and ordered per-file blob links so the reader opens real code on GitHub', () => {
+    expect(SKILL).toMatch(/opens? real code on GitHub/i);
+    expect(SKILL).toMatch(/head SHA link|commit link|\/commit\//i);
+    expect(SKILL).toMatch(/ordered (?:GitHub )?(?:file )?links|file links in reading order|blob at headSha|\/blob\//i);
+    expect(SCHEMA).toMatch(/`pr`/);
+    expect(SCHEMA).toMatch(/`headSha`/);
+  });
+
+  it('treats files arrays as reading-order source for ordered GitHub links, not hunk panels', () => {
+    expect(SKILL).toMatch(/authoring\/(?:order )?validation|order validation without rendering|not rendered as hunk|without rendering hunks|files arrays.{0,80}(?:optional|authoring)|reading[- ]order/is);
+    expect(SKILL).toMatch(/ordered (?:GitHub )?(?:file )?links|GitHub (?:file )?links.{0,40}reading[- ]order|blob\/|\/blob\//is);
+    expect(SCHEMA).toMatch(/authoring|without rendering hunks|not rendered|optional.*files|files.*optional|reading[- ]order|ordered.*(?:GitHub|blob|link)/is);
+    expect(SCHEMA).toMatch(/blob\/|\/blob\/|ordered (?:GitHub )?(?:file )?links/is);
   });
 
   it('uses the show-me litmus: predict next step under a condition vs who/what connects', () => {
