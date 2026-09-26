@@ -1,13 +1,14 @@
 ---
 name: vs-pr-walkthrough
-description: "Use when a large or unfamiliar GitHub PR is hard to read in GitHub's alphabetical file order, or the user asks for a logical walkthrough of a PR. Produces one interactive HTML diff ordered as a step-by-step product or execution story."
+description: "Use when a large or unfamiliar GitHub PR is hard to read in GitHub's alphabetical file order, or the user asks for a logical walkthrough of a PR. Produces one interactive HTML walkthrough ordered as a step-by-step product or execution story with a pseudocode spine (real code opens on GitHub)."
 ---
 
 # PR Walkthrough
 
 Turn a large GitHub PR into a review surface that reads from cause to effect.
-The artifact contains the complete diff, but orders files by the product journey
-or execution path instead of by directory.
+The HTML orders the change as a product or execution story with a short
+pseudocode spine per section. Real code stays on GitHub — open it via the PR
+URL and exact head SHA links.
 
 Based on the original `pr-walkthrough` skill by **Oren Roth**.
 
@@ -102,19 +103,24 @@ behavioral stages; never split one stage merely to hit a number.
 Each section must:
 
 - say what happens, not name a directory;
-- contain files in first-needed reading order;
+- list `files` in first-needed reading order for authoring/order validation
+  (optional in the sense that they are **not rendered as hunk panels** — when
+  a diff is supplied, placement still fails closed on missing/duplicate/stale
+  paths);
 - carry a short fenced language-agnostic `pseudocode` spine (required) that
-  the reader can use to predict the next step before opening the real hunks;
+  the reader can use to predict the next step before opening real code on
+  GitHub;
 - keep `lede` optional and secondary — at most one line of context, not the
   primary spine;
 - use `watch` for a verified decision, assumption, workaround, or uncertainty
-  the diff cannot explain by itself.
+  the story cannot explain by itself.
 
 ### Pseudocode spine (not prose tour)
 
-The section spine is short fenced language-agnostic pseudocode rendered above
-that section's files. Real diff hunks stay as evidence — do not remove the
-diff surface or replace hunks with narration.
+The section spine is short fenced language-agnostic pseudocode. The HTML must
+**not** show actual code diffs anymore — drop or stop rendering hunk/file
+panels (no green/red unified-diff UI). Keep the PR URL and exact head SHA
+link(s) so the reader **opens real code on GitHub**.
 
 Constraints:
 
@@ -126,19 +132,21 @@ Constraints:
   **who/what connects** sections lighter (still a short `pseudocode` block,
   just fewer branches). Do not turn every section into three surfaces.
 - This does **not** change `/vs-ship-it` Summary pick-one — that firewall stays
-  untouched. Walkthrough stacks spine + evidence; ship-it still picks one
-  Summary visual.
+  untouched. Walkthrough is pseudocode-only in the HTML; ship-it still picks
+  one Summary visual. Do not change pathgrade.
 
-Place each file exactly once. Cross-reference a file in prose instead of
-duplicating its diff. Put generated files, registrations, snapshots, and
-lockfiles in a final `Aside · Plumbing` section.
+Place each file exactly once across `files` arrays for order validation.
+Cross-reference a file in prose instead of duplicating it. Put generated
+files, registrations, snapshots, and lockfiles in a final `Aside · Plumbing`
+section. `pr.diff` may still be fetched for authoring order and strict
+placement; it must not appear in the HTML output.
 
 Narrative fields (`intro`, `subtitle`, `pr_label`, `lede`, `watch`,
 `notes[].text`) accept only `<b>`, `<i>`, `<em>`, `<strong>`, `<code>`, and
-`<br>` with no attributes. Everything else is escaped, including private source
-code. `pseudocode` is plain text rendered as an escaped fenced block, not rich
-HTML. Use `notes` sparingly for context immediately above one exact file path,
-and `path_prefix` when a monorepo prefix adds visual noise.
+`<br>` with no attributes. Everything else is escaped. `pseudocode` is plain
+text rendered as an escaped fenced block, not rich HTML. Use `notes`
+sparingly for authoring context tied to an exact file path (they are not
+rendered as hunk panels).
 
 ## 4. Render strictly
 
@@ -151,11 +159,12 @@ node <this-skill-dir>/scripts/render-walkthrough.mjs config.json \
 ```
 
 The original positional CLI, optional renderer-side diff fetching, `subtitle`,
-`pr_label`, `path_prefix`, configurable `fold`, rich narrative allowlist,
-per-file `notes`, and self-contained syntax highlighting are all supported. If
-`--diff` is omitted, the renderer confirms the live PR still equals `headSha`
-before fetching the diff. The captured-diff form above is preferred in VS
-because it also serves as durable review evidence.
+`pr_label`, configurable `fold`, rich narrative allowlist, and per-file `notes`
+(for authoring/order validation) are all supported. The captured diff is used
+for strict placement only — it is not rendered into the HTML. If `--diff` is
+omitted, the renderer confirms the live PR still equals `headSha` before
+fetching the diff for validation. The captured-diff form above is preferred in
+VS because it also serves as durable authoring evidence.
 
 Rendering fails when:
 
@@ -169,17 +178,14 @@ untrustworthy, and a stale map can explain code that is no longer in the PR.
 
 The saved page must provide:
 
-- the original GitHub-native, single-column walkthrough UI;
-- the full unified diff grouped by the authored story;
-- per-file and per-section viewed controls;
+- a single-column walkthrough UI ordered as the authored story;
+- per-section short fenced language-agnostic pseudocode (the spine);
+- PR URL and exact head SHA commit link(s) so the reader opens real code on
+  GitHub;
+- no unified-diff rendering and no hunk/file panels (no green/red diff UI);
+- per-section viewed controls;
 - progress persisted by PR URL plus exact head SHA;
-- direct GitHub links for files and changed lines;
-- collapse controls, with tests and plumbing folded by default;
-- self-contained syntax highlighting for TypeScript/JavaScript, JVM languages,
-  Python, JSON, CSS, shell, and YAML;
-- optional ticket/team subtitle, custom PR label, shortened display paths, and
-  exact-path notes;
-- per-section short fenced pseudocode above the real diff hunks.
+- optional ticket/team subtitle, custom PR label, and watch items.
 
 ## 5. Verify the artifact
 
@@ -187,9 +193,9 @@ Verify both mechanics and the rendered page:
 
 1. Re-fetch the PR head SHA and confirm it still equals `config.json.headSha`.
 2. Run the renderer again; strict placement must pass with no ignored files.
-3. Open the HTML and verify the title, first section, diff rows, progress, and
-   one GitHub line link.
-4. Mark one file viewed, reload, and confirm exact-head progress persists.
+3. Open the HTML and verify the title, first section, pseudocode spine,
+   progress, and the PR URL plus head SHA links (no rendered diffs).
+4. Mark one section read, reload, and confirm exact-head progress persists.
 5. Capture a first-screen screenshot.
 
 The page needs custom stateful behavior, so it is bespoke HTML rather than
@@ -238,8 +244,8 @@ Do not paste the walkthrough or diff into chat.
 - **Kind:** Building block
 - **Inputs:** a GitHub PR URL or number, its exact head SHA, complete unified
   diff, and enough surrounding code to establish reading order
-- **Outputs:** one interactive HTML walkthrough plus its JSON source map and
-  captured diff
+- **Outputs:** one interactive HTML walkthrough (pseudocode spine, no rendered
+  diffs) plus its JSON source map and optional captured diff for authoring
 - **Status:** `READY_FOR_REVIEW | BLOCKED_STALE_HEAD | BLOCKED_INCOMPLETE_MAP | SKIPPED_SMALL_PR`
 - **Consumers:** direct human invocation, onboarding a reviewer to an
   unfamiliar PR, and `vs-ship-it` for automatic large-PR review handoff

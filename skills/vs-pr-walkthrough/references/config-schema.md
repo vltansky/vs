@@ -15,7 +15,7 @@ otherwise escaped.
 | `subtitle` | string | Small text beside the PR link, such as a ticket or team |
 | `pr_label` | string | PR link text; defaults to `<repo> PR #<n>` |
 | `intro` | string | Boxed paragraph explaining how to read the page |
-| `path_prefix` | string | Prefix removed from displayed filenames; links retain full paths |
+| `path_prefix` | string | Optional monorepo prefix hint for authoring; HTML no longer renders file panels |
 | `out` | string | Output path when `--out` is omitted |
 | `fold` | regex-source string | Files matching this start folded |
 
@@ -28,20 +28,22 @@ version files, and snapshots.
 |---|---|---|
 | `id` | string, required | Unique anchor beginning with a letter; letters, digits, `_`, and `-` only |
 | `title` | string, required | Behavioral step, such as `Step 2 · The request becomes a persisted job` |
-| `files` | string array, required | Exact repo-relative diff paths in first-needed reading order |
+| `files` | string array | Exact repo-relative diff paths in first-needed reading order for **authoring/order validation**; not rendered as hunk panels. When a diff is supplied, every changed path must appear exactly once |
 | `lede` | string | Optional one-line context; not the primary spine |
-| `pseudocode` | string, required | Short language-agnostic spine (~12 lines max) rendered as a fenced code block above this section's files |
+| `pseudocode` | string, required | Short language-agnostic spine (~12 lines max) rendered as a fenced code block (the HTML spine; no unified diffs) |
 | `watch` | string array | Decisions, assumptions, workarounds, or uncertainties to inspect |
-| `notes` | `{file, text}` array | A short paragraph above one exact file path in this section |
-| `fold` | boolean | Start every file in this section folded |
+| `notes` | `{file, text}` array | Authoring note tied to one exact file path in this section (not rendered as a hunk panel) |
+| `fold` | boolean | Start this section folded |
 
-Every changed path must appear exactly once across all `files` arrays. The
-renderer rejects missing, duplicated, and unknown paths. A note path must
-exactly match a file in its own section; basename matching is not allowed.
+`files` arrays are for authoring/order validation without rendering hunks. When
+a diff is supplied, the renderer rejects missing, duplicated, and unknown paths. A note path must exactly match a file in its own section; basename
+matching is not allowed. `files` may be omitted only when no diff is being
+validated; with a captured or fetched diff, keep complete placement.
 
-Each section must include `pseudocode`: the short fenced spine the reader
-predicts from before opening the real diff hunks. `lede` may stay as one-line
-context; it is not the primary spine.
+Each section must include `pseudocode`: the short fenced spine. The HTML must
+not render unified-diff hunk panels — the reader opens real code on GitHub via
+the PR URL and head SHA commit link. `lede` may stay as one-line context; it is
+not the primary spine.
 
 ## Formatting in narrative fields
 

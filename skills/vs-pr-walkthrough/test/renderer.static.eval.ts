@@ -76,7 +76,7 @@ afterEach(() => {
 });
 
 describe('walkthrough renderer', () => {
-  it('renders the complete diff in story order with escaped content and exact-head progress', () => {
+  it('renders sections in story order with escaped content, PR/head links, and no unified-diff panels', () => {
     const files = fixture();
     const result = render(files);
     expect(result.status, result.stderr).toBe(0);
@@ -85,14 +85,17 @@ describe('walkthrough renderer', () => {
     expect(html).toContain('&lt;img src=x onerror=alert(1)&gt; Retry flow');
     expect(html).not.toContain('<img src=x onerror=alert(1)>');
     expect(html).toContain('vs-pr-walkthrough:https://github.com/owner/repo/pull/123@0123456789abcdef0123456789abcdef01234567');
-    expect(html).toContain('class="file-viewed"');
+    expect(html).toContain('https://github.com/owner/repo/pull/123');
+    expect(html).toMatch(/https:\/\/github\.com\/owner\/repo\/commit\/0123456789abcdef0123456789abcdef01234567/);
     expect(html).toContain('class="section-viewed"');
-    expect(html).toContain('diff-');
-    expect(html).toContain('/files#');
-    expect(html.replace(/<[^>]+>/g, '')).toContain('export const attempts = 3;');
+    expect(html).toMatch(/class="pseudocode"/);
+    // No green/red unified-diff hunk panels or real source lines from the diff.
+    expect(html).not.toMatch(/class="diff"|table class="diff"|class="line add"|class="line del"|class="hunk"/);
+    expect(html).not.toContain('class="file-viewed"');
+    expect(html.replace(/<[^>]+>/g, '')).not.toContain('export const attempts = 3;');
   });
 
-  it('uses the original GitHub-native single-column review UI', () => {
+  it('uses a single-column walkthrough UI with sections and progress', () => {
     const files = fixture();
     const result = render(files);
     expect(result.status, result.stderr).toBe(0);
@@ -101,13 +104,11 @@ describe('walkthrough renderer', () => {
     expect(html).toContain('class="progressbar"');
     expect(html).toContain('id="ringFill"');
     expect(html).toContain('class="hint"');
-    expect(html).toContain('id="collapseNoise"');
     expect(html).toContain('class="toc"');
     expect(html).toContain('class="sec-count"');
-    expect(html).toContain('top:var(--topbar)');
   });
 
-  it('preserves Oren feature parity for rich prose, notes, path shortening, folding, labels, and highlighting', () => {
+  it('preserves rich prose, labels, and watch escaping without rendering hunk or file panels', () => {
     const files = fixture({
       subtitle: 'RETRY-123',
       pr_label: 'Retry PR #123',
@@ -138,12 +139,11 @@ describe('walkthrough renderer', () => {
     const html = fs.readFileSync(files.outPath, 'utf8');
     expect(html).toContain('Retry PR #123');
     expect(html).toContain('RETRY-123');
-    expect(html).toContain('class="fname">policy.ts</strong>');
-    expect(html).toContain('<div class="note">Read this <b>first</b>.</div>');
     expect(html).toContain('The <code>attempts</code> value');
-    expect(html).toContain('<span class="tk-k">export</span>');
     expect(html).toContain('&lt;strong onclick=&quot;bad()&quot;&gt;unsafe');
-    expect(html).toMatch(/class="file collapsed" data-path="src\/policy\.ts"/);
+    expect(html).toMatch(/class="pseudocode"/);
+    expect(html).not.toMatch(/class="diff"|class="line add"|class="file-viewed"|class="fname"/);
+    expect(html).not.toContain('<span class="tk-k">export</span>');
   });
 
   it('supports the original positional CLI and default output path', () => {
@@ -226,7 +226,7 @@ esac
     expect(result.stderr).toContain('note paths must exactly match a file in their section: policy.ts');
   });
 
-  it('renders per-section pseudocode above the files as an escaped code block', () => {
+  it('renders per-section pseudocode as an escaped code block without hunk panels', () => {
     const files = fixture({
       sections: [
         {
@@ -252,13 +252,11 @@ esac
     expect(html).toMatch(/class="pseudocode"/);
     const policyIdx = html.indexOf('id="policy"');
     const pseudoIdx = html.indexOf('class="pseudocode"', policyIdx);
-    const fileIdx = html.indexOf('data-path="src/policy.ts"', policyIdx);
     expect(pseudoIdx).toBeGreaterThan(policyIdx);
-    expect(fileIdx).toBeGreaterThan(pseudoIdx);
     expect(html).toContain('IF attempts &gt;= limit THEN');
     expect(html).toContain('mark terminal');
-    // Real diff hunks remain as evidence.
-    expect(html.replace(/<[^>]+>/g, '')).toContain('export const attempts = 3;');
+    expect(html).not.toContain('data-path="src/policy.ts"');
+    expect(html.replace(/<[^>]+>/g, '')).not.toContain('export const attempts = 3;');
   });
 
   it('rejects section pseudocode longer than about 12 lines', () => {
