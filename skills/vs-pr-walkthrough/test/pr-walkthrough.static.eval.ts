@@ -113,16 +113,19 @@ describe('vs-pr-walkthrough pseudocode spine', () => {
     expect(SKILL).not.toMatch(/Do not remove the\s+diff surface/i);
   });
 
-  it('keeps PR URL and exact head SHA links so the reader opens real code on GitHub', () => {
+  it('keeps PR URL, head SHA, and ordered per-file blob links so the reader opens real code on GitHub', () => {
     expect(SKILL).toMatch(/opens? real code on GitHub/i);
     expect(SKILL).toMatch(/head SHA link|commit link|\/commit\//i);
+    expect(SKILL).toMatch(/ordered (?:GitHub )?(?:file )?links|file links in reading order|blob at headSha|\/blob\//i);
     expect(SCHEMA).toMatch(/`pr`/);
     expect(SCHEMA).toMatch(/`headSha`/);
   });
 
-  it('treats files arrays as authoring/order validation, not rendered hunk panels', () => {
-    expect(SKILL).toMatch(/authoring\/(?:order )?validation|order validation without rendering|not rendered as hunk|without rendering hunks|files arrays.{0,80}(?:optional|authoring)/is);
-    expect(SCHEMA).toMatch(/authoring|without rendering hunks|not rendered|optional.*files|files.*optional/is);
+  it('treats files arrays as reading-order source for ordered GitHub links, not hunk panels', () => {
+    expect(SKILL).toMatch(/authoring\/(?:order )?validation|order validation without rendering|not rendered as hunk|without rendering hunks|files arrays.{0,80}(?:optional|authoring)|reading[- ]order/is);
+    expect(SKILL).toMatch(/ordered (?:GitHub )?(?:file )?links|GitHub (?:file )?links.{0,40}reading[- ]order|blob\/|\/blob\//is);
+    expect(SCHEMA).toMatch(/authoring|without rendering hunks|not rendered|optional.*files|files.*optional|reading[- ]order|ordered.*(?:GitHub|blob|link)/is);
+    expect(SCHEMA).toMatch(/blob\/|\/blob\/|ordered (?:GitHub )?(?:file )?links/is);
   });
 
   it('uses the show-me litmus: predict next step under a condition vs who/what connects', () => {

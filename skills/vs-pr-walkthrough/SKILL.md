@@ -7,8 +7,9 @@ description: "Use when a large or unfamiliar GitHub PR is hard to read in GitHub
 
 Turn a large GitHub PR into a review surface that reads from cause to effect.
 The HTML orders the change as a product or execution story with a short
-pseudocode spine per section. Real code stays on GitHub — open it via the PR
-URL and exact head SHA links.
+pseudocode spine per section and ordered GitHub file links in reading order.
+Real code stays on GitHub — open each file via blob-at-headSha links (plus the
+PR URL and exact head SHA commit link).
 
 Based on the original `pr-walkthrough` skill by **Oren Roth**.
 
@@ -103,10 +104,9 @@ behavioral stages; never split one stage merely to hit a number.
 Each section must:
 
 - say what happens, not name a directory;
-- list `files` in first-needed reading order for authoring/order validation
-  (optional in the sense that they are **not rendered as hunk panels** — when
-  a diff is supplied, placement still fails closed on missing/duplicate/stale
-  paths);
+- list `files` in first-needed reading order — the reading-order source for
+  ordered GitHub blob links in the HTML (not hunk panels); when a diff is
+  supplied, placement still fails closed on missing/duplicate/stale paths;
 - carry a short fenced language-agnostic `pseudocode` spine (required) that
   the reader can use to predict the next step before opening real code on
   GitHub;
@@ -119,8 +119,10 @@ Each section must:
 
 The section spine is short fenced language-agnostic pseudocode. The HTML must
 **not** show actual code diffs anymore — drop or stop rendering hunk/file
-panels (no green/red unified-diff UI). Keep the PR URL and exact head SHA
-link(s) so the reader **opens real code on GitHub**.
+panels (no green/red unified-diff UI). Emit **ordered GitHub file links** per
+section from the `files` array (blob at `headSha`:
+`https://github.com/<owner>/<repo>/blob/<headSha>/<path>`). Keep the PR URL
+and exact head SHA commit link too so the reader **opens real code on GitHub**.
 
 Constraints:
 
@@ -135,11 +137,12 @@ Constraints:
   untouched. Walkthrough is pseudocode-only in the HTML; ship-it still picks
   one Summary visual. Do not change pathgrade.
 
-Place each file exactly once across `files` arrays for order validation.
-Cross-reference a file in prose instead of duplicating it. Put generated
-files, registrations, snapshots, and lockfiles in a final `Aside · Plumbing`
-section. `pr.diff` may still be fetched for authoring order and strict
-placement; it must not appear in the HTML output.
+Place each file exactly once across `files` arrays — that order is both the
+strict placement map and the HTML reading-order link list. Cross-reference a
+file in prose instead of duplicating it. Put generated files, registrations,
+snapshots, and lockfiles in a final `Aside · Plumbing` section. `pr.diff` may
+still be fetched for authoring order and strict placement; it must not appear
+as rendered diffs in the HTML output.
 
 Narrative fields (`intro`, `subtitle`, `pr_label`, `lede`, `watch`,
 `notes[].text`) accept only `<b>`, `<i>`, `<em>`, `<strong>`, `<code>`, and
@@ -180,6 +183,8 @@ The saved page must provide:
 
 - a single-column walkthrough UI ordered as the authored story;
 - per-section short fenced language-agnostic pseudocode (the spine);
+- ordered GitHub file links per section (blob at headSha, reading order from
+  `files`);
 - PR URL and exact head SHA commit link(s) so the reader opens real code on
   GitHub;
 - no unified-diff rendering and no hunk/file panels (no green/red diff UI);
@@ -194,7 +199,8 @@ Verify both mechanics and the rendered page:
 1. Re-fetch the PR head SHA and confirm it still equals `config.json.headSha`.
 2. Run the renderer again; strict placement must pass with no ignored files.
 3. Open the HTML and verify the title, first section, pseudocode spine,
-   progress, and the PR URL plus head SHA links (no rendered diffs).
+   ordered file links, progress, and the PR URL plus head SHA links (no
+   rendered diffs).
 4. Mark one section read, reload, and confirm exact-head progress persists.
 5. Capture a first-screen screenshot.
 
@@ -244,8 +250,9 @@ Do not paste the walkthrough or diff into chat.
 - **Kind:** Building block
 - **Inputs:** a GitHub PR URL or number, its exact head SHA, complete unified
   diff, and enough surrounding code to establish reading order
-- **Outputs:** one interactive HTML walkthrough (pseudocode spine, no rendered
-  diffs) plus its JSON source map and optional captured diff for authoring
+- **Outputs:** one interactive HTML walkthrough (pseudocode spine, ordered
+  GitHub file links, no rendered diffs) plus its JSON source map and optional
+  captured diff for authoring
 - **Status:** `READY_FOR_REVIEW | BLOCKED_STALE_HEAD | BLOCKED_INCOMPLETE_MAP | SKIPPED_SMALL_PR`
 - **Consumers:** direct human invocation, onboarding a reviewer to an
   unfamiliar PR, and `vs-ship-it` for automatic large-PR review handoff

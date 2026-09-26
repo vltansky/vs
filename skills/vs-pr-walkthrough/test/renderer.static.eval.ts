@@ -89,9 +89,20 @@ describe('walkthrough renderer', () => {
     expect(html).toMatch(/https:\/\/github\.com\/owner\/repo\/commit\/0123456789abcdef0123456789abcdef01234567/);
     expect(html).toContain('class="section-viewed"');
     expect(html).toMatch(/class="pseudocode"/);
+    // Ordered GitHub file links (reading order) — blob at headSha; not hunk panels.
+    const policyBlob = 'https://github.com/owner/repo/blob/0123456789abcdef0123456789abcdef01234567/src/policy.ts';
+    const specBlob = 'https://github.com/owner/repo/blob/0123456789abcdef0123456789abcdef01234567/src/screen.spec.ts';
+    expect(html).toContain(policyBlob);
+    expect(html).toContain(specBlob);
+    expect(html.indexOf(policyBlob)).toBeLessThan(html.indexOf(specBlob));
+    const policySection = html.slice(html.indexOf('id="policy"'), html.indexOf('id="verification"'));
+    expect(policySection).toContain(policyBlob);
+    expect(policySection).not.toContain(specBlob);
+    expect(html).toMatch(/class="file-links"/);
     // No green/red unified-diff hunk panels or real source lines from the diff.
     expect(html).not.toMatch(/class="diff"|table class="diff"|class="line add"|class="line del"|class="hunk"/);
     expect(html).not.toContain('class="file-viewed"');
+    expect(html).not.toContain('table class="diff"');
     expect(html.replace(/<[^>]+>/g, '')).not.toContain('export const attempts = 3;');
   });
 
@@ -255,8 +266,44 @@ esac
     expect(pseudoIdx).toBeGreaterThan(policyIdx);
     expect(html).toContain('IF attempts &gt;= limit THEN');
     expect(html).toContain('mark terminal');
+    expect(html).toContain('https://github.com/owner/repo/blob/0123456789abcdef0123456789abcdef01234567/src/policy.ts');
     expect(html).not.toContain('data-path="src/policy.ts"');
+    expect(html).not.toMatch(/table class="diff"|class="line add"/);
     expect(html.replace(/<[^>]+>/g, '')).not.toContain('export const attempts = 3;');
+  });
+
+
+  it('emits ordered GitHub blob links per section from files array (no hunk UI)', () => {
+    const files = fixture({
+      sections: [
+        {
+          id: 'policy',
+          title: 'Step 1 · The retry rule',
+          lede: 'Rule.',
+          pseudocode: 'apply policy',
+          files: ['src/policy.ts'],
+        },
+        {
+          id: 'verification',
+          title: 'Step 2 · The screen proves it',
+          lede: 'Proof.',
+          pseudocode: 'assert shown',
+          files: ['src/screen.spec.ts'],
+        },
+      ],
+    });
+    const result = render(files);
+    expect(result.status, result.stderr).toBe(0);
+    const html = fs.readFileSync(files.outPath, 'utf8');
+    const head = '0123456789abcdef0123456789abcdef01234567';
+    const link1 = `https://github.com/owner/repo/blob/${head}/src/policy.ts`;
+    const link2 = `https://github.com/owner/repo/blob/${head}/src/screen.spec.ts`;
+    expect(html).toContain(`href="${link1}"`);
+    expect(html).toContain(`href="${link2}"`);
+    expect(html.indexOf(link1)).toBeLessThan(html.indexOf(link2));
+    // Reading-order list is an ordered list of links, not a diff table.
+    expect(html).toMatch(/<ol class="file-links"[^>]*>[\s\S]*href="[^"]*src\/policy\.ts"/);
+    expect(html).not.toMatch(/table\.diff|class="diff"|class="hunk"|class="line add"|class="fname"|class="file-viewed"/);
   });
 
   it('rejects section pseudocode longer than about 12 lines', () => {

@@ -28,22 +28,24 @@ version files, and snapshots.
 |---|---|---|
 | `id` | string, required | Unique anchor beginning with a letter; letters, digits, `_`, and `-` only |
 | `title` | string, required | Behavioral step, such as `Step 2 · The request becomes a persisted job` |
-| `files` | string array | Exact repo-relative diff paths in first-needed reading order for **authoring/order validation**; not rendered as hunk panels. When a diff is supplied, every changed path must appear exactly once |
+| `files` | string array | Exact repo-relative diff paths in first-needed reading order. Source for **ordered GitHub blob links** in the HTML (`/blob/<headSha>/<path>`) and for authoring/order validation; not rendered as hunk panels. When a diff is supplied, every changed path must appear exactly once |
 | `lede` | string | Optional one-line context; not the primary spine |
 | `pseudocode` | string, required | Short language-agnostic spine (~12 lines max) rendered as a fenced code block (the HTML spine; no unified diffs) |
 | `watch` | string array | Decisions, assumptions, workarounds, or uncertainties to inspect |
 | `notes` | `{file, text}` array | Authoring note tied to one exact file path in this section (not rendered as a hunk panel) |
 | `fold` | boolean | Start this section folded |
 
-`files` arrays are for authoring/order validation without rendering hunks. When
-a diff is supplied, the renderer rejects missing, duplicated, and unknown paths. A note path must exactly match a file in its own section; basename
+`files` arrays are the reading-order source: the renderer emits an ordered list
+of GitHub blob links (`https://github.com/<owner>/<repo>/blob/<headSha>/<path>`)
+and still uses them for authoring/order validation without rendering hunks.
+When a diff is supplied, the renderer rejects missing, duplicated, and unknown paths. A note path must exactly match a file in its own section; basename
 matching is not allowed. `files` may be omitted only when no diff is being
 validated; with a captured or fetched diff, keep complete placement.
 
 Each section must include `pseudocode`: the short fenced spine. The HTML must
 not render unified-diff hunk panels — the reader opens real code on GitHub via
-the PR URL and head SHA commit link. `lede` may stay as one-line context; it is
-not the primary spine.
+ordered per-file blob links plus the PR URL and head SHA commit link. `lede`
+may stay as one-line context; it is not the primary spine.
 
 ## Formatting in narrative fields
 
