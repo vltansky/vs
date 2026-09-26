@@ -68,6 +68,41 @@ describe('visual explanation composition', () => {
   });
 });
 
+describe('logic explanations stack diagram and pseudocode', () => {
+  it('requires diagram and short fenced pseudocode together when explaining logic or branching', () => {
+    expect(SKILL).toMatch(/logic|branching|mechanism/i);
+    expect(SKILL).toMatch(/pseudocode/i);
+    expect(SKILL).toMatch(
+      /(?:diagram|mermaid)[\s\S]{0,280}pseudocode|pseudocode[\s\S]{0,280}(?:diagram|mermaid)/i,
+    );
+    expect(SKILL).toMatch(/both|also include|stack|together with/i);
+    expect(SKILL).toMatch(/short fenced pseudocode|fenced pseudocode/i);
+    expect(SKILL).toMatch(
+      /not (?:a )?(?:real[- ]language|TypeScript|Python|prose walkthrough)|language-agnostic|not .*prose walkthrough/i,
+    );
+    expect(SKILL).toMatch(/pure (?:structure|topology)|topology alone|diagram-only/i);
+  });
+
+  it('does not inherit ship-it pick-one for logic explainers', () => {
+    expect(SKILL).toMatch(/not pick one|never pick one|do not pick one|unlike ship-it|not .*pick-one/i);
+  });
+
+  it('gives a litmus for stack vs diagram-only (predict next step vs who/what connects)', () => {
+    // Auth flowcharts are both topology and logic; Create §6 alone would send
+    // every branch into mermaid. Litmus: stack when the reader must predict
+    // the next step under a condition; diagram-only when they only need who
+    // or what connects.
+    expect(SKILL).toMatch(/predict(?:\s+the)?\s+next\s+step/i);
+    expect(SKILL).toMatch(/condition/i);
+    expect(SKILL).toMatch(/who\/what connects|who or what connects/i);
+    expect(SKILL).toMatch(/diagram-only/i);
+  });
+
+  it('caps short fenced pseudocode at about 12 lines', () => {
+    expect(SKILL).toMatch(/~?\s*12\s*lines?|12[- ]line/i);
+  });
+});
+
 describe('ordered lists render only from 4.10.1 onward', () => {
   // Ordered lists collapsed to a paragraph before 4.10.1, and a list nested
   // under a bullet lost its lines outright (wix-incubator/htmdx#77). Any
