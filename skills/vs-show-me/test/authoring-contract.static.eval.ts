@@ -68,6 +68,26 @@ describe('visual explanation composition', () => {
   });
 });
 
+describe('logic explanations stack diagram and pseudocode', () => {
+  it('requires diagram and short fenced pseudocode together when explaining logic or branching', () => {
+    expect(SKILL).toMatch(/logic|branching|mechanism/i);
+    expect(SKILL).toMatch(/pseudocode/i);
+    expect(SKILL).toMatch(
+      /(?:diagram|mermaid)[\s\S]{0,280}pseudocode|pseudocode[\s\S]{0,280}(?:diagram|mermaid)/i,
+    );
+    expect(SKILL).toMatch(/both|also include|stack|together with/i);
+    expect(SKILL).toMatch(/short fenced pseudocode|fenced pseudocode/i);
+    expect(SKILL).toMatch(
+      /not (?:a )?(?:real[- ]language|TypeScript|Python|prose walkthrough)|language-agnostic|not .*prose walkthrough/i,
+    );
+    expect(SKILL).toMatch(/pure (?:structure|topology)|topology alone|diagram-only/i);
+  });
+
+  it('does not inherit ship-it pick-one for logic explainers', () => {
+    expect(SKILL).toMatch(/not pick one|never pick one|do not pick one|unlike ship-it|not .*pick-one/i);
+  });
+});
+
 describe('ordered lists render only from 4.10.1 onward', () => {
   // Ordered lists collapsed to a paragraph before 4.10.1, and a list nested
   // under a bullet lost its lines outright (wix-incubator/htmdx#77). Any

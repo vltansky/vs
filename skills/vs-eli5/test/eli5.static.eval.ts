@@ -117,3 +117,12 @@ describe('vs-eli5: inherit htmdx write-slop, score the chat TLDR', () => {
     expect(SKILL).not.toMatch(/No fluff, no filler, no jargon/);
   });
 });
+
+describe('vs-eli5 inherits show-me logic pseudocode stack', () => {
+  it('points at show-me diagram + short fenced pseudocode for logic topics', () => {
+    expect(SKILL).toMatch(/pseudocode/i);
+    expect(SKILL).toMatch(/diagram/i);
+    expect(SKILL).toMatch(/inherit/i);
+    expect(SKILL).toMatch(/do not pick one|don't pick one/i);
+  });
+});
