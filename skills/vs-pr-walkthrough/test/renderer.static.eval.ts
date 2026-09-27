@@ -8,6 +8,10 @@ const DIR = path.resolve(__dirname, '..');
 const RENDERER = path.join(DIR, 'scripts', 'render-walkthrough.mjs');
 const temporary: string[] = [];
 
+function pair(pathName: string, pseudocode: string) {
+  return { path: pathName, pseudocode };
+}
+
 function fixture(configOverride: Record<string, unknown> = {}) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'vs-walkthrough-'));
   temporary.push(root);
@@ -39,14 +43,14 @@ new file mode 100644
         lede: 'This rule shapes the UI.',
         pseudocode: 'IF attempts >= limit THEN\n  mark terminal\nELSE\n  enqueue retry',
         watch: ['Three attempts is part of the API contract.'],
-        files: ['src/policy.ts'],
+        files: [pair('src/policy.ts', 'SET attempts = 3\nKEEP terminal flag')],
       },
       {
         id: 'verification',
         title: 'Step 2 · The screen proves it',
         lede: 'The test verifies the surfaced state.',
         pseudocode: 'WHEN banner mounts\n  ASSERT attempts shown',
-        files: ['src/screen.spec.ts'],
+        files: [pair('src/screen.spec.ts', 'DESCRIBE screen\n  ASSERT mounts')],
       },
     ],
     ...configOverride,
@@ -76,7 +80,7 @@ afterEach(() => {
 });
 
 describe('walkthrough renderer', () => {
-  it('renders sections in story order with escaped content, PR/head links, and no unified-diff panels', () => {
+  it('renders section spine, pair-file cards, and collapsed real-diff controls (not always-open hunk panels)', () => {
     const files = fixture();
     const result = render(files);
     expect(result.status, result.stderr).toBe(0);
@@ -89,21 +93,27 @@ describe('walkthrough renderer', () => {
     expect(html).toMatch(/https:\/\/github\.com\/owner\/repo\/commit\/0123456789abcdef0123456789abcdef01234567/);
     expect(html).toContain('class="section-viewed"');
     expect(html).toMatch(/class="pseudocode"/);
-    // Ordered GitHub file links (reading order) — blob at headSha; not hunk panels.
+
+    // Pair-file cards in reading order with blob links and pair pseudocode.
+    expect(html).toMatch(/class="file-card"/);
+    expect(html).toContain('SET attempts = 3');
+    expect(html).toContain('DESCRIBE screen');
     const policyBlob = 'https://github.com/owner/repo/blob/0123456789abcdef0123456789abcdef01234567/src/policy.ts';
     const specBlob = 'https://github.com/owner/repo/blob/0123456789abcdef0123456789abcdef01234567/src/screen.spec.ts';
     expect(html).toContain(policyBlob);
     expect(html).toContain(specBlob);
     expect(html.indexOf(policyBlob)).toBeLessThan(html.indexOf(specBlob));
-    const policySection = html.slice(html.indexOf('id="policy"'), html.indexOf('id="verification"'));
-    expect(policySection).toContain(policyBlob);
-    expect(policySection).not.toContain(specBlob);
-    expect(html).toMatch(/class="file-links"/);
-    // No green/red unified-diff hunk panels or real source lines from the diff.
-    expect(html).not.toMatch(/class="diff"|table class="diff"|class="line add"|class="line del"|class="hunk"/);
-    expect(html).not.toContain('class="file-viewed"');
-    expect(html).not.toContain('table class="diff"');
-    expect(html.replace(/<[^>]+>/g, '')).not.toContain('export const attempts = 3;');
+
+    // Real hunks present behind collapsed expand control (details without open, or equivalent).
+    expect(html).toMatch(/<(details|button)[^>]*(class="[^"]*real-diff|Show real diff)/i);
+    expect(html).toMatch(/Show real diff/i);
+    expect(html).toMatch(/table class="diff"|class="diff"/);
+    expect(html).toMatch(/class="line add"/);
+    expect(html).toMatch(/class="line del"/);
+    expect(html).toContain('export const attempts = 3;');
+    // Default surface is collapsed — no open attribute on real-diff details.
+    expect(html).not.toMatch(/<details[^>]*class="[^"]*real-diff[^"]*"[^>]*\sopen[\s>]/i);
+    expect(html).not.toMatch(/<details[^>]*\sopen[^>]*class="[^"]*real-diff/i);
   });
 
   it('uses a single-column walkthrough UI with sections and progress', () => {
@@ -119,7 +129,7 @@ describe('walkthrough renderer', () => {
     expect(html).toContain('class="sec-count"');
   });
 
-  it('preserves rich prose, labels, and watch escaping without rendering hunk or file panels', () => {
+  it('preserves rich prose, labels, and watch escaping with pair cards', () => {
     const files = fixture({
       subtitle: 'RETRY-123',
       pr_label: 'Retry PR #123',
@@ -134,14 +144,14 @@ describe('walkthrough renderer', () => {
           pseudocode: 'IF attempts >= limit THEN\n  mark terminal\nELSE\n  enqueue retry',
           watch: ['Keep <em>terminal</em> behavior explicit.', '<strong onclick="bad()">unsafe</strong>'],
           notes: [{ file: 'src/policy.ts', text: 'Read this <b>first</b>.' }],
-          files: ['src/policy.ts'],
+          files: [pair('src/policy.ts', 'SET attempts = 3')],
         },
         {
           id: 'verification',
           title: 'Step 2 · The screen proves it',
           lede: 'The test verifies the surfaced state.',
           pseudocode: 'WHEN banner mounts\n  ASSERT attempts shown',
-          files: ['src/screen.spec.ts'],
+          files: [pair('src/screen.spec.ts', 'ASSERT mounts')],
         },
       ],
     });
@@ -153,8 +163,8 @@ describe('walkthrough renderer', () => {
     expect(html).toContain('The <code>attempts</code> value');
     expect(html).toContain('&lt;strong onclick=&quot;bad()&quot;&gt;unsafe');
     expect(html).toMatch(/class="pseudocode"/);
-    expect(html).not.toMatch(/class="diff"|class="line add"|class="file-viewed"|class="fname"/);
-    expect(html).not.toContain('<span class="tk-k">export</span>');
+    expect(html).toMatch(/class="file-card"/);
+    expect(html).toMatch(/Show real diff/i);
   });
 
   it('supports the original positional CLI and default output path', () => {
@@ -197,7 +207,13 @@ esac
 
   it('fails when a changed file is not placed', () => {
     const files = fixture({
-      sections: [{ id: 'policy', title: 'Step 1 · Policy', lede: 'The rule.', pseudocode: 'apply policy', files: ['src/policy.ts'] }],
+      sections: [{
+        id: 'policy',
+        title: 'Step 1 · Policy',
+        lede: 'The rule.',
+        pseudocode: 'apply policy',
+        files: [pair('src/policy.ts', 'apply policy in file')],
+      }],
     });
     const result = render(files);
     expect(result.status).toBe(1);
@@ -205,11 +221,23 @@ esac
     expect(fs.existsSync(files.outPath)).toBe(false);
   });
 
-  it('fails on duplicate and stale paths', () => {
+  it('fails on duplicate and stale paths with object file entries', () => {
     const files = fixture({
       sections: [
-        { id: 'one', title: 'Step 1 · One', lede: 'One.', pseudocode: 'step one', files: ['src/policy.ts', 'missing.ts'] },
-        { id: 'two', title: 'Step 2 · Two', lede: 'Two.', pseudocode: 'step two', files: ['src/policy.ts', 'src/screen.spec.ts'] },
+        {
+          id: 'one',
+          title: 'Step 1 · One',
+          lede: 'One.',
+          pseudocode: 'step one',
+          files: [pair('src/policy.ts', 'one'), pair('missing.ts', 'missing')],
+        },
+        {
+          id: 'two',
+          title: 'Step 2 · Two',
+          lede: 'Two.',
+          pseudocode: 'step two',
+          files: [pair('src/policy.ts', 'dup'), pair('src/screen.spec.ts', 'spec')],
+        },
       ],
     });
     const result = render(files);
@@ -227,9 +255,15 @@ esac
           lede: 'One.',
           pseudocode: 'step one',
           notes: [{ file: 'policy.ts', text: 'Ambiguous basename.' }],
-          files: ['src/policy.ts'],
+          files: [pair('src/policy.ts', 'policy file')],
         },
-        { id: 'two', title: 'Step 2 · Two', lede: 'Two.', pseudocode: 'step two', files: ['src/screen.spec.ts'] },
+        {
+          id: 'two',
+          title: 'Step 2 · Two',
+          lede: 'Two.',
+          pseudocode: 'step two',
+          files: [pair('src/screen.spec.ts', 'spec file')],
+        },
       ],
     });
     const result = render(files);
@@ -237,73 +271,16 @@ esac
     expect(result.stderr).toContain('note paths must exactly match a file in their section: policy.ts');
   });
 
-  it('renders per-section pseudocode as an escaped code block without hunk panels', () => {
-    const files = fixture({
-      sections: [
-        {
-          id: 'policy',
-          title: 'Step 1 · The retry rule',
-          lede: 'One-line context.',
-          pseudocode: 'IF attempts >= limit THEN\n  mark terminal\nELSE\n  enqueue retry',
-          watch: ['Three attempts is part of the API contract.'],
-          files: ['src/policy.ts'],
-        },
-        {
-          id: 'verification',
-          title: 'Step 2 · The screen proves it',
-          lede: 'Proof.',
-          pseudocode: 'WHEN banner mounts\n  ASSERT attempts shown',
-          files: ['src/screen.spec.ts'],
-        },
-      ],
-    });
+  it('renders per-section spine and per-file pair pseudocode', () => {
+    const files = fixture();
     const result = render(files);
     expect(result.status, result.stderr).toBe(0);
     const html = fs.readFileSync(files.outPath, 'utf8');
     expect(html).toMatch(/class="pseudocode"/);
-    const policyIdx = html.indexOf('id="policy"');
-    const pseudoIdx = html.indexOf('class="pseudocode"', policyIdx);
-    expect(pseudoIdx).toBeGreaterThan(policyIdx);
     expect(html).toContain('IF attempts &gt;= limit THEN');
     expect(html).toContain('mark terminal');
-    expect(html).toContain('https://github.com/owner/repo/blob/0123456789abcdef0123456789abcdef01234567/src/policy.ts');
-    expect(html).not.toContain('data-path="src/policy.ts"');
-    expect(html).not.toMatch(/table class="diff"|class="line add"/);
-    expect(html.replace(/<[^>]+>/g, '')).not.toContain('export const attempts = 3;');
-  });
-
-
-  it('emits ordered GitHub blob links per section from files array (no hunk UI)', () => {
-    const files = fixture({
-      sections: [
-        {
-          id: 'policy',
-          title: 'Step 1 · The retry rule',
-          lede: 'Rule.',
-          pseudocode: 'apply policy',
-          files: ['src/policy.ts'],
-        },
-        {
-          id: 'verification',
-          title: 'Step 2 · The screen proves it',
-          lede: 'Proof.',
-          pseudocode: 'assert shown',
-          files: ['src/screen.spec.ts'],
-        },
-      ],
-    });
-    const result = render(files);
-    expect(result.status, result.stderr).toBe(0);
-    const html = fs.readFileSync(files.outPath, 'utf8');
-    const head = '0123456789abcdef0123456789abcdef01234567';
-    const link1 = `https://github.com/owner/repo/blob/${head}/src/policy.ts`;
-    const link2 = `https://github.com/owner/repo/blob/${head}/src/screen.spec.ts`;
-    expect(html).toContain(`href="${link1}"`);
-    expect(html).toContain(`href="${link2}"`);
-    expect(html.indexOf(link1)).toBeLessThan(html.indexOf(link2));
-    // Reading-order list is an ordered list of links, not a diff table.
-    expect(html).toMatch(/<ol class="file-links"[^>]*>[\s\S]*href="[^"]*src\/policy\.ts"/);
-    expect(html).not.toMatch(/table\.diff|class="diff"|class="hunk"|class="line add"|class="fname"|class="file-viewed"/);
+    expect(html).toContain('SET attempts = 3');
+    expect(html).toMatch(/class="file-card"[^>]*data-path="src\/policy\.ts"|data-path="src\/policy\.ts"/);
   });
 
   it('rejects section pseudocode longer than about 12 lines', () => {
@@ -315,20 +292,45 @@ esac
           title: 'Step 1 · Policy',
           lede: 'Rule.',
           pseudocode: long,
-          files: ['src/policy.ts'],
+          files: [pair('src/policy.ts', 'short')],
         },
         {
           id: 'verification',
           title: 'Step 2 · Proof',
           lede: 'Proof.',
           pseudocode: 'assert shown',
-          files: ['src/screen.spec.ts'],
+          files: [pair('src/screen.spec.ts', 'short')],
         },
       ],
     });
     const result = render(files);
     expect(result.status).toBe(1);
     expect(result.stderr).toMatch(/pseudocode.*12|12.*lines/i);
+  });
+
+  it('rejects pair-file pseudocode longer than about 12 lines', () => {
+    const long = Array.from({ length: 13 }, (_, i) => `file step ${i + 1}`).join('\n');
+    const files = fixture({
+      sections: [
+        {
+          id: 'policy',
+          title: 'Step 1 · Policy',
+          lede: 'Rule.',
+          pseudocode: 'apply policy',
+          files: [pair('src/policy.ts', long)],
+        },
+        {
+          id: 'verification',
+          title: 'Step 2 · Proof',
+          lede: 'Proof.',
+          pseudocode: 'assert shown',
+          files: [pair('src/screen.spec.ts', 'short')],
+        },
+      ],
+    });
+    const result = render(files);
+    expect(result.status).toBe(1);
+    expect(result.stderr).toMatch(/pseudocode.*12|12.*lines|pair.*pseudocode/i);
   });
 
   it('requires per-section pseudocode', () => {
@@ -338,6 +340,30 @@ esac
           id: 'policy',
           title: 'Step 1 · Policy',
           lede: 'Rule.',
+          files: [pair('src/policy.ts', 'file spine')],
+        },
+        {
+          id: 'verification',
+          title: 'Step 2 · Proof',
+          lede: 'Proof.',
+          pseudocode: 'assert shown',
+          files: [pair('src/screen.spec.ts', 'spec')],
+        },
+      ],
+    });
+    const result = render(files);
+    expect(result.status).toBe(1);
+    expect(result.stderr).toMatch(/pseudocode/i);
+  });
+
+  it('fail-closed requires pair-file pseudocode when a diff is present (legacy string paths)', () => {
+    const files = fixture({
+      sections: [
+        {
+          id: 'policy',
+          title: 'Step 1 · Policy',
+          lede: 'Rule.',
+          pseudocode: 'apply policy',
           files: ['src/policy.ts'],
         },
         {
@@ -351,7 +377,19 @@ esac
     });
     const result = render(files);
     expect(result.status).toBe(1);
-    expect(result.stderr).toMatch(/pseudocode/i);
+    expect(result.stderr).toMatch(/pair.*pseudocode|file.*pseudocode|pseudocode.*required/i);
+    expect(fs.existsSync(files.outPath)).toBe(false);
   });
 
+  it('does not use always-visible pre-#64 file panels as the default surface', () => {
+    const files = fixture();
+    const result = render(files);
+    expect(result.status, result.stderr).toBe(0);
+    const html = fs.readFileSync(files.outPath, 'utf8');
+    // Hunks exist only behind expand; no always-open article.file with visible body as the primary surface.
+    expect(html).toMatch(/Show real diff/i);
+    expect(html).toMatch(/<(details)[^>]*class="[^"]*real-diff/i);
+    // Pre-#64 always-open pattern: article.file without collapsed and without wrapping details — reject that as default.
+    expect(html).not.toMatch(/<article class="file(?![-])[^"]*"[^>]*(?<!collapsed)>\s*<div class="file-head">/i);
+  });
 });

@@ -23,7 +23,7 @@ describe('vs-pr-walkthrough boundary', () => {
 
   it('pins the walkthrough to the exact PR head', () => {
     expect(SKILL).toMatch(/exact head SHA/i);
-    expect(SKILL).toMatch(/PR URL plus exact head SHA/i);
+    expect(SKILL).toMatch(/PR URL plus exact head SHA|head SHA commit link/i);
     expect(SKILL).toMatch(/BLOCKED_STALE_HEAD/);
     expect(SCHEMA).toMatch(/40-character PR head SHA/i);
   });
@@ -62,7 +62,7 @@ describe('vs-pr-walkthrough strict rendering', () => {
     expect(SCHEMA).toMatch(/rejects missing, duplicated, and unknown paths/i);
   });
 
-  it('keeps the original CLI and narrative surface without rendered hunk panels', () => {
+  it('keeps the original CLI and narrative surface', () => {
     expect(SKILL).toMatch(/original positional CLI/i);
     expect(SKILL).toMatch(/renderer-side diff fetching/i);
     expect(SKILL).toMatch(/Re-running after the PR changes/i);
@@ -97,35 +97,40 @@ describe('vs-pr-walkthrough strict rendering', () => {
   });
 });
 
-describe('vs-pr-walkthrough pseudocode spine', () => {
-  it('makes short fenced language-agnostic pseudocode the section spine, not prose lede', () => {
+describe('vs-pr-walkthrough section spine + pair-file expand', () => {
+  it('makes short fenced language-agnostic pseudocode the section spine', () => {
     expect(SKILL).toMatch(/pseudocode/i);
     expect(SKILL).toMatch(/short fenced pseudocode|fenced.*pseudocode|language-agnostic/i);
-    expect(SKILL).toMatch(/not (?:a )?(?:real[- ]language|TypeScript|Python|prose)|language-agnostic/i);
+    expect(SKILL).toMatch(/section spine|spine per section/i);
     expect(SKILL).toMatch(/lede.{0,120}(?:not|secondary|context|one[- ]line)|(?:not|secondary).{0,80}lede|primary spine.{0,80}pseudocode|pseudocode.{0,80}(?:spine|primary)/is);
     expect(SCHEMA).toMatch(/`pseudocode`/);
   });
 
-  it('caps section pseudocode at about 12 lines and does not render unified diffs in the HTML', () => {
-    expect(SKILL).toMatch(/~?\s*12\s*lines?|12[- ]line/i);
-    expect(SKILL).toMatch(/must not (?:show|render) (?:actual )?code diffs|no (?:green\/?red|unified[- ]?diff)|(?:drop|stop rendering|does not render).{0,40}(?:hunk|file panel|unified[- ]?diff)|HTML must not show.{0,40}diff/is);
-    expect(SKILL).not.toMatch(/Real diff hunks stay as evidence/i);
-    expect(SKILL).not.toMatch(/Do not remove the\s+diff surface/i);
+  it('requires pair-file pseudocode per path and click-expand real hunks (collapsed by default)', () => {
+    expect(SKILL).toMatch(/pair[- ]file pseudocode|per[- ]file pseudocode|file card/i);
+    expect(SKILL).toMatch(/Show real diff|click[- ]expand|expand(?:s|\/collapses)?|collapsed by default/i);
+    expect(SKILL).toMatch(/real (?:diff )?hunks|unified hunks|green\/?red/i);
+    expect(SCHEMA).toMatch(/pair[- ]file|file.*pseudocode|pseudocode.*path|"path"/i);
+    expect(SCHEMA).toMatch(/Show real diff|click[- ]expand|collapsed|details|expand/i);
   });
 
-  it('keeps PR URL, head SHA, and ordered per-file blob links so the reader opens real code on GitHub', () => {
-    expect(SKILL).toMatch(/opens? real code on GitHub/i);
+  it('caps section and pair-file pseudocode at about 12 lines', () => {
+    expect(SKILL).toMatch(/~?\s*12\s*lines?|12[- ]line/i);
+    expect(SCHEMA).toMatch(/12\s*(?:non-empty )?lines?/i);
+  });
+
+  it('keeps PR URL, head SHA, and per-file blob links at headSha', () => {
+    expect(SKILL).toMatch(/blob\/|\/blob\/|blob at headSha/i);
     expect(SKILL).toMatch(/head SHA link|commit link|\/commit\//i);
-    expect(SKILL).toMatch(/ordered (?:GitHub )?(?:file )?links|file links in reading order|blob at headSha|\/blob\//i);
     expect(SCHEMA).toMatch(/`pr`/);
     expect(SCHEMA).toMatch(/`headSha`/);
+    expect(SCHEMA).toMatch(/blob\/|\/blob\//);
   });
 
-  it('treats files arrays as reading-order source for ordered GitHub links, not hunk panels', () => {
-    expect(SKILL).toMatch(/authoring\/(?:order )?validation|order validation without rendering|not rendered as hunk|without rendering hunks|files arrays.{0,80}(?:optional|authoring)|reading[- ]order/is);
-    expect(SKILL).toMatch(/ordered (?:GitHub )?(?:file )?links|GitHub (?:file )?links.{0,40}reading[- ]order|blob\/|\/blob\//is);
-    expect(SCHEMA).toMatch(/authoring|without rendering hunks|not rendered|optional.*files|files.*optional|reading[- ]order|ordered.*(?:GitHub|blob|link)/is);
-    expect(SCHEMA).toMatch(/blob\/|\/blob\/|ordered (?:GitHub )?(?:file )?links/is);
+  it('keeps placement fail-closed with the new files object shape', () => {
+    expect(SKILL).toMatch(/exactly once|placement/i);
+    expect(SCHEMA).toMatch(/path.*pseudocode|files.*object|"path"/i);
+    expect(SCHEMA).toMatch(/rejects missing, duplicated, and unknown paths/i);
   });
 
   it('uses the show-me litmus: predict next step under a condition vs who/what connects', () => {
@@ -134,7 +139,8 @@ describe('vs-pr-walkthrough pseudocode spine', () => {
     expect(SKILL).toMatch(/who\/what connects|who or what connects/i);
   });
 
-  it('does not change ship-it Summary pick-one', () => {
+  it('does not change ship-it Summary pick-one or pathgrade', () => {
     expect(SKILL).toMatch(/not (?:change|touch|alter|inherit).{0,80}ship-it|ship-it.{0,80}(?:pick-one|Summary).{0,80}(?:unchanged|untouched|stays)|unlike.{0,40}ship-it|do not.{0,40}ship-it/is);
+    expect(SKILL).toMatch(/pathgrade|Do not change pathgrade/i);
   });
 });
