@@ -111,6 +111,16 @@ describe('pr-media-gate blocks a frontend PR body that shows nothing', () => {
     expect(result.stderr).toMatch(/local path/i);
   });
 
+  it('does not count a merge-risk badge as proof: it shows the risk, not the change', () => {
+    const cwd = repoWithBranch(['src/components/Toggle.tsx']);
+    const badge =
+      '<img alt="Two-way door: easy to revert" src="https://raw.githubusercontent.com/vltansky/vs/master/skills/vs-ship-it/assets/badge-two-way-door.svg">';
+    const result = gate(cwd, `${BEFORE_AFTER}\n${badge}\n`);
+
+    expect(result.status).toBe(1);
+    expect(result.json).toMatchObject({ valid: false, images: 0 });
+  });
+
   it('passes an honest stated gap instead of forcing fabricated media', () => {
     const cwd = repoWithBranch(['src/components/Toggle.tsx']);
     const result = gate(
