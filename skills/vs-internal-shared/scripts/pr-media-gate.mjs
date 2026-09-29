@@ -24,7 +24,7 @@ const TEST_PATH = /\.(?:test|spec|stories)\.[cm]?[jt]sx?$|\/(?:__tests__|__snaps
 const HOSTED_MEDIA_HOST =
   /^https:\/\/(?:github\.com\/user-attachments\/assets\/|(?:private-)?user-images\.githubusercontent\.com\/|user-images\.githubusercontent\.com\/)/i;
 // vs-ship-it merge-risk badges classify the PR; they never show the change, so they are not proof.
-const MERGE_RISK_BADGE = /\/skills\/vs-ship-it\/assets\//i;
+const MERGE_RISK_BADGE = /\/skills\/vs-ship-it\/assets\/badge-[a-z-]+\.svg(?:[?#].*)?$/i;
 const MEDIA_EXTENSION = /\.(?:png|jpe?g|webp|gif|svg|webm|mp4|mov)(?:[?#].*)?$/i;
 const MARKDOWN_IMAGE = /!\[[^\]]*\]\(\s*<?([^\s)>]+)>?(?:\s+"[^"]*")?\s*\)/g;
 const HTML_MEDIA = /<(?:img|video|source)\b[^>]*\bsrc=["']([^"']+)["']/gi;
@@ -117,7 +117,13 @@ const videos = hosted.filter((ref) => ref.kind === 'video').length;
 const gapStated = body.match(STATED_GAP)?.[0].trim() ?? null;
 
 const beforeAfter = { before: BEFORE_MARKER.test(body), after: AFTER_MARKER.test(body) };
-const mergeDanger = { door: DOOR_MARKER.test(body), blastRadius: BLAST_MARKER.test(body) };
+// The badge alone is a label: ship-it bodies show the badge with the reason under it, no text label.
+const DOOR_BADGE = /\/skills\/vs-ship-it\/assets\/badge-(?:one|two)-way-door\.svg/i;
+const BLAST_BADGE = /\/skills\/vs-ship-it\/assets\/badge-(?:wide|narrow)-blast\.svg/i;
+const mergeDanger = {
+  door: DOOR_MARKER.test(body) || DOOR_BADGE.test(body),
+  blastRadius: BLAST_MARKER.test(body) || BLAST_BADGE.test(body),
+};
 const mediaOk = frontendFiles.length === 0 || images + videos > 0 || gapStated !== null;
 const beforeAfterOk = beforeAfter.before && beforeAfter.after;
 const mergeDangerOk = mergeDanger.door && mergeDanger.blastRadius;

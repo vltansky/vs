@@ -255,9 +255,10 @@ describe('vs-ship-it PR association and stopping point', () => {
 
 describe('vs-ship-it door, blast radius, and summary visual', () => {
   it('requires Door and Blast radius in the PR body template', () => {
-    expect(PR_WORKFLOW).toMatch(/\*\*Door:\*\*.*one-way.*two-way/i);
-    expect(PR_WORKFLOW).toMatch(/\*\*Blast [Rr]adius:\*\*/);
-    expect(PR_WORKFLOW).toMatch(/## Merge risk|## Blast [Rr]adius|## Door/i);
+    // The badge is the label: the template offers both door choices and a blast choice.
+    expect(PR_WORKFLOW).toMatch(/badge-<one-way \| two-way>-door\.svg/);
+    expect(PR_WORKFLOW).toMatch(/badge-<wide \| narrow>-blast\.svg/);
+    expect(PR_WORKFLOW).toMatch(/## Merge risk/);
   });
 
   it('requires inline merge-risk badges that match the door and blast lines', () => {
@@ -292,14 +293,15 @@ describe('vs-ship-it door, blast radius, and summary visual', () => {
     // The old full-width illustrations are gone; badges are single-file, theme-neutral.
     expect(PR_WORKFLOW).not.toMatch(/preset-[a-z-]+\.png/);
 
-    // Body-template skeleton: badges sit inline on the Door and Blast radius lines;
-    // wide-blast lives only in a comment so agents do not stamp it onto narrow PRs.
+    // Body-template skeleton: each badge stands alone with the explanation under it, no
+    // text label; wide-blast lives only in a comment so agents do not stamp it onto narrow PRs.
     const bodyTemplate =
       PR_WORKFLOW.match(/````markdown[\s\S]*?````/)?.[0] ?? '';
     expect(bodyTemplate.length).toBeGreaterThan(0);
     const templateLive = bodyTemplate.replace(/<!--[\s\S]*?-->/g, '');
-    expect(templateLive).toMatch(/\*\*Door:\*\* <img [^>]*badge-two-way-door\.svg/);
-    expect(templateLive).toMatch(/\*\*Blast radius:\*\* <img [^>]*badge-narrow-blast\.svg/);
+    expect(templateLive).toMatch(/^<img [^>]*badge-two-way-door\.svg">\n\n<[^<\n]+>$/m);
+    expect(templateLive).toMatch(/^<img [^>]*badge-narrow-blast\.svg">\n\n<[^<\n]+>$/m);
+    expect(templateLive).not.toMatch(/\*\*Door:\*\*|\*\*Blast radius:\*\*/);
     expect(templateLive).not.toMatch(/badge-wide-blast\.svg/);
     expect(bodyTemplate).toMatch(/<!--[\s\S]*badge-wide-blast\.svg[\s\S]*-->/);
     expect(bodyTemplate).toMatch(/do not stamp wide-blast/i);

@@ -288,6 +288,19 @@ describe('pr-media-gate requires a merge-risk classification', () => {
     expect(result.status).toBe(0);
     expect(result.json.mergeDanger).toEqual({ door: true, blastRadius: true });
   });
+
+  it('accepts the merge-risk badges themselves as the labels', () => {
+    const cwd = repoWithBranch(['src/server/auth.ts']);
+    const badge = (file: string) =>
+      `<img alt="${file}" src="https://raw.githubusercontent.com/vltansky/vs/master/skills/vs-ship-it/assets/${file}">`;
+    const result = gate(
+      cwd,
+      `**Before** 401\n\n**After** 200\n\n## Merge risk\n\n${badge('badge-one-way-door.svg')}\n\nThe token table is migrated.\n\n${badge('badge-narrow-blast.svg')}\n\nOne route.\n`,
+    );
+
+    expect(result.status).toBe(0);
+    expect(result.json.mergeDanger).toEqual({ door: true, blastRadius: true });
+  });
 });
 
 describe('record-flow keeps captions as data and pixels on disk', () => {
