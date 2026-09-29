@@ -297,6 +297,23 @@ describe('vs-ship-it door, blast radius, and summary visual', () => {
     expect(PR_WORKFLOW).toMatch(/Never map one-way to "safe to merge"/i);
     expect(PR_WORKFLOW).toMatch(/Blast radius\s+is a separate axis from the door/i);
     expect(PR_WORKFLOW).toMatch(/Walkthrough HTML is out of scope/i);
+    expect(PR_WORKFLOW).toMatch(
+      /embed the wide-blast\s+preset only when blast is wide/i,
+    );
+
+    // Body-template skeleton: door picture stays a live default embed;
+    // wide-blast must be comment-only / optional so agents do not stamp it
+    // onto narrow-blast PRs.
+    const bodyTemplate =
+      PR_WORKFLOW.match(/````markdown[\s\S]*?````/)?.[0] ?? '';
+    expect(bodyTemplate.length).toBeGreaterThan(0);
+    const templateLive = bodyTemplate.replace(/<!--[\s\S]*?-->/g, '');
+    expect(templateLive).toMatch(/preset-two-way-door-light\.png/);
+    expect(templateLive).not.toMatch(/preset-wide-blast-(dark|light)\.png/);
+    expect(bodyTemplate).toMatch(
+      /<!--[\s\S]*preset-wide-blast-dark\.png[\s\S]*-->/,
+    );
+    expect(bodyTemplate).toMatch(/do not stamp wide-blast/i);
   });
 
   it('requires the leading summary shape to pick one visual from an explicit menu', () => {

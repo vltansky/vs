@@ -214,11 +214,14 @@ or what makes reverting cheap>
 **Blast radius:** <who breaks and how widely, plus the adjacent surfaces this
 does not touch>
 
-<!-- When blast is wide (many consumers / callers / tenants), also embed: -->
+<!-- When blast is wide (many consumers / callers / tenants), also embed
+     the wide-blast picture below. Leave this entire block commented out on
+     narrow blast — do not stamp wide-blast onto a narrow-blast PR.
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/vltansky/vs/master/skills/vs-ship-it/assets/preset-wide-blast-dark.png">
   <img alt="Wide blast radius: many consumers" src="https://raw.githubusercontent.com/vltansky/vs/master/skills/vs-ship-it/assets/preset-wide-blast-light.png">
 </picture>
+-->
 
 ## Review focus
 
