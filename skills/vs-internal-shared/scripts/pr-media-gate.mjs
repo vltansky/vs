@@ -1,15 +1,16 @@
 #!/usr/bin/env node
 // Refuses a PR body that shows the reviewer nothing: no Before/After comparison at all,
-// no merge-danger classification, or frontend changes with no hosted media.
+// no merge-danger classification, frontend changes with no hosted media, or endpoint and
+// schema changes with no contract proof.
 //
-//   node pr-media-gate.mjs <body-file> [--base <ref>] [--frontend <regex>]
+//   node pr-media-gate.mjs <body-file> [--base <ref>] [--frontend <regex>] [--api <regex>] [--schema <regex>]
 //
 // Reads git (which paths changed against the base) and the body text. It never opens the
 // media, so it costs the model no context. Exit codes match check-visual-evidence.mjs:
 //   0  passes: Before/After and Door/Blast Radius are present, and media is present,
 //      gapped, or not needed
-//   1  fails:  the body omits a comparison side, omits merge danger, or shows nothing for
-//      a frontend change
+//   1  fails:  the body omits a comparison side, omits merge danger, shows nothing for a
+//      frontend change, or shows no request/response or schema shape for a backend contract
 //   2  not checked: body missing or git cannot resolve the base
 //
 // Output is one JSON object on stdout so the caller can quote counts instead of re-reading.
@@ -18,6 +19,12 @@ import fs from 'node:fs';
 
 const FRONTEND_PATH =
   /\.(?:tsx|jsx|vue|svelte|astro|css|scss|sass|less|styl|html|mdx)$|\/(?:components?|pages|views|layouts|routes|app|ui|styles?|screens?)\//i;
+// Handler code only: UI files under an api/ folder are frontend, and plain server code has no
+// contract to show. Contract definitions (proto, OpenAPI) are schema, not endpoints.
+const API_PATH =
+  /(?:^|\/)(?:api|apis|controllers?|handlers?|endpoints?|resolvers?|rpc)\/[^.]*\.(?:[cm]?[jt]s|py|go|rb|java|kt|scala|cs|php|rs)$|\.(?:controller|handler|resolver|endpoint|routes?)\.[cm]?[jt]s$|(?:^|\/)route\.[cm]?[jt]s$/i;
+const SCHEMA_PATH =
+  /(?:^|\/)migrations?\/|\.(?:sql|prisma|graphqls?|gql|proto|avsc)$|(?:^|\/)(?:openapi|swagger)[^/]*\.(?:ya?ml|json)$|\.schema\.(?:json|[cm]?[jt]s)$|(?:^|\/)schemas?\.[cm]?[jt]s$|(?:^|\/)schemas?\//i;
 const TEST_PATH = /\.(?:test|spec|stories)\.[cm]?[jt]sx?$|\/(?:__tests__|__snapshots__|test|tests|e2e)\//i;
 
 // A GitHub user-attachment URL has no extension, so hosting is decided by host, not suffix.
@@ -33,6 +40,10 @@ const BARE_URL = /^\s*<?(https?:\/\/\S+?)>?\s*$/;
 // Either phrase makes the gap a reviewed decision instead of an omission: the gate exists to
 // stop silence, not to force a screenshot of a refactor.
 const STATED_GAP = /(?:\*\*)?Still unverified:?(?:\*\*)?[^\n]*|No (?:visual|UI|user-visible) change[^\n]*/i;
+// Contract gaps are per kind: a missing screenshot must not excuse a missing response diff.
+const ENDPOINT_GAP =
+  /No (?:contract|API|endpoint) change[^\n]*|Still unverified:?(?:\*\*)?[^\n]*\b(?:endpoint|API|contract|response)\b[^\n]*/i;
+const SCHEMA_GAP = /No schema change[^\n]*|Still unverified:?(?:\*\*)?[^\n]*\bschema\b[^\n]*/i;
 
 // Before/After and the merge-danger pair are required on every PR, so each marker must be a
 // deliberate label — a bold run, a heading, or a comparison-table header — never the word
@@ -50,6 +61,9 @@ const AFTER_MARKER = labelMarker('After');
 // read, everything else earns a fast one. Silence here reads as "safe" by default.
 const DOOR_MARKER = labelMarker('Door');
 const BLAST_MARKER = labelMarker(String.raw`Blast[ \t]+Radius`);
+const ENDPOINT_MARKER = labelMarker('Endpoint');
+const SCHEMA_MARKER = labelMarker('Schema');
+const FENCE = /^[ \t]*(?:```|~~~)/m;
 
 const args = process.argv.slice(2);
 const bodyPath = args.find((arg) => !arg.startsWith('--'));
@@ -60,6 +74,10 @@ const flag = (name, fallback) => {
 const baseRef = flag('--base', null);
 const frontendPattern = flag('--frontend', null);
 const frontendPath = frontendPattern ? new RegExp(frontendPattern, 'i') : FRONTEND_PATH;
+const apiPattern = flag('--api', null);
+const apiPath = apiPattern ? new RegExp(apiPattern, 'i') : API_PATH;
+const schemaPattern = flag('--schema', null);
+const schemaPath = schemaPattern ? new RegExp(schemaPattern, 'i') : SCHEMA_PATH;
 
 const notChecked = (reason) => {
   process.stderr.write(`pr-media-gate: not checked. ${reason}\n`);
@@ -98,7 +116,15 @@ const frontendFiles = changedFiles.filter(
   (file) => frontendPath.test(file) && !TEST_PATH.test(file),
 );
 
+const apiFiles = changedFiles.filter((file) => apiPath.test(file) && !TEST_PATH.test(file));
+const schemaFiles = changedFiles.filter((file) => schemaPath.test(file) && !TEST_PATH.test(file));
+
 const body = fs.readFileSync(bodyPath, 'utf8');
+// The label must carry a code block after it: a request/response or schema shape, not a sentence.
+const labelledBlock = (marker) => {
+  const at = body.search(marker);
+  return at !== -1 && FENCE.test(body.slice(at));
+};
 const refs = [];
 for (const match of body.matchAll(MARKDOWN_IMAGE)) refs.push({ url: match[1], kind: 'image' });
 for (const match of body.matchAll(HTML_MEDIA)) refs.push({ url: match[1], kind: 'image' });
@@ -127,10 +153,15 @@ const mergeDanger = {
 const mediaOk = frontendFiles.length === 0 || images + videos > 0 || gapStated !== null;
 const beforeAfterOk = beforeAfter.before && beforeAfter.after;
 const mergeDangerOk = mergeDanger.door && mergeDanger.blastRadius;
-const valid = mediaOk && beforeAfterOk && mergeDangerOk;
+const contract = {
+  endpoint: apiFiles.length === 0 || labelledBlock(ENDPOINT_MARKER) || ENDPOINT_GAP.test(body),
+  schema: schemaFiles.length === 0 || labelledBlock(SCHEMA_MARKER) || SCHEMA_GAP.test(body),
+};
+const contractOk = contract.endpoint && contract.schema;
+const valid = mediaOk && beforeAfterOk && mergeDangerOk && contractOk;
 
 process.stdout.write(
-  `${JSON.stringify({ valid, base, frontendFiles, images, videos, localRefs: localRefs.map((ref) => ref.url), gapStated, beforeAfter, mergeDanger }, null, 2)}\n`,
+  `${JSON.stringify({ valid, base, frontendFiles, apiFiles, schemaFiles, images, videos, localRefs: localRefs.map((ref) => ref.url), gapStated, beforeAfter, mergeDanger, contract }, null, 2)}\n`,
 );
 
 if (valid) process.exit(0);
@@ -157,6 +188,28 @@ const next = [
         '  One-way signals: migration, backfill, destructive write, released artifact, public API or wire',
         '  contract, auth/billing/send side effects. Everything a plain `git revert` undoes is two-way.',
         '  Name the recovery path (flag, staged rollout, backup) or say none exists. Never guess reassuringly.',
+      ].join('\n')
+    : null,
+  !contract.endpoint
+    ? [
+        `pr-media-gate: ${apiFiles.length} endpoint file(s) changed and the PR body shows no request/response comparison.`,
+        '  Next, one of:',
+        '    1. Add **Endpoint** `<METHOD> <path>`, one request, and the Before and After response to that',
+        '       same request: paired fenced blocks or one fenced `diff`. Real captured output, never invented.',
+        '    2. Handler change with identical responses: write "No contract change: <why>".',
+        '    3. State the gap: "**Still unverified:** endpoint response; <exact blocker>".',
+        `  Changed: ${apiFiles.join(', ')}`,
+      ].join('\n')
+    : null,
+  !contract.schema
+    ? [
+        `pr-media-gate: ${schemaFiles.length} schema file(s) changed and the PR body shows no before/after shape.`,
+        '  Next, one of:',
+        '    1. Add **Schema** `<table | message | type>`, then a fenced `diff` of the resulting shape before and after',
+        '       (columns, fields, types, nullability) — the shape, not the migration script.',
+        '    2. No shape change (index, comment, reformat): write "No schema change: <why>".',
+        '    3. State the gap: "**Still unverified:** schema diff; <exact blocker>".',
+        `  Changed: ${schemaFiles.join(', ')}`,
       ].join('\n')
     : null,
   !mediaOk

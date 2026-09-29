@@ -374,6 +374,93 @@ describe('record-flow keeps captions as data and pixels on disk', () => {
   });
 });
 
+// A backend PR proves itself the way a frontend one does: the reviewer sees the contract
+// move. An endpoint change shows one request and both responses; a schema change shows the
+// shape before and after. Prose like "the response now includes X" is an assertion, not proof.
+const ENDPOINT_PROOF =
+  '**Endpoint** `POST /v1/tokens/refresh`\n\n```diff\n {\n-  "token": "a"\n+  "token": "a",\n+  "expiresAt": 1\n }\n```\n';
+const SCHEMA_PROOF =
+  '**Schema** `tokens`\n\n```diff\n CREATE TABLE tokens (\n   id text,\n+  expires_at timestamptz\n );\n```\n';
+
+describe('pr-media-gate requires contract proof for backend changes', () => {
+  it('fails an endpoint change whose body has no request/response comparison', () => {
+    const cwd = repoWithBranch(['src/api/tokens.ts']);
+    const result = gate(cwd, BEFORE_AFTER);
+
+    expect(result.status).toBe(1);
+    expect(result.json).toMatchObject({
+      valid: false,
+      apiFiles: ['src/api/tokens.ts'],
+      contract: { endpoint: false },
+    });
+    expect(result.stderr).toMatch(/\*\*Endpoint\*\*/);
+    expect(result.stderr).toMatch(/same request/);
+  });
+
+  it('passes an endpoint change that shows the response diff for one request', () => {
+    const cwd = repoWithBranch(['src/controllers/tokens.controller.ts']);
+    const result = gate(cwd, `${BEFORE_AFTER}\n${ENDPOINT_PROOF}`);
+
+    expect(result.status).toBe(0);
+    expect(result.json.contract).toEqual({ endpoint: true, schema: true });
+  });
+
+  it('does not accept the Endpoint label without a code block under it', () => {
+    const cwd = repoWithBranch(['src/api/tokens.ts']);
+    const result = gate(cwd, `${BEFORE_AFTER}\n**Endpoint** POST /v1/tokens now returns expiresAt.\n`);
+
+    expect(result.status).toBe(1);
+    expect(result.json.contract.endpoint).toBe(false);
+  });
+
+  it('fails a schema change whose body has no before/after shape', () => {
+    const cwd = repoWithBranch(['db/migrations/0042_add_expiry.sql']);
+    const result = gate(cwd, BEFORE_AFTER);
+
+    expect(result.status).toBe(1);
+    expect(result.json).toMatchObject({
+      schemaFiles: ['db/migrations/0042_add_expiry.sql'],
+      contract: { schema: false },
+    });
+    expect(result.stderr).toMatch(/\*\*Schema\*\*/);
+  });
+
+  it('recognizes common schema sources', () => {
+    const files = [
+      'prisma/schema.prisma',
+      'proto/tokens.proto',
+      'api/openapi.yaml',
+      'src/graphql/schema.graphql',
+      'src/db/schema.ts',
+    ];
+    const cwd = repoWithBranch(files);
+    const result = gate(cwd, `${BEFORE_AFTER}\n${SCHEMA_PROOF}`);
+
+    expect(result.json.schemaFiles).toEqual(expect.arrayContaining(files));
+    expect(result.json.contract.schema).toBe(true);
+  });
+
+  it('accepts an honest per-kind gap, but a frontend gap does not excuse the contract', () => {
+    const cwd = repoWithBranch(['src/api/tokens.ts', 'db/migrations/0042.sql']);
+    const stated = gate(
+      cwd,
+      `${BEFORE_AFTER}\nNo contract change: handler refactor, same responses.\n\nNo schema change: the migration only adds an index.\n`,
+    );
+    expect(stated.status).toBe(0);
+
+    const unrelated = gate(cwd, `${BEFORE_AFTER}\n**Still unverified:** visual proof; no browser.\n`);
+    expect(unrelated.status).toBe(1);
+  });
+
+  it('does not treat UI files or plain server code as an endpoint change', () => {
+    const cwd = repoWithBranch(['src/api/TokenBadge.tsx', 'src/server/auth.ts']);
+    const result = gate(cwd, `${BEFORE_AFTER}\n**Still unverified:** visual proof; no browser.\n`);
+
+    expect(result.json.apiFiles).toEqual([]);
+    expect(result.json.schemaFiles).toEqual([]);
+  });
+});
+
 describe('vs-ship-it runs the gate and never reads the pixels', () => {
   const STEP_3 = SHIP_IT.split('### Step 3')[1]?.split('### Step 4')[0] ?? '';
 
@@ -399,6 +486,16 @@ describe('vs-ship-it runs the gate and never reads the pixels', () => {
     expect(SHIP_IT).toMatch(/adjacent surfaces the change does \*\*not\*\* touch/);
     expect(SHIP_IT).toMatch(/- Merge risk: <two-way \| one-way> door/);
     expect(SHIP_IT).toMatch(/- \[ \] Every PR classifies merge risk/);
+  });
+
+  it('names the backend proof shapes and the prototype-sharing skills', () => {
+    expect(SHIP_IT).toMatch(/\*\*Endpoint\*\*[^\n]*same\s+request/);
+    expect(SHIP_IT).toMatch(/\*\*Schema\*\*[^\n]*`diff`/);
+    expect(SHIP_IT).toMatch(/No contract change: <why>/);
+    expect(SHIP_IT).toMatch(/No schema change: <why>/);
+    expect(SHIP_IT).toMatch(/`using-wix-stash`/);
+    expect(SHIP_IT).toMatch(/Claude\s+Artifact/);
+    expect(SHIP_IT).toMatch(/- \[ \] Endpoint and schema changes/);
   });
 
   it('gates the body file on hosted media before gh pr create', () => {

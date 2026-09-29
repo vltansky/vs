@@ -113,6 +113,9 @@ actually changed:
 | Static UI state | Matched screenshots at the same viewport and data |
 | Motion, timing, dragging, multi-step interaction | One short video per interaction |
 | CLI, API, log, or error output | Paired output blocks copied verbatim from the same input |
+| Endpoint, handler, or RPC behavior | **Endpoint** label, then one request and both responses to that same request (see Backend proof) |
+| Schema, migration, or wire contract | **Schema** label, then a fenced `diff` of the resulting shape before and after |
+| HTML prototype or interactive demo | A hosted link the reviewer can click (see Prototype links) |
 | Numbers such as latency, size, count, rate | A table that shows both operands beside any derived figure (`240 ms → 90 ms`, not a bare `2.7× faster`) |
 | Control or data flow, ordering, topology | A fenced `mermaid` diagram of the changed path; GitHub renders it natively |
 | A decisive logic change | A fenced `diff` block of the key hunk, trimmed to the lines that carry the change |
@@ -288,6 +291,67 @@ Do not invent other badges or hand-edit the SVGs; change the generator and
 rerun it. Walkthrough HTML is out of scope here — leave `/vs-pr-walkthrough`
 alone.
 
+### Backend proof
+
+Backend PRs show the contract move, the same way frontend PRs show pixels.
+`pr-media-gate.mjs` enforces both shapes from the changed paths:
+
+- **Endpoint** — handler, controller, resolver, route, or RPC code changed.
+  Name the method and path, give one request, then the Before and After
+  response to that same request. Capture real output (curl, test client,
+  recorded fixture) against each revision; fold a large payload into one
+  fenced `diff` of the response. Handler change with identical responses:
+  write `No contract change: <why>`.
+- **Schema** — migration, SQL, Prisma, GraphQL, proto, Avro, OpenAPI, or JSON
+  Schema changed. Show a fenced `diff` of the resulting shape (columns, fields,
+  types, nullability, defaults), not the migration script. No shape change
+  (index, comment, reformat): write `No schema change: <why>`.
+
+````markdown
+**Endpoint** `POST /v1/tokens/refresh`
+
+```http
+POST /v1/tokens/refresh
+{"refreshToken": "r_123"}
+```
+
+```diff
+ {
+   "token": "t_456",
++  "expiresAt": "2026-09-30T12:00:00Z"
+ }
+```
+
+**Schema** `tokens`
+
+```diff
+ CREATE TABLE tokens (
+   id          text PRIMARY KEY,
++  expires_at  timestamptz NOT NULL
+ );
+```
+````
+
+These blocks are the Before/After proof for a backend PR: put them directly
+under **Before**/**After** instead of repeating the same fact in User Impact
+and Evidence. Response JSON written from source rather than captured is
+labeled source-derived, and Evidence adds
+`**Still unverified:** endpoint response; <blocker>`. A backend-only PR needs
+no visual-proof line at all.
+
+Pass `--api <regex>` or `--schema <regex>` when the repository's layout does
+not match the defaults. A capture blocker is stated per kind:
+`**Still unverified:** endpoint response; <blocker>` or
+`**Still unverified:** schema diff; <blocker>`.
+
+### Prototype links
+
+For an HTML prototype or interactive demo, give the reviewer a hosted link
+instead of a local file: `using-wix-stash` (Wix Stash) or a Claude Artifact
+(the `Artifact` tool), whichever the environment has; `vs-prototype` builds
+the page. Private-by-default hosts need an explicit share step before the link
+is useful. A link complements matched screenshots; it does not replace them.
+
 For CLI/API behavior, replace visual proof with exact paired output from the
 same input. For a new feature, describe the previous absence or workaround under Before
 and the new capability under After; keep the pair even when only After has media.
@@ -395,7 +459,9 @@ node <vs-internal-shared>/scripts/pr-media-gate.mjs "$BODY_FILE" --base origin/<
   door and a blast-radius badge (or a **Door** and **Blast radius** label), and
   hosted media is embedded, or the body states `**Still unverified:** visual proof; <exact blocker>`, or it
   states `No visual change: <why>` for a refactor with identical output, or no
-  frontend path changed.
+  frontend path changed; and every endpoint or schema change carries its
+  **Endpoint** or **Schema** block (or `No contract change` / `No schema
+  change` / a per-kind stated gap).
 - Exit 1: add the missing side of the comparison, add the missing merge-risk
   line, or capture with `record-flow.mjs` and upload, or write the exact gap in
   the body. Do not create the PR from a failing body. Local paths never count:
@@ -559,6 +625,8 @@ separate `vs-baby-sit` goal only when the user explicitly requested a Codex goal
       `raw.githubusercontent.com/vltansky/vs/master/skills/vs-ship-it/assets/badge-*.svg`.
 - [ ] Frontend changes have matched screenshots and interaction video where
       relevant, or an exact capture blocker; captions explain the difference.
+- [ ] Endpoint and schema changes show one request with both responses and a
+      schema `diff`, or state why not.
 - [ ] `pr-media-gate.mjs` exited 0 on the final body file before `gh pr create`;
       captured images were not read into context.
 - [ ] Open non-draft PR state, branch, and head SHA were re-resolved
