@@ -260,59 +260,48 @@ describe('vs-ship-it door, blast radius, and summary visual', () => {
     expect(PR_WORKFLOW).toMatch(/## Merge risk|## Blast [Rr]adius|## Door/i);
   });
 
-  it('requires picture embeds for matching door and wide-blast presets', () => {
+  it('requires inline merge-risk badges that match the door and blast lines', () => {
     const assetsDir = path.resolve(__dirname, '..', 'assets');
     for (const file of [
-      'preset-two-way-door-dark.png',
-      'preset-two-way-door-light.png',
-      'preset-one-way-door-dark.png',
-      'preset-one-way-door-light.png',
-      'preset-wide-blast-dark.png',
-      'preset-wide-blast-light.png',
+      'badge-two-way-door.svg',
+      'badge-one-way-door.svg',
+      'badge-wide-blast.svg',
+      'badge-narrow-blast.svg',
     ]) {
       expect(fs.existsSync(path.join(assetsDir, file))).toBe(true);
     }
+    expect(
+      fs.existsSync(path.resolve(__dirname, '..', 'scripts', 'generate-badges.mts')),
+    ).toBe(true);
 
-    expect(PR_WORKFLOW).toContain('<picture>');
-    expect(PR_WORKFLOW).toMatch(
-      /<source media="\(prefers-color-scheme: dark\)" srcset="/,
-    );
-    expect(PR_WORKFLOW).toMatch(/<img alt="[^"]*" src="/);
-    expect(PR_WORKFLOW).toMatch(
-      /raw\.githubusercontent\.com\/vltansky\/vs\/master\/skills\/vs-ship-it\/assets\/preset-two-way-door-dark\.png/,
-    );
-    expect(PR_WORKFLOW).toMatch(
-      /raw\.githubusercontent\.com\/vltansky\/vs\/master\/skills\/vs-ship-it\/assets\/preset-two-way-door-light\.png/,
-    );
-    expect(PR_WORKFLOW).toMatch(/preset-one-way-door-dark\.png/);
-    expect(PR_WORKFLOW).toMatch(/preset-one-way-door-light\.png/);
-    expect(PR_WORKFLOW).toMatch(/preset-wide-blast-dark\.png/);
-    expect(PR_WORKFLOW).toMatch(/preset-wide-blast-light\.png/);
+    const RAW =
+      /raw\.githubusercontent\.com\/vltansky\/vs\/master\/skills\/vs-ship-it\/assets\//;
+    expect(PR_WORKFLOW).toMatch(new RegExp(RAW.source + 'badge-two-way-door\\.svg'));
+    expect(PR_WORKFLOW).toMatch(/badge-one-way-door\.svg/);
+    expect(PR_WORKFLOW).toMatch(/badge-wide-blast\.svg/);
+    expect(PR_WORKFLOW).toMatch(/badge-narrow-blast\.svg/);
     expect(PR_WORKFLOW).toMatch(/Two-way door: easy to revert/);
     expect(PR_WORKFLOW).toMatch(/One-way door: hard to reverse/);
     expect(PR_WORKFLOW).toMatch(/Wide blast radius: many consumers/);
-    expect(PR_WORKFLOW).toMatch(/light `src`|img alt[\s\S]*src=/i);
-    expect(PR_WORKFLOW).toMatch(/dark.*source|source[\s\S]*prefers-color-scheme: dark/i);
-    expect(PR_WORKFLOW).toMatch(/render after[\s\S]*master|after the assets land on\s+`master`/i);
+    expect(PR_WORKFLOW).toMatch(/after the assets land on\s+`master`/i);
     expect(PR_WORKFLOW).toMatch(/Never map one-way to "safe to merge"/i);
     expect(PR_WORKFLOW).toMatch(/Blast radius\s+is a separate axis from the door/i);
     expect(PR_WORKFLOW).toMatch(/Walkthrough HTML is out of scope/i);
-    expect(PR_WORKFLOW).toMatch(
-      /embed the wide-blast\s+preset only when blast is wide/i,
-    );
+    expect(PR_WORKFLOW).toMatch(/embed the wide-blast\s+badge only when blast is wide/i);
+    expect(PR_WORKFLOW).toMatch(/Badges\s+classify risk and are not visual proof/i);
+    // The old full-width illustrations are gone; badges are single-file, theme-neutral.
+    expect(PR_WORKFLOW).not.toMatch(/preset-[a-z-]+\.png/);
 
-    // Body-template skeleton: door picture stays a live default embed;
-    // wide-blast must be comment-only / optional so agents do not stamp it
-    // onto narrow-blast PRs.
+    // Body-template skeleton: badges sit inline on the Door and Blast radius lines;
+    // wide-blast lives only in a comment so agents do not stamp it onto narrow PRs.
     const bodyTemplate =
       PR_WORKFLOW.match(/````markdown[\s\S]*?````/)?.[0] ?? '';
     expect(bodyTemplate.length).toBeGreaterThan(0);
     const templateLive = bodyTemplate.replace(/<!--[\s\S]*?-->/g, '');
-    expect(templateLive).toMatch(/preset-two-way-door-light\.png/);
-    expect(templateLive).not.toMatch(/preset-wide-blast-(dark|light)\.png/);
-    expect(bodyTemplate).toMatch(
-      /<!--[\s\S]*preset-wide-blast-dark\.png[\s\S]*-->/,
-    );
+    expect(templateLive).toMatch(/\*\*Door:\*\* <img [^>]*badge-two-way-door\.svg/);
+    expect(templateLive).toMatch(/\*\*Blast radius:\*\* <img [^>]*badge-narrow-blast\.svg/);
+    expect(templateLive).not.toMatch(/badge-wide-blast\.svg/);
+    expect(bodyTemplate).toMatch(/<!--[\s\S]*badge-wide-blast\.svg[\s\S]*-->/);
     expect(bodyTemplate).toMatch(/do not stamp wide-blast/i);
   });
 

@@ -23,6 +23,8 @@ const TEST_PATH = /\.(?:test|spec|stories)\.[cm]?[jt]sx?$|\/(?:__tests__|__snaps
 // A GitHub user-attachment URL has no extension, so hosting is decided by host, not suffix.
 const HOSTED_MEDIA_HOST =
   /^https:\/\/(?:github\.com\/user-attachments\/assets\/|(?:private-)?user-images\.githubusercontent\.com\/|user-images\.githubusercontent\.com\/)/i;
+// vs-ship-it merge-risk badges classify the PR; they never show the change, so they are not proof.
+const MERGE_RISK_BADGE = /\/skills\/vs-ship-it\/assets\//i;
 const MEDIA_EXTENSION = /\.(?:png|jpe?g|webp|gif|svg|webm|mp4|mov)(?:[?#].*)?$/i;
 const MARKDOWN_IMAGE = /!\[[^\]]*\]\(\s*<?([^\s)>]+)>?(?:\s+"[^"]*")?\s*\)/g;
 const HTML_MEDIA = /<(?:img|video|source)\b[^>]*\bsrc=["']([^"']+)["']/gi;
@@ -105,7 +107,9 @@ for (const line of body.split('\n')) {
   if (match) refs.push({ url: match[1], kind: 'video' });
 }
 
-const isHosted = (url) => HOSTED_MEDIA_HOST.test(url) || (/^https?:\/\//i.test(url) && MEDIA_EXTENSION.test(url));
+const isHosted = (url) =>
+  !MERGE_RISK_BADGE.test(url) &&
+  (HOSTED_MEDIA_HOST.test(url) || (/^https?:\/\//i.test(url) && MEDIA_EXTENSION.test(url)));
 const hosted = refs.filter((ref) => isHosted(ref.url));
 const localRefs = refs.filter((ref) => !/^(?:https?:|data:)/i.test(ref.url));
 const images = hosted.filter((ref) => ref.kind === 'image').length;
