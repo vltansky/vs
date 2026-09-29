@@ -18,6 +18,13 @@ writes `captions.vtt`, and prints a manifest so the agent never has to read
 the pixels. Everything below is what that script does, for when the flow needs
 something it does not support.
 
+Video is paced for a person watching, from
+[`../scripts/record-pacing.mjs`](../scripts/record-pacing.mjs): each new caption
+holds for its reading time (about 280 ms a word, 1.2-4 s) before the action, the
+pointer visibly travels for 700 ms, and the result holds for 1.5 s. A four-step
+flow runs about 15 s, not 3 s. Keep captions short rather than adding `wait`;
+`--no-video` skips the pacing because nobody watches a stills-only run.
+
 Reuse the approved Evidence plan's scenarios. For an existing Playwright route,
 use [`../scripts/capture-demo.mjs`](../scripts/capture-demo.mjs) to avoid rebuilding
 cursor installation, click pacing, asserted checkpoints, stills, and video

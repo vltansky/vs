@@ -303,6 +303,38 @@ describe('pr-media-gate requires a merge-risk classification', () => {
   });
 });
 
+describe('record-flow paces video for a human viewer', () => {
+  // A recording that plays each step in under a second shows effects nobody can follow:
+  // the caption must be readable before the action, the pointer must visibly travel, and
+  // the result must stay on screen long enough to register.
+  it('holds each caption long enough to read, then shows the pointer travel and the result', async () => {
+    const { stepPacing } = await import('../scripts/record-pacing.mjs');
+    const click = stepPacing({ caption: 'Click Turn off comments', click: '#off' }, { video: true });
+
+    expect(click.leadMs).toBeGreaterThanOrEqual(1200);
+    expect(click.travelMs).toBeGreaterThanOrEqual(500);
+    expect(click.resultMs).toBeGreaterThanOrEqual(1200);
+  });
+
+  it('gives longer captions more reading time, capped so one step never stalls the clip', async () => {
+    const { captionHoldMs } = await import('../scripts/record-pacing.mjs');
+    const short = captionHoldMs('Open menu');
+    const long = captionHoldMs(
+      'The manager confirms the dialog and every viewer reloads without the comments button',
+    );
+
+    expect(long).toBeGreaterThan(short);
+    expect(long).toBeLessThanOrEqual(4000);
+  });
+
+  it('keeps stills-only runs fast: nobody watches a --no-video capture', async () => {
+    const { stepPacing } = await import('../scripts/record-pacing.mjs');
+    const click = stepPacing({ caption: 'Click Turn off comments', click: '#off' }, { video: false });
+
+    expect(click.leadMs + click.travelMs + click.resultMs).toBeLessThan(600);
+  });
+});
+
 describe('record-flow keeps captions as data and pixels on disk', () => {
   it('rejects a flow whose step has no action, still, or caption', () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'vs-record-flow-'));
