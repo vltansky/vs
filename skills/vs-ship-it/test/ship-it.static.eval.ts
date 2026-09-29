@@ -260,6 +260,62 @@ describe('vs-ship-it door, blast radius, and summary visual', () => {
     expect(PR_WORKFLOW).toMatch(/## Merge risk|## Blast [Rr]adius|## Door/i);
   });
 
+  it('requires picture embeds for matching door and wide-blast presets', () => {
+    const assetsDir = path.resolve(__dirname, '..', 'assets');
+    for (const file of [
+      'preset-two-way-door-dark.png',
+      'preset-two-way-door-light.png',
+      'preset-one-way-door-dark.png',
+      'preset-one-way-door-light.png',
+      'preset-wide-blast-dark.png',
+      'preset-wide-blast-light.png',
+    ]) {
+      expect(fs.existsSync(path.join(assetsDir, file))).toBe(true);
+    }
+
+    expect(PR_WORKFLOW).toContain('<picture>');
+    expect(PR_WORKFLOW).toMatch(
+      /<source media="\(prefers-color-scheme: dark\)" srcset="/,
+    );
+    expect(PR_WORKFLOW).toMatch(/<img alt="[^"]*" src="/);
+    expect(PR_WORKFLOW).toMatch(
+      /raw\.githubusercontent\.com\/vltansky\/vs\/master\/skills\/vs-ship-it\/assets\/preset-two-way-door-dark\.png/,
+    );
+    expect(PR_WORKFLOW).toMatch(
+      /raw\.githubusercontent\.com\/vltansky\/vs\/master\/skills\/vs-ship-it\/assets\/preset-two-way-door-light\.png/,
+    );
+    expect(PR_WORKFLOW).toMatch(/preset-one-way-door-dark\.png/);
+    expect(PR_WORKFLOW).toMatch(/preset-one-way-door-light\.png/);
+    expect(PR_WORKFLOW).toMatch(/preset-wide-blast-dark\.png/);
+    expect(PR_WORKFLOW).toMatch(/preset-wide-blast-light\.png/);
+    expect(PR_WORKFLOW).toMatch(/Two-way door: easy to revert/);
+    expect(PR_WORKFLOW).toMatch(/One-way door: hard to reverse/);
+    expect(PR_WORKFLOW).toMatch(/Wide blast radius: many consumers/);
+    expect(PR_WORKFLOW).toMatch(/light `src`|img alt[\s\S]*src=/i);
+    expect(PR_WORKFLOW).toMatch(/dark.*source|source[\s\S]*prefers-color-scheme: dark/i);
+    expect(PR_WORKFLOW).toMatch(/render after[\s\S]*master|after the assets land on\s+`master`/i);
+    expect(PR_WORKFLOW).toMatch(/Never map one-way to "safe to merge"/i);
+    expect(PR_WORKFLOW).toMatch(/Blast radius\s+is a separate axis from the door/i);
+    expect(PR_WORKFLOW).toMatch(/Walkthrough HTML is out of scope/i);
+    expect(PR_WORKFLOW).toMatch(
+      /embed the wide-blast\s+preset only when blast is wide/i,
+    );
+
+    // Body-template skeleton: door picture stays a live default embed;
+    // wide-blast must be comment-only / optional so agents do not stamp it
+    // onto narrow-blast PRs.
+    const bodyTemplate =
+      PR_WORKFLOW.match(/````markdown[\s\S]*?````/)?.[0] ?? '';
+    expect(bodyTemplate.length).toBeGreaterThan(0);
+    const templateLive = bodyTemplate.replace(/<!--[\s\S]*?-->/g, '');
+    expect(templateLive).toMatch(/preset-two-way-door-light\.png/);
+    expect(templateLive).not.toMatch(/preset-wide-blast-(dark|light)\.png/);
+    expect(bodyTemplate).toMatch(
+      /<!--[\s\S]*preset-wide-blast-dark\.png[\s\S]*-->/,
+    );
+    expect(bodyTemplate).toMatch(/do not stamp wide-blast/i);
+  });
+
   it('requires the leading summary shape to pick one visual from an explicit menu', () => {
     expect(PR_WORKFLOW).toMatch(/pseudocode/i);
     expect(PR_WORKFLOW).toMatch(/call tree/i);
