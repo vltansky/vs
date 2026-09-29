@@ -201,6 +201,7 @@ Architecture: /vs-architect -> /vs-shape-it -> /vs-build-it
 | `/vs-write` | Write or reshape clear prose without losing substance |
 | `/vs-before-after` | Show the functional behavior before and after a diff |
 | `/vs-tldr` | Compress the last explanation: shorter and simpler, same meaning |
+| `/vs-teach-back` | Rewrite the user's messy explanation as a clean proposal, then ask clarifying questions |
 | `/vs-eli5` | Explain from zero with big pictures and few words, via `/vs-show-me` |
 | `/vs-eval` | Write PathGrade static pins and live evals with exclusive contracts, not slogan mentions |
 | `/vs-tune-skill` | Grade one named skill from local chats and propose a scratch diff |
