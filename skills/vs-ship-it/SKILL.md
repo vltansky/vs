@@ -201,8 +201,24 @@ flowchart LR
 
 **Door:** one-way | two-way — <the irreversible step and what undoing it costs,
 or what makes reverting cheap>
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/vltansky/vs/master/skills/vs-ship-it/assets/preset-two-way-door-dark.png">
+  <img alt="Two-way door: easy to revert" src="https://raw.githubusercontent.com/vltansky/vs/master/skills/vs-ship-it/assets/preset-two-way-door-light.png">
+</picture>
+
+<!-- For one-way, swap both URLs and the alt to preset-one-way-door-* and
+     "One-way door: hard to reverse — review carefully". Never label one-way
+     as safe to merge. -->
+
 **Blast radius:** <who breaks and how widely, plus the adjacent surfaces this
 does not touch>
+
+<!-- When blast is wide (many consumers / callers / tenants), also embed: -->
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/vltansky/vs/master/skills/vs-ship-it/assets/preset-wide-blast-dark.png">
+  <img alt="Wide blast radius: many consumers" src="https://raw.githubusercontent.com/vltansky/vs/master/skills/vs-ship-it/assets/preset-wide-blast-light.png">
+</picture>
 
 ## Review focus
 
@@ -223,6 +239,10 @@ Classify merge risk from the scoped diff, never from the change's intent:
 | Auth, permissions, billing, or anything with a side effect on send | One-way | The effect escapes before a revert lands |
 | Behavior behind a flag, internal refactor, copy, styling, tests | Two-way | `git revert` restores the previous behavior |
 
+Meanings stay literal. **Two-way** = easy to revert. **One-way** = hard to
+reverse — review carefully. Never map one-way to "safe to merge". Blast radius
+is a separate axis from the door: a two-way change can still have a wide blast.
+
 State the blast radius as who breaks and how widely, not as a severity word:
 one route, one command, every caller of a shared helper, every tenant. Name the
 adjacent surfaces the change does **not** touch — the bounded half is what lets
@@ -230,6 +250,39 @@ a reviewer skip the rest. When the diff is one-way or broad, say what makes it
 recoverable (flag, staged rollout, backup, reversible migration) or state that
 nothing does. Two lines is the whole budget; if the classification is uncertain,
 write the uncertainty rather than the reassuring guess.
+
+### Merge-risk preset images
+
+Whenever the PR body states a **Door** and/or a **Blast radius**, embed the
+matching catalog preset with GitHub-renderable HTML so reviewers see the motif
+in light and dark mode:
+
+```html
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="RAW_GITHUB_URL_DARK">
+  <img alt="…" src="RAW_GITHUB_URL_LIGHT">
+</picture>
+```
+
+Catalog (committed under `skills/vs-ship-it/assets/`):
+
+| Motif | When | Light | Dark | Alt |
+| --- | --- | --- | --- | --- |
+| Two-way door | Door is two-way | `preset-two-way-door-light.png` | `preset-two-way-door-dark.png` | Two-way door: easy to revert |
+| One-way door | Door is one-way | `preset-one-way-door-light.png` | `preset-one-way-door-dark.png` | One-way door: hard to reverse — review carefully |
+| Wide blast | Blast radius is wide / many consumers | `preset-wide-blast-light.png` | `preset-wide-blast-dark.png` | Wide blast radius: many consumers |
+
+Use stable `raw.githubusercontent.com` URLs against the master path:
+
+`https://raw.githubusercontent.com/vltansky/vs/master/skills/vs-ship-it/assets/<file>`
+
+PR description bodies on github.com do not reliably resolve relative repo paths,
+so prefer these absolute raw URLs. They render after the assets land on
+`master` (including after this skill's own PR merges); until then the
+`<picture>` still belongs in the body so the motif appears once master has the
+files. Embed the door preset that matches the Door line; embed the wide-blast
+preset only when blast is wide. Do not invent other motifs or regenerate the
+PNGs. Walkthrough HTML is out of scope here — leave `/vs-pr-walkthrough` alone.
 
 For CLI/API behavior, replace visual proof with exact paired output from the
 same input. For a new feature, describe the previous absence or workaround under Before
@@ -496,6 +549,9 @@ separate `vs-baby-sit` goal only when the user explicitly requested a Codex goal
       the pair on every PR, not only frontend ones.
 - [ ] Every PR classifies merge risk: a one-way/two-way **Door** line and a
       **Blast radius** line, both derived from the diff, both in the handoff.
+- [ ] Matching merge-risk preset `<picture>` embeds are in the body (door
+      light `src` + dark `<source>`; wide-blast when blast is wide), using
+      `raw.githubusercontent.com/vltansky/vs/master/skills/vs-ship-it/assets/…`.
 - [ ] Frontend changes have matched screenshots and interaction video where
       relevant, or an exact capture blocker; captions explain the difference.
 - [ ] `pr-media-gate.mjs` exited 0 on the final body file before `gh pr create`;
