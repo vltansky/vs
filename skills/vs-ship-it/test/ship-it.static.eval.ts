@@ -62,7 +62,7 @@ describe('vs-ship-it publishing boundary', () => {
     expect(README).not.toContain('Review explicitly approved?');
     expect(README).toMatch(/Prepare PR description<br\/>feature_area: title/);
     expect(README).toMatch(/Problem \+ one visual \+ Before\/After<br\/>Why this change/);
-    expect(README).toMatch(/User impact<br\/>Evidence \+ gaps<br\/>Merge risk \(Door \/ Blast\)<br\/>Review focus/);
+    expect(README).toMatch(/Merge risk \(Door \/ Blast\)<br\/>Surfaces<br\/>Problem \+ one visual \+ Before\/After<br\/>Why this change<br\/>User impact<br\/>Evidence \+ gaps<br\/>Review focus/);
     expect(README).toMatch(/Reuse or capture proof<br\/>matched Before\/After screenshots/);
     expect(README).toMatch(/short video for interactions/);
   });
@@ -72,11 +72,12 @@ describe('vs-ship-it independent PR preparation', () => {
   it('prepares reviewer-facing copy without asking for wording approval', () => {
     expect(PR_WORKFLOW).toMatch(/Write the description directly from the live conversation/i);
     expect(PR_WORKFLOW).toMatch(/Do not ask the user to write or approve PR\s+copy/i);
+    expect(PR_WORKFLOW).toContain('## Merge risk');
+    expect(PR_WORKFLOW).toContain('## Surfaces');
     expect(PR_WORKFLOW).toContain('## What Problem This Solves');
     expect(PR_WORKFLOW).toContain('## Why This Change Was Made');
     expect(PR_WORKFLOW).toContain('## User Impact');
     expect(PR_WORKFLOW).toContain('## Evidence');
-    expect(PR_WORKFLOW).toContain('## Merge risk');
     expect(PR_WORKFLOW).toContain('## Review focus');
   });
 
@@ -323,5 +324,67 @@ describe('vs-ship-it door, blast radius, and summary visual', () => {
     expect(fs.existsSync(path.join(skillsRoot, 'vs-pr'))).toBe(false);
     expect(SKILL).not.toContain('`/vs-pr`');
     expect(SKILL).not.toMatch(/(?:^|[^-\w])\/vs-pr(?:[^-\w]|$)/);
+  });
+});
+
+describe('vs-ship-it merge risk first and Surfaces proof selectors', () => {
+  const bodyTemplate =
+    PR_WORKFLOW.match(/````markdown[\s\S]*?````/)?.[0] ?? '';
+
+  it('puts Merge risk (door + blast) at the top of the body template, before What Problem', () => {
+    expect(bodyTemplate.length).toBeGreaterThan(0);
+    const mergeAt = bodyTemplate.indexOf('## Merge risk');
+    const problemAt = bodyTemplate.indexOf('## What Problem This Solves');
+    const surfacesAt = bodyTemplate.indexOf('## Surfaces');
+    expect(mergeAt).toBeGreaterThan(-1);
+    expect(problemAt).toBeGreaterThan(-1);
+    expect(surfacesAt).toBeGreaterThan(-1);
+    expect(mergeAt).toBeLessThan(problemAt);
+    expect(surfacesAt).toBeGreaterThan(mergeAt);
+    expect(surfacesAt).toBeLessThan(problemAt);
+  });
+
+  it('locks Surfaces vocabulary to UI|Endpoint|Schema|CLI|MCP|Infra', () => {
+    expect(PR_WORKFLOW).toMatch(/## Surfaces/);
+    expect(PR_WORKFLOW).toMatch(/UI · Endpoint · Schema · CLI · MCP/);
+    expect(PR_WORKFLOW).toMatch(/\bInfra\b/);
+    // Endpoint not backend; Schema covers wire + persistence (no separate DB badge).
+    expect(PR_WORKFLOW).toMatch(/Endpoint not backend/i);
+    expect(PR_WORKFLOW).toMatch(/Schema[^\n]*wire[^\n]*persistence|wire \+ persistence/i);
+    expect(PR_WORKFLOW).toMatch(/no separate DB/i);
+    expect(PR_WORKFLOW).toMatch(/Infra only when[^\n]*solely CI\/deploy\/flags\/env/i);
+    expect(PR_WORKFLOW).toMatch(/never stack[^\n]*product surface/i);
+    // Wrapper precedence.
+    expect(PR_WORKFLOW).toMatch(/MCP wrap of unchanged route[^\n]*MCP only/i);
+    expect(PR_WORKFLOW).toMatch(/CLI shim of unchanged MCP[^\n]*CLI only/i);
+  });
+
+  it('omits Surfaces for skill-only when paths prove no product or Infra class', () => {
+    expect(PR_WORKFLOW).toMatch(/Omit Surfaces when paths prove\s+no product surface/i);
+    expect(PR_WORKFLOW).toMatch(/skill-only \/ docs-only/i);
+    expect(PR_WORKFLOW).toMatch(/never invent a product stamp/i);
+    const bodyTemplate =
+      PR_WORKFLOW.match(/````markdown[\s\S]*?````/)?.[0] ?? '';
+    const templateLive = bodyTemplate.replace(/<!--[\s\S]*?-->/g, '');
+    // Template must not present the full vocabulary as a default selected stamp.
+    expect(templateLive).not.toMatch(/^UI · Endpoint · Schema · CLI · MCP\s*$/m);
+    expect(templateLive).toMatch(/Omit this section when paths prove no product surface/i);
+  });
+
+  it('keeps door/blast as the only merge-risk SVGs; Surfaces are not risk art', () => {
+    const assetsDir = path.resolve(__dirname, '..', 'assets');
+    const badges = fs.readdirSync(assetsDir).filter((f) => f.endsWith('.svg'));
+    expect(badges.sort()).toEqual([
+      'badge-narrow-blast.svg',
+      'badge-one-way-door.svg',
+      'badge-two-way-door.svg',
+      'badge-wide-blast.svg',
+    ]);
+    expect(PR_WORKFLOW).toMatch(/Surfaces are proof selectors, not (?:new )?risk art/i);
+    expect(PR_WORKFLOW).not.toMatch(/badge-(?:ui|endpoint|schema|cli|mcp|infra|backend|db)\.svg/i);
+    expect(PR_WORKFLOW).toMatch(/Never invent backend\/DB surface names/i);
+    // Optional CLI/MCP proof blocks stay Later — do not implement in this cut.
+    expect(PR_WORKFLOW).not.toMatch(/\*\*CLI\*\*[^\n]*```/);
+    expect(PR_WORKFLOW).not.toMatch(/\*\*MCP\*\*[^\n]*```/);
   });
 });

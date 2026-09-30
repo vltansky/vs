@@ -509,3 +509,123 @@ describe('vs-ship-it runs the gate and never reads the pixels', () => {
     expect(SHIP_IT).toMatch(/- \[ \] .*pr-media-gate/);
   });
 });
+
+// Surfaces proof selectors: claim↔path asserts. Door/blast stay risk art; Surfaces
+// name what the reviewer must prove, never new merge-risk SVGs.
+const SURFACES = (line: string) => `## Surfaces\n\n${line}\n`;
+const BODY_WITH = (surfaces: string, extra = '') =>
+  `**Before** x\n\n**After** y\n\n${MERGE_DANGER}\n${SURFACES(surfaces)}${extra}`;
+
+describe('pr-media-gate Surfaces claim↔path asserts', () => {
+  it('fails migration-only when the body stamps UI', () => {
+    const cwd = repoWithBranch(['db/migrations/0042_add_expiry.sql']);
+    const result = gate(cwd, `${BODY_WITH('UI')}\n${SCHEMA_PROOF}`);
+
+    expect(result.status).toBe(1);
+    expect(result.stderr).toMatch(/migration-only|UI/i);
+    expect(result.json.surfaces?.ok).toBe(false);
+  });
+
+  it('fails MCP-wrap-only when the body stamps Endpoint', () => {
+    const cwd = repoWithBranch(['mcp/tools/tokens.ts', 'src/mcp/server.ts']);
+    const result = gate(cwd, BODY_WITH('MCP · Endpoint'));
+
+    expect(result.status).toBe(1);
+    expect(result.stderr).toMatch(/MCP-wrap|Endpoint/i);
+    expect(result.json.surfaces?.ok).toBe(false);
+  });
+
+  it('fails when Infra is stacked with a product surface', () => {
+    const cwd = repoWithBranch([
+      '.github/workflows/ci.yml',
+      'src/components/Toggle.tsx',
+    ]);
+    const result = gate(
+      cwd,
+      `${BODY_WITH('Infra · UI')}\n**Still unverified:** visual proof; no browser.\n`,
+    );
+
+    expect(result.status).toBe(1);
+    expect(result.stderr).toMatch(/Infra/i);
+    expect(result.json.surfaces?.ok).toBe(false);
+  });
+
+  it('fails when the body stamps backend or DB as a surface name', () => {
+    const cwd = repoWithBranch(['src/api/tokens.ts']);
+    const backend = gate(cwd, `${BODY_WITH('backend')}\n${ENDPOINT_PROOF}`);
+    expect(backend.status).toBe(1);
+    expect(backend.stderr).toMatch(/backend|DB/i);
+
+    const db = gate(cwd, `${BODY_WITH('DB · Endpoint')}\n${ENDPOINT_PROOF}`);
+    expect(db.status).toBe(1);
+    expect(db.stderr).toMatch(/backend|DB/i);
+  });
+
+  it('fails >3 product surfaces without matching path classes', () => {
+    // Only UI + Endpoint paths; body stamps four product surfaces.
+    const cwd = repoWithBranch([
+      'src/components/Toggle.tsx',
+      'src/api/tokens.ts',
+    ]);
+    const result = gate(
+      cwd,
+      `${BODY_WITH('UI · Endpoint · Schema · CLI')}\n${ENDPOINT_PROOF}\n**Still unverified:** visual proof; no browser.\n`,
+    );
+
+    expect(result.status).toBe(1);
+    expect(result.stderr).toMatch(/>3|more than 3|without matching/i);
+    expect(result.json.surfaces?.ok).toBe(false);
+  });
+
+
+  it('fails skill-only paths when the body stamps a product Surface', () => {
+    // Skill / docs / gate / manifest only — no UI|Endpoint|Schema|CLI|MCP|Infra path class.
+    const cwd = repoWithBranch([
+      'skills/vs-ship-it/SKILL.md',
+      'skills/vs-ship-it/test/ship-it.static.eval.ts',
+      'package.json',
+    ]);
+    const result = gate(cwd, BODY_WITH('Schema'));
+
+    expect(result.status).toBe(1);
+    expect(result.json.surfaces?.ok).toBe(false);
+    expect(result.json.surfaces?.claimed).toEqual(['Schema']);
+    expect(result.stderr).toMatch(/unmatched|skill-only|Schema/i);
+  });
+
+  it('passes skill-only paths when Surfaces is omitted', () => {
+    const cwd = repoWithBranch([
+      'skills/vs-ship-it/SKILL.md',
+      'skills/vs-internal-shared/scripts/pr-media-gate.mjs',
+    ]);
+    const result = gate(
+      cwd,
+      '**Before** x\n\n**After** y\n\n' + MERGE_DANGER,
+    );
+
+    expect(result.status).toBe(0);
+    expect(result.json.surfaces).toMatchObject({ ok: true, claimed: [] });
+  });
+
+  it('passes a matching Surfaces line for the changed path classes', () => {
+    const cwd = repoWithBranch(['src/api/tokens.ts', 'db/migrations/0042.sql']);
+    const result = gate(cwd, `${BODY_WITH('Endpoint · Schema')}\n${ENDPOINT_PROOF}\n${SCHEMA_PROOF}`);
+
+    expect(result.status).toBe(0);
+    expect(result.json.surfaces).toMatchObject({
+      ok: true,
+      claimed: ['Endpoint', 'Schema'],
+    });
+  });
+
+  it('passes Infra alone on an infra-only PR', () => {
+    const cwd = repoWithBranch(['.github/workflows/ci.yml', 'Dockerfile']);
+    const result = gate(cwd, BODY_WITH('Infra'));
+
+    expect(result.status).toBe(0);
+    expect(result.json.surfaces).toMatchObject({
+      ok: true,
+      claimed: ['Infra'],
+    });
+  });
+});

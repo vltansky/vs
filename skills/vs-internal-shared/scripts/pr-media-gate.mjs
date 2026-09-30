@@ -1,16 +1,21 @@
 #!/usr/bin/env node
 // Refuses a PR body that shows the reviewer nothing: no Before/After comparison at all,
-// no merge-danger classification, frontend changes with no hosted media, or endpoint and
-// schema changes with no contract proof.
+// no merge-danger classification, frontend changes with no hosted media, endpoint and
+// schema changes with no contract proof, or Surfaces claim↔path mismatches.
 //
 //   node pr-media-gate.mjs <body-file> [--base <ref>] [--frontend <regex>] [--api <regex>] [--schema <regex>]
 //
 // Reads git (which paths changed against the base) and the body text. It never opens the
 // media, so it costs the model no context. Exit codes match check-visual-evidence.mjs:
 //   0  passes: Before/After and Door/Blast Radius are present, and media is present,
-//      gapped, or not needed
+//      gapped, or not needed; when ## Surfaces is stamped, every claimed surface has a
+//      matching path class (omit Surfaces on skill-only / docs-only)
 //   1  fails:  the body omits a comparison side, omits merge danger, shows nothing for a
-//      frontend change, or shows no request/response or schema shape for a backend contract
+//      frontend change, shows no request/response or schema shape for a contract change,
+//      stamps a forbidden surface name (backend/DB), stacks Infra with a product surface,
+//      stamps Infra without infra paths, stamps a product surface with no matching path
+//      class (including skill-only + Schema), migration-only≠UI, MCP-wrap-only≠Endpoint,
+//      or >3 product surfaces without matching path classes
 //   2  not checked: body missing or git cannot resolve the base
 //
 // Output is one JSON object on stdout so the caller can quote counts instead of re-reading.
@@ -25,7 +30,16 @@ const API_PATH =
   /(?:^|\/)(?:api|apis|controllers?|handlers?|endpoints?|resolvers?|rpc)\/[^.]*\.(?:[cm]?[jt]s|py|go|rb|java|kt|scala|cs|php|rs)$|\.(?:controller|handler|resolver|endpoint|routes?)\.[cm]?[jt]s$|(?:^|\/)route\.[cm]?[jt]s$/i;
 const SCHEMA_PATH =
   /(?:^|\/)migrations?\/|\.(?:sql|prisma|graphqls?|gql|proto|avsc)$|(?:^|\/)(?:openapi|swagger)[^/]*\.(?:ya?ml|json)$|\.schema\.(?:json|[cm]?[jt]s)$|(?:^|\/)schemas?\.[cm]?[jt]s$|(?:^|\/)schemas?\//i;
+const CLI_PATH =
+  /(?:^|\/)(?:cli|bin|cmd|commands?)\/|\.(?:cli)\.[cm]?[jt]s$|(?:^|\/)(?:cli|commander|yargs)\.[cm]?[jt]s$/i;
+const MCP_PATH =
+  /(?:^|\/)mcp(?:\/|-)|(?:^|\/)(?:tools|resources|prompts)\/mcp|\.mcp\.[cm]?[jt]s$|(?:^|\/)mcp\.[cm]?[jt]s$/i;
+const INFRA_PATH =
+  /(?:^|\/)\.github\/(?:workflows|actions)\/|(?:^|\/)(?:deploy|deployment|infra|infrastructure|terraform|helm|k8s|kubernetes|charts?)\/|(?:^|\/)Dockerfile|(?:^|\/)docker-compose[^/]*\.(?:ya?ml)$|\.(?:tf|tfvars)$|(?:^|\/)\.env|(?:^|\/)(?:flags?|feature-flags?)\/|(?:^|\/)(?:flags?|feature-flags?)\.[cm]?[jt]s$/i;
 const TEST_PATH = /\.(?:test|spec|stories)\.[cm]?[jt]sx?$|\/(?:__tests__|__snapshots__|test|tests|e2e)\//i;
+const PRODUCT_SURFACES = ['UI', 'Endpoint', 'Schema', 'CLI', 'MCP'];
+const ALLOWED_SURFACES = new Set([...PRODUCT_SURFACES, 'Infra']);
+const FORBIDDEN_SURFACE = /^(?:backend|backends?|db|database|databases?)$/i;
 
 // A GitHub user-attachment URL has no extension, so hosting is decided by host, not suffix.
 const HOSTED_MEDIA_HOST =
@@ -118,6 +132,9 @@ const frontendFiles = changedFiles.filter(
 
 const apiFiles = changedFiles.filter((file) => apiPath.test(file) && !TEST_PATH.test(file));
 const schemaFiles = changedFiles.filter((file) => schemaPath.test(file) && !TEST_PATH.test(file));
+const cliFiles = changedFiles.filter((file) => CLI_PATH.test(file) && !TEST_PATH.test(file));
+const mcpFiles = changedFiles.filter((file) => MCP_PATH.test(file) && !TEST_PATH.test(file));
+const infraFiles = changedFiles.filter((file) => INFRA_PATH.test(file) && !TEST_PATH.test(file));
 
 const body = fs.readFileSync(bodyPath, 'utf8');
 // The label must carry a code block after it: a request/response or schema shape, not a sentence.
@@ -158,10 +175,84 @@ const contract = {
   schema: schemaFiles.length === 0 || labelledBlock(SCHEMA_MARKER) || SCHEMA_GAP.test(body),
 };
 const contractOk = contract.endpoint && contract.schema;
-const valid = mediaOk && beforeAfterOk && mergeDangerOk && contractOk;
+
+// Surfaces proof selectors: parse ## Surfaces until the next heading. Claims must
+// match path classes; forbidden names (backend/DB) always fail.
+// Capture until the next ATX heading or end of body. (JS has no \\Z.)
+const surfacesSection = (() => {
+  const at = body.search(/^##[ \t]+Surfaces\b/im);
+  if (at === -1) return '';
+  const afterHeading = body.indexOf('\n', at);
+  if (afterHeading === -1) return '';
+  const rest = body.slice(afterHeading + 1);
+  const nextHeading = rest.search(/^##[ \t]+/m);
+  return nextHeading === -1 ? rest : rest.slice(0, nextHeading);
+})();
+// Only the first non-empty line of the section is the selector row (ignore HTML comments).
+const surfacesLine =
+  surfacesSection
+    .split('\n')
+    .map((line) => line.trim())
+    .find((line) => line && !line.startsWith('<!--') && !line.startsWith('-->')) ?? '';
+const claimedRaw = surfacesLine
+  .split(/[·|,/]|\s+/)
+  .map((token) => token.trim())
+  .filter(Boolean);
+const claimedForbidden = claimedRaw.filter((token) => FORBIDDEN_SURFACE.test(token));
+const claimed = [...new Set(claimedRaw.filter((token) => ALLOWED_SURFACES.has(token)))];
+const pathClasses = {
+  UI: frontendFiles.length > 0,
+  Endpoint: apiFiles.length > 0,
+  Schema: schemaFiles.length > 0,
+  CLI: cliFiles.length > 0,
+  MCP: mcpFiles.length > 0,
+  Infra: infraFiles.length > 0,
+};
+const productClaimed = claimed.filter((name) => PRODUCT_SURFACES.includes(name));
+const unmatchedProduct = productClaimed.filter((name) => !pathClasses[name]);
+const surfacesReasons = [];
+if (claimedForbidden.length > 0) {
+  surfacesReasons.push(
+    `stamped forbidden surface name(s) ${claimedForbidden.join(', ')} — never invent backend/DB surface names`,
+  );
+}
+if (claimed.includes('Infra') && productClaimed.length > 0) {
+  surfacesReasons.push('Infra stacked with a product surface — Infra only when the PR is solely CI/deploy/flags/env');
+}
+if (claimed.includes('Infra') && !pathClasses.Infra) {
+  surfacesReasons.push('Infra stamped without infra path class — Infra only when the PR is solely CI/deploy/flags/env');
+}
+// Any stamped product surface must have a matching path class (skill-only + Schema fails here).
+if (unmatchedProduct.length > 0) {
+  surfacesReasons.push(
+    `unmatched product surface(s) ${unmatchedProduct.join(', ')} — no matching path class; omit Surfaces when paths prove none (skill-only / docs-only)`,
+  );
+}
+// migration-only ≠ UI: schema paths present, no UI paths, but UI claimed
+if (claimed.includes('UI') && pathClasses.Schema && !pathClasses.UI && !pathClasses.Endpoint && !pathClasses.CLI && !pathClasses.MCP) {
+  surfacesReasons.push('migration-only ≠ UI — schema/migration paths do not prove a UI surface');
+}
+// MCP-wrap-only ≠ Endpoint: MCP paths without API paths, but Endpoint claimed
+if (claimed.includes('Endpoint') && pathClasses.MCP && !pathClasses.Endpoint) {
+  surfacesReasons.push('MCP-wrap-only ≠ Endpoint — MCP wrap of an unchanged route is MCP only');
+}
+if (productClaimed.length > 3 && unmatchedProduct.length > 0) {
+  surfacesReasons.push(
+    `>3 product surfaces without matching path classes (${unmatchedProduct.join(', ')} lack path evidence)`,
+  );
+}
+const surfaces = {
+  ok: surfacesReasons.length === 0,
+  claimed,
+  forbidden: claimedForbidden,
+  pathClasses,
+  reasons: surfacesReasons,
+};
+const surfacesOk = surfaces.ok;
+const valid = mediaOk && beforeAfterOk && mergeDangerOk && contractOk && surfacesOk;
 
 process.stdout.write(
-  `${JSON.stringify({ valid, base, frontendFiles, apiFiles, schemaFiles, images, videos, localRefs: localRefs.map((ref) => ref.url), gapStated, beforeAfter, mergeDanger, contract }, null, 2)}\n`,
+  `${JSON.stringify({ valid, base, frontendFiles, apiFiles, schemaFiles, cliFiles, mcpFiles, infraFiles, images, videos, localRefs: localRefs.map((ref) => ref.url), gapStated, beforeAfter, mergeDanger, contract, surfaces }, null, 2)}\n`,
 );
 
 if (valid) process.exit(0);
@@ -210,6 +301,15 @@ const next = [
         '    2. No shape change (index, comment, reformat): write "No schema change: <why>".',
         '    3. State the gap: "**Still unverified:** schema diff; <exact blocker>".',
         `  Changed: ${schemaFiles.join(', ')}`,
+      ].join('\n')
+    : null,
+  !surfacesOk
+    ? [
+        `pr-media-gate: Surfaces claim↔path failed.`,
+        ...surfacesReasons.map((reason) => `  - ${reason}`),
+        '  Vocabulary: UI · Endpoint · Schema · CLI · MCP (Infra alone on infra-only PRs).',
+        '  Every stamped surface needs a matching path class; omit Surfaces on skill-only / docs-only.',
+        '  Endpoint not backend; Schema = wire + persistence (no separate DB).',
       ].join('\n')
     : null,
   !mediaOk
