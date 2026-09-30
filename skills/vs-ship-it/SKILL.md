@@ -113,7 +113,7 @@ actually changed:
 | Static UI state | Matched screenshots at the same viewport and data |
 | Motion, timing, dragging, multi-step interaction | One short video per interaction |
 | CLI, API, log, or error output | Paired output blocks copied verbatim from the same input |
-| Endpoint, handler, or RPC behavior | **Endpoint** label, then one request and both responses to that same request (see Backend proof) |
+| Endpoint, handler, or RPC behavior | **Endpoint** label, then one request and both responses to that same request (see Endpoint and schema proof) |
 | Schema, migration, or wire contract | **Schema** label, then a fenced `diff` of the resulting shape before and after |
 | HTML prototype or interactive demo | A hosted link the reviewer can click (see Prototype links) |
 | Numbers such as latency, size, count, rate | A table that shows both operands beside any derived figure (`240 ms → 90 ms`, not a bare `2.7× faster`) |
@@ -143,6 +143,34 @@ changed. Use this structure:
 ````markdown
 <feature_area>: <Title> (80 chars max; this line is the `--title`, and the
 body file starts at the first heading)
+
+## Merge risk
+
+<img alt="Two-way door: easy to revert" src="https://raw.githubusercontent.com/vltansky/vs/master/skills/vs-ship-it/assets/badge-two-way-door.svg">
+
+<the irreversible step and what undoing it costs, or what makes reverting cheap>
+
+<!-- For one-way, swap the badge to badge-one-way-door.svg with alt
+     "One-way door: hard to reverse — review carefully". Never label one-way
+     as safe to merge. -->
+
+<img alt="Narrow blast radius: contained" src="https://raw.githubusercontent.com/vltansky/vs/master/skills/vs-ship-it/assets/badge-narrow-blast.svg">
+
+<who breaks and how widely, plus the adjacent surfaces this does not touch>
+
+<!-- When blast is wide (many consumers / callers / tenants), swap the badge to
+     badge-wide-blast.svg with alt "Wide blast radius: many consumers". Keep
+     narrow on a narrow-blast PR — do not stamp wide-blast onto it. -->
+
+## Surfaces
+
+UI · Endpoint · Schema · CLI · MCP
+
+<!-- Multi-select every product surface the changed paths prove.
+     Infra only when the PR is solely CI/deploy/flags/env — never stack with a product surface.
+     Endpoint not backend; Schema = wire + persistence (no separate DB).
+     Wrapper precedence: MCP wrap of unchanged route → MCP only; CLI shim of unchanged MCP → CLI only.
+     Surfaces are proof selectors, not risk art — Never invent backend/DB surface names or surface merge-risk SVGs. -->
 
 ## What Problem This Solves
 
@@ -199,24 +227,6 @@ flowchart LR
 <long capture or wider hunk>
 
 </details>
-
-## Merge risk
-
-<img alt="Two-way door: easy to revert" src="https://raw.githubusercontent.com/vltansky/vs/master/skills/vs-ship-it/assets/badge-two-way-door.svg">
-
-<the irreversible step and what undoing it costs, or what makes reverting cheap>
-
-<!-- For one-way, swap the badge to badge-one-way-door.svg with alt
-     "One-way door: hard to reverse — review carefully". Never label one-way
-     as safe to merge. -->
-
-<img alt="Narrow blast radius: contained" src="https://raw.githubusercontent.com/vltansky/vs/master/skills/vs-ship-it/assets/badge-narrow-blast.svg">
-
-<who breaks and how widely, plus the adjacent surfaces this does not touch>
-
-<!-- When blast is wide (many consumers / callers / tenants), swap the badge to
-     badge-wide-blast.svg with alt "Wide blast radius: many consumers". Keep
-     narrow on a narrow-blast PR — do not stamp wide-blast onto it. -->
 
 ## Review focus
 
@@ -291,9 +301,27 @@ Do not invent other badges or hand-edit the SVGs; change the generator and
 rerun it. Walkthrough HTML is out of scope here — leave `/vs-pr-walkthrough`
 alone.
 
-### Backend proof
+### Surfaces
 
-Backend PRs show the contract move, the same way frontend PRs show pixels.
+Surfaces are proof selectors, not risk art. Stamp every product surface the
+changed paths prove; do not invent merge-risk SVGs for them. Door and blast
+badges stay the only merge-risk catalog images.
+
+Vocabulary (locked): **UI · Endpoint · Schema · CLI · MCP**. Infra only when the PR is solely CI/deploy/flags/env — never stack with a product surface.
+Names lock: Endpoint not backend; Schema = wire + persistence (no separate DB).
+Never invent backend/DB surface names.
+
+Wrapper precedence: MCP wrap of unchanged route → MCP only; CLI shim of unchanged MCP → CLI only.
+Multi-select when paths match more than one class. `pr-media-gate.mjs` asserts
+claim↔path: migration-only ≠ UI; MCP-wrap-only ≠ Endpoint; Infra+product fails;
+stamping backend/DB fails; >3 product surfaces without matching path classes fails.
+
+CLI and MCP proof blocks are Later — this cut only selects those surfaces; do
+not invent paired CLI/MCP contract blocks yet.
+
+### Endpoint and schema proof
+
+Endpoint and Schema PRs show the contract move, the same way UI PRs show pixels.
 `pr-media-gate.mjs` enforces both shapes from the changed paths:
 
 - **Endpoint** — handler, controller, resolver, route, or RPC code changed.
@@ -303,9 +331,10 @@ Backend PRs show the contract move, the same way frontend PRs show pixels.
   fenced `diff` of the response. Handler change with identical responses:
   write `No contract change: <why>`.
 - **Schema** — migration, SQL, Prisma, GraphQL, proto, Avro, OpenAPI, or JSON
-  Schema changed. Show a fenced `diff` of the resulting shape (columns, fields,
-  types, nullability, defaults), not the migration script. No shape change
-  (index, comment, reformat): write `No schema change: <why>`.
+  Schema changed (wire + persistence; no separate DB surface). Show a fenced
+  `diff` of the resulting shape (columns, fields, types, nullability, defaults),
+  not the migration script. No shape change (index, comment, reformat): write
+  `No schema change: <why>`.
 
 ````markdown
 **Endpoint** `POST /v1/tokens/refresh`
@@ -332,12 +361,12 @@ POST /v1/tokens/refresh
 ```
 ````
 
-These blocks are the Before/After proof for a backend PR: put them directly
-under **Before**/**After** instead of repeating the same fact in User Impact
-and Evidence. Response JSON written from source rather than captured is
+These blocks are the Before/After proof for an Endpoint or Schema PR: put them
+directly under **Before**/**After** instead of repeating the same fact in User
+Impact and Evidence. Response JSON written from source rather than captured is
 labeled source-derived, and Evidence adds
-`**Still unverified:** endpoint response; <blocker>`. A backend-only PR needs
-no visual-proof line at all.
+`**Still unverified:** endpoint response; <blocker>`. An Endpoint/Schema-only
+PR needs no visual-proof line at all.
 
 Pass `--api <regex>` or `--schema <regex>` when the repository's layout does
 not match the defaults. A capture blocker is stated per kind:
@@ -623,6 +652,8 @@ separate `vs-baby-sit` goal only when the user explicitly requested a Codex goal
       explanation under it and no text label (wide-blast only when blast is
       wide), using
       `raw.githubusercontent.com/vltansky/vs/master/skills/vs-ship-it/assets/badge-*.svg`.
+- [ ] Surfaces lists UI|Endpoint|Schema|CLI|MCP (and Infra alone on infra-only
+      PRs) from the paths; no backend/DB stamps; no surface merge-risk SVGs.
 - [ ] Frontend changes have matched screenshots and interaction video where
       relevant, or an exact capture blocker; captions explain the difference.
 - [ ] Endpoint and schema changes show one request with both responses and a
