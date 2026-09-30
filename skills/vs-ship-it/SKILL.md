@@ -164,9 +164,10 @@ body file starts at the first heading)
 
 ## Surfaces
 
-UI · Endpoint · Schema · CLI · MCP
+<Omit this section when paths prove no product surface and the PR is not solely Infra (skill-only / docs-only). Otherwise stamp only the UI · Endpoint · Schema · CLI · MCP classes the paths prove; Infra alone for solely CI/deploy/flags/env.>
 
-<!-- Multi-select every product surface the changed paths prove.
+<!-- Multi-select every product surface the changed paths prove — never invent a stamp.
+     Omit Surfaces entirely for skill-only / docs-only when no path class matches.
      Infra only when the PR is solely CI/deploy/flags/env — never stack with a product surface.
      Endpoint not backend; Schema = wire + persistence (no separate DB).
      Wrapper precedence: MCP wrap of unchanged route → MCP only; CLI shim of unchanged MCP → CLI only.
@@ -305,7 +306,9 @@ alone.
 
 Surfaces are proof selectors, not risk art. Stamp every product surface the
 changed paths prove; do not invent merge-risk SVGs for them. Door and blast
-badges stay the only merge-risk catalog images.
+badges stay the only merge-risk catalog images. Omit Surfaces when paths prove
+no product surface and the PR is not solely Infra (skill-only / docs-only) —
+never invent a product stamp to fill the section.
 
 Vocabulary (locked): **UI · Endpoint · Schema · CLI · MCP**. Infra only when the PR is solely CI/deploy/flags/env — never stack with a product surface.
 Names lock: Endpoint not backend; Schema = wire + persistence (no separate DB).
@@ -652,8 +655,9 @@ separate `vs-baby-sit` goal only when the user explicitly requested a Codex goal
       explanation under it and no text label (wide-blast only when blast is
       wide), using
       `raw.githubusercontent.com/vltansky/vs/master/skills/vs-ship-it/assets/badge-*.svg`.
-- [ ] Surfaces lists UI|Endpoint|Schema|CLI|MCP (and Infra alone on infra-only
-      PRs) from the paths; no backend/DB stamps; no surface merge-risk SVGs.
+- [ ] Surfaces lists only UI|Endpoint|Schema|CLI|MCP classes the paths prove
+      (Infra alone on infra-only PRs), or the section is omitted for skill-only /
+      docs-only; no backend/DB stamps; no surface merge-risk SVGs.
 - [ ] Frontend changes have matched screenshots and interaction video where
       relevant, or an exact capture blocker; captions explain the difference.
 - [ ] Endpoint and schema changes show one request with both responses and a

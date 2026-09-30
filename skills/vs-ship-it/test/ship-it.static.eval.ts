@@ -359,6 +359,18 @@ describe('vs-ship-it merge risk first and Surfaces proof selectors', () => {
     expect(PR_WORKFLOW).toMatch(/CLI shim of unchanged MCP[^\n]*CLI only/i);
   });
 
+  it('omits Surfaces for skill-only when paths prove no product or Infra class', () => {
+    expect(PR_WORKFLOW).toMatch(/Omit Surfaces when paths prove\s+no product surface/i);
+    expect(PR_WORKFLOW).toMatch(/skill-only \/ docs-only/i);
+    expect(PR_WORKFLOW).toMatch(/never invent a product stamp/i);
+    const bodyTemplate =
+      PR_WORKFLOW.match(/````markdown[\s\S]*?````/)?.[0] ?? '';
+    const templateLive = bodyTemplate.replace(/<!--[\s\S]*?-->/g, '');
+    // Template must not present the full vocabulary as a default selected stamp.
+    expect(templateLive).not.toMatch(/^UI · Endpoint · Schema · CLI · MCP\s*$/m);
+    expect(templateLive).toMatch(/Omit this section when paths prove no product surface/i);
+  });
+
   it('keeps door/blast as the only merge-risk SVGs; Surfaces are not risk art', () => {
     const assetsDir = path.resolve(__dirname, '..', 'assets');
     const badges = fs.readdirSync(assetsDir).filter((f) => f.endsWith('.svg'));
