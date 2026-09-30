@@ -8,6 +8,7 @@ description: "Explain a topic like I'm a 5 year old. Use when the user types /vs
 Explain like I'm someone who knows nothing about this topic, using an HTML artifact with big pictures and few words. Use `/vs-show-me` for that artifact, not raw HTML. Start from `../vs-show-me/assets/artifact.html`
 `/vs-show-me` owns capture: inherit its URL + first-screen shot handoff. Pointer only.
 `/vs-show-me` owns MCP Apps progressive enhancement (`ui://vs/eli5` when the host supports Apps; otherwise HTMDX file + URL + shot + TLDR). Inherit only. Pointer: [../vs-internal-shared/references/mcp-apps-host.md](../vs-internal-shared/references/mcp-apps-host.md).
+For an eli5 artifact, call `mcp__vs_artifact__vs_eli5` after saving it when that tool is available; use the inherited file handoff if it is unavailable or fails.
 
 
 Teach one tightly scoped mental model that gives the user a tangible win. Ground

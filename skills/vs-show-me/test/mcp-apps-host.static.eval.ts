@@ -28,6 +28,7 @@ describe('vs-show-me MCP Apps progressive enhancement', () => {
     expect(SKILL).toMatch(/_meta\.ui\.resourceUri|resourceUri/);
     expect(SKILL).toMatch(/openai\/outputTemplate/);
     expect(SKILL).toMatch(/mcp-app-resource-shape\.mjs/);
+    expect(SKILL).toMatch(/mcp__vs_artifact__vs_show_me/);
   });
 
   it('keeps App-when-supported and HTMDX-otherwise as a hard branch', () => {
@@ -60,6 +61,8 @@ describe('shared mcp-apps-host reference contract', () => {
     expect(REF).toMatch(/## Emit path/);
     expect(REF).toMatch(/ui:\/\/vs\/show-me/);
     expect(REF).toMatch(/ui:\/\/vs\/eli5/);
+    expect(REF).toMatch(/mcp__vs_artifact__vs_show_me/);
+    expect(REF).toMatch(/mcp__vs_artifact__vs_eli5/);
     expect(REF).toMatch(/structuredContent/);
     expect(REF).toMatch(/_meta\.ui\.resourceUri/);
     expect(REF).toMatch(/openai\/outputTemplate/);
@@ -86,6 +89,7 @@ describe('vs-eli5 inherits MCP Apps host via show-me', () => {
       '../vs-internal-shared/references/mcp-apps-host.md',
     );
     expect(ELI5).toMatch(/ui:\/\/vs\/eli5/);
+    expect(ELI5).toMatch(/mcp__vs_artifact__vs_eli5/);
     expect(ELI5).toMatch(/inherit/i);
     expect(ELI5).toMatch(/vs-show-me/);
     expect(ELI5).toMatch(/HTMDX file \+ URL \+ shot \+ TLDR/i);

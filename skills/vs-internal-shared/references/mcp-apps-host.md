@@ -37,8 +37,9 @@ replace authoring.
 
 1. Keep the canonical portable `.html` on disk (and in `Saved:`). The App wraps
    that HTML; it is not a second source of truth.
-2. If the installed VS plugin exposes `vs.show-me` or `vs.eli5`, call the
-   matching tool with `{ "path": "$ARTIFACT_PATH", "reviewQuestion": "…" }`.
+2. If exposed, call `mcp__vs_artifact__vs_show_me` for show-me or
+   `mcp__vs_artifact__vs_eli5` for eli5 (some hosts show these as `vs.show-me`
+   and `vs.eli5`). Pass `{ "path": "$ARTIFACT_PATH", "reviewQuestion": "…" }`.
    Pass `url` and `shotPath` when available. Its registered MCP App
    resource is:
    - `/vs-show-me` → `ui://vs/show-me`
@@ -59,8 +60,9 @@ replace authoring.
 5. Still include the chat TLDR (two to four short lines). The App is the visual
    surface; chat stays summary-first.
 
-If the VS tool is unavailable in this session, use the mandatory file handoff
-below. A skill installed flat does not register an MCP server by itself.
+If the VS tool is unavailable or its call fails, use the mandatory file handoff
+below. A copied skill directory does not register an MCP server by itself;
+`install.sh --codex-flat` installs both the skills and the bundled server.
 
 Shape helper (documents the tool input and result; does not start a server):
 

@@ -258,6 +258,14 @@ codex plugin add vs@vs
 ```
 
 Codex refreshes Git marketplaces and installed plugins automatically at startup.
+The plugin includes the bundled `vs-artifact` MCP server for `/vs-show-me` and
+`/vs-eli5`.
+
+For a flat Codex install from a local checkout, run `./install.sh --codex-flat`
+or `./install.ps1 --codex-flat` on Windows. This copies the VS skills and the
+bundled server into `CODEX_HOME` and registers `vs-artifact` with `codex mcp`.
+Restart Codex to load the new tools. Copying a skill directory alone does not
+register MCP; the HTML, URL, screenshot, and chat summary fallback still works.
 
 #### Claude Code
 
@@ -279,7 +287,7 @@ git clone https://github.com/vltansky/vs ~/.cursor/plugins/local/vs
 ```
 
 You can also copy any self-contained directory under `skills/` into your agent's
-skills folder.
+skills folder. Use the flat installer above when you want MCP App presentation.
 
 ## Included tooling
 
