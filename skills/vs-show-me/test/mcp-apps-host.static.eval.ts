@@ -120,9 +120,9 @@ describe('mcp-app-resource-shape helper', () => {
     );
     expect(result.status, result.stderr).toBe(0);
     const shape = JSON.parse(result.stdout);
-    expect(shape.resource.uri).toBe('ui://vs/show-me');
-    expect(shape.resource.mimeType).toBe('text/html;profile=mcp-app');
-    expect(shape.resource.text).toContain('text/htmdx');
+    expect(shape.toolName).toBe('vs.show-me');
+    expect(shape.toolInput.path).toBe(htmlPath);
+    expect(shape.result.structuredContent.html).toContain('text/htmdx');
     expect(shape.toolMeta.ui.resourceUri).toBe('ui://vs/show-me');
     expect(shape.toolMeta['openai/outputTemplate']).toBe('ui://vs/show-me');
     expect(shape.result.structuredContent.artifactPath).toBe(htmlPath);
@@ -140,7 +140,7 @@ describe('mcp-app-resource-shape helper', () => {
     );
     expect(result.status, result.stderr).toBe(0);
     const shape = JSON.parse(result.stdout);
-    expect(shape.resource.uri).toBe('ui://vs/eli5');
+    expect(shape.toolName).toBe('vs.eli5');
     expect(shape.result.structuredContent.skill).toBe('vs-eli5');
   });
 

@@ -3,6 +3,11 @@
     "octocode": {
       "command": "npx",
       "args": ["octocode-mcp@18.2.2"]
+    },
+    "vs-artifact": {
+      "command": "node",
+      "args": ["./mcp/dist/server.mjs"],
+      "cwd": "."
     }
   }
 }

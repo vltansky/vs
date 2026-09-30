@@ -529,6 +529,9 @@ Branch:
   `content` / `structuredContent` and `_meta.ui.resourceUri` (optional
   `openai/outputTemplate` alias). Shape helper:
   `node scripts/mcp-app-resource-shape.mjs --skill show-me --html "$ARTIFACT_PATH"`.
+  When the installed plugin exposes `vs.show-me`, call it with the saved
+  artifact path to render the App in chat. If the tool is unavailable, use the
+  file, URL, and shot handoff below.
 - **Non-App host (e.g. Grok Bot)** → mandatory fallback: existing HTMDX file +
   URL + first-screen shot + TLDR. Do not skip the fallback because an App path
   exists in the reference.

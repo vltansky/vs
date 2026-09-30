@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 /**
- * Documents / shapes an MCP App UI resource wrap around a saved HTMDX artifact.
- * Does not start an MCP server. Exit 0 prints JSON; exit 2 on usage errors.
+ * Documents the tool input and result for a saved HTMDX artifact.
+ * The vs-artifact MCP server registers the UI resource. Exit 0 prints JSON;
+ * exit 2 on usage errors.
  *
  * Usage:
  *   node mcp-app-resource-shape.mjs --skill show-me|eli5 --html <path> \
@@ -54,24 +55,8 @@ const tldrLine = reviewQuestion
   : `HTMDX artifact ready (${opts.skill}).`;
 
 const shape = {
-  resource: {
-    uri,
-    name: opts.skill === 'eli5' ? 'vs-eli5' : 'vs-show-me',
-    mimeType: MIME,
-    text: html,
-    _meta: {
-      ui: {
-        prefersBorder: true,
-        // CDN-pinned HTMDX may need these; hosts that omit CSP stay restrictive.
-        csp: {
-          resourceDomains: [
-            'https://cdn.jsdelivr.net',
-            'https://cdn.jsdelivr.net/npm',
-          ],
-        },
-      },
-    },
-  },
+  toolName: opts.skill === 'eli5' ? 'vs.eli5' : 'vs.show-me',
+  toolInput: { path: htmlPath, reviewQuestion: reviewQuestion || undefined, url: opts.url || undefined, shotPath: opts.shot || undefined },
   toolMeta: {
     ui: { resourceUri: uri },
     // Optional ChatGPT compatibility alias — never the only association key.
@@ -84,6 +69,7 @@ const shape = {
       resourceUri: uri,
       mimeType: MIME,
       artifactPath: htmlPath,
+      html,
       reviewQuestion: reviewQuestion || undefined,
       url: opts.url || undefined,
       shotPath: opts.shot || undefined,
@@ -94,7 +80,7 @@ const shape = {
     },
   },
   notes: [
-    'Present this shape only when the host supports MCP Apps (io.modelcontextprotocol/ui).',
+    'The installed vs-artifact MCP server registers and serves the UI resource.',
     'Non-App hosts must keep the portable .html + URL + first-screen shot + TLDR fallback.',
     'If CDN-pinned HTMDX cannot load in the App iframe, keep the file fallback; no bundler required.',
   ],

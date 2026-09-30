@@ -37,16 +37,20 @@ replace authoring.
 
 1. Keep the canonical portable `.html` on disk (and in `Saved:`). The App wraps
    that HTML; it is not a second source of truth.
-2. Present via the host’s MCP App / render tool with a UI resource:
+2. If the installed VS plugin exposes `vs.show-me` or `vs.eli5`, call the
+   matching tool with `{ "path": "$ARTIFACT_PATH", "reviewQuestion": "…" }`.
+   Pass `url` and `shotPath` when available. Its registered MCP App
+   resource is:
    - `/vs-show-me` → `ui://vs/show-me`
    - `/vs-eli5` → `ui://vs/eli5`
-3. Resource contents:
+3. The server's resource contents are:
    - `uri`: the `ui://…` above
    - `mimeType`: `text/html;profile=mcp-app`
-   - `text` (or `blob`): the saved HTML document
+   - `text`: the bundled App view; the tool passes the saved HTML in
+     `structuredContent.html`, and the view renders it in a sandboxed frame.
 4. Tool result / presentation payload:
    - Put the critical review payload in both `content` (short text the model and
-     text-only hosts can use — review question, path, TLDR) and
+     text-only hosts can use — review question, path, URL) and
      `structuredContent` (machine fields: `artifactPath`, `reviewQuestion`,
      `url`, `skill`, optional `shotPath`).
    - Associate the tool with the UI resource via `_meta.ui.resourceUri`
@@ -55,7 +59,10 @@ replace authoring.
 5. Still include the chat TLDR (two to four short lines). The App is the visual
    surface; chat stays summary-first.
 
-Shape helper (documents the wrap; does not start a server):
+If the VS tool is unavailable in this session, use the mandatory file handoff
+below. A skill installed flat does not register an MCP server by itself.
+
+Shape helper (documents the tool input and result; does not start a server):
 
 ```bash
 node skills/vs-show-me/scripts/mcp-app-resource-shape.mjs \
@@ -92,6 +99,5 @@ the host honors CSP metadata; proving iframe load is a later hardening step.
 
 - OpenAI sidebar / file / composer plugin entrypoints
 - Rewriting HTMDX into a React host app
-- Building a standalone MCP server plugin unless the repo already has one to
-  extend (vs currently does not for show-me/eli5)
+- Other plugin entrypoints beyond the artifact presentation tools
 - Changing pathgrade, ship-it presets, or PR walkthrough
