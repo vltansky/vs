@@ -513,6 +513,28 @@ it. Score handoffs with `skills/vs-show-me/scripts/reject-htmdx-handoff.mjs`
 exit 1 is a fail). Exclusive cases live under `test/fixtures/handoff`.
 `Shot:` is a real image path, or `Shot failed: <reason>`. `Shot: n/a` is not a shot.
 
+
+## MCP Apps host (progressive enhancement)
+
+When the host supports MCP Apps, present the saved HTMDX artifact as App UI
+after it is on disk. When it does not, keep the portable `.html` + URL +
+first-screen shot + TLDR path. Load and follow:
+
+[../vs-internal-shared/references/mcp-apps-host.md](../vs-internal-shared/references/mcp-apps-host.md)
+
+Branch:
+
+- **App-capable host** → after save/verify, present via MCP App using
+  `ui://vs/show-me` (`text/html;profile=mcp-app`), with critical payload in
+  `content` / `structuredContent` and `_meta.ui.resourceUri` (optional
+  `openai/outputTemplate` alias). Shape helper:
+  `node scripts/mcp-app-resource-shape.mjs --skill show-me --html "$ARTIFACT_PATH"`.
+- **Non-App host (e.g. Grok Bot)** → mandatory fallback: existing HTMDX file +
+  URL + first-screen shot + TLDR. Do not skip the fallback because an App path
+  exists in the reference.
+
+If CDN-pinned HTMDX cannot load in an App iframe, keep the file fallback; do not introduce a bundler here. OpenAI sidebar/file/composer entrypoints are out of scope.
+
 ## Flow Contract
 
 - **Kind:** Building block
