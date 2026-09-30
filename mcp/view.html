@@ -8,7 +8,8 @@
     html, body { margin: 0; min-height: 100%; }
     body { font: 14px system-ui, sans-serif; }
     #status { padding: 16px; }
-    #vs-artifact-frame { display: none; width: 100%; height: 100vh; border: 0; }
+    /* Give inline hosts room to show the artifact; the host may cap the requested size. */
+    #vs-artifact-frame { display: none; width: 100%; height: max(720px, 100vh); border: 0; }
   </style>
 </head>
 <body>
