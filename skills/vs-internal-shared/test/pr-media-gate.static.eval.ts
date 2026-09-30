@@ -577,6 +577,36 @@ describe('pr-media-gate Surfaces claim↔path asserts', () => {
     expect(result.json.surfaces?.ok).toBe(false);
   });
 
+
+  it('fails skill-only paths when the body stamps a product Surface', () => {
+    // Skill / docs / gate / manifest only — no UI|Endpoint|Schema|CLI|MCP|Infra path class.
+    const cwd = repoWithBranch([
+      'skills/vs-ship-it/SKILL.md',
+      'skills/vs-ship-it/test/ship-it.static.eval.ts',
+      'package.json',
+    ]);
+    const result = gate(cwd, BODY_WITH('Schema'));
+
+    expect(result.status).toBe(1);
+    expect(result.json.surfaces?.ok).toBe(false);
+    expect(result.json.surfaces?.claimed).toEqual(['Schema']);
+    expect(result.stderr).toMatch(/unmatched|skill-only|Schema/i);
+  });
+
+  it('passes skill-only paths when Surfaces is omitted', () => {
+    const cwd = repoWithBranch([
+      'skills/vs-ship-it/SKILL.md',
+      'skills/vs-internal-shared/scripts/pr-media-gate.mjs',
+    ]);
+    const result = gate(
+      cwd,
+      '**Before** x\n\n**After** y\n\n' + MERGE_DANGER,
+    );
+
+    expect(result.status).toBe(0);
+    expect(result.json.surfaces).toMatchObject({ ok: true, claimed: [] });
+  });
+
   it('passes a matching Surfaces line for the changed path classes', () => {
     const cwd = repoWithBranch(['src/api/tokens.ts', 'db/migrations/0042.sql']);
     const result = gate(cwd, `${BODY_WITH('Endpoint · Schema')}\n${ENDPOINT_PROOF}\n${SCHEMA_PROOF}`);

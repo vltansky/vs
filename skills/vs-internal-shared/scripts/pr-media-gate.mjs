@@ -8,10 +8,14 @@
 // Reads git (which paths changed against the base) and the body text. It never opens the
 // media, so it costs the model no context. Exit codes match check-visual-evidence.mjs:
 //   0  passes: Before/After and Door/Blast Radius are present, and media is present,
-//      gapped, or not needed; Surfaces claims match path classes when present
+//      gapped, or not needed; when ## Surfaces is stamped, every claimed surface has a
+//      matching path class (omit Surfaces on skill-only / docs-only)
 //   1  fails:  the body omits a comparison side, omits merge danger, shows nothing for a
 //      frontend change, shows no request/response or schema shape for a contract change,
-//      or stamps Surfaces that the paths do not support
+//      stamps a forbidden surface name (backend/DB), stacks Infra with a product surface,
+//      stamps Infra without infra paths, stamps a product surface with no matching path
+//      class (including skill-only + Schema), migration-only≠UI, MCP-wrap-only≠Endpoint,
+//      or >3 product surfaces without matching path classes
 //   2  not checked: body missing or git cannot resolve the base
 //
 // Output is one JSON object on stdout so the caller can quote counts instead of re-reading.
@@ -205,6 +209,7 @@ const pathClasses = {
   Infra: infraFiles.length > 0,
 };
 const productClaimed = claimed.filter((name) => PRODUCT_SURFACES.includes(name));
+const unmatchedProduct = productClaimed.filter((name) => !pathClasses[name]);
 const surfacesReasons = [];
 if (claimedForbidden.length > 0) {
   surfacesReasons.push(
@@ -214,6 +219,15 @@ if (claimedForbidden.length > 0) {
 if (claimed.includes('Infra') && productClaimed.length > 0) {
   surfacesReasons.push('Infra stacked with a product surface — Infra only when the PR is solely CI/deploy/flags/env');
 }
+if (claimed.includes('Infra') && !pathClasses.Infra) {
+  surfacesReasons.push('Infra stamped without infra path class — Infra only when the PR is solely CI/deploy/flags/env');
+}
+// Any stamped product surface must have a matching path class (skill-only + Schema fails here).
+if (unmatchedProduct.length > 0) {
+  surfacesReasons.push(
+    `unmatched product surface(s) ${unmatchedProduct.join(', ')} — no matching path class; omit Surfaces when paths prove none (skill-only / docs-only)`,
+  );
+}
 // migration-only ≠ UI: schema paths present, no UI paths, but UI claimed
 if (claimed.includes('UI') && pathClasses.Schema && !pathClasses.UI && !pathClasses.Endpoint && !pathClasses.CLI && !pathClasses.MCP) {
   surfacesReasons.push('migration-only ≠ UI — schema/migration paths do not prove a UI surface');
@@ -222,13 +236,10 @@ if (claimed.includes('UI') && pathClasses.Schema && !pathClasses.UI && !pathClas
 if (claimed.includes('Endpoint') && pathClasses.MCP && !pathClasses.Endpoint) {
   surfacesReasons.push('MCP-wrap-only ≠ Endpoint — MCP wrap of an unchanged route is MCP only');
 }
-if (productClaimed.length > 3) {
-  const unmatched = productClaimed.filter((name) => !pathClasses[name]);
-  if (unmatched.length > 0) {
-    surfacesReasons.push(
-      `>3 product surfaces without matching path classes (${unmatched.join(', ')} lack path evidence)`,
-    );
-  }
+if (productClaimed.length > 3 && unmatchedProduct.length > 0) {
+  surfacesReasons.push(
+    `>3 product surfaces without matching path classes (${unmatchedProduct.join(', ')} lack path evidence)`,
+  );
 }
 const surfaces = {
   ok: surfacesReasons.length === 0,
@@ -297,6 +308,7 @@ const next = [
         `pr-media-gate: Surfaces claim↔path failed.`,
         ...surfacesReasons.map((reason) => `  - ${reason}`),
         '  Vocabulary: UI · Endpoint · Schema · CLI · MCP (Infra alone on infra-only PRs).',
+        '  Every stamped surface needs a matching path class; omit Surfaces on skill-only / docs-only.',
         '  Endpoint not backend; Schema = wire + persistence (no separate DB).',
       ].join('\n')
     : null,

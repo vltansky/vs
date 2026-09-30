@@ -316,8 +316,10 @@ Never invent backend/DB surface names.
 
 Wrapper precedence: MCP wrap of unchanged route → MCP only; CLI shim of unchanged MCP → CLI only.
 Multi-select when paths match more than one class. `pr-media-gate.mjs` asserts
-claim↔path: migration-only ≠ UI; MCP-wrap-only ≠ Endpoint; Infra+product fails;
-stamping backend/DB fails; >3 product surfaces without matching path classes fails.
+claim↔path: any stamped product surface without a matching path class fails
+(skill-only + Schema included); migration-only ≠ UI; MCP-wrap-only ≠ Endpoint;
+Infra+product fails; Infra without infra paths fails; stamping backend/DB fails;
+>3 product surfaces without matching path classes fails.
 
 CLI and MCP proof blocks are Later — this cut only selects those surfaces; do
 not invent paired CLI/MCP contract blocks yet.
