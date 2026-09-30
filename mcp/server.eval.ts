@@ -1,6 +1,7 @@
-import { mkdtemp, symlink, writeFile } from 'node:fs/promises';
+import { mkdtemp, readFile, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { Script } from 'node:vm';
 import { Client, InMemoryTransport } from '@modelcontextprotocol/client';
 import { StdioClientTransport } from '@modelcontextprotocol/client/stdio';
 import { describe, expect, it } from 'vitest';
@@ -15,6 +16,13 @@ async function connectedClient(root: string) {
 }
 
 describe('VS MCP App', () => {
+  it('embeds a syntactically valid browser script in the App resource', async () => {
+    const html = await readFile(new URL('./dist/view.html', import.meta.url), 'utf8');
+    const script = html.match(/<script>([\s\S]*?)<\/script>/)?.[1];
+    expect(script).toBeDefined();
+    expect(() => new Script(script)).not.toThrow();
+  });
+
   it('serves the bundled App through the plugin stdio command', async () => {
     const client = new Client({ name: 'vs-built-test', version: '1.0.0' });
     await client.connect(new StdioClientTransport({ command: 'node', args: ['mcp/dist/server.mjs'] }));
