@@ -373,6 +373,36 @@ labeled source-derived, and Evidence adds
 `**Still unverified:** endpoint response; <blocker>`. An Endpoint/Schema-only
 PR needs no visual-proof line at all.
 
+**Data-flow picture (B), additive — does not replace the fenced proof (A).**
+When Endpoint or Schema is stamped, the agent SHOULD also generate one local
+data-flow mermaid PNG and embed it under Before/After alongside the gated
+fenced blocks:
+
+- **Endpoint** — a `flowchart LR` of the request path (client → route/handler →
+  downstream). Keep it short; one diagram for the contract move.
+- **Schema** — an ER mermaid PNG **only when tables or relations change**
+  (new/removed table, FK, join). Index-only / comment / reformat Schema stamps
+  skip the ER image; the fenced shape `diff` is enough.
+
+Local on-demand generator (no hosted image service):
+
+```bash
+# Write a short .mmd (flowchart LR for Endpoint; erDiagram when Schema relations change)
+node <vs-ship-it>/scripts/mermaid-to-png.mjs flow.mmd --out "$EVIDENCE_DIR/data-flow.png"
+# Upload via user-attachments (same CDN as drag-and-drop):
+node <vs-internal-shared>/scripts/upload-github-attachment.mjs "$EVIDENCE_DIR/data-flow.png"
+# Embed: ![data-flow: <what to notice>](<returned-url>)
+```
+
+`mermaid-to-png.mjs` renders locally via `mmdc` when available, otherwise
+Playwright + Mermaid (resolve Playwright like `record-flow.mjs`, or set
+`PLAYWRIGHT_MODULE`). Never call a hosted mermaid→image API.
+`upload-github-attachment.mjs` POSTs to
+`uploads.github.com/user-attachments/assets` with `repository_id` from
+`gh api repos/{owner}/{repo} --jq .id`. The returned asset URL **404s until it
+is referenced once** in a PR/issue body — embed it in the body file before
+`gh pr create`, and do not treat that pre-reference 404 as an upload failure.
+
 Pass `--api <regex>` or `--schema <regex>` when the repository's layout does
 not match the defaults. A capture blocker is stated per kind:
 `**Still unverified:** endpoint response; <blocker>` or
@@ -451,6 +481,10 @@ for local media that directly proves the changed behavior.
 Upload each available image or video directly to GitHub's user-attachments CDN.
 This is the same hosting surface as drag-and-drop, inherits repository
 visibility, and needs no browser, Computer Use, draft comment, or vision tool.
+Prefer
+[`../vs-internal-shared/scripts/upload-github-attachment.mjs`](../vs-internal-shared/scripts/upload-github-attachment.mjs)
+for the POST; the curl form below is the equivalent. The returned URL **404s
+until referenced once** in a PR/issue body — embed before treating 404 as failure.
 
 Resolve the numeric repository ID (`gh repo view --json` has no such field):
 
@@ -669,6 +703,9 @@ separate `vs-baby-sit` goal only when the user explicitly requested a Codex goal
       relevant, or an exact capture blocker; captions explain the difference.
 - [ ] Endpoint and schema changes show one request with both responses and a
       schema `diff`, or state why not.
+- [ ] Endpoint/Schema stamps SHOULD also embed a local mermaid→PNG data-flow
+      image (flowchart LR; ER only when tables/relations change) alongside the
+      gated fences — generator does not replace fences.
 - [ ] `pr-media-gate.mjs` exited 0 on the final body file before `gh pr create`;
       captured images were not read into context.
 - [ ] Open non-draft PR state, branch, and head SHA were re-resolved
