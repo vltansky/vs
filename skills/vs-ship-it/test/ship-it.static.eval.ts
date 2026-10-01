@@ -397,8 +397,9 @@ describe('vs-ship-it merge risk first and Surfaces proof selectors', () => {
   });
 });
 
-describe('vs-ship-it Endpoint/Schema data-flow mermaid PNG (local generator)', () => {
-  const scriptPath = path.resolve(__dirname, '..', 'scripts', 'mermaid-to-png.mjs');
+describe('vs-ship-it Endpoint/Schema contract-card PNG (local generator)', () => {
+  const cardPath = path.resolve(__dirname, '..', 'scripts', 'contract-card-to-png.mjs');
+  const mermaidPath = path.resolve(__dirname, '..', 'scripts', 'mermaid-to-png.mjs');
   const uploadPath = path.resolve(
     __dirname,
     '..',
@@ -408,30 +409,38 @@ describe('vs-ship-it Endpoint/Schema data-flow mermaid PNG (local generator)', (
     'upload-github-attachment.mjs',
   );
 
-  it('ships a local mermaid-to-png generator under vs-ship-it scripts', () => {
-    expect(fs.existsSync(scriptPath)).toBe(true);
-    const src = fs.readFileSync(scriptPath, 'utf8');
-    expect(src).toMatch(/mermaid-to-png/);
+  it('ships a local contract-card generator (default) and mermaid for ER only', () => {
+    expect(fs.existsSync(cardPath)).toBe(true);
+    expect(fs.existsSync(mermaidPath)).toBe(true);
+    const cardSrc = fs.readFileSync(cardPath, 'utf8');
+    const mermaidSrc = fs.readFileSync(mermaidPath, 'utf8');
+    expect(cardSrc).toMatch(/contract-card-to-png/);
+    expect(cardSrc).toMatch(/#0d1117/);
+    expect(cardSrc).toMatch(/--kind endpoint\|schema|kind === 'endpoint'/);
     // Local only: no hosted image service.
-    expect(src).not.toMatch(/mermaid\.ink|kroki\.io|flowchart\.fun/i);
+    expect(cardSrc).not.toMatch(/mermaid\.ink|kroki\.io|flowchart\.fun/i);
+    expect(mermaidSrc).not.toMatch(/mermaid\.ink|kroki\.io|flowchart\.fun/i);
+    expect(mermaidSrc).toMatch(/#0d1117/);
+    expect(mermaidSrc).toMatch(/themeVariables/);
+    expect(PR_WORKFLOW).toMatch(/contract-card-to-png\.mjs/);
     expect(PR_WORKFLOW).toMatch(/mermaid-to-png\.mjs/);
-    expect(PR_WORKFLOW).toMatch(/local (?:on-demand )?generator|mermaid→PNG|mermaid to PNG/i);
+    expect(PR_WORKFLOW).toMatch(/contract-card|dark (?:GitHub-)?card/i);
   });
 
-  it('keeps Endpoint/Schema gated fenced proof and adds a data-flow image (B)', () => {
-    // Fences (A) stay required; the flow PNG is additive.
+  it('keeps Endpoint/Schema gated fenced proof and adds a contract-card image (B)', () => {
+    // Fences (A) stay required; the card PNG is additive — not flowchart-first.
     expect(PR_WORKFLOW).toMatch(/Endpoint and schema proof/);
     expect(PR_WORKFLOW).toMatch(/\*\*Endpoint\*\*[^\n]*`/);
     expect(PR_WORKFLOW).toMatch(/\*\*Schema\*\*[^\n]*`/);
     expect(PR_WORKFLOW).toMatch(/fenced|```http|```diff/);
+    expect(PR_WORKFLOW).toMatch(/contract-card|before→after|before → after/i);
+    expect(PR_WORKFLOW).toMatch(/Prefer contract cards over flowcharts/i);
     expect(PR_WORKFLOW).toMatch(
-      /(?:data-flow|flowchart LR).{0,120}(?:PNG|image)|(?:PNG|image).{0,120}(?:data-flow|flowchart)/i,
+      /does not replace the fenced proof|alongside the gated|does not replace fences/i,
     );
-    expect(PR_WORKFLOW).toMatch(
-      /keep[^\n]*(?:fenced|Endpoint|Schema)[^\n]*(?:proof|block)|alongside[^\n]*(?:fenced|block|proof)|adds? (?:a )?data-flow|does not replace/i,
-    );
-    // ER only when tables/relations change — not on every Schema stamp.
+    // ER only when tables/relations change — not the default Endpoint/Schema visual.
     expect(PR_WORKFLOW).toMatch(/ER[^\n]*(?:when|only|relations?|tables?)/i);
+    expect(PR_WORKFLOW).toMatch(/Do not default\s+to `flowchart LR`/i);
   });
 
   it('documents GitHub user-attachments upload and the 404-until-referenced quirk', () => {
