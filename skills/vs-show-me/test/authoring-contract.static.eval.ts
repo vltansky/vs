@@ -52,6 +52,16 @@ describe('the component catalog is read from the runtime, not from the skill', (
   });
 });
 
+describe('interactive explanations', () => {
+  it('uses one reversible experiment with a readable fallback', () => {
+    expect(SKILL).toContain('## Interactive explanations');
+    expect(SKILL).toContain('<Prediction>');
+    expect(SKILL).toMatch(/reset.{0,100}(?:prediction|reveal)/is);
+    expect(SKILL).toMatch(/(?:keyboard|native controls)/i);
+    expect(SKILL).toMatch(/(?:simulation|illustrative)/i);
+  });
+});
+
 describe('visual explanation composition', () => {
   it('selects a visual language before drafting without imposing a component quota', () => {
     expect(SKILL).toMatch(/sketch a visual plan/i);

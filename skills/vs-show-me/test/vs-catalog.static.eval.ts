@@ -78,6 +78,7 @@ describe('the vs catalog is one source the CLI and the browser both load', () =>
       'Brief',
       'Zones',
       'Crossing',
+      'Prediction',
     ]);
     for (const component of catalog.components) {
       expect(component.body).toBe('markdown');

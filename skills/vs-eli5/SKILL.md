@@ -18,11 +18,15 @@ each part of the analogy to the real thing and show only the causal steps needed
 to use the model. Beginner-friendly means no assumed vocabulary, not childish
 language.
 
-End the page with one quick prediction or recall prompt. Put its answer and a
-one-sentence reason close enough to give immediate feedback, without adding a
-custom interaction or hiding the explanation behind controls. This is one
-explanation, not a stateful course: do not create `MISSION.md`, learning records,
-lesson directories, or other teaching-workspace files.
+End the page with one quick prediction or recall prompt. When changing an
+input makes the mental model clearer, use `/vs-show-me`'s `<Prediction>`:
+change the setup, predict, reveal the outcome and its one-sentence reason.
+Inherit its interactive explanation contract and standalone fallback; do not
+invent a separate quiz framework. Keep the core explanation visible before
+interaction and provide immediate feedback. For a static fact, keep the plain
+prompt and nearby answer. This is one explanation, not a stateful course: do not
+create `MISSION.md`, learning records, lesson directories, or other
+teaching-workspace files.
 
 `/vs-show-me` owns the page write-slop pass. Inherit only. Pointer:
 [../vs-show-me/SKILL.md](../vs-show-me/SKILL.md). Run

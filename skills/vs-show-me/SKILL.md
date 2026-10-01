@@ -244,6 +244,28 @@ artifact reflects it. For `simplify`, apply
 familiar words and short sentences, explain necessary terms, and preserve the
 source's meaning, facts, and important details.
 
+## Interactive explanations
+
+For a causal explanation or tradeoff the reader can learn by varying an input,
+include one small `<Prediction>` experiment from the shared catalog. Choose two
+to four meaningful setups; use its native controls to change the setup, predict
+an outcome, then reveal the result and its reason. The component resets the
+prediction and reveal when the setup changes. Use the same component for
+`/vs-eli5`; do not build a second interaction framework.
+
+Keep the core explanation and visual model readable before any click. Use
+source-backed scenarios; label invented numbers and rules as an illustrative
+simulation, never live measurements. Check a wrong prediction, a correct one,
+and a setup change after reveal in the browser, including keyboard use.
+`Read all answers` provides a direct reading path. The experiment works locally
+inside MCP Apps and in the standalone HTML fallback, without WebMCP or new
+network calls. Do not claim a click sends context to the chat agent.
+
+Skip the experiment for a static fact, report, or proposal where changing an
+input adds no learning value. A plain prediction or recall prompt with nearby
+feedback is enough there. Keep this to one explanation, with no scores,
+persistence, learning records, or lesson navigation.
+
 ## Authored WebMCP tools
 
 Do not register a tool merely to read the artifact—the source and rendered page
