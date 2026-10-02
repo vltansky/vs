@@ -1,7 +1,9 @@
 #!/usr/bin/env node
-// Local Endpoint/Schema contract-card → PNG for vs-ship-it.
-// Dark GitHub-card look: method+path or table name, before→after shapes with
-// highlighted added/changed/removed fields. No hosted image service.
+// Local Endpoint/Schema **delta** contract-card → PNG for vs-ship-it.
+// Dark GitHub-card look: method+path chip or table name, **delta-only** rows
+// (added/changed/removed). Unchanged fields stay off the face. Face cap ~8;
+// overflow is noted on the card (full shape diff belongs in <details> + fence).
+// No hosted image service. Full-schema dumps and flowchart cards are out.
 //
 //   node contract-card-to-png.mjs --kind endpoint|schema <card.json|-> [--out file.png] [--width 720]
 //
@@ -17,7 +19,8 @@
 //                { "name":"expires_at", "type":"timestamptz", "attrs":"NOT NULL" }] }
 //
 // Diff is derived: keys/columns only in after = added; only in before = removed;
-// present in both with different type/attrs/value = changed.
+// present in both with different type/attrs/value = changed. Same/unchanged
+// rows are dropped from the face (delta-only).
 // Exit: 0 wrote PNG; 2 usage / missing Playwright / render failure.
 import fs from 'node:fs';
 import { createRequire } from 'node:module';
@@ -36,6 +39,8 @@ const CHG = '#d29922';
 const CHG_BG = 'rgba(210, 153, 34, 0.12)';
 const DEL = '#f85149';
 const DEL_BG = 'rgba(248, 81, 73, 0.12)';
+
+const FACE_CAP = 8;
 
 const fail = (message) => {
   process.stderr.write(`contract-card-to-png: ${message}\n`);
@@ -59,7 +64,7 @@ const inputArg = args.find((a, i) => {
 if (!kind || !['endpoint', 'schema'].includes(kind) || !inputArg) {
   fail(
     'Usage: contract-card-to-png.mjs --kind endpoint|schema <card.json|-> [--out file.png] [--width 720]\n' +
-      'Renders a dark before→after contract card (not a flowchart).',
+      'Renders a dark delta-only contract card (added/changed/removed; face cap 8).',
   );
 }
 if (!Number.isFinite(width) || width < 320) fail('--width must be a number ≥ 320.');
@@ -155,13 +160,30 @@ const badge = (change) => {
   return `<span class="badge same">unchanged</span>`;
 };
 
+/** Delta-only: drop unchanged rows. Face shows at most FACE_CAP; overflow noted. */
+const deltaOnly = (rows) => rows.filter((r) => r.change !== 'same');
+
+const faceSlice = (deltaRows) => {
+  const face = deltaRows.slice(0, FACE_CAP);
+  const overflow = Math.max(0, deltaRows.length - FACE_CAP);
+  return { face, overflow, total: deltaRows.length };
+};
+
+const overflowNote = (overflow, total) => {
+  if (overflow <= 0) {
+    return total === 0
+      ? `<div class="overflow">No field deltas — fence or gap still required.</div>`
+      : '';
+  }
+  return `<div class="overflow">+${overflow} more in &lt;details&gt; (full shape diff) · ${total} deltas total</div>`;
+};
+
 const renderEndpointHtml = (c) => {
   const method = String(c.method ?? 'GET').toUpperCase();
   const p = String(c.path ?? '/');
-  const rows = diffEndpoint(c.before, c.after);
-  const rowHtml = rows
+  const { face, overflow, total } = faceSlice(deltaOnly(diffEndpoint(c.before, c.after)));
+  const rowHtml = face
     .map((r) => {
-      const cls = r.change;
       const beforeCell =
         r.change === 'added'
           ? `<span class="ghost">—</span>`
@@ -170,7 +192,7 @@ const renderEndpointHtml = (c) => {
         r.change === 'removed'
           ? `<span class="ghost">—</span>`
           : `<code>${esc(formatValue(r.after))}</code>`;
-      return `<tr class="${cls}">
+      return `<tr class="${r.change}">
   <td class="key"><code>${esc(r.key)}</code> ${badge(r.change)}</td>
   <td class="before">${beforeCell}</td>
   <td class="after">${afterCell}</td>
@@ -178,18 +200,24 @@ const renderEndpointHtml = (c) => {
     })
     .join('\n');
 
-  return `
-<header>
-  <div class="kind">Endpoint</div>
-  <div class="title"><span class="method">${esc(method)}</span> <span class="path">${esc(p)}</span></div>
-  <div class="sub">Response shape · before → after</div>
-</header>
-<table>
+  const body =
+    face.length === 0
+      ? `<div class="empty">No changed response/request fields</div>`
+      : `<table>
   <thead><tr><th>Field</th><th>Before</th><th>After</th></tr></thead>
   <tbody>
 ${rowHtml}
   </tbody>
 </table>`;
+
+  return `
+<header>
+  <div class="kind">Endpoint · delta</div>
+  <div class="title"><span class="method">${esc(method)}</span> <span class="path">${esc(p)}</span></div>
+  <div class="sub">Changed fields only · face cap ${FACE_CAP}</div>
+</header>
+${body}
+${overflowNote(overflow, total)}`;
 };
 
 const colCell = (col) => {
@@ -200,8 +228,8 @@ const colCell = (col) => {
 
 const renderSchemaHtml = (c) => {
   const name = String(c.name ?? 'table');
-  const rows = diffSchema(c.before, c.after);
-  const rowHtml = rows
+  const { face, overflow, total } = faceSlice(deltaOnly(diffSchema(c.before, c.after)));
+  const rowHtml = face
     .map((r) => {
       return `<tr class="${r.change}">
   <td class="key">${badge(r.change)}</td>
@@ -211,18 +239,24 @@ const renderSchemaHtml = (c) => {
     })
     .join('\n');
 
-  return `
-<header>
-  <div class="kind">Schema</div>
-  <div class="title"><span class="path">${esc(name)}</span></div>
-  <div class="sub">Columns · before → after</div>
-</header>
-<table>
+  const body =
+    face.length === 0
+      ? `<div class="empty">No added/changed/removed columns</div>`
+      : `<table>
   <thead><tr><th></th><th>Before</th><th>After</th></tr></thead>
   <tbody>
 ${rowHtml}
   </tbody>
 </table>`;
+
+  return `
+<header>
+  <div class="kind">Schema · delta</div>
+  <div class="title"><span class="path">${esc(name)}</span></div>
+  <div class="sub">Added / changed / removed only · face cap ${FACE_CAP}</div>
+</header>
+${body}
+${overflowNote(overflow, total)}`;
 };
 
 const bodyInner = kind === 'endpoint' ? renderEndpointHtml(card) : renderSchemaHtml(card);
@@ -320,6 +354,20 @@ const html = `<!DOCTYPE html>
   .badge.del { color: ${DEL}; background: ${DEL_BG}; border: 1px solid rgba(248,81,73,0.35); }
   .badge.same { color: ${MUTED}; background: transparent; border: 1px solid ${BORDER}; }
   .key code { font-weight: 650; }
+  .overflow {
+    margin-top: 12px;
+    font-size: 13px;
+    color: ${MUTED};
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  .empty {
+    padding: 16px 14px;
+    background: ${PANEL_BG};
+    border: 1px dashed ${BORDER};
+    border-radius: 10px;
+    color: ${MUTED};
+    font-size: 14px;
+  }
 </style>
 </head><body><div id="card">${bodyInner}</div></body></html>`;
 

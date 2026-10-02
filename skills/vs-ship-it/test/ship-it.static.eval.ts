@@ -397,7 +397,7 @@ describe('vs-ship-it merge risk first and Surfaces proof selectors', () => {
   });
 });
 
-describe('vs-ship-it Endpoint/Schema contract-card PNG (local generator)', () => {
+describe('vs-ship-it Endpoint/Schema delta contract cards', () => {
   const cardPath = path.resolve(__dirname, '..', 'scripts', 'contract-card-to-png.mjs');
   const mermaidPath = path.resolve(__dirname, '..', 'scripts', 'mermaid-to-png.mjs');
   const uploadPath = path.resolve(
@@ -408,42 +408,74 @@ describe('vs-ship-it Endpoint/Schema contract-card PNG (local generator)', () =>
     'scripts',
     'upload-github-attachment.mjs',
   );
+  const cardSrc = () => fs.readFileSync(cardPath, 'utf8');
 
-  it('ships a local contract-card generator (default) and mermaid for ER only', () => {
-    expect(fs.existsSync(cardPath)).toBe(true);
-    expect(fs.existsSync(mermaidPath)).toBe(true);
-    const cardSrc = fs.readFileSync(cardPath, 'utf8');
-    const mermaidSrc = fs.readFileSync(mermaidPath, 'utf8');
-    expect(cardSrc).toMatch(/contract-card-to-png/);
-    expect(cardSrc).toMatch(/#0d1117/);
-    expect(cardSrc).toMatch(/--kind endpoint\|schema|kind === 'endpoint'/);
-    // Local only: no hosted image service.
-    expect(cardSrc).not.toMatch(/mermaid\.ink|kroki\.io|flowchart\.fun/i);
-    expect(mermaidSrc).not.toMatch(/mermaid\.ink|kroki\.io|flowchart\.fun/i);
-    expect(mermaidSrc).toMatch(/#0d1117/);
-    expect(mermaidSrc).toMatch(/themeVariables/);
-    expect(PR_WORKFLOW).toMatch(/contract-card-to-png\.mjs/);
-    expect(PR_WORKFLOW).toMatch(/mermaid-to-png\.mjs/);
-    expect(PR_WORKFLOW).toMatch(/contract-card|dark (?:GitHub-)?card/i);
-  });
-
-  it('keeps Endpoint/Schema gated fenced proof and adds a contract-card image (B)', () => {
-    // Fences (A) stay required; the card PNG is additive — not flowchart-first.
+  it('requires a delta card + gated fence (or gap) for Schema and Endpoint Surfaces', () => {
+    // Done-when: Schema → delta card + fence (or gap); Endpoint → method+path +
+    // changed-fields card + fence (or gap). Cards pair with fences; never replace.
     expect(PR_WORKFLOW).toMatch(/Endpoint and schema proof/);
     expect(PR_WORKFLOW).toMatch(/\*\*Endpoint\*\*[^\n]*`/);
     expect(PR_WORKFLOW).toMatch(/\*\*Schema\*\*[^\n]*`/);
-    expect(PR_WORKFLOW).toMatch(/fenced|```http|```diff/);
-    expect(PR_WORKFLOW).toMatch(/contract-card|before→after|before → after/i);
-    expect(PR_WORKFLOW).toMatch(/Prefer contract cards over flowcharts/i);
+    expect(PR_WORKFLOW).toMatch(/pr-media-gate/);
+    expect(PR_WORKFLOW).toMatch(/delta(?:-only)? (?:contract )?card/i);
     expect(PR_WORKFLOW).toMatch(
-      /does not replace the fenced proof|alongside the gated|does not replace fences/i,
+      /Schema[^\n.]{0,80}delta card[^\n.]{0,80}fence|delta card[^\n.]{0,80}fence[^\n.]{0,40}Schema/i,
     );
-    // ER only when tables/relations change — not the default Endpoint/Schema visual.
-    expect(PR_WORKFLOW).toMatch(/ER[^\n]*(?:when|only|relations?|tables?)/i);
+    expect(PR_WORKFLOW).toMatch(
+      /Endpoint[^\n.]{0,80}(?:delta|changed-fields) card[^\n.]{0,80}fence|method\s*\+\s*path[^\n.]{0,80}changed/i,
+    );
+    expect(PR_WORKFLOW).toMatch(
+      /does not replace the fenced proof|alongside the gated|pair(?:s|ed)? with[^\n]*fence|never replace/i,
+    );
+    expect(PR_WORKFLOW).toMatch(
+      /Still unverified[^\n]*endpoint|Still unverified[^\n]*schema|No (?:contract|schema) change/i,
+    );
+  });
+
+  it('fails full-table-only and flowchart-only contract proof without a delta card/fence', () => {
+    // Full-schema dumps and flowchart-only contract proof are out.
+    expect(PR_WORKFLOW).toMatch(/full[- ](?:schema|table)(?: dumps?)?[^\n]*(?:out|fail|not|never)|(?:not|never|fail)[^\n]*full[- ](?:schema|table)/i);
+    expect(PR_WORKFLOW).toMatch(
+      /flowchart-only[^\n]*(?:fail|not|never|out)|(?:not|never|fail)[^\n]*flowchart-only|flowchart[^\n]*without[^\n]*(?:delta|fence)/i,
+    );
+    expect(PR_WORKFLOW).toMatch(/Prefer dark table\/card chrome over flowcharts|Prefer (?:dark )?(?:contract )?cards? over flowcharts/i);
+    // Mermaid flowchart is demoted as Schema/Endpoint proof (ER-only if anything).
+    expect(PR_WORKFLOW).toMatch(
+      /(?:not|never|do not)[^\n]*(?:count|treat|use)[^\n]*flowchart[^\n]*(?:as )?(?:Schema|Endpoint|contract) proof|(?:flowchart|mermaid)[^\n]*not[^\n]*contract proof/i,
+    );
     expect(PR_WORKFLOW).toMatch(/Do not default\s+to `flowchart LR`/i);
   });
 
-  it('documents GitHub user-attachments upload and the 404-until-referenced quirk', () => {
+  it('ships a delta-only dark card generator with ~8 face rows and overflow details', () => {
+    expect(fs.existsSync(cardPath)).toBe(true);
+    const src = cardSrc();
+    expect(src).toMatch(/contract-card-to-png/);
+    expect(src).toMatch(/#0d1117/);
+    expect(src).toMatch(/--kind endpoint\|schema|kind === 'endpoint'/);
+    // Delta-only: added/changed/removed; unchanged rows stay off the face.
+    expect(src).toMatch(/FACE_CAP\s*=\s*8|faceCap\s*=\s*8|face cap[^\n]*8/i);
+    expect(src).toMatch(/change\s*!==\s*['"]same['"]|change\s*===\s*['"](?:added|changed|removed)['"]|delta(?:Only|Rows)/);
+    expect(src).toMatch(/added|changed|removed/);
+    expect(src).not.toMatch(/mermaid\.ink|kroki\.io|flowchart\.fun/i);
+    // Endpoint face: method+path chip + changed fields only (not full JSON dump).
+    expect(src).toMatch(/method/);
+    expect(src).toMatch(/path/);
+    expect(PR_WORKFLOW).toMatch(/contract-card-to-png\.mjs/);
+    expect(PR_WORKFLOW).toMatch(/~?\s*8\s*(?:face\s*)?rows?|face cap\s*~?\s*8/i);
+    expect(PR_WORKFLOW).toMatch(/<details>|overflow[^\n]*details|details[^\n]*overflow|full shape diff/i);
+    expect(PR_WORKFLOW).toMatch(/added\s*\/\s*changed\s*\/\s*removed|added\/changed\/removed/i);
+    expect(PR_WORKFLOW).toMatch(/delta-only|delta only|changed (?:response\/request )?fields only/i);
+  });
+
+  it('keeps mermaid ER-only (optional) and user-attachments upload helper', () => {
+    // ER mermaid may remain for relations; it is not Schema/Endpoint contract proof.
+    expect(fs.existsSync(mermaidPath)).toBe(true);
+    const mermaidSrc = fs.readFileSync(mermaidPath, 'utf8');
+    expect(mermaidSrc).not.toMatch(/mermaid\.ink|kroki\.io|flowchart\.fun/i);
+    expect(mermaidSrc).toMatch(/#0d1117/);
+    expect(PR_WORKFLOW).toMatch(/ER[^\n]*(?:when|only|relations?|tables?)/i);
+    expect(PR_WORKFLOW).toMatch(/mermaid-to-png\.mjs/);
+
     expect(fs.existsSync(uploadPath)).toBe(true);
     const uploadSrc = fs.readFileSync(uploadPath, 'utf8');
     expect(uploadSrc).toMatch(/uploads\.github\.com\/user-attachments\/assets/);

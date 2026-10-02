@@ -373,41 +373,55 @@ labeled source-derived, and Evidence adds
 `**Still unverified:** endpoint response; <blocker>`. An Endpoint/Schema-only
 PR needs no visual-proof line at all.
 
-**Contract-card picture (B), additive — does not replace the fenced proof (A).**
-When Endpoint or Schema is stamped, the agent SHOULD also generate one local
-dark contract-card PNG and embed it under Before/After alongside the gated
-fenced blocks. Prefer contract cards over flowcharts: show the DB/schema or
-endpoint contract move, not a busy data-flow diagram.
+**Delta contract-card picture (B), pairs with the gated fence (A) — never replaces it.**
+When Endpoint or Schema is stamped, generate one local dark **delta-only**
+contract-card PNG and embed it under Before/After alongside the gated fenced
+blocks (or state the exact gap: `**Still unverified:** endpoint response;
+<blocker>` / `**Still unverified:** schema diff; <blocker>`). Prefer dark table/card chrome over flowcharts. Full-schema dumps and
+flowchart-only contract proof are out — a full-table-only visual fails; a
+flowchart-only body without a delta card and fence (or gap) fails. A mermaid
+flowchart is not Schema/Endpoint contract proof.
 
-- **Endpoint** — method + path with before→after response fields; highlight
-  added/changed/removed keys.
-- **Schema** — table name with before→after columns/types; highlight
-  added/changed/removed columns.
-- **ER mermaid** — only when tables or relations actually change (new/removed
-  table, FK, join). Index-only / comment / reformat Schema stamps skip ER; the
-  fenced shape `diff` plus the schema contract card are enough. Do not default
-  to `flowchart LR`.
+Done-when shape:
+- **Schema Surface** → delta card + gated fence (or gap). Card shows
+  added/changed/removed columns|fields only; face cap ~8 rows; overflow goes
+  in `<details>` with the full shape diff (alongside the fence).
+- **Endpoint Surface** → method+path chip + changed-fields card + gated fence
+  (or gap). Card shows changed response/request fields only — not full JSON.
 
-Local on-demand generators (no hosted image service):
+- **Endpoint** — method + path with **changed** response/request fields only
+  (added/changed/removed markers); never dump the unchanged full payload on
+  the card face.
+- **Schema** — table/type name with **added/changed/removed** columns|fields
+  only; face cap ~8 rows; put the full shape dump in `<details>`, not on the
+  card.
+- **ER mermaid** — optional, only when tables or relations actually change
+  (new/removed table, FK, join). Index-only / comment / reformat Schema stamps
+  skip ER. Do not default to `flowchart LR`. Flowchart PNG alone never
+  satisfies Endpoint/Schema proof.
+
+Local on-demand generators (no hosted image service); one shared card renderer:
 
 ```bash
-# Endpoint or Schema contract card (default visual B)
+# Endpoint or Schema delta contract card (default visual B)
 node <vs-ship-it>/scripts/contract-card-to-png.mjs --kind endpoint card.json \
   --out "$EVIDENCE_DIR/endpoint-card.png"
 node <vs-ship-it>/scripts/contract-card-to-png.mjs --kind schema card.json \
   --out "$EVIDENCE_DIR/schema-card.png"
-# ER only when relations/tables change:
+# ER only when relations/tables change (not contract proof by itself):
 node <vs-ship-it>/scripts/mermaid-to-png.mjs relations.mmd --out "$EVIDENCE_DIR/er.png"
 # Upload via user-attachments (same CDN as drag-and-drop):
 node <vs-internal-shared>/scripts/upload-github-attachment.mjs "$EVIDENCE_DIR/endpoint-card.png"
-# Embed: ![endpoint card: <what to notice>](<returned-url>)
+# Embed: ![endpoint delta card: <what to notice>](<returned-url>)
 ```
 
-`contract-card-to-png.mjs` renders a dark GitHub-card PNG via Playwright
-(larger type, high-contrast before→after, less chrome). `mermaid-to-png.mjs`
-is reserved for ER (same dark card theme via `theme: base` + themeVariables, or
-mmdc `-c` config). Never call a hosted mermaid→image API.
-`upload-github-attachment.mjs` POSTs to
+`contract-card-to-png.mjs` renders a dark GitHub-card PNG via Playwright:
+delta-only rows (added/changed/removed), face cap ~8, overflow noted on the
+card and expanded in `<details>` with the full shape diff. Keep
+`pr-media-gate.mjs` on the gated fences. `mermaid-to-png.mjs` is reserved for
+optional ER (same dark card theme via `theme: base` + themeVariables, or mmdc
+`-c` config) and is not Endpoint/Schema contract proof. Never call a hosted
+mermaid→image API. `upload-github-attachment.mjs` POSTs to
 `uploads.github.com/user-attachments/assets` with `repository_id` from
 `gh api repos/{owner}/{repo} --jq .id`. The returned asset URL **404s until it
 is referenced once** in a PR/issue body — embed it in the body file before
@@ -713,8 +727,10 @@ separate `vs-baby-sit` goal only when the user explicitly requested a Codex goal
       relevant, or an exact capture blocker; captions explain the difference.
 - [ ] Endpoint and schema changes show one request with both responses and a
       schema `diff`, or state why not.
-- [ ] Endpoint/Schema stamps SHOULD also embed a local dark contract-card PNG
-      (endpoint/schema before→after; ER mermaid only when relations change)
+- [ ] Endpoint/Schema stamps embed a local dark **delta-only** contract card
+      (method+path + changed fields / added·changed·removed columns; face cap
+      ~8; overflow in `<details>`) paired with the gated fence, or state the
+      exact gap; full-table-only and flowchart-only without delta card/fence fail
       alongside the gated fences — generator does not replace fences.
 - [ ] `pr-media-gate.mjs` exited 0 on the final body file before `gh pr create`;
       captured images were not read into context.
