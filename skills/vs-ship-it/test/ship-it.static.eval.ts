@@ -61,8 +61,8 @@ describe('vs-ship-it publishing boundary', () => {
   it('shows the PR format and available proof in the README flow', () => {
     expect(README).not.toContain('Review explicitly approved?');
     expect(README).toMatch(/Prepare PR description<br\/>feature_area: title/);
-    expect(README).toMatch(/Problem \+ one visual \+ Before\/After<br\/>Why this change/);
-    expect(README).toMatch(/Merge risk \(Door \/ Blast\)<br\/>Surfaces<br\/>Problem \+ one visual \+ Before\/After<br\/>Why this change<br\/>User impact<br\/>Evidence \+ gaps<br\/>Review focus/);
+    expect(README).toMatch(/Problem scenario \(STE100\) \+ Endpoint\/Schema\/UI proof<br\/>Why this change/);
+    expect(README).toMatch(/Merge risk \(Door \/ Blast\)<br\/>Surfaces<br\/>Problem scenario \(STE100\) \+ Endpoint\/Schema\/UI proof<br\/>Why this change<br\/>User impact<br\/>Evidence \+ gaps<br\/>Review focus/);
     expect(README).toMatch(/Reuse or capture proof<br\/>matched Before\/After screenshots/);
     expect(README).toMatch(/short video for interactions/);
   });
@@ -316,15 +316,20 @@ describe('vs-ship-it door, blast radius, and summary visual', () => {
     expect(bodyTemplate).toMatch(/do not stamp wide-blast/i);
   });
 
-  it('requires the leading summary shape to pick one visual from an explicit menu', () => {
-    expect(PR_WORKFLOW).toMatch(/pseudocode/i);
-    expect(PR_WORKFLOW).toMatch(/call tree/i);
-    expect(PR_WORKFLOW).toMatch(/component tree/i);
-    expect(PR_WORKFLOW).toMatch(/file tree/i);
-    expect(PR_WORKFLOW).toMatch(/Mermaid/i);
-    expect(PR_WORKFLOW).toMatch(/Matched diff of that shape/);
-    expect(PR_WORKFLOW).not.toMatch(/occasionally two|sometimes two/i);
-    expect(PR_WORKFLOW).toMatch(/pick \*\*one\*\*|use one|one visual/i);
+  it('locks What Problem to STE100 scenario flow with no How in Why', () => {
+    expect(PR_WORKFLOW).toMatch(/ASD-STE100|STE100/i);
+    expect(PR_WORKFLOW).toMatch(/actor\s*→\s*attempt\s*→\s*block|actor → attempt → block/i);
+    expect(PR_WORKFLOW).toMatch(/user\/admin/i);
+    expect(PR_WORKFLOW).toMatch(/\bsystem\b/i);
+    expect(PR_WORKFLOW).toMatch(/either is OK|either OK/i);
+    expect(PR_WORKFLOW).toMatch(/No How in Why/i);
+    expect(PR_WORKFLOW).toMatch(/mintable tokens/i);
+    expect(PR_WORKFLOW).toMatch(/How stays in \*\*Endpoint\*\* \/ \*\*Schema\*\* \/ \*\*UI\*\*|How stays in Endpoint/i);
+    expect(PR_WORKFLOW).toMatch(/not a multi-paragraph prose wall/i);
+    // Template placeholder is scenario, not the old visual menu.
+    const bodyTemplate = PR_WORKFLOW.match(/````markdown[\s\S]*?````/)?.[0] ?? '';
+    expect(bodyTemplate).toMatch(/Short STE100 scenario/i);
+    expect(bodyTemplate).not.toMatch(/single chosen visual|pseudocode,\s*call tree/i);
   });
 
   it('does not add a vs-pr skill or slash', () => {
@@ -474,5 +479,78 @@ describe('vs-ship-it build-when-empty compose', () => {
   it('covers skill-only and docs-only planned work that is not implemented yet', () => {
     expect(SKILL).toMatch(/skill-only \/ docs-only/i);
     expect(SKILL).toMatch(/planned skill change|not implemented yet/i);
+  });
+});
+
+describe('vs-ship-it What Problem Why-block gate (fixtures)', () => {
+  /** Score a Why / What-problem block: null = pass, string = fail reason. */
+  function whyGateFailure(why: string): string | null {
+    const trimmed = why.trim();
+    if (!trimmed) return 'empty Why';
+
+    // Multi-paragraph / multi-line wall (blank-line blocks OR 2+ non-empty lines).
+    const paragraphs = trimmed.split(/\n\s*\n/).map((p) => p.trim()).filter(Boolean);
+    const lines = trimmed.split(/\n/).map((l) => l.trim()).filter(Boolean);
+    if (paragraphs.length > 1 || lines.length > 1) return 'multi-paragraph prose wall';
+
+    const howKeywords: Array<[RegExp, string]> = [
+      [/\bmintable\b/i, 'mintable tokens'],
+      [/\btoken\s+mint/i, 'token mint'],
+      [/\bmint(?:able)?(?:,|\s+revocable|\s+staff|\s+tokens)/i, 'mint/tokens as solution'],
+      [/\bstaffApiTokens\b/, 'staffApiTokens'],
+      [/\bthis PR adds\b/i, 'this PR adds'],
+      [/\bpiggyback(?:ing)?\s+(?:MCP\s+)?OAuth\b/i, 'OAuth piggyback as solution'],
+      [/\bwithout piggybacking\b/i, 'OAuth piggyback phrasing'],
+      [/\bsame JSON shape\b/i, 'JSON shape as solution'],
+      [/\bnew (?:HTTPS )?route/i, 'new route as solution'],
+      [/\bHosting rewrite\b/i, 'rewrite as solution'],
+      [/\brewrite\s+(?:entry|`POST|POST)\b/i, 'rewrite as solution'],
+      [/\bFirestore collections\b/i, 'collections as solution'],
+      [/\bAdmin-SDK-only\b/i, 'collections as solution'],
+    ];
+    for (const [re, label] of howKeywords) {
+      if (re.test(trimmed)) return `How keyword: ${label}`;
+    }
+
+    // Scenario flow should read as actor → attempt → block (at least one arrow).
+    if (!/(?:→|->)/.test(trimmed) && trimmed.split(/[.!?]\s+/).filter(Boolean).length > 2) {
+      return 'prose wall without scenario arrows';
+    }
+
+    return null;
+  }
+
+  const FAIL_HOW = `Agents cannot curl the WhatsApp Assistant Playground preview without a browser Firebase Auth session. Admins need mintable, revocable staff tokens so automation can hit a preview-only HTTPS route with the same JSON shape as the existing onCall Playground path — without piggybacking MCP OAuth or live send.`;
+
+  const FAIL_WALL = `Agents cannot reach the preview endpoint.
+Admins also need a better auth story for automation.
+The platform should expose something safer than a browser session.`;
+
+  const PASS_SYSTEM =
+    'Agent sends `POST /api/assistant/preview` → request fails → only a browser Firebase Auth session works.';
+  const PASS_USER =
+    'Admin needs an agent to call Playground preview → agent has no browser session → call is blocked.';
+
+  it('FAILS when Why contains How keywords or is a multi-paragraph wall', () => {
+    expect(whyGateFailure(FAIL_HOW)).toMatch(/How keyword|mintable/i);
+    expect(whyGateFailure(FAIL_WALL)).toBe('multi-paragraph prose wall');
+    expect(whyGateFailure('This PR adds staffApiTokens and a Hosting rewrite.')).toMatch(
+      /How keyword/i,
+    );
+    expect(
+      whyGateFailure(
+        'We add mintable tokens so agents can call the route without piggybacking MCP OAuth.',
+      ),
+    ).toMatch(/How keyword/i);
+  });
+
+  it('PASSES on short STE100 scenario flows (system and user/admin)', () => {
+    expect(whyGateFailure(PASS_SYSTEM)).toBeNull();
+    expect(whyGateFailure(PASS_USER)).toBeNull();
+  });
+
+  it('documents both perspectives as examples in the skill', () => {
+    expect(PR_WORKFLOW).toMatch(/Agent sends `POST \/api\/assistant\/preview`/i);
+    expect(PR_WORKFLOW).toMatch(/Admin needs an agent to call Playground preview/i);
   });
 });
