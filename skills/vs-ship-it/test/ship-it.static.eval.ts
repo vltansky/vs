@@ -242,6 +242,14 @@ describe('vs-ship-it PR association and stopping point', () => {
     expect(SKILL).toMatch(/visibly separate\s+babysitting phase/i);
   });
 
+  // A/B (ship-it-cost.ab.eval.ts): without this, Claude Code ended the turn on the
+  // creation handoff with "Next: hand off to vs-baby-sit" and never watched CI.
+  it('keeps the creation handoff from ending the turn', () => {
+    expect(SKILL).toMatch(/creation handoff is a progress message,\s+not the end of the turn/i);
+    expect(SKILL).toMatch(/start it in\s+the same turn/i);
+    expect(SKILL).toMatch(/is a skipped phase,\s+not a handoff/i);
+  });
+
   it('ends the composed workflow at a human review gate', () => {
     expect(SKILL).toMatch(/`Review needed: @<user-or-team>`/);
     expect(SKILL).toMatch(/Do\s+not resume watching because auto-merge is armed/i);
