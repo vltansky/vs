@@ -396,3 +396,49 @@ describe('vs-ship-it merge risk first and Surfaces proof selectors', () => {
     expect(PR_WORKFLOW).not.toMatch(/\*\*MCP\*\*[^\n]*```/);
   });
 });
+
+describe('vs-ship-it build-when-empty compose', () => {
+  it('runs build-it first when nothing is built yet, then resumes ship-it', () => {
+    expect(SKILL).toMatch(/no scoped changes to publish/i);
+    expect(SKILL).toMatch(/nothing new vs (?:the )?base|commits ahead of the default/i);
+    expect(SKILL).toMatch(/do \*\*not\*\* create an empty PR|do not create an empty PR/i);
+    expect(SKILL).toMatch(/do \*\*not\*\* stop with only ["']?nothing to ship|do not stop with only ["']?nothing to ship/i);
+    expect(SKILL).toMatch(/running build-it first|run(?:ning)? build-it first/i);
+    expect(SKILL).toMatch(/Read and follow[`\s\/]*`?vs-build-it`?/i);
+    expect(SKILL).toMatch(/resume ship-it/i);
+  });
+
+  it('asks once when there is no buildable intent, and does not invent scope', () => {
+    expect(SKILL).toMatch(/buildable intent/i);
+    expect(SKILL).toMatch(/ask once what to build/i);
+    expect(SKILL).toMatch(/do not invent scope/i);
+  });
+
+  it('skips the empty-tree gate inside a build-it→ship-it handoff', () => {
+    expect(SKILL).toMatch(/Do not recurse/i);
+    expect(SKILL).toMatch(/already inside a build-it.?ship-it handoff/i);
+  });
+
+  it('applies the gate before Direct-push and the PR workflow', () => {
+    const gateAt = SKILL.search(/## Nothing built yet/);
+    const chooseAt = SKILL.indexOf('## Choose the outcome');
+    const directAt = SKILL.indexOf('### Direct-push path');
+    const prAt = SKILL.indexOf('## PR workflow');
+    expect(gateAt).toBeGreaterThan(-1);
+    expect(chooseAt).toBeGreaterThan(-1);
+    expect(gateAt).toBeLessThan(chooseAt);
+    expect(gateAt).toBeLessThan(directAt);
+    expect(gateAt).toBeLessThan(prAt);
+  });
+
+  it('composes direct-push empty trees only when a destination was named', () => {
+    expect(SKILL).toMatch(/Direct-push with an empty tree/i);
+    expect(SKILL).toMatch(/only if (?:the )?user named a destination/i);
+    expect(SKILL).toMatch(/prefer (?:the )?PR path after build/i);
+  });
+
+  it('covers skill-only and docs-only planned work that is not implemented yet', () => {
+    expect(SKILL).toMatch(/skill-only \/ docs-only/i);
+    expect(SKILL).toMatch(/planned skill change|not implemented yet/i);
+  });
+});

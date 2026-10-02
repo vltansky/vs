@@ -21,6 +21,31 @@ skill is unavailable.
 Compose `/vs-eval` only when the PR is a skill/eval contract. Skip it for
 ordinary product PRs.
 
+## Nothing built yet
+
+At ship-it entry — before Direct-push or the PR workflow — detect whether
+anything is built yet:
+
+1. Inspect `git status -sb` and ahead/behind vs the default branch
+   (`git rev-list --left-right --count origin/<default>...HEAD`).
+2. If the working tree has **no scoped changes to publish** (clean index and
+   worktree for the intended scope) **and** the current branch is not a feature
+   branch with commits ahead of the default that constitute the thing to ship
+   (nothing new vs base), do **not** create an empty PR and
+   do **not** stop with only "nothing to ship".
+3. When there is a **buildable intent** — a plan/spec/outcome the user just
+   shaped, or an explicit "ship it" on work that was only discussed/planned —
+   announce one line that you are running build-it first, **Read and follow
+   `vs-build-it`**, then when the build-it handoff says ready, **resume ship-it**
+   on the resulting branch/diff (full PR path unless the user named
+   immediate/direct). Skill-only / docs-only empty trees still follow this when
+   the user asked to ship a planned skill change that is not implemented yet.
+4. If there is also **no plan/outcome** to build (empty tree and no prior plan),
+   stop and ask once what to build — do not invent scope.
+5. Do not recurse: if already inside a build-it→ship-it handoff, skip this gate.
+6. Direct-push with an empty tree: same compose (build then push)
+   only if the user named a destination; otherwise prefer the PR path after build.
+
 ## Choose the outcome
 
 - **Direct push:** when the user explicitly names `main`, `master`, the current
