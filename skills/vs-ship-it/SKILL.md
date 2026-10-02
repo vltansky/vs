@@ -115,10 +115,14 @@ flow: **actor → attempt → block**. One perspective per PR — **user/admin**
 **system**; either is OK (do not lock the skill to one forever). Keep it to one
 tight line (or a single arrow chain), not a multi-paragraph prose wall.
 
-**No How in Why.** Do not name the fix in that block (mintable tokens, rewrite,
-JSON shape, OAuth piggyback, collections, new routes, "this PR adds …" as the
-solution). How stays in **Endpoint** / **Schema** / **UI** Before→After — those
-fenced proofs stay primary alongside Surfaces chips and Door/Blast bullets.
+**No How in Why.** "Why" here means **What Problem This Solves** only — the
+STE100 scenario flow (**actor → attempt → block**), not the later **Why This
+Change Was Made** heading. Do not name the fix in that block (mintable tokens,
+rewrite, JSON shape, OAuth piggyback, collections, new routes, "this PR adds …"
+as the solution). Mechanism How stays in **Endpoint** / **Schema** / **UI**
+Before→After — those fenced proofs stay primary alongside Surfaces chips and
+Door/Blast bullets. Do not park the implementation How under **Why This Change
+Was Made** as a substitute for those proofs.
 
 Examples (either perspective; pick one for the PR):
 
@@ -217,7 +221,8 @@ body file starts at the first heading)
 ## What Problem This Solves
 
 <Short STE100 scenario: actor → attempt → block. User/admin OR system
-perspective (one per PR). No How — do not name the fix here.>
+perspective (one per PR). This is the Why (scenario flow only). No How — do
+not name the fix here; mechanism stays in Endpoint / Schema / UI.>
 
 **Before** <same-state setup and what to notice>
 
@@ -230,8 +235,9 @@ fenced output block.>
 
 ## Why This Change Was Made
 
-<Root cause and why this boundary owns the repair. When the path changed, draw
-it instead of narrating it:>
+<Root cause / why this boundary owns the repair — not the implementation How
+(that stays in Endpoint / Schema / UI Before→After). When the path changed,
+draw it instead of narrating it:>
 
 ```mermaid
 flowchart LR

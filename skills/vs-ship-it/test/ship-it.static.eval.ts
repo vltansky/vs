@@ -262,7 +262,7 @@ describe('vs-ship-it PR association and stopping point', () => {
   });
 });
 
-describe('vs-ship-it door, blast radius, and summary visual', () => {
+describe('vs-ship-it door, blast radius, and What Problem scenario', () => {
   it('requires Door and Blast radius in the PR body template', () => {
     // The badge is the label: the template offers both door choices and a blast choice.
     expect(PR_WORKFLOW).toMatch(/badge-<one-way \| two-way>-door\.svg/);
@@ -494,27 +494,31 @@ describe('vs-ship-it What Problem Why-block gate (fixtures)', () => {
     if (paragraphs.length > 1 || lines.length > 1) return 'multi-paragraph prose wall';
 
     const howKeywords: Array<[RegExp, string]> = [
+      // Domain-agnostic How shapes (catch generic mechanism leakage).
+      [/\bthis PR adds\b/i, 'this PR adds'],
+      [/\bwe introduce\b/i, 'we introduce'],
+      [/\bnew (?:HTTPS )?endpoint\b/i, 'new endpoint'],
+      [/\bnew (?:HTTPS )?route/i, 'new route as solution'],
+      [/\b(?:Hosting\s+)?rewrite\b/i, 'rewrite as solution'],
+      [/\b(?:Firestore\s+)?collections?\b/i, 'collections as solution'],
+      [/\bmigration\b/i, 'migration as solution'],
+      // Exemplar-only (playground / token domain) — same How smell, product-local words.
       [/\bmintable\b/i, 'mintable tokens'],
       [/\btoken\s+mint/i, 'token mint'],
       [/\bmint(?:able)?(?:,|\s+revocable|\s+staff|\s+tokens)/i, 'mint/tokens as solution'],
       [/\bstaffApiTokens\b/, 'staffApiTokens'],
-      [/\bthis PR adds\b/i, 'this PR adds'],
       [/\bpiggyback(?:ing)?\s+(?:MCP\s+)?OAuth\b/i, 'OAuth piggyback as solution'],
       [/\bwithout piggybacking\b/i, 'OAuth piggyback phrasing'],
       [/\bsame JSON shape\b/i, 'JSON shape as solution'],
-      [/\bnew (?:HTTPS )?route/i, 'new route as solution'],
-      [/\bHosting rewrite\b/i, 'rewrite as solution'],
-      [/\brewrite\s+(?:entry|`POST|POST)\b/i, 'rewrite as solution'],
-      [/\bFirestore collections\b/i, 'collections as solution'],
-      [/\bAdmin-SDK-only\b/i, 'collections as solution'],
+      [/\bAdmin-SDK-only\b/i, 'Admin-SDK-only as solution'],
     ];
     for (const [re, label] of howKeywords) {
       if (re.test(trimmed)) return `How keyword: ${label}`;
     }
 
-    // Scenario flow should read as actor → attempt → block (at least one arrow).
-    if (!/(?:→|->)/.test(trimmed) && trimmed.split(/[.!?]\s+/).filter(Boolean).length > 2) {
-      return 'prose wall without scenario arrows';
+    // Scenario flow must read as actor → attempt → block (always require an arrow).
+    if (!/(?:→|->)/.test(trimmed)) {
+      return 'missing scenario arrows';
     }
 
     return null;
@@ -525,6 +529,9 @@ describe('vs-ship-it What Problem Why-block gate (fixtures)', () => {
   const FAIL_WALL = `Agents cannot reach the preview endpoint.
 Admins also need a better auth story for automation.
 The platform should expose something safer than a browser session.`;
+
+  const FAIL_ARROWLESS =
+    'Agents cannot curl the Playground preview without a browser Firebase Auth session.';
 
   const PASS_SYSTEM =
     'Agent sends `POST /api/assistant/preview` → request fails → only a browser Firebase Auth session works.';
@@ -542,6 +549,18 @@ The platform should expose something safer than a browser session.`;
         'We add mintable tokens so agents can call the route without piggybacking MCP OAuth.',
       ),
     ).toMatch(/How keyword/i);
+    // Domain-agnostic How (not playground/token-specific).
+    expect(whyGateFailure('this PR adds a new endpoint')).toMatch(/How keyword/i);
+    expect(
+      whyGateFailure('we introduce a rewrite / collection / migration'),
+    ).toMatch(/How keyword/i);
+  });
+
+  it('FAILS when Why has no scenario arrow', () => {
+    expect(whyGateFailure(FAIL_ARROWLESS)).toBe('missing scenario arrows');
+    expect(
+      whyGateFailure('Admin needs preview access but the agent is blocked.'),
+    ).toBe('missing scenario arrows');
   });
 
   it('PASSES on short STE100 scenario flows (system and user/admin)', () => {
