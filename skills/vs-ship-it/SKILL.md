@@ -627,6 +627,11 @@ PR created and verified: [#<N> — <title>](<PR_URL>)
 Do not describe CI, deployment, preview behavior, or production as verified when
 only PR creation succeeded.
 
+The creation handoff is a progress message, not the end of the turn. Unless
+the user explicitly opted out of watching, load `vs-baby-sit` and start it in
+the same turn right after printing the handoff. Ending the turn with "Next: hand
+off to vs-baby-sit" or an offer to watch is a skipped phase, not a handoff.
+
 When fresh verification evidence already exists with `WARN`, carry the WARN
 wording into the PR and handoff; do not describe the change as fixed or
 verified. Existing `FAIL` or `BLOCKED` evidence is reported as an open gap, not
