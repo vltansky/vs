@@ -133,6 +133,13 @@ first, structure drawn as a diagram rather than described, and no metric or
 status the evidence does not contain. From `vs-eli5`: when the mechanism is not
 obvious, one familiar analogy mapped to the real parts, not a glossary.
 
+Write the PR body prose in `vs-write` STE mode. The reviewer reads Merge risk,
+the problem, the reason, and Review focus once, under time pressure. Pointer
+only: [../vs-internal-shared/references/ste-writing.md](../vs-internal-shared/references/ste-writing.md). Before
+`gh pr create`, run `node skills/vs-write/scripts/check-ste.mjs "$BODY_FILE"`.
+Exit 1: split or rewrite the reported sentences, then run it again. Code,
+output blocks, tables, and technical names stay exactly as they are.
+
 Keep the first screen short. Fold anything longer than about twenty lines — a
 full output capture, a wider diff, a second video — into
 `<details><summary>…</summary></details>` so the proof stays above the fold.
