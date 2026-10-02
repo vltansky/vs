@@ -173,30 +173,43 @@ body file starts at the first heading)
 
 <img alt="Two-way door: easy to revert" src="https://raw.githubusercontent.com/vltansky/vs/master/skills/vs-ship-it/assets/badge-two-way-door.svg">
 
-<the irreversible step and what undoing it costs, or what makes reverting cheap>
+- <the irreversible step and what undoing it costs, or what makes reverting cheap>
+- <optional caveat or credential/data one-way note>
 
 <!-- For one-way, swap the badge to badge-one-way-door.svg with alt
      "One-way door: hard to reverse — review carefully". Never label one-way
-     as safe to merge. -->
+     as safe to merge. Badge alone on its line; bullets under it — no prose wall. -->
 
 <img alt="Narrow blast radius: contained" src="https://raw.githubusercontent.com/vltansky/vs/master/skills/vs-ship-it/assets/badge-narrow-blast.svg">
 
-<who breaks and how widely, plus the adjacent surfaces this does not touch>
+- <who breaks and how widely>
+- <adjacent surfaces this does not touch>
 
 <!-- When blast is wide (many consumers / callers / tenants), swap the badge to
      badge-wide-blast.svg with alt "Wide blast radius: many consumers". Keep
-     narrow on a narrow-blast PR — do not stamp wide-blast onto it. -->
+     narrow on a narrow-blast PR — do not stamp wide-blast onto it.
+     Badge alone on its line; bullets under it — no prose wall. -->
 
 ## Surfaces
 
-<Omit this section when paths prove no product surface and the PR is not solely Infra (skill-only / docs-only). Otherwise stamp only the UI · Endpoint · Schema · CLI · MCP classes the paths prove; Infra alone for solely CI/deploy/flags/env.>
+<img alt="Surface: Endpoint · 2 modules" src="https://raw.githubusercontent.com/vltansky/vs/master/skills/vs-ship-it/assets/badge-surface-endpoint-2.svg"> <img alt="Surface: Schema · 1 module" src="https://raw.githubusercontent.com/vltansky/vs/master/skills/vs-ship-it/assets/badge-surface-schema-1.svg"> <img alt="Surface: UI · 1 module" src="https://raw.githubusercontent.com/vltansky/vs/master/skills/vs-ship-it/assets/badge-surface-ui-1.svg">
 
-<!-- Multi-select every product surface the changed paths prove — never invent a stamp.
-     Omit Surfaces entirely for skill-only / docs-only when no path class matches.
-     Infra only when the PR is solely CI/deploy/flags/env — never stack with a product surface.
+- **<Deployable module>** (Endpoint) — <what changed on this module>
+- **<Deployable module>** (Schema) — <what changed on this module>
+- **<Deployable module>** — <UI / other module; optional (Kind) tag>
+
+<!-- Omit Surfaces when paths prove no product surface and the PR is not solely Infra
+     (skill-only / docs-only) — never invent a product stamp.
+     Kind-colored chips on ONE line (space-separated <img>s); count = # of
+     deployable-module bullets for that kind (not severity/files/blast).
+     Then one bullet per deployable module, module name first; optional (Endpoint)
+     kind tag. No separate Affected modules section.
+     Multi-select every product surface the paths prove. Infra only when the PR is
+     solely CI/deploy/flags/env — never stack with a product surface.
      Endpoint not backend; Schema = wire + persistence (no separate DB).
      Wrapper precedence: MCP wrap of unchanged route → MCP only; CLI shim of unchanged MCP → CLI only.
-     Surfaces are proof selectors, not risk art — Never invent backend/DB surface names or surface merge-risk SVGs. -->
+     Surfaces = proof selectors + module inventory; Door/Blast own risk.
+     Never invent backend/DB surface names. -->
 
 ## What Problem This Solves
 
@@ -282,27 +295,30 @@ one route, one command, every caller of a shared helper, every tenant. Name the
 adjacent surfaces the change does **not** touch — the bounded half is what lets
 a reviewer skip the rest. When the diff is one-way or broad, say what makes it
 recoverable (flag, staged rollout, backup, reversible migration) or state that
-nothing does. Two lines is the whole budget; if the classification is uncertain,
-write the uncertainty rather than the reassuring guess.
+nothing does. Under each door and blast badge use **bullets**, not a prose wall
+(badge alone on its line; bullets directly under it). If the classification is
+uncertain, write the uncertainty rather than the reassuring guess.
 
 ### Merge-risk badges
 
 Under **Merge risk**, the badge is the label: put the matching catalog badge
 on its own line with no `**Door:**` or `**Blast radius:**` text around it, and
-the one-line explanation directly under it, so the reviewer reads the risk
-before the reason:
+**bullets** directly under it (not a prose wall), so the reviewer reads the risk
+before the reasons:
 
 ```html
 <img alt="…" src="https://raw.githubusercontent.com/vltansky/vs/master/skills/vs-ship-it/assets/badge-<one-way | two-way>-door.svg">
 
-<what makes this one-way or two-way>
+- <what makes this one-way or two-way>
+- <optional caveat>
 
 <img alt="…" src="https://raw.githubusercontent.com/vltansky/vs/master/skills/vs-ship-it/assets/badge-<wide | narrow>-blast.svg">
 
-<who breaks and how widely>
+- <who breaks and how widely>
+- <adjacent surfaces this does not touch>
 ```
 
-Catalog (committed under `skills/vs-ship-it/assets/`, generated by
+Door / Blast catalog (committed under `skills/vs-ship-it/assets/`, generated by
 `scripts/generate-badges.mts`):
 
 | Badge | When | File | Alt |
@@ -321,33 +337,59 @@ URLs against the master path:
 PR description bodies on github.com do not reliably resolve relative repo paths,
 so prefer these absolute raw URLs. They render after the assets land on
 `master`. Embed the door badge that matches the door classification; embed the wide-blast
-badge only when blast is wide, and the narrow-blast badge otherwise. Badges
-classify risk and are not visual proof: `pr-media-gate.mjs` does not count them.
-Do not invent other badges or hand-edit the SVGs; change the generator and
-rerun it. Walkthrough HTML is out of scope here — leave `/vs-pr-walkthrough`
-alone.
+badge only when blast is wide, and the narrow-blast badge otherwise. Door and
+Blast badges classify risk and are not visual proof: `pr-media-gate.mjs` does not
+count them (Surfaces chips are also excluded from media counts). Do not invent
+other badges or hand-edit the SVGs; change the generator and rerun it.
+Walkthrough HTML is out of scope here — leave `/vs-pr-walkthrough` alone.
 
 ### Surfaces
 
-Surfaces are proof selectors, not risk art. Stamp every product surface the
-changed paths prove; do not invent merge-risk SVGs for them. Door and blast
-badges stay the only merge-risk catalog images. Omit Surfaces when paths prove
-no product surface and the PR is not solely Infra (skill-only / docs-only) —
-never invent a product stamp to fill the section.
+Surfaces are proof selectors **plus** a deployable-module inventory — not risk art. Door and Blast own merge risk; Surfaces never replace them. Omit Surfaces
+when paths prove no product surface and the PR is not solely Infra (skill-only /
+docs-only) — never invent a product stamp to fill the section. No separate
+**Affected modules** section: chips + module bullets live under `## Surfaces`.
 
-Vocabulary (locked): **UI · Endpoint · Schema · CLI · MCP**. Infra only when the PR is solely CI/deploy/flags/env — never stack with a product surface.
-Names lock: Endpoint not backend; Schema = wire + persistence (no separate DB).
-Never invent backend/DB surface names.
+Shape (locked):
 
-Wrapper precedence: MCP wrap of unchanged route → MCP only; CLI shim of unchanged MCP → CLI only.
-Multi-select when paths match more than one class. `pr-media-gate.mjs` asserts
-claim↔path: any stamped product surface without a matching path class fails
+1. Kind-colored SVG chips on **ONE line** (space-separated `<img>`s).
+2. Then one bullet per **deployable module**, module name first; optional
+   `(Endpoint)` / `(Schema)` / `(UI)` / `(CLI)` / `(MCP)` / `(Infra)` kind tag.
+
+**Count on chip** = number of deployable-module bullets for that kind (not
+severity, files, or blast). Emit `badge-surface-{kind}-{n}.svg` for
+`kind ∈ endpoint|schema|ui|cli|mcp|infra` and `n = 1..6` (black body, kind
+accent strip, kind-colored count pill). Raw master URLs match door/blast:
+
+`https://raw.githubusercontent.com/vltansky/vs/master/skills/vs-ship-it/assets/badge-surface-<kind>-<n>.svg`
+
+Surfaces catalog (same generator):
+
+| Kind | Color | File pattern | Alt |
+| --- | --- | --- | --- |
+| Endpoint | `#1a7f64` teal | `badge-surface-endpoint-{n}.svg` | Surface: Endpoint · n modules |
+| Schema | `#8250df` purple | `badge-surface-schema-{n}.svg` | Surface: Schema · n modules |
+| UI | `#0969da` blue | `badge-surface-ui-{n}.svg` | Surface: UI · n modules |
+| CLI | `#57606a` slate | `badge-surface-cli-{n}.svg` | Surface: CLI · n modules |
+| MCP | `#0e8a7d` teal-green | `badge-surface-mcp-{n}.svg` | Surface: MCP · n modules |
+| Infra | `#c2530a` orange | `badge-surface-infra-{n}.svg` | Surface: Infra · n modules |
+
+Vocabulary (locked): **UI · Endpoint · Schema · CLI · MCP**. Infra only when the PR is solely CI/deploy/flags/env — never stack with a product surface. Names
+lock: Endpoint not backend; Schema = wire + persistence (no separate DB). Never
+invent backend/DB surface names or hand-edit chip SVGs — change
+`scripts/generate-badges.mts` and regenerate.
+
+Wrapper precedence: MCP wrap of unchanged route → MCP only; CLI shim of unchanged MCP → CLI only. Multi-select when paths match more than one class.
+`pr-media-gate.mjs` asserts claim↔path from Surfaces chips and optional kind
+tags: any stamped product surface without a matching path class fails
 (skill-only + Schema included); migration-only ≠ UI; MCP-wrap-only ≠ Endpoint;
 Infra+product fails; Infra without infra paths fails; stamping backend/DB fails;
 >3 product surfaces without matching path classes fails.
 
 CLI and MCP proof blocks are Later — this cut only selects those surfaces; do
-not invent paired CLI/MCP contract blocks yet.
+not invent paired CLI/MCP contract blocks yet. Endpoint/Schema proof stays the
+current fenced Before/After primary — do not add skim/Compat-verdict or card
+PNGs.
 
 ### Endpoint and schema proof
 
@@ -683,13 +725,16 @@ separate `vs-baby-sit` goal only when the user explicitly requested a Codex goal
       the pair on every PR, not only frontend ones.
 - [ ] Every PR classifies merge risk: a one-way/two-way door and a blast
       radius, both derived from the diff, both in the handoff.
-- [ ] Merge risk shows the matching badges, each alone on its line with the
-      explanation under it and no text label (wide-blast only when blast is
+- [ ] Merge risk shows the matching door/blast badges, each alone on its line
+      with **bullets** under it and no text label (wide-blast only when blast is
       wide), using
       `raw.githubusercontent.com/vltansky/vs/master/skills/vs-ship-it/assets/badge-*.svg`.
-- [ ] Surfaces lists only UI|Endpoint|Schema|CLI|MCP classes the paths prove
-      (Infra alone on infra-only PRs), or the section is omitted for skill-only /
-      docs-only; no backend/DB stamps; no surface merge-risk SVGs.
+- [ ] Surfaces (when present) shows kind-colored chips on one line
+      (`badge-surface-{kind}-{n}.svg`, count = deployable-module bullets for that
+      kind) then one bullet per deployable module; only UI|Endpoint|Schema|CLI|MCP
+      classes the paths prove (Infra alone on infra-only PRs), or the section is
+      omitted for skill-only / docs-only; no backend/DB stamps; no separate
+      Affected modules section; Door/Blast own risk.
 - [ ] Frontend changes have matched screenshots and interaction video where
       relevant, or an exact capture blocker; captions explain the difference.
 - [ ] Endpoint and schema changes show one request with both responses and a

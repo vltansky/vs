@@ -302,14 +302,14 @@ describe('vs-ship-it door, blast radius, and summary visual', () => {
     // The old full-width illustrations are gone; badges are single-file, theme-neutral.
     expect(PR_WORKFLOW).not.toMatch(/preset-[a-z-]+\.png/);
 
-    // Body-template skeleton: each badge stands alone with the explanation under it, no
+    // Body-template skeleton: each badge alone on its line with bullets under it, no
     // text label; wide-blast lives only in a comment so agents do not stamp it onto narrow PRs.
     const bodyTemplate =
       PR_WORKFLOW.match(/````markdown[\s\S]*?````/)?.[0] ?? '';
     expect(bodyTemplate.length).toBeGreaterThan(0);
     const templateLive = bodyTemplate.replace(/<!--[\s\S]*?-->/g, '');
-    expect(templateLive).toMatch(/^<img [^>]*badge-two-way-door\.svg">\n\n<[^<\n]+>$/m);
-    expect(templateLive).toMatch(/^<img [^>]*badge-narrow-blast\.svg">\n\n<[^<\n]+>$/m);
+    expect(templateLive).toMatch(/^<img [^>]*badge-two-way-door\.svg">\n\n-/m);
+    expect(templateLive).toMatch(/^<img [^>]*badge-narrow-blast\.svg">\n\n-/m);
     expect(templateLive).not.toMatch(/\*\*Door:\*\*|\*\*Blast radius:\*\*/);
     expect(templateLive).not.toMatch(/badge-wide-blast\.svg/);
     expect(bodyTemplate).toMatch(/<!--[\s\S]*badge-wide-blast\.svg[\s\S]*-->/);
@@ -374,26 +374,60 @@ describe('vs-ship-it merge risk first and Surfaces proof selectors', () => {
     const bodyTemplate =
       PR_WORKFLOW.match(/````markdown[\s\S]*?````/)?.[0] ?? '';
     const templateLive = bodyTemplate.replace(/<!--[\s\S]*?-->/g, '');
-    // Template must not present the full vocabulary as a default selected stamp.
+    // Template must not present the full vocabulary as a default selected stamp line.
     expect(templateLive).not.toMatch(/^UI · Endpoint · Schema · CLI · MCP\s*$/m);
-    expect(templateLive).toMatch(/Omit this section when paths prove no product surface/i);
+    // Omit rule stays in the Surfaces comment / prose (chips are an example shape).
+    expect(bodyTemplate).toMatch(/Omit Surfaces when paths prove no product surface/i);
   });
 
-  it('keeps door/blast as the only merge-risk SVGs; Surfaces are not risk art', () => {
+  it('ships door/blast plus counted Surfaces chips; Surfaces are not risk art', () => {
     const assetsDir = path.resolve(__dirname, '..', 'assets');
-    const badges = fs.readdirSync(assetsDir).filter((f) => f.endsWith('.svg'));
-    expect(badges.sort()).toEqual([
+    const badges = fs.readdirSync(assetsDir).filter((f) => f.endsWith('.svg')).sort();
+    const doorBlast = [
       'badge-narrow-blast.svg',
       'badge-one-way-door.svg',
       'badge-two-way-door.svg',
       'badge-wide-blast.svg',
-    ]);
-    expect(PR_WORKFLOW).toMatch(/Surfaces are proof selectors, not (?:new )?risk art/i);
-    expect(PR_WORKFLOW).not.toMatch(/badge-(?:ui|endpoint|schema|cli|mcp|infra|backend|db)\.svg/i);
+    ];
+    const kinds = ['cli', 'endpoint', 'infra', 'mcp', 'schema', 'ui'];
+    const surface = kinds.flatMap((kind) =>
+      [1, 2, 3, 4, 5, 6].map((n) => `badge-surface-${kind}-${n}.svg`),
+    );
+    expect(badges).toEqual([...doorBlast, ...surface].sort());
+    // Generator is the source of truth — counted surface files must exist.
+    expect(
+      fs.existsSync(path.resolve(__dirname, '..', 'scripts', 'generate-badges.mts')),
+    ).toBe(true);
+    expect(PR_WORKFLOW).toMatch(/Surfaces are proof selectors/i);
+    expect(PR_WORKFLOW).toMatch(/not risk art/i);
+    expect(PR_WORKFLOW).toMatch(/badge-surface-\{kind\}-\{n\}\.svg|badge-surface-<kind>-<n>\.svg|badge-surface-endpoint-\{n\}\.svg/);
+    expect(PR_WORKFLOW).toMatch(/#1a7f64/);
+    expect(PR_WORKFLOW).toMatch(/#8250df/);
+    expect(PR_WORKFLOW).toMatch(/#0969da/);
+    expect(PR_WORKFLOW).toMatch(/#57606a/);
+    expect(PR_WORKFLOW).toMatch(/#0e8a7d/);
+    expect(PR_WORKFLOW).toMatch(/#c2530a/);
     expect(PR_WORKFLOW).toMatch(/Never invent backend\/DB surface names/i);
+    expect(PR_WORKFLOW).not.toMatch(/badge-(?:backend|db)(?:-\d+)?\.svg/i);
     // Optional CLI/MCP proof blocks stay Later — do not implement in this cut.
     expect(PR_WORKFLOW).not.toMatch(/\*\*CLI\*\*[^\n]*```/);
     expect(PR_WORKFLOW).not.toMatch(/\*\*MCP\*\*[^\n]*```/);
+  });
+
+  it('locks Surfaces to one-line chips then deployable-module bullets', () => {
+    const bodyTemplate =
+      PR_WORKFLOW.match(/````markdown[\s\S]*?````/)?.[0] ?? '';
+    const templateLive = bodyTemplate.replace(/<!--[\s\S]*?-->/g, '');
+    expect(templateLive).toMatch(
+      /badge-surface-endpoint-\d+\.svg"> <img [^>]*badge-surface-schema-\d+\.svg"> <img [^>]*badge-surface-ui-\d+\.svg"/,
+    );
+    expect(templateLive).toMatch(/- \*\*<Deployable module>\*\*/);
+    expect(PR_WORKFLOW).toMatch(/ONE line/i);
+    expect(PR_WORKFLOW).toMatch(/deployable module/i);
+    expect(PR_WORKFLOW).toMatch(/Count on chip/i);
+    expect(PR_WORKFLOW).toMatch(/No separate[\s\S]*Affected modules|no separate Affected modules/i);
+    expect(PR_WORKFLOW).toMatch(/Door\/Blast own risk|Door and Blast own/i);
+    expect(PR_WORKFLOW).toMatch(/bullets[\s\S]*not a prose wall|Badge alone on its line; bullets/i);
   });
 });
 
