@@ -143,6 +143,32 @@ describe('vs-explain-video preflight', () => {
     expect(report.missing.map((item: { tool: string }) => item.tool)).toContain('ffmpeg');
     expect(report.next).toMatch(/rerun preflight\.mjs/);
   });
+  it('finds Playwright installed in the work dir, as its own install hint says', () => {
+    const work = mkdtempSync(path.join(tmpdir(), 'vs-explain-video-pw-'));
+    const pkg = path.join(work, 'node_modules', 'playwright-core');
+    fs.mkdirSync(pkg, { recursive: true });
+    writeFileSync(path.join(pkg, 'package.json'), JSON.stringify({ name: 'playwright-core', main: 'index.js' }));
+    writeFileSync(path.join(pkg, 'index.js'), '');
+    const result = spawnSync(process.execPath, [script('preflight.mjs'), work], {
+      encoding: 'utf8',
+      cwd: tmpdir(),
+      env: { PATH: '/nonexistent', HOME: tmpdir() },
+    });
+    expect(fs.realpathSync(JSON.parse(result.stdout).tools.playwright)).toBe(fs.realpathSync(path.join(pkg, 'index.js')));
+  });
+
+  it('does not count kokoro-onnx as ready without the voices file narrate needs', () => {
+    const bin = mkdtempSync(path.join(tmpdir(), 'vs-explain-video-bin-'));
+    writeFileSync(path.join(bin, 'uv'), '#!/bin/sh\n', { mode: 0o755 });
+    const models = mkdtempSync(path.join(tmpdir(), 'vs-explain-video-kokoro-'));
+    writeFileSync(path.join(models, 'kokoro-v1.0.onnx'), '');
+    const env = { PATH: bin, HOME: tmpdir(), KOKORO_DIR: models };
+    const report = () =>
+      JSON.parse(spawnSync(process.execPath, [script('preflight.mjs')], { encoding: 'utf8', cwd: tmpdir(), env }).stdout);
+    expect(report().tts.kokoro).toBeNull();
+    writeFileSync(path.join(models, 'voices-v1.0.bin'), '');
+    expect(report().tts.kokoro).toMatch(/kokoro-onnx/);
+  });
 });
 
 describe('vs-explain-video init and dry run', () => {
