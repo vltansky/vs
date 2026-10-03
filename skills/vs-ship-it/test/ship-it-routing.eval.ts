@@ -189,7 +189,7 @@ host and embed those recordings.`,
         agent,
         [
           check('uses-problem-first-headings', ({ transcript }) =>
-            /## What Problem This Solves[\s\S]*## Why This Change Was Made[\s\S]*## User Impact[\s\S]*## Evidence/i.test(
+            /## What Problem This Solves[\s\S]*## What Was Done[\s\S]*## User Impact[\s\S]*## Evidence/i.test(
               transcript,
             ),
           ),

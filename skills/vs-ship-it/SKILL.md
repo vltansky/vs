@@ -90,7 +90,16 @@ git branch --show-current
 git status -sb
 git diff HEAD --stat
 git remote -v
+git fetch origin <default>
+git diff --stat origin/<default>...HEAD
 ```
+
+**Stale base:** if `origin/<default>...HEAD` lists files outside the intended
+change (branch cut from a stale or diverged local default), rebuild the branch
+on fresh `origin/<default>` and re-apply only the scoped change before writing
+the body. **Scope check:** compare the diff with what the user asked for;
+remove unrequested extras (a layout tweak riding a color fix) or ask once —
+never ship them silently.
 
 Preserve unrelated changes. If on `main`, `master`, `prod`, or detached HEAD,
 create a short `username/topic` feature branch. Stage only scoped paths, commit
@@ -116,13 +125,12 @@ flow: **actor → attempt → block**. One perspective per PR — **user/admin**
 tight line (or a single arrow chain), not a multi-paragraph prose wall.
 
 **No How in Why.** "Why" here means **What Problem This Solves** only — the
-STE100 scenario flow (**actor → attempt → block**), not the later **Why This
-Change Was Made** heading. Do not name the fix in that block (mintable tokens,
+STE100 scenario flow (**actor → attempt → block**). Do not name the fix in that block (mintable tokens,
 rewrite, JSON shape, OAuth piggyback, collections, new routes, "this PR adds …"
 as the solution). Mechanism How stays in **Endpoint** / **Schema** / **UI**
 Before→After — those fenced proofs stay primary alongside Surfaces chips and
-Door/Blast bullets. Do not park the implementation How under **Why This Change
-Was Made** as a substitute for those proofs.
+Door/Blast bullets. **What Was Done** names the fix and cause in short bullets
+but does not substitute for those proofs.
 
 Examples (either perspective; pick one for the PR):
 
@@ -131,9 +139,9 @@ Examples (either perspective; pick one for the PR):
 
 Make the description visual first. A reviewer should see matched
 Before/After proof (Endpoint / Schema / UI) before reading mechanism prose, and
-anything enumerable goes in a table, a code block, or a diagram instead of a
-paragraph. Keep Mermaid and key-hunk `diff` short; fold longer captures into
-details.
+anything enumerable goes in bullets, a table, or a code block instead of a
+paragraph — no prose walls anywhere in the body. Keep key-hunk `diff` short;
+fold longer captures into details.
 
 Every PR description must include **Before** and **After**:
 compare the same actor, input, and precondition, then state the concrete result
@@ -149,12 +157,11 @@ actually changed:
 | Schema, migration, or wire contract | **Schema** label, then a fenced `diff` of the resulting shape before and after |
 | HTML prototype or interactive demo | A hosted link the reviewer can click (see Prototype links) |
 | Numbers such as latency, size, count, rate | A table that shows both operands beside any derived figure (`240 ms → 90 ms`, not a bare `2.7× faster`) |
-| Control or data flow, ordering, topology | A fenced `mermaid` diagram of the changed path; GitHub renders it natively |
+| Multi-hop control or data flow, ordering, topology | Optional: a fenced `mermaid` diagram of the changed path, only when it shows what bullets and the key hunk do not; never redraw one before/after decision |
 | A decisive logic change | A fenced `diff` block of the key hunk, trimmed to the lines that carry the change |
 
-Prefer a compact comparison table for several outcomes; use a small paired
-Mermaid flow when a backend or lifecycle change is easier to understand
-visually. Neither replaces evidence. Label source-derived comparisons
+Prefer a compact comparison table for several outcomes. Neither a table nor a
+Mermaid diagram replaces evidence. Label source-derived comparisons
 **Source-derived**, not observed or tested.
 
 Borrow the discipline of the explaining skills and apply it inline; do not
@@ -233,25 +240,36 @@ fenced output block.>
 
 <Matched hosted screenshot, bare video URL, or the paired output block.>
 
-## Why This Change Was Made
+## What Was Done
 
-<Root cause / why this boundary owns the repair — not the implementation How
-(that stays in Endpoint / Schema / UI Before→After). When the path changed,
-draw it instead of narrating it:>
+- **Fix:** <the change, one line>
+- **Cause:** <root cause it repairs>
+- **Why this works:** <why this boundary owns the repair>
+- **Scope:** <what was deliberately left out>
 
-```mermaid
-flowchart LR
-  A[request] --> B{changed decision}
-  B -->|before| C[old outcome]
-  B -->|after| D[new outcome]
-```
-
-<When one hunk explains the fix, show only that hunk:>
+<Optional key hunk, only the lines that carry the change:>
 
 ```diff
 - old line that caused the problem
 + new line that repairs it
 ```
+
+<!-- Optional mermaid: only for a multi-hop flow, ordering, or topology the
+     bullets and hunk do not already show. Omit by default.
+```mermaid
+flowchart LR
+  A[caller] --> B[service] --> C[store]
+```
+-->
+
+## Alternatives Considered
+
+| Option | Why not |
+| --- | --- |
+| <alternative actually weighed in the session> | <reason rejected> |
+
+<!-- Optional: only when real alternatives were weighed. Omit otherwise; never
+     invent strawmen. -->
 
 ## User Impact
 
@@ -563,6 +581,8 @@ media, and refuses a PR that shows nothing:
 ```bash
 node <vs-internal-shared>/scripts/pr-media-gate.mjs "$BODY_FILE" --base origin/<base>
 ```
+
+Run it against the `origin/<base>` fetched in Step 1, never a stale local ref.
 
 - Exit 0: the body carries both a **Before** and an **After** marker, carries a
   door and a blast-radius badge (or a **Door** and **Blast radius** label), and
