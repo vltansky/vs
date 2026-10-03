@@ -1,0 +1,153 @@
+<!doctype html>
+<!--
+  vs-prototype lookalike starter. Opens from file://, no build, no deps.
+  Edit only: the product-context CSS, `fixtures`, `actions`, and the
+  <template data-variant> bodies. Each template is one structurally different
+  direction; keep them separate rather than blending.
+
+  Template bindings (resolved against the current fixture state):
+    {{path.to.value}}      text (inserted as text, never HTML), also inside attributes
+    data-each="items"      repeat this element per item; use {{item.field}}
+    data-if="path"         keep only when truthy; data-if="!path" for falsy
+    data-action="name"     click runs actions[name](state, data-arg) and re-renders
+  URL: ?variant=<id>&fixture=<name> reproduces exactly what you see.
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>[[TOPIC]] prototype</title>
+    <!-- Product uses Tailwind? Uncomment: <script src="https://cdn.tailwindcss.com"></script> -->
+    <style>
+      /* Product context: match only the shell, density, and type that affect the question. */
+      :root { font: 14px/1.45 system-ui, -apple-system, sans-serif; color: #1a1a1a; background: #f6f6f7; }
+      body { margin: 0; padding: 40px 24px 96px; }
+      .prototype-banner { position: fixed; inset: 0 0 auto 0; z-index: 10; padding: 4px 12px; background: #ffd54a; color: #3b2f00; font-size: 12px; font-weight: 600; text-align: center; }
+      .prototype-banner code { font-weight: 500; }
+      #prototype-stage { max-width: 960px; margin: 0 auto; }
+      .prototype-state { position: fixed; top: 32px; right: 12px; z-index: 10; width: 300px; max-height: 70vh; overflow: auto; padding: 8px 10px; border-radius: 8px; background: #fff; box-shadow: 0 2px 12px rgba(0,0,0,.12); font-size: 12px; }
+      .prototype-state summary { cursor: pointer; font-weight: 600; }
+      .prototype-state pre { margin: 8px 0 0; white-space: pre-wrap; word-break: break-word; }
+    </style>
+  </head>
+  <body>
+    <div class="prototype-banner">PROTOTYPE · [[TOPIC]] · synthetic data · <code>←/→</code> switch variants</div>
+
+    <details class="prototype-state" open>
+      <summary>State</summary>
+      <label>Fixture <select id="prototype-fixture"></select></label>
+      <button id="prototype-reset" type="button">Reset</button>
+      <pre id="prototype-state-json"></pre>
+    </details>
+
+    <main id="prototype-stage"></main>
+
+    <!-- variant-slot:begin -->
+    <template data-variant="[[VARIANT_ID]]" data-label="[[VARIANT_LABEL]]">
+      <section>
+        <h1>[[VARIANT_LABEL]]</h1>
+        <p data-if="!items.length">Nothing here yet.</p>
+        <ul>
+          <li data-each="items">{{item.title}} <button data-action="remove" data-arg="{{item.id}}">Remove</button></li>
+        </ul>
+        <button data-action="add">Add item</button>
+      </section>
+    </template>
+    <!-- variant-slot:end -->
+
+    <script>
+      // Obviously synthetic fixtures. Include the edge states the human must compare.
+      const fixtures = {
+        default: { items: [{ id: 1, title: 'Sample item one' }, { id: 2, title: 'Sample item two' }] },
+        empty: { items: [] },
+        long: { items: Array.from({ length: 12 }, (_, i) => ({ id: i + 1, title: `Sample item ${i + 1} with a deliberately long title` })) },
+      };
+
+      // Stubbed mutations: pure (state, arg) => nextState. Nothing leaves the page.
+      const actions = {
+        add: (s) => ({ ...s, items: [...s.items, { id: Date.now(), title: `New item ${s.items.length + 1}` }] }),
+        remove: (s, id) => ({ ...s, items: s.items.filter((item) => String(item.id) !== id) }),
+      };
+    </script>
+
+    <script>
+      (() => {
+        const stage = document.getElementById('prototype-stage');
+        const fixtureSelect = document.getElementById('prototype-fixture');
+        const params = new URLSearchParams(location.search);
+        let fixture = fixtures[params.get('fixture')] ? params.get('fixture') : Object.keys(fixtures)[0];
+        let state = structuredClone(fixtures[fixture]);
+
+        const get = (scope, path) => path.split('.').reduce((v, key) => (v == null ? v : v[key]), scope);
+        // Writes go through node.data / attr.value, which never parse HTML, so no escaping needed.
+        const fill = (text, scope) => text.replace(/{{\s*([\w.$]+)\s*}}/g, (_, path) => String(get(scope, path) ?? ''));
+
+        function bind(root, scope) {
+          for (const el of [...root.querySelectorAll('[data-each]')]) {
+            if (!root.contains(el) || el.parentElement.closest('[data-each]')) continue;
+            const list = get(scope, el.dataset.each) || [];
+            el.removeAttribute('data-each');
+            for (const item of list) {
+              const copy = el.cloneNode(true);
+              const wrap = document.createElement('div');
+              wrap.append(copy);
+              bind(wrap, { ...scope, item });
+              el.before(...wrap.childNodes);
+            }
+            el.remove();
+          }
+          for (const el of [...root.querySelectorAll('[data-if]')]) {
+            const raw = el.dataset.if;
+            const value = get(scope, raw.replace(/^!/, ''));
+            const truthy = Array.isArray(value) ? value.length > 0 : Boolean(value);
+            if (raw.startsWith('!') === truthy) el.remove();
+          }
+          const walker = document.createTreeWalker(root, NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_TEXT);
+          for (let node = walker.currentNode; node; node = walker.nextNode()) {
+            if (node.nodeType === Node.TEXT_NODE) {
+              if (node.data.includes('{{')) node.data = fill(node.data, scope);
+            } else {
+              for (const attr of node.attributes || []) if (attr.value.includes('{{')) attr.value = fill(attr.value, scope);
+            }
+          }
+        }
+
+        function render() {
+          const id = window.prototypeVariant?.id;
+          const template = document.querySelector(`template[data-variant="${CSS.escape(id ?? '')}"]`);
+          stage.replaceChildren();
+          if (template) {
+            const fragment = template.content.cloneNode(true);
+            const wrap = document.createElement('div');
+            wrap.append(fragment);
+            bind(wrap, state);
+            stage.append(...wrap.childNodes);
+          }
+          document.getElementById('prototype-state-json').textContent = JSON.stringify({ variant: id, fixture, state }, null, 2);
+        }
+
+        function setFixture(name) {
+          fixture = name;
+          state = structuredClone(fixtures[name]);
+          const url = new URL(location.href);
+          url.searchParams.set('fixture', name);
+          try { history.replaceState(history.state, '', url); } catch {}
+          render();
+        }
+
+        fixtureSelect.append(...Object.keys(fixtures).map((name) => new Option(name, name, false, name === fixture)));
+        fixtureSelect.addEventListener('change', () => setFixture(fixtureSelect.value));
+        document.getElementById('prototype-reset').addEventListener('click', () => setFixture(fixture));
+        stage.addEventListener('click', (event) => {
+          const trigger = event.target.closest('[data-action]');
+          if (!trigger || !actions[trigger.dataset.action]) return;
+          state = actions[trigger.dataset.action](state, trigger.dataset.arg);
+          render();
+        });
+        window.addEventListener('prototype:variant', render);
+        if (window.prototypeVariant) render();
+      })();
+    </script>
+    <script src="./variant-switcher.js"></script>
+  </body>
+</html>

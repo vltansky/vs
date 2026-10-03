@@ -122,6 +122,19 @@ keyboard navigation. Do not intercept keys inside inputs, textareas, selects, or
 editable content. Gate the switcher and prototype-only branches out of production
 builds using the project's existing environment convention.
 
+Do not hand-write the switcher or page shell; scaffold them from this skill's
+assets:
+
+- **Lookalike:** `node scripts/scaffold-prototype.mjs --kind ui --topic <slug>
+  --variants 3 --labels "<A>,<B>,<C>"` writes one `<topic>-prototype.html` that
+  opens from `file://`: switcher inlined, prototype banner, state/fixtures panel,
+  and one `<template data-variant>` slot per direction. Edit only the product
+  CSS, `fixtures`, `actions`, and template bodies.
+- **Existing app:** copy `assets/variant-switcher.js` next to the code it informs
+  as `variant-switcher.prototype.js`, import it only behind the dev gate, and
+  branch on `window.prototypeVariant`, the `prototype:variant` event, or
+  `html[data-variant]`.
+
 Keep mutations stubbed or isolated unless mutation behavior is the question.
 Use the project's real component library and styling system so comparisons happen
 inside product reality.
@@ -141,6 +154,16 @@ terminal input and ANSI styling over a new dependency.
 
 Use in-memory state. If persistence itself is under evaluation, use a clearly
 named scratch store that cannot be mistaken for production data.
+
+Scaffold the shell instead of writing it: `node scripts/scaffold-prototype.mjs
+--kind logic --topic <slug>` writes `<topic>-prototype.ts` (run with `node`). Edit
+only `State`, `initialState`, `Action`, `reducer`, and `controls`; the shell
+already redraws the full frame, shows rejected transitions, and offers undo and
+reset.
+
+The scaffold defaults to `~/.vs/$PROJECT_ID/prototypes/<topic>/`; pass `--out`
+for the repo's prototype location. It never overwrites: when it refuses, edit the
+existing prototype instead.
 
 ## Handoff and decision
 

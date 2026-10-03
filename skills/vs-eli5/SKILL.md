@@ -37,6 +37,12 @@ Also run `skills/vs-write/scripts/reject-slop.mjs` on the 2-4 line chat
 TLDR. Exit 1: rewrite the tells. Do not claim `READY_FOR_REVIEW` if
 the runner did not run or exited 1.
 
+Write the page copy and the TLDR in STE mode: a beginner reads every sentence
+once. `/vs-write` owns the rules. Pointer only:
+[../vs-internal-shared/references/ste-writing.md](../vs-internal-shared/references/ste-writing.md). Run
+`skills/vs-write/scripts/check-ste.mjs` on the saved page. Exit 1: split or
+rewrite the reported sentences. Technical names stay as they are.
+
 Always produce a chat TLDR of that page: two to four short lines with the
 answer and the next action. Do not call `/vs-tldr`.
 

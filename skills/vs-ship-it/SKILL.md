@@ -172,6 +172,13 @@ first, structure drawn as a diagram rather than described, and no metric or
 status the evidence does not contain. From `vs-eli5`: when the mechanism is not
 obvious, one familiar analogy mapped to the real parts, not a glossary.
 
+Write the PR body prose in `vs-write` STE mode. The reviewer reads Merge risk,
+the problem, the reason, and Review focus once, under time pressure. Pointer
+only: [../vs-internal-shared/references/ste-writing.md](../vs-internal-shared/references/ste-writing.md). Before
+`gh pr create`, run `node skills/vs-write/scripts/check-ste.mjs "$BODY_FILE"`.
+Exit 1: split or rewrite the reported sentences, then run it again. Code,
+output blocks, tables, and technical names stay exactly as they are.
+
 Keep the first screen short. Fold anything longer than about twenty lines — a
 full output capture, a wider diff, a second video — into
 `<details><summary>…</summary></details>` so the proof stays above the fold.
@@ -738,6 +745,16 @@ silently replaced by PR-creation success.
 If the change altered skill or plugin content, add the exact re-install command
 to the handoff; the installed behavior remains stale until reinstalled.
 
+### Closing link
+
+Once a PR exists, the last line of the turn's final message is the
+bare full PR URL (`PR_URL`, e.g. `https://github.com/<owner>/<repo>/pull/<N>`)
+on its own line — not hidden behind a Markdown label, not followed by any other
+text. This holds however the turn ends: the babysitter's `Review needed`
+stop, a watch opt-out, a repair blocker, or an error after PR creation. Users
+scan the end of the turn to find the PR; a label-only link or a status line
+without the URL makes it hard to find.
+
 ## Codex goals
 
 Create a Codex goal only when the user explicitly requested one. Complete the
@@ -782,6 +799,7 @@ separate `vs-baby-sit` goal only when the user explicitly requested a Codex goal
       explicit request or repository requirement.
 - [ ] `vs-baby-sit` started after PR verification unless the user explicitly opted out.
 - [ ] The handoff reports PR URL, head, media, and checks.
+- [ ] The final message ends with the bare full PR URL on its own last line.
 
 Before the final handoff, apply
 [Phase Boundaries](../vs-internal-shared/references/phase-boundaries.md). Keep

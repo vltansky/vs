@@ -251,6 +251,14 @@ describe('vs-ship-it PR association and stopping point', () => {
     expect(SKILL).toMatch(/is a skipped phase,\s+not a handoff/i);
   });
 
+  // The turn ends on babysit's "Review needed" stop, which carried no link, and the
+  // creation handoff hid the URL behind a Markdown label — the PR was hard to find.
+  it('ends every turn with the bare full PR URL as the last line', () => {
+    expect(SKILL).toMatch(/last line of the turn's final message is the\s+bare full PR URL/i);
+    expect(SKILL).toMatch(/Review needed[\s\S]{0,200}bare full PR URL|bare full PR URL[\s\S]{0,300}Review needed/i);
+    expect(SKILL).toMatch(/The final message ends with the bare full PR URL/i);
+  });
+
   it('does not infer a watch opt-out from missing CI or a sandbox remote', () => {
     expect(SKILL).toMatch(/No CI workflow in the tree,[\s\S]{0,120}are not opt-outs/i);
   });
