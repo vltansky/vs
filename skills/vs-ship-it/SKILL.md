@@ -725,6 +725,16 @@ silently replaced by PR-creation success.
 If the change altered skill or plugin content, add the exact re-install command
 to the handoff; the installed behavior remains stale until reinstalled.
 
+### Closing link
+
+Once a PR exists, the last line of the turn's final message is the
+bare full PR URL (`PR_URL`, e.g. `https://github.com/<owner>/<repo>/pull/<N>`)
+on its own line — not hidden behind a Markdown label, not followed by any other
+text. This holds however the turn ends: the babysitter's `Review needed`
+stop, a watch opt-out, a repair blocker, or an error after PR creation. Users
+scan the end of the turn to find the PR; a label-only link or a status line
+without the URL makes it hard to find.
+
 ## Codex goals
 
 Create a Codex goal only when the user explicitly requested one. Complete the
@@ -769,6 +779,7 @@ separate `vs-baby-sit` goal only when the user explicitly requested a Codex goal
       explicit request or repository requirement.
 - [ ] `vs-baby-sit` started after PR verification unless the user explicitly opted out.
 - [ ] The handoff reports PR URL, head, media, and checks.
+- [ ] The final message ends with the bare full PR URL on its own last line.
 
 Before the final handoff, apply
 [Phase Boundaries](../vs-internal-shared/references/phase-boundaries.md). Keep
