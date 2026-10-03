@@ -250,6 +250,10 @@ describe('vs-ship-it PR association and stopping point', () => {
     expect(SKILL).toMatch(/is a skipped phase,\s+not a handoff/i);
   });
 
+  it('does not infer a watch opt-out from missing CI or a sandbox remote', () => {
+    expect(SKILL).toMatch(/No CI workflow in the tree,[\s\S]{0,120}are not opt-outs/i);
+  });
+
   it('ends the composed workflow at a human review gate', () => {
     expect(SKILL).toMatch(/`Review needed: @<user-or-team>`/);
     expect(SKILL).toMatch(/Do\s+not resume watching because auto-merge is armed/i);
