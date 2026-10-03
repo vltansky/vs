@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { createAgent } from '../../vs-internal-shared/test/pathgrade-agent';
 import { CATCH_ALL_ASK_USER, CONVERSE_ASK_USER_DEFAULTS } from '../../vs-internal-shared/test/pathgrade-v1';
 import {
-  agentEnv, buildWorkspace, enableCodexSubagents, gitDirFor, changedPaths, ghCalls, measureCost, mediaGatePasses,
+  agentEnv, buildWorkspace, claudeLoadedSkill, enableCodexSubagents, gitDirFor, changedPaths, ghCalls, measureCost, mediaGatePasses,
   pinMockGhFirst, prepareRunDir, prs, remoteRev, RUNS_ROOT, setupGit, testsPassOnHead,
 } from './ab/harness';
 import { VARIANTS } from './ab/variants';
@@ -19,7 +19,12 @@ import { VARIANTS } from './ab/variants';
 const EVAL_AGENT = (process.env.PATHGRADE_AGENT ?? 'codex') as 'claude' | 'codex';
 const SELECTED = (process.env.SHIPIT_AB_VARIANTS ?? VARIANTS.map((v) => v.id).join(',')).split(',');
 
-const FIX_PROMPT = `Checkout still applies coupons after they expire (coupons carry an ISO \`expiresAt\`).
+// SHIPIT_AB_LIGHT=1 drops the required doc reads: a cheap trial for rate questions
+// (does "create pr" load the skill?) where the 96KB inherited context is not the variable.
+const LIGHT = !!process.env.SHIPIT_AB_LIGHT;
+const FIX_PROMPT = LIGHT
+  ? 'Checkout still applies coupons after they expire (coupons carry an ISO `expiresAt`). Fix the bug in src/coupon.js, add a regression test, and run npm test. Do not commit.'
+  : `Checkout still applies coupons after they expire (coupons carry an ISO \`expiresAt\`).
 Before changing anything, read AGENTS.md and every document it points to in full.
 Then fix the bug in src/coupon.js, add a regression test, and run npm test. Do not commit.`;
 // Plain wording on purpose: "/vs-ship-it create pr" made Claude read "create pr"
@@ -74,6 +79,7 @@ describe.skipIf(!process.env.SHIPIT_AB)(`ship-it cost A/B (${EVAL_AGENT})`, () =
           handoffHasUrl: /github\.com\/acme\/shop\/pull\/\d+/.test(finalMessage),
           noMergeClaim: !/\bmerged\b(?! by)/i.test(finalMessage.replace(/not (?:been )?merged|until merged|merge-ready/gi, '')),
         };
+        const skillLoaded = claudeLoadedSkill(home, 'vs-ship-it', shipStarted);
         const efficiency = {
           ghCallsDuringShip: shipCalls.length,
           checksWatch: shipCalls.filter((c) => c.args[0] === 'pr' && c.args[1] === 'checks' && c.args.includes('--watch')).length,
@@ -81,12 +87,15 @@ describe.skipIf(!process.env.SHIPIT_AB)(`ship-it cost A/B (${EVAL_AGENT})`, () =
           wallSeconds: Math.round((Date.now() - shipStarted) / 1000),
         };
         const record = {
-          agent: EVAL_AGENT, variant: variant.id, runDir, completion: conversation.completionReason,
+          agent: EVAL_AGENT, variant: variant.id, runDir, light: LIGHT, skillLoaded, completion: conversation.completionReason,
           shipMsgIndex: shipMsg, quality, qualityScore: Object.values(quality).filter(Boolean).length / Object.keys(quality).length,
           efficiency, ship, total, finalMessage: finalMessage.slice(-1500),
         };
         fs.appendFileSync(path.join(RUNS_ROOT, 'results.jsonl'), `${JSON.stringify(record)}\n`);
         fs.writeFileSync(path.join(runDir, 'transcript.txt'), agent.transcript());
+        // The sandbox HOME is deleted on dispose; keep the session logs for call-level forensics.
+        const logs = path.join(home, '.claude', 'projects');
+        if (fs.existsSync(logs)) fs.cpSync(logs, path.join(runDir, 'claude-projects'), { recursive: true });
         console.log(JSON.stringify({ ...record, finalMessage: undefined }, null, 2));
         expect(quality.prCreated).toBe(true);
       } finally {

@@ -713,6 +713,9 @@ The creation handoff is a progress message, not the end of the turn. Unless
 the user explicitly opted out of watching, load `vs-baby-sit` and start it in
 the same turn right after printing the handoff. Ending the turn with "Next: hand
 off to vs-baby-sit" or an offer to watch is a skipped phase, not a handoff.
+No CI workflow in the tree, a small PR, an unfamiliar or sandbox-looking
+remote, and passing local tests are not opt-outs: `vs-baby-sit` reads the
+checks and reviews GitHub reports for the exact head and decides from those.
 
 When fresh verification evidence already exists with `WARN`, carry the WARN
 wording into the PR and handoff; do not describe the change as fixed or
