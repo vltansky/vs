@@ -176,6 +176,23 @@ uncertainty.
    catalog's `Flow`, `Sequence`, and `Tree` cover only their strictly linear
    or hierarchical grammars; when the shape outgrows them, switch to mermaid
    rather than forcing the component.
+
+   When the topic is **logic, branching, or a mechanism** (how a decision is
+   made, how a state advances, how an algorithm chooses a path) — not pure
+   topology alone — show **both**: the diagram **and** a short fenced
+   pseudocode block. Stack them together; do not pick one the way `/vs-ship-it`
+   picks a single Summary visual. Keep the short fenced pseudocode
+   language-agnostic (not a real TypeScript/Python dump, not a prose
+   walkthrough of the algorithm) and about **~12 lines** so the compress bar
+   stays honest. Pure structure or topology explainers may stay diagram-only.
+
+   Litmus (auth flowcharts are both topology and logic; Create §6 alone would
+   send every branch into mermaid): **stack** when the reader must **predict
+   the next step under a condition**; **diagram-only** when they only need
+   **who/what connects**. Do not turn every flowchart into three surfaces —
+   the ship-it Summary pick-one firewall above stays: stack is both diagram
+   and short pseudocode, not a third surface.
+
 7. Compress the prose. The artifact is a review surface, not a transcript:
    keep the lede to two sentences, one idea per paragraph and at most three
    sentences each, and route anything enumerable — options, risks, scope,
