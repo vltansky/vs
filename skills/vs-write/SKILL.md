@@ -1,6 +1,6 @@
 ---
 name: vs-write
-description: "Use when asked to write, rewrite, edit, tighten, simplify, or polish prose for clarity. Produces plain, direct, accessible copy without losing substance or precision."
+description: "Use when asked to write, rewrite, edit, tighten, simplify, or polish prose for clarity, or to put text in STE, ASD-STE100, or controlled language. Produces plain, direct, accessible copy without losing substance or precision."
 ---
 
 # Write
@@ -25,6 +25,16 @@ do not silently add what the source does not support.
 
 Do not draft the full piece before the shaping-mode opening is chosen. A user
 request for a direct rewrite overrides shaping mode.
+
+### STE mode
+
+STE mode applies [softened ASD-STE100](../vs-internal-shared/references/ste-writing.md)
+on top of either mode. Use it when the user asks for STE, ASD-STE100, or
+controlled language, and by default for procedural copy: steps, runbooks, test
+instructions, rollout notes, and warnings. Apply strict ASD-STE100 only when the
+user asks for it. Run `skills/vs-write/scripts/check-ste.mjs` on the draft; exit
+1 means split or rewrite the reported sentences. Never drop a fact, condition,
+or warning to meet the word limit.
 
 ## Flow Contract
 
@@ -211,6 +221,7 @@ first line is the answer) lives there. The rules below apply to the copy.
 - Does each concept appear before the copy relies on it?
 - Does every paragraph advance the promise made by the opening?
 - Did `skills/vs-write/scripts/reject-slop.mjs` exit 0 on the draft?
+- In STE mode, did `skills/vs-write/scripts/check-ste.mjs` exit 0 on the draft?
 
 ## Output
 

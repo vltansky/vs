@@ -1,5 +1,5 @@
 interface:
-  display_name: "vs-teach-back"
+  display_name: "vs-explain-back"
   short_description: "Rewrite the user's messy explanation as a clean proposal, then ask clarifying questions."
 
 policy:

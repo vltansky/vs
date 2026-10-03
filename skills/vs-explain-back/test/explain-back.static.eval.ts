@@ -10,11 +10,11 @@ const OPENAI_CONFIG = fs.readFileSync(
   'utf8',
 );
 
-describe('vs-teach-back understanding check', () => {
-  it('is a teach-back slash that rewrites the user explanation as a proposal', () => {
-    expect(SKILL).toMatch(/^name: vs-teach-back$/m);
+describe('vs-explain-back understanding check', () => {
+  it('is an explain-back slash that rewrites the user explanation as a proposal', () => {
+    expect(SKILL).toMatch(/^name: vs-explain-back$/m);
     expect(SKILL).not.toContain('disable-model-invocation');
-    expect(SKILL).toMatch(/`\/vs-teach-back`/);
+    expect(SKILL).toMatch(/`\/vs-explain-back`/);
     expect(SKILL).toMatch(/messy/i);
     expect(SKILL).toMatch(/multi-message|mixed formats/i);
     expect(SKILL).toMatch(/proposal in the agent's voice/i);
@@ -50,8 +50,8 @@ describe('vs-teach-back understanding check', () => {
     expect(SKILL).toMatch(
       /## Workflow[\s\S]+\*\*Prev:\*\*[\s\S]+\*\*Next:\*\*[\s\S]+\*\*Relevant:\*\*/,
     );
-    expect(shared).toContain('`vs-teach-back`');
-    expect(manifest.skills).toContain('./skills/vs-teach-back');
-    expect(readme).toMatch(/\| `\/vs-teach-back` \|/);
+    expect(shared).toContain('`vs-explain-back`');
+    expect(manifest.skills).toContain('./skills/vs-explain-back');
+    expect(readme).toMatch(/\| `\/vs-explain-back` \|/);
   });
 });

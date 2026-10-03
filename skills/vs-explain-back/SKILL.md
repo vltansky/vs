@@ -1,9 +1,9 @@
 ---
-name: vs-teach-back
-description: "Use when the user types /vs-teach-back, or asks you to teach back, mirror, or restate their messy multi-message explanation as a clean proposal so they can check understanding. Rewrites the user's explanation in the agent's voice as if proposing it; always ends with clarifying questions. Does not edit code."
+name: vs-explain-back
+description: "Use when the user types /vs-explain-back, or asks you to explain back, teach back, mirror, or restate their messy multi-message explanation as a clean proposal so they can check understanding. Rewrites the user's explanation in the agent's voice as if proposing it; always ends with clarifying questions. Does not edit code."
 ---
 
-# Teach Back
+# Explain Back
 
 The user explained something messily — across messages, mixed formats, partial
 notes, or half-formed constraints. Rewrite **that** explanation back as a clean
@@ -25,7 +25,7 @@ check whether you understood.
 
 ## Rewrite the user's explanation
 
-- Treat `/vs-teach-back` as an understanding check: the user owns the idea; you
+- Treat `/vs-explain-back` as an understanding check: the user owns the idea; you
   restate it cleanly so they can correct you.
 - Look back across the relevant turns. Recover constraints, examples, rejected
   options, and open forks — not only the last paragraph.
@@ -49,7 +49,7 @@ questions.
 
 ## Boundary
 
-`/vs-teach-back` is the inverse of comprehension repair: the **user** explained
+`/vs-explain-back` is the inverse of comprehension repair: the **user** explained
 something messy and you mirror it back. It does not replace `/vs-wdym` or
 `/vs-tldr` — those are for when the **user did not follow the agent**. It does
 not replace `/vs-recap` for the whole situation, `/vs-shape-it` for shaping a
