@@ -618,6 +618,38 @@ describe('pr-media-gate Surfaces claim↔path asserts', () => {
     });
   });
 
+
+  it('passes Surfaces chips + module bullets for matching path classes', () => {
+    const cwd = repoWithBranch([
+      'src/api/tokens.ts',
+      'db/migrations/0042.sql',
+      'src/components/Toggle.tsx',
+    ]);
+    const chips = [
+      '<img alt="Surface: Endpoint · 2 modules" src="https://raw.githubusercontent.com/vltansky/vs/master/skills/vs-ship-it/assets/badge-surface-endpoint-2.svg">',
+      '<img alt="Surface: Schema · 1 module" src="https://raw.githubusercontent.com/vltansky/vs/master/skills/vs-ship-it/assets/badge-surface-schema-1.svg">',
+      '<img alt="Surface: UI · 1 module" src="https://raw.githubusercontent.com/vltansky/vs/master/skills/vs-ship-it/assets/badge-surface-ui-1.svg">',
+    ].join(' ');
+    const bullets = [
+      '- **Token API** (Endpoint) — refresh handler',
+      '- **Hosting rewrite** (Endpoint) — /api/tokens',
+      '- **tokens table** (Schema) — expiry column',
+      '- **Toggle UI** — settings card',
+    ].join('\n');
+    const surfaces = `${chips}\n\n${bullets}`;
+    const result = gate(
+      cwd,
+      `${BODY_WITH(surfaces)}\n${ENDPOINT_PROOF}\n${SCHEMA_PROOF}\n**Still unverified:** visual proof; no browser.\n`,
+    );
+    expect(result.status).toBe(0);
+    expect(result.json.surfaces).toMatchObject({
+      ok: true,
+      claimed: expect.arrayContaining(['Endpoint', 'Schema', 'UI']),
+    });
+    // Surface chips are catalog art, not visual proof media.
+    expect(result.json.images).toBe(0);
+  });
+
   it('passes Infra alone on an infra-only PR', () => {
     const cwd = repoWithBranch(['.github/workflows/ci.yml', 'Dockerfile']);
     const result = gate(cwd, BODY_WITH('Infra'));

@@ -8,8 +8,8 @@
 // Reads git (which paths changed against the base) and the body text. It never opens the
 // media, so it costs the model no context. Exit codes match check-visual-evidence.mjs:
 //   0  passes: Before/After and Door/Blast Radius are present, and media is present,
-//      gapped, or not needed; when ## Surfaces is stamped, every claimed surface has a
-//      matching path class (omit Surfaces on skill-only / docs-only)
+//      gapped, or not needed; when ## Surfaces is stamped (chips and/or kind tags),
+//      every claimed surface has a matching path class (omit Surfaces on skill-only / docs-only)
 //   1  fails:  the body omits a comparison side, omits merge danger, shows nothing for a
 //      frontend change, shows no request/response or schema shape for a contract change,
 //      stamps a forbidden surface name (backend/DB), stacks Infra with a product surface,
@@ -45,7 +45,7 @@ const FORBIDDEN_SURFACE = /^(?:backend|backends?|db|database|databases?)$/i;
 const HOSTED_MEDIA_HOST =
   /^https:\/\/(?:github\.com\/user-attachments\/assets\/|(?:private-)?user-images\.githubusercontent\.com\/|user-images\.githubusercontent\.com\/)/i;
 // vs-ship-it merge-risk badges classify the PR; they never show the change, so they are not proof.
-const MERGE_RISK_BADGE = /\/skills\/vs-ship-it\/assets\/badge-[a-z-]+\.svg(?:[?#].*)?$/i;
+const MERGE_RISK_BADGE = /\/skills\/vs-ship-it\/assets\/badge-[a-z0-9-]+\.svg(?:[?#].*)?$/i;
 const MEDIA_EXTENSION = /\.(?:png|jpe?g|webp|gif|svg|webm|mp4|mov)(?:[?#].*)?$/i;
 const MARKDOWN_IMAGE = /!\[[^\]]*\]\(\s*<?([^\s)>]+)>?(?:\s+"[^"]*")?\s*\)/g;
 const HTML_MEDIA = /<(?:img|video|source)\b[^>]*\bsrc=["']([^"']+)["']/gi;
@@ -188,16 +188,41 @@ const surfacesSection = (() => {
   const nextHeading = rest.search(/^##[ \t]+/m);
   return nextHeading === -1 ? rest : rest.slice(0, nextHeading);
 })();
-// Only the first non-empty line of the section is the selector row (ignore HTML comments).
-const surfacesLine =
-  surfacesSection
-    .split('\n')
-    .map((line) => line.trim())
-    .find((line) => line && !line.startsWith('<!--') && !line.startsWith('-->')) ?? '';
-const claimedRaw = surfacesLine
-  .split(/[·|,/]|\s+/)
-  .map((token) => token.trim())
-  .filter(Boolean);
+// Claims come from: (1) badge-surface-{kind}-{n}.svg chips, (2) optional (Kind)
+// tags on module bullets, (3) legacy vocabulary selector lines (UI · Endpoint …).
+const SURFACE_KIND_TITLE = {
+  endpoint: 'Endpoint',
+  schema: 'Schema',
+  ui: 'UI',
+  cli: 'CLI',
+  mcp: 'MCP',
+  infra: 'Infra',
+};
+const fromChips = [...surfacesSection.matchAll(/badge-surface-(endpoint|schema|ui|cli|mcp|infra)(?:-\d+)?\.svg/gi)].map(
+  (match) => SURFACE_KIND_TITLE[match[1].toLowerCase()],
+);
+const fromParen = [...surfacesSection.matchAll(/\((Endpoint|Schema|UI|CLI|MCP|Infra)\)/g)].map(
+  (match) => match[1],
+);
+const selectorLines = surfacesSection
+  .split('\n')
+  .map((line) => line.trim())
+  .filter(
+    (line) =>
+      line &&
+      !line.startsWith('<!--') &&
+      !line.startsWith('-->') &&
+      !line.startsWith('<img') &&
+      !line.startsWith('-') &&
+      !line.startsWith('*'),
+  );
+const fromLegacy = selectorLines.flatMap((line) =>
+  line
+    .split(/[·|,/]|\s+/)
+    .map((token) => token.trim())
+    .filter(Boolean),
+);
+const claimedRaw = [...fromChips, ...fromParen, ...fromLegacy];
 const claimedForbidden = claimedRaw.filter((token) => FORBIDDEN_SURFACE.test(token));
 const claimed = [...new Set(claimedRaw.filter((token) => ALLOWED_SURFACES.has(token)))];
 const pathClasses = {

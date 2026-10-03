@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="100" height="24" viewBox="0 0 100 24" role="img" aria-label="Surface: UI · 2 modules">
+<title>Surface: UI · 2</title>
+<clipPath id="r"><rect width="100" height="24" rx="6"/></clipPath>
+<g clip-path="url(#r)"><rect width="70" height="24" fill="#24292f"/><rect x="70" width="30" height="24" fill="#0969da"/><rect width="4" height="24" fill="#0969da"/></g>
+<g transform="translate(12 5.5)" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="1" width="10" height="8" rx="1"/><path d="M4 12h4"/></g>
+<g fill="#fff" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif" font-size="11">
+<text x="32" y="16" font-weight="700" letter-spacing=".5" textLength="28">UI</text>
+<text x="78" y="16" font-weight="700" textLength="14">2</text>
+</g></svg>
