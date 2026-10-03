@@ -12,6 +12,8 @@ const SCRIPTS = path.join(DIR, 'scripts');
 const PREFLIGHT = path.join(SCRIPTS, 'preflight.mjs');
 const MUX = path.join(SCRIPTS, 'mux.mjs');
 const NARRATE = fs.readFileSync(path.join(SCRIPTS, 'narrate.mjs'), 'utf8');
+const RENDER = fs.readFileSync(path.join(SCRIPTS, 'render-scenes.mjs'), 'utf8');
+const MUX_SOURCE = fs.readFileSync(path.join(SCRIPTS, 'mux.mjs'), 'utf8');
 
 const hasFfmpeg =
   spawnSync('/bin/sh', ['-c', 'command -v ffmpeg && command -v ffprobe']).status === 0;
@@ -60,6 +62,26 @@ describe('vs-explain-video contract', () => {
     expect(SKILL).toMatch(/A\s+frame\s+you\s+did\s+not\s+look\s+at\s+is\s+not\s+verified/);
   });
 
+  it('burns subtitles in once and never ships a second track', () => {
+    expect(SKILL).toMatch(/burns\s+subtitles\s+into\s+each\s+html\s+scene/);
+    expect(SKILL).toMatch(/Do\s+not\s+add\s+a\s+soft\s+subtitle\s+track\s+or\s+a\s+sidecar\s+`\.srt`/);
+    expect(RENDER).toMatch(/vs-subtitle/);
+    expect(MUX_SOURCE).not.toMatch(/mov_text|-c:s|subtitles=/);
+  });
+
+  it('separates spoken text from written text and times builds to sentences', () => {
+    expect(SKILL).toMatch(/`pronounce`\s+changes\s+only\s+what\s+the\s+voice\s+says/);
+    expect(SKILL).toMatch(/sentence\s+start\s+from\s+the\s+`cues`/);
+    expect(NARRATE).toMatch(/manifest\.pronounce/);
+    expect(NARRATE).toMatch(/scene\.sentences\s*=/);
+  });
+
+  it('carries one concrete example and checks every fully built scene', () => {
+    expect(SKILL).toMatch(/Carry\s+one\s+concrete\s+example\s+through\s+every\s+scene/);
+    expect(SKILL).toMatch(/Every\s+sentence\s+gets\s+a\s+visual\s+change/);
+    expect(SKILL).toMatch(/one\s+still\s+per\s+scene/);
+  });
+
   it('keeps the video short and disposable', () => {
     expect(SKILL).toMatch(/60-120\s+second/);
     expect(SKILL).toMatch(/disposable/);
@@ -100,6 +122,33 @@ describe('vs-explain-video preflight', () => {
     expect(report.tts.elevenlabs.keyPresent).toBe(false);
     expect(report.missing.map((item: { tool: string }) => item.tool)).toContain('ffmpeg');
     expect(report.next).toMatch(/rerun preflight\.mjs/);
+  });
+});
+
+describe.skipIf(!hasFfmpeg || process.platform !== 'darwin')('vs-explain-video narrate', () => {
+  it('speaks per sentence, applies pronounce to audio only, and records cues', () => {
+    const work = mkdtempSync(path.join(tmpdir(), 'vs-explain-video-narrate-'));
+    const narration = 'AICM installs nile v1.2 for you. Then it updates.';
+    writeFileSync(
+      path.join(work, 'scenes.json'),
+      JSON.stringify({ pronounce: { AICM: 'A I C M' }, scenes: [{ id: '01', narration }] }),
+    );
+    const result = spawnSync(
+      process.execPath,
+      [path.join(SCRIPTS, 'narrate.mjs'), path.join(work, 'scenes.json'), '--engine', 'say'],
+      { encoding: 'utf8' },
+    );
+    expect(result.status, result.stderr).toBe(0);
+    const [scene] = JSON.parse(fs.readFileSync(path.join(work, 'scenes.json'), 'utf8')).scenes;
+    expect(scene.narration).toBe(narration);
+    expect(scene.sentences.map((s: { text: string }) => s.text)).toEqual([
+      'AICM installs nile v1.2 for you.',
+      'Then it updates.',
+    ]);
+    expect(scene.sentences[0].start).toBe(0);
+    expect(scene.sentences[1].start).toBeGreaterThan(scene.sentences[0].seconds);
+    expect(scene.audio).toBe(path.join('audio', '01.wav'));
+    expect(fs.readdirSync(path.join(work, 'audio'))).toEqual(['01.wav']);
   });
 });
 

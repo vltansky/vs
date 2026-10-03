@@ -11,6 +11,11 @@
 // timers are not seekable and render frozen or jittery.
 // The page also gets --scene-duration (CSS var) and data-duration on <html>.
 //
+// Subtitles are drawn into the frames from each scene's `sentences` (written
+// by narrate.mjs), unless the manifest sets "subtitles": false. They are burned
+// in on purpose: a soft subtitle track or sidecar .srt makes players show every
+// line twice, and stock ffmpeg builds often lack the subtitles filter.
+//
 // Scenes with `video` or `image` instead of `html` are skipped here; mux.mjs
 // uses them directly (Manim/Remotion output, a /vs-show-me still).
 //
@@ -69,6 +74,32 @@ const launch = async () => {
     }
   }
 };
+// Long sentences split into lines of at most ~60 characters, each shown for
+// its share of the sentence's spoken time.
+const subtitleCues = (scene) =>
+  (scene.sentences ?? []).flatMap(({ text, start, seconds }) => {
+    const lines = [];
+    for (const word of text.split(/\s+/)) {
+      const last = lines.at(-1);
+      if (last && last.length + word.length < 60) lines[lines.length - 1] = `${last} ${word}`;
+      else lines.push(word);
+    }
+    const chars = lines.reduce((sum, line) => sum + line.length, 0);
+    let at = start;
+    return lines.map((line) => {
+      const cue = { from: at, to: at + (seconds * line.length) / chars, text: line };
+      at = cue.to;
+      return cue;
+    });
+  });
+
+const SUBTITLE_STYLE = (height) => `
+  #vs-subtitle { position: fixed; left: 0; right: 0; bottom: ${Math.round(height * 0.05)}px; z-index: 2147483647;
+    text-align: center; pointer-events: none; }
+  #vs-subtitle span { display: inline-block; max-width: 86%; padding: .25em .7em; border-radius: .35em;
+    background: rgb(0 0 0 / .72); color: #fff; font: 500 ${Math.round(height * 0.036)}px/1.3 system-ui, sans-serif; }
+  #vs-subtitle span:empty { display: none; }`;
+
 const browser = await launch();
 const results = [];
 try {
@@ -90,25 +121,38 @@ try {
       document.documentElement.dataset.duration = String(duration);
       await document.fonts.ready;
     }, seconds);
+    const cues = manifest.subtitles === false ? [] : subtitleCues(scene);
+    if (cues.length) {
+      await page.addStyleTag({ content: SUBTITLE_STYLE(height) });
+      await page.evaluate(() => {
+        const box = document.createElement('div');
+        box.id = 'vs-subtitle';
+        box.append(document.createElement('span'));
+        document.body.append(box);
+      });
+    }
 
     const out = path.join(renderDir, `${id}.mp4`);
     const { stdin, done } = encode(out);
     for (let frame = 0; frame < frames; frame += 1) {
       const t = frame / fps;
-      await page.evaluate(async (time) => {
+      const line = cues.find((cue) => t >= cue.from && t < cue.to)?.text ?? '';
+      await page.evaluate(async ({ time, line }) => {
         for (const animation of document.getAnimations()) {
           animation.pause();
           animation.currentTime = time * 1000;
         }
         if (typeof window.seek === 'function') await window.seek(time);
-      }, t);
+        const subtitle = document.querySelector('#vs-subtitle span');
+        if (subtitle) subtitle.textContent = line;
+      }, { time: t, line });
       const png = await page.screenshot({ type: 'png' });
       if (!stdin.write(png)) await new Promise((resolve) => stdin.once('drain', resolve));
     }
     stdin.end();
     await done;
     scene.video = path.relative(manifest.dir, out);
-    results.push({ id, video: scene.video, seconds: Number(seconds.toFixed(3)), frames });
+    results.push({ id, video: scene.video, seconds: Number(seconds.toFixed(3)), frames, subtitleLines: cues.length });
   }
 } finally {
   await browser.close();
