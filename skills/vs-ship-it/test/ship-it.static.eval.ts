@@ -61,8 +61,8 @@ describe('vs-ship-it publishing boundary', () => {
   it('shows the PR format and available proof in the README flow', () => {
     expect(README).not.toContain('Review explicitly approved?');
     expect(README).toMatch(/Prepare PR description<br\/>feature_area: title/);
-    expect(README).toMatch(/Problem scenario \(STE100\) \+ Endpoint\/Schema\/UI proof<br\/>Why this change/);
-    expect(README).toMatch(/Merge risk \(Door \/ Blast\)<br\/>Surfaces<br\/>Problem scenario \(STE100\) \+ Endpoint\/Schema\/UI proof<br\/>Why this change<br\/>User impact<br\/>Evidence \+ gaps<br\/>Review focus/);
+    expect(README).toMatch(/Problem scenario \(STE100\) \+ Endpoint\/Schema\/UI proof<br\/>What was done/);
+    expect(README).toMatch(/Merge risk \(Door \/ Blast\)<br\/>Surfaces<br\/>Problem scenario \(STE100\) \+ Endpoint\/Schema\/UI proof<br\/>What was done<br\/>User impact<br\/>Evidence \+ gaps<br\/>Review focus/);
     expect(README).toMatch(/Reuse or capture proof<br\/>matched Before\/After screenshots/);
     expect(README).toMatch(/short video for interactions/);
   });
@@ -75,7 +75,8 @@ describe('vs-ship-it independent PR preparation', () => {
     expect(PR_WORKFLOW).toContain('## Merge risk');
     expect(PR_WORKFLOW).toContain('## Surfaces');
     expect(PR_WORKFLOW).toContain('## What Problem This Solves');
-    expect(PR_WORKFLOW).toContain('## Why This Change Was Made');
+    expect(PR_WORKFLOW).toContain('## What Was Done');
+    expect(PR_WORKFLOW).not.toContain('Why This Change Was Made');
     expect(PR_WORKFLOW).toContain('## User Impact');
     expect(PR_WORKFLOW).toContain('## Evidence');
     expect(PR_WORKFLOW).toContain('## Review focus');
@@ -342,6 +343,34 @@ describe('vs-ship-it door, blast radius, and What Problem scenario', () => {
     const bodyTemplate = PR_WORKFLOW.match(/````markdown[\s\S]*?````/)?.[0] ?? '';
     expect(bodyTemplate).toMatch(/Short STE100 scenario/i);
     expect(bodyTemplate).not.toMatch(/single chosen visual|pseudocode,\s*call tree/i);
+  });
+
+  it('writes What Was Done as fix-first bullets with optional mermaid and alternatives', () => {
+    const bodyTemplate = PR_WORKFLOW.match(/````markdown[\s\S]*?````/)?.[0] ?? '';
+    const done = bodyTemplate.split('## What Was Done')[1]?.split('## User Impact')[0] ?? '';
+    expect(done).toMatch(/^- \*\*Fix:\*\*[\s\S]*^- \*\*Cause:\*\*[\s\S]*^- \*\*Why this works:\*\*[\s\S]*^- \*\*Scope:\*\*/m);
+    // Mermaid is conditional: it lives only inside an HTML comment, never live in the template.
+    const live = bodyTemplate.replace(/<!--[\s\S]*?-->/g, '');
+    expect(live).not.toContain('```mermaid');
+    expect(bodyTemplate).toMatch(/<!--\s+Optional mermaid:[\s\S]*```mermaid[\s\S]*-->/);
+    expect(PR_WORKFLOW).toMatch(/never redraw one before\/after\s+decision/i);
+    // Alternatives Considered follows What Was Done, is optional, and bans strawmen.
+    expect(bodyTemplate.indexOf('## Alternatives Considered')).toBeGreaterThan(
+      bodyTemplate.indexOf('## What Was Done'),
+    );
+    expect(bodyTemplate).toMatch(/\| Option \| Why not \|/);
+    expect(bodyTemplate).toMatch(/only when real alternatives were weighed[\s\S]*never\s+invent strawmen/i);
+    expect(PR_WORKFLOW).toMatch(/no prose walls anywhere in the body/i);
+  });
+
+  it('checks for a stale base and unrequested scope before writing the body', () => {
+    const step1 = PR_WORKFLOW.split('### Step 1')[1]?.split('### Step 2')[0] ?? '';
+    expect(step1).toContain('git fetch origin <default>');
+    expect(step1).toContain('git diff --stat origin/<default>...HEAD');
+    expect(step1).toMatch(/rebuild the branch\s+on fresh `origin\/<default>`/);
+    expect(step1).toMatch(/re-apply only the scoped change/);
+    expect(step1).toMatch(/remove unrequested extras[\s\S]*ask once[\s\S]*never ship them silently/i);
+    expect(PR_WORKFLOW).toMatch(/`origin\/<base>` fetched in Step 1, never a stale local ref/);
   });
 
   it('does not add a vs-pr skill or slash', () => {
