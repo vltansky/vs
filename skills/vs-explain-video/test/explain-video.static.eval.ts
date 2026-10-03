@@ -7,16 +7,30 @@ import { describe, expect, it } from 'vitest';
 
 const DIR = path.resolve(__dirname, '..');
 const SKILL = fs.readFileSync(path.join(DIR, 'SKILL.md'), 'utf8');
+const CRAFT = fs.readFileSync(path.join(DIR, 'references', 'motion-craft.md'), 'utf8');
 const OPENAI_CONFIG = fs.readFileSync(path.join(DIR, 'agents', 'openai.yaml'), 'utf8');
 const SCRIPTS = path.join(DIR, 'scripts');
-const PREFLIGHT = path.join(SCRIPTS, 'preflight.mjs');
-const MUX = path.join(SCRIPTS, 'mux.mjs');
-const NARRATE = fs.readFileSync(path.join(SCRIPTS, 'narrate.mjs'), 'utf8');
-const RENDER = fs.readFileSync(path.join(SCRIPTS, 'render-scenes.mjs'), 'utf8');
-const MUX_SOURCE = fs.readFileSync(path.join(SCRIPTS, 'mux.mjs'), 'utf8');
+const script = (name: string) => path.join(SCRIPTS, name);
+const NARRATE = fs.readFileSync(script('narrate.mjs'), 'utf8');
+const RENDER = fs.readFileSync(script('render.mjs'), 'utf8');
+const MOTION = fs.readFileSync(path.join(DIR, 'assets', 'motion.js'), 'utf8');
 
 const hasFfmpeg =
   spawnSync('/bin/sh', ['-c', 'command -v ffmpeg && command -v ffprobe']).status === 0;
+const node = (args: string[], env: NodeJS.ProcessEnv = process.env) =>
+  spawnSync(process.execPath, args, { encoding: 'utf8', env });
+
+// init.mjs downloads fonts once into ~/.cache; seed a fake cache so tests stay offline.
+function initWork(): string {
+  const home = mkdtempSync(path.join(tmpdir(), 'vs-explain-video-home-'));
+  const fonts = path.join(home, '.cache', 'vs-explain-video', 'fonts');
+  fs.mkdirSync(fonts, { recursive: true });
+  for (const file of ['SpaceGrotesk.ttf', 'JetBrainsMono.ttf']) writeFileSync(path.join(fonts, file), '');
+  const work = path.join(home, 'work');
+  const result = node([script('init.mjs'), work], { ...process.env, HOME: home });
+  expect(result.status, result.stderr).toBe(0);
+  return work;
+}
 
 describe('vs-explain-video contract', () => {
   it('is a building block with the shared route and output style', () => {
@@ -52,34 +66,41 @@ describe('vs-explain-video contract', () => {
   });
 
   it('saves the video outside the repo and never commits it', () => {
+    expect(SKILL).toContain('$HOME/.vs/$PROJECT_ID/videos/<topic>');
     expect(SKILL).toContain('~/.vs/$PROJECT_ID/videos/<topic>/');
     expect(SKILL).toMatch(/Never\s+commit\s+videos/);
   });
 
-  it('verifies duration and looks at frames before claiming done', () => {
-    expect(SKILL).toMatch(/ffprobe\s+duration/);
-    expect(SKILL).toMatch(/Open\s+each\s+extracted\s+still\s+and\s+look\s+at\s+it/);
+  it('audits stills, looks at them, and checks duration before claiming done', () => {
+    expect(SKILL).toMatch(/render\.mjs\s+"\$WORK"\s+--stills/);
+    expect(SKILL).toMatch(/open\s+each\s+still\s+and\s+look\s+at\s+it/);
     expect(SKILL).toMatch(/A\s+frame\s+you\s+did\s+not\s+look\s+at\s+is\s+not\s+verified/);
+    expect(SKILL).toMatch(/ffprobe\s+duration/);
+    expect(RENDER).toMatch(/VS\.audit\(\)/);
+    expect(RENDER).toMatch(/Math\.abs\(durationSeconds - seconds\) <= 0\.25/);
   });
 
   it('burns subtitles in once and never ships a second track', () => {
-    expect(SKILL).toMatch(/burns\s+subtitles\s+into\s+each\s+html\s+scene/);
+    expect(SKILL).toMatch(/Subtitles\s+are\s+burned\s+in\s+only/);
     expect(SKILL).toMatch(/Do\s+not\s+add\s+a\s+soft\s+subtitle\s+track\s+or\s+a\s+sidecar\s+`\.srt`/);
-    expect(RENDER).toMatch(/vs-subtitle/);
-    expect(MUX_SOURCE).not.toMatch(/mov_text|-c:s|subtitles=/);
+    expect(MOTION).toMatch(/TL\.subs/);
+    expect(RENDER).not.toMatch(/mov_text|-c:s|subtitles=/);
   });
 
-  it('separates spoken text from written text and times builds to sentences', () => {
+  it('separates spoken text from written text and times builds to beats', () => {
     expect(SKILL).toMatch(/`pronounce`\s+changes\s+only\s+what\s+the\s+voice\s+says/);
-    expect(SKILL).toMatch(/sentence\s+start\s+from\s+the\s+`cues`/);
-    expect(NARRATE).toMatch(/manifest\.pronounce/);
-    expect(NARRATE).toMatch(/scene\.sentences\s*=/);
+    expect(SKILL).toMatch(/Start\s+the\s+build\s+for\s+beat\s+i\s+at\s+`B\[i\]`/);
+    expect(NARRATE).toMatch(/script\.pronounce/);
   });
 
-  it('carries one concrete example and checks every fully built scene', () => {
+  it('carries one example, builds every beat, and keeps motion seekable', () => {
     expect(SKILL).toMatch(/Carry\s+one\s+concrete\s+example\s+through\s+every\s+scene/);
     expect(SKILL).toMatch(/Every\s+sentence\s+gets\s+a\s+visual\s+change/);
-    expect(SKILL).toMatch(/one\s+still\s+per\s+scene/);
+    expect(SKILL).toMatch(/Never\s+use\s+timers,\s+`requestAnimationFrame`,\s+or\s+CSS\s+animations/);
+    expect(SKILL).toMatch(/keep\s+old\s+state\s+dimmed\s+rather\s+than\s+removed/);
+    expect(SKILL).toContain('references/motion-craft.md');
+    expect(CRAFT).toMatch(/Color\s+has\s+one\s+meaning\s+each/);
+    expect(MOTION).not.toMatch(/requestAnimationFrame\(|setTimeout\(|setInterval\(|Date\.now\(/);
   });
 
   it('keeps the video short and disposable', () => {
@@ -91,9 +112,9 @@ describe('vs-explain-video contract', () => {
 
 describe('vs-explain-video preflight', () => {
   it('prints a JSON report and exits 0 or 2 whatever is installed', () => {
-    const result = spawnSync(process.execPath, [PREFLIGHT], {
-      encoding: 'utf8',
-      env: { ...process.env, ELEVENLABS_API_KEY: 'sk-canary-should-never-print' },
+    const result = node([script('preflight.mjs')], {
+      ...process.env,
+      ELEVENLABS_API_KEY: 'sk-canary-should-never-print',
     });
     expect([0, 2]).toContain(result.status);
     expect(result.stdout + result.stderr).not.toContain('sk-canary-should-never-print');
@@ -103,15 +124,14 @@ describe('vs-explain-video preflight', () => {
     expect(report.tts.elevenlabs).toEqual({ keyPresent: true });
     expect(report.ttsEngine).toBe('elevenlabs');
     expect(Object.keys(report.tools)).toEqual(
-      expect.arrayContaining(['ffmpeg', 'ffprobe', 'playwright', 'manim']),
+      expect.arrayContaining(['ffmpeg', 'ffprobe', 'playwright']),
     );
-    expect(Array.isArray(report.missing)).toBe(true);
     expect(typeof report.next).toBe('string');
     for (const item of report.missing) expect(item.install).toMatch(/\S/);
   });
 
   it('is blocked with install hints when nothing is on PATH', () => {
-    const result = spawnSync(process.execPath, [PREFLIGHT], {
+    const result = spawnSync(process.execPath, [script('preflight.mjs')], {
       encoding: 'utf8',
       cwd: tmpdir(),
       env: { PATH: '/nonexistent', HOME: tmpdir() },
@@ -125,66 +145,66 @@ describe('vs-explain-video preflight', () => {
   });
 });
 
-describe.skipIf(!hasFfmpeg || process.platform !== 'darwin')('vs-explain-video narrate', () => {
-  it('speaks per sentence, applies pronounce to audio only, and records cues', () => {
-    const work = mkdtempSync(path.join(tmpdir(), 'vs-explain-video-narrate-'));
-    const narration = 'AICM installs nile v1.2 for you. Then it updates.';
-    writeFileSync(
-      path.join(work, 'scenes.json'),
-      JSON.stringify({ pronounce: { AICM: 'A I C M' }, scenes: [{ id: '01', narration }] }),
-    );
-    const result = spawnSync(
-      process.execPath,
-      [path.join(SCRIPTS, 'narrate.mjs'), path.join(work, 'scenes.json'), '--engine', 'say'],
-      { encoding: 'utf8' },
-    );
+describe('vs-explain-video init and dry run', () => {
+  it('scaffolds the stage and example, and never overwrites the user script', () => {
+    const work = initWork();
+    for (const file of ['index.html', 'motion.js', 'script.json', 'scenes.js', 'fonts/SpaceGrotesk.ttf']) {
+      expect(fs.existsSync(path.join(work, file)), file).toBe(true);
+    }
+    writeFileSync(path.join(work, 'scenes.js'), '// mine');
+    const again = node([script('init.mjs'), work], { ...process.env, HOME: path.dirname(work) });
+    expect(JSON.parse(again.stdout).kept).toEqual(['script.json', 'scenes.js']);
+    expect(fs.readFileSync(path.join(work, 'scenes.js'), 'utf8')).toBe('// mine');
+  });
+
+  it('writes narration.md and estimates length without any TTS', () => {
+    const work = initWork();
+    const result = node([script('narrate.mjs'), path.join(work, 'script.json'), '--dry-run'], {
+      PATH: '/nonexistent',
+    });
     expect(result.status, result.stderr).toBe(0);
-    const [scene] = JSON.parse(fs.readFileSync(path.join(work, 'scenes.json'), 'utf8')).scenes;
-    expect(scene.narration).toBe(narration);
-    expect(scene.sentences.map((s: { text: string }) => s.text)).toEqual([
-      'AICM installs nile v1.2 for you.',
-      'Then it updates.',
-    ]);
-    expect(scene.sentences[0].start).toBe(0);
-    expect(scene.sentences[1].start).toBeGreaterThan(scene.sentences[0].seconds);
-    expect(scene.audio).toBe(path.join('audio', '01.wav'));
-    expect(fs.readdirSync(path.join(work, 'audio'))).toEqual(['01.wav']);
+    const report = JSON.parse(result.stdout);
+    expect(report.scenes).toBe(3);
+    expect(report.estimatedSeconds).toBeGreaterThan(10);
+    expect(fs.readFileSync(path.join(work, 'narration.md'), 'utf8').split('\n\n')).toHaveLength(3);
+  });
+
+  it('rejects a scene without beats', () => {
+    const work = mkdtempSync(path.join(tmpdir(), 'vs-explain-video-bad-'));
+    writeFileSync(path.join(work, 'script.json'), JSON.stringify({ scenes: [{ id: 'a', narration: 'x' }] }));
+    const result = node([script('narrate.mjs'), path.join(work, 'script.json'), '--dry-run']);
+    expect(result.status).toBe(2);
+    expect(result.stdout + result.stderr).toMatch(/"beats" must be a list/);
   });
 });
 
-describe.skipIf(!hasFfmpeg)('vs-explain-video mux', () => {
-  it('joins scenes to the narration length and extracts stills', () => {
-    const work = mkdtempSync(path.join(tmpdir(), 'vs-explain-video-'));
-    const ffmpeg = (args: string[]) =>
-      expect(spawnSync('ffmpeg', ['-y', '-loglevel', 'error', ...args]).status).toBe(0);
-    ffmpeg(['-f', 'lavfi', '-i', 'sine=frequency=440:duration=1.2', path.join(work, 'a1.wav')]);
-    ffmpeg(['-f', 'lavfi', '-i', 'sine=frequency=660:duration=0.8', path.join(work, 'a2.wav')]);
-    ffmpeg(['-f', 'lavfi', '-i', 'color=c=blue:s=320x180:d=0.5', path.join(work, 'v1.mp4')]);
-    ffmpeg(['-f', 'lavfi', '-i', 'color=c=red:s=320x180', '-frames:v', '1', path.join(work, 'i2.png')]);
+describe.skipIf(!hasFfmpeg || process.platform !== 'darwin')('vs-explain-video narrate', () => {
+  it('times beats into timeline.js, keeps written text in subtitles, and caches audio', () => {
+    const work = mkdtempSync(path.join(tmpdir(), 'vs-explain-video-narrate-'));
+    const scriptJson = path.join(work, 'script.json');
     writeFileSync(
-      path.join(work, 'scenes.json'),
+      scriptJson,
       JSON.stringify({
-        fps: 24,
-        width: 320,
-        height: 180,
-        pause: 0.3,
-        scenes: [
-          { id: '01', narration: 'One.', audio: 'a1.wav', video: 'v1.mp4' },
-          { id: '02', narration: 'Two.', audio: 'a2.wav', image: 'i2.png' },
-        ],
+        pronounce: { AICM: 'A I C M' },
+        scenes: [{ id: 'one', beats: ['AICM installs nile for you.', 'Then it updates.'] }],
       }),
     );
+    const first = node([script('narrate.mjs'), scriptJson, '--engine', 'say']);
+    expect(first.status, first.stderr).toBe(0);
+    expect(JSON.parse(first.stdout).spokenNow).toBe(2);
 
-    const result = spawnSync(
-      process.execPath,
-      [MUX, path.join(work, 'scenes.json'), '--out', path.join(work, 'out.mp4')],
-      { encoding: 'utf8' },
-    );
-    expect(result.status, result.stderr).toBe(0);
-    const report = JSON.parse(result.stdout);
-    expect(report.expectedSeconds).toBeCloseTo(2.6, 1);
-    expect(report.durationMatches).toBe(true);
-    expect(report.stills).toHaveLength(2);
-    for (const still of report.stills) expect(fs.existsSync(still.file)).toBe(true);
+    const source = fs.readFileSync(path.join(work, 'timeline.js'), 'utf8');
+    const TL = JSON.parse(source.replace(/^window\.TL = /, '').replace(/;\s*$/, ''));
+    const [scene] = TL.scenes;
+    expect(scene.beats.map((b: { text: string }) => b.text)).toEqual([
+      'AICM installs nile for you.',
+      'Then it updates.',
+    ]);
+    expect(scene.beats[1].t).toBeGreaterThan(scene.beats[0].t + scene.beats[0].d);
+    expect(TL.subs[0][2]).toContain('AICM');
+    expect(fs.existsSync(path.join(work, 'narration.wav'))).toBe(true);
+
+    const second = node([script('narrate.mjs'), scriptJson, '--engine', 'say']);
+    expect(JSON.parse(second.stdout)).toMatchObject({ spokenNow: 0, cached: 2 });
   });
 });

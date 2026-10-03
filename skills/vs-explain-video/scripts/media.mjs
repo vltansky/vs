@@ -1,7 +1,7 @@
 // Shared probes for the explain-video scripts: tool lookup, media duration,
-// Playwright resolution, and the scenes manifest. Plain Node, no dependencies.
+// and Playwright resolution. Plain Node, no dependencies.
 import { spawnSync } from 'node:child_process';
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import path from 'node:path';
 
@@ -23,10 +23,10 @@ export const probeDuration = (file) => {
   return result.status === 0 && Number.isFinite(seconds) ? seconds : null;
 };
 
-// The vs plugin ships no browser dependency: resolve the project's Playwright,
-// an explicit PLAYWRIGHT_MODULE, or a global install, in that order.
-export const resolvePlaywright = () => {
-  const roots = [process.cwd()];
+// The vs plugin ships no browser dependency: resolve an explicit
+// PLAYWRIGHT_MODULE, then the project's, the work dir's, or a global install.
+export const resolvePlaywright = (extraRoots = []) => {
+  const roots = [process.cwd(), ...extraRoots];
   const globalRoot = run('npm', ['root', '-g']).stdout?.trim();
   if (globalRoot) roots.push(globalRoot);
   const explicit = process.env.PLAYWRIGHT_MODULE;
@@ -50,26 +50,6 @@ const tryResolve = (spec, root) => {
     return null;
   }
 };
-
-export const readManifest = (file) => {
-  const manifest = JSON.parse(readFileSync(file, 'utf8'));
-  if (!Array.isArray(manifest.scenes) || manifest.scenes.length === 0) {
-    throw new Error(`${file}: "scenes" must list at least one scene.`);
-  }
-  return { ...manifest, dir: path.dirname(path.resolve(file)) };
-};
-
-export const writeManifest = (file, manifest) => {
-  const { dir: _dir, ...rest } = manifest;
-  writeFileSync(file, `${JSON.stringify(rest, null, 2)}\n`);
-};
-
-// Manifest paths are relative to the manifest file.
-export const resolveIn = (manifest, value) => (value ? path.resolve(manifest.dir, value) : null);
-
-// Each scene holds for its narration plus a short breath before the next one.
-export const sceneDuration = (manifest, audioSeconds) =>
-  audioSeconds + (manifest.pause ?? 0.4);
 
 export const fail = (message) => {
   process.stderr.write(`${message}\n`);

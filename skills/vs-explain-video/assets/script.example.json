@@ -1,0 +1,35 @@
+{
+  "title": "Why does search miss the cache?",
+  "brand": "acme/search · PR #42",
+  "voice": "af_heart",
+  "speed": 1.05,
+  "fps": 30,
+  "pronounce": { "CDN": "C D N" },
+  "scenes": [
+    {
+      "id": "intro",
+      "title": "Intro",
+      "beats": [
+        "Search answers slowly, even for the same query twice.",
+        "We will follow one request, a search for nile, through the CDN."
+      ]
+    },
+    {
+      "id": "miss",
+      "title": "The miss",
+      "beats": [
+        "The browser sends the query with a timestamp.",
+        "The CDN builds its cache key from the full URL.",
+        "The timestamp changes every second, so every key is new, and every request is a miss."
+      ]
+    },
+    {
+      "id": "fix",
+      "title": "The fix",
+      "beats": [
+        "The fix drops the timestamp from the cache key.",
+        "The second search for nile now hits the cache. The answer time goes from eight hundred forty milliseconds to twelve."
+      ]
+    }
+  ]
+}
