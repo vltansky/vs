@@ -1,7 +1,7 @@
 import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
-import { applyEdits, type Variant } from './variants';
+import { applyEdits, applyMoves, type Variant } from './variants';
 
 const AB_DIR = __dirname;
 const SKILLS_ROOT = path.resolve(AB_DIR, '../../..');
@@ -23,7 +23,7 @@ const git = (args: string[], cwd?: string) =>
 export function buildWorkspace(variant: Variant, runDir: string): string {
   const ws = path.join(runDir, 'workspace-src');
   fs.cpSync(FIXTURE_DIR, ws, { recursive: true });
-  writeInheritedContextDocs(path.join(ws, 'docs'));
+  writeInheritedContextDocs(path.join(ws, 'docs'), process.env.SHIPIT_AB_LIGHT ? 2 : 50);
   for (const name of fs.readdirSync(SKILLS_ROOT)) {
     const src = path.join(SKILLS_ROOT, name);
     if (!fs.existsSync(path.join(src, 'SKILL.md'))) continue;
@@ -34,9 +34,25 @@ export function buildWorkspace(variant: Variant, runDir: string): string {
         filter: (p) => !/\/(test|tests|node_modules)(\/|$)/.test(path.relative(SKILLS_ROOT, p).replace(/^[^/]+/, '')),
       });
       const md = path.join(dest, 'SKILL.md');
-      fs.writeFileSync(md, applyEdits(name, fs.readFileSync(md, 'utf8'), variant.edits));
+      const { md: moved, refs } = applyMoves(name, fs.readFileSync(md, 'utf8'), variant.moves ?? []);
+      fs.writeFileSync(md, applyEdits(name, moved, variant.edits));
+      for (const [ref, body] of refs) {
+        fs.mkdirSync(path.dirname(path.join(dest, ref)), { recursive: true });
+        // Relative links inside moved prose were written for the skill root.
+        fs.writeFileSync(path.join(dest, ref), body.replaceAll('](../', '](../../'));
+      }
     }
   }
+  for (const [dest, src] of Object.entries(variant.files ?? {})) {
+    for (const root of ['.claude/skills', '.agents/skills']) {
+      fs.cpSync(path.join(AB_DIR, src), path.join(ws, root, dest));
+    }
+  }
+  for (const [dest, src] of Object.entries(variant.workspaceFiles ?? {})) {
+    fs.mkdirSync(path.dirname(path.join(ws, dest)), { recursive: true });
+    fs.cpSync(path.join(AB_DIR, src), path.join(ws, dest));
+  }
+  if (variant.claudeSettings) fs.writeFileSync(path.join(ws, '.claude', 'settings.json'), JSON.stringify(variant.claudeSettings, null, 2));
   return ws;
 }
 
@@ -49,14 +65,14 @@ const DOC_WORDS = ['checkout', 'coupon', 'pricing', 'refund', 'ledger', 'invoice
  * every variant pays for identical bytes; changing the size or seed invalidates
  * comparisons with earlier results.
  */
-function writeInheritedContextDocs(dir: string): void {
+function writeInheritedContextDocs(dir: string, sectionCount: number): void {
   let seed = 20260930;
   const rand = () => ((seed = (seed * 1103515245 + 12345) % 2 ** 31) / 2 ** 31);
   const word = () => DOC_WORDS[Math.floor(rand() * DOC_WORDS.length)];
   const words = (n: number) => Array.from({ length: n }, word).join(' ');
   fs.mkdirSync(dir, { recursive: true });
   for (const title of ['Architecture', 'Decision log']) {
-    const sections = Array.from({ length: 50 }, (_, i) => {
+    const sections = Array.from({ length: sectionCount }, (_, i) => {
       const heading = words(4);
       return `## ${i + 1}. ${heading[0].toUpperCase()}${heading.slice(1)}\n\n${words(112)}.\n`;
     });
@@ -196,6 +212,21 @@ const readJsonl = (f: string) =>
   fs.readFileSync(f, 'utf8').split('\n').filter(Boolean).flatMap((l) => {
     try { return [JSON.parse(l)]; } catch { return []; }
   });
+
+/**
+ * Whether Claude loaded `skill` at or after `sinceMs`, through the Skill tool or by
+ * reading its SKILL.md. Undefined when no Claude log exists (Codex runs are ephemeral).
+ */
+export function claudeLoadedSkill(home: string, skill: string, sinceMs: number): boolean | undefined {
+  const logs = walk(path.join(home, '.claude', 'projects'), /\.jsonl$/);
+  if (!logs.length) return undefined;
+  return logs.some((f) => readJsonl(f).some((rec) =>
+    rec.type === 'assistant' && Date.parse(rec.timestamp) >= sinceMs &&
+    (Array.isArray(rec.message?.content) ? rec.message.content : []).some((c: { type?: string; name?: string; input?: Record<string, unknown> }) =>
+      c?.type === 'tool_use' && (
+        (c.name === 'Skill' && String(c.input?.skill ?? c.input?.command ?? '').replace(/^\//, '').split(/\s/)[0].endsWith(skill)) ||
+        (c.name === 'Read' && String(c.input?.file_path ?? '').endsWith(`${skill}/SKILL.md`))))));
+}
 
 /** Usage at or after `sinceMs`, summed across the main session and every subagent log. */
 export function measureCost(home: string, runDir: string, sinceMs: number): CostReport {
