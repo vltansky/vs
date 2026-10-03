@@ -1,6 +1,13 @@
 #!/usr/bin/env node
-// Synthesizes each scene's narration to an audio file and records the path and
-// duration back into the manifest.
+// Synthesizes each scene's narration one sentence at a time, joins the
+// sentences into one wav per scene, and records the audio path, duration, and
+// each sentence's start time back into the manifest. Sentence starts are the
+// build cues (`--at`) and the subtitle timing; one synthesis per scene would
+// leave both to guesswork.
+//
+// Manifest `pronounce` maps written words to spoken ones for TTS only, e.g.
+// { "AICM": "A I C M" }; subtitles keep the written form. `sentenceGap`
+// (default 0.3 s) is the silence between sentences.
 //
 //   node narrate.mjs <scenes.json> [--engine auto|elevenlabs|kokoro|piper|say]
 //
@@ -14,7 +21,7 @@
 // PIPER_MODEL, SAY_VOICE.
 //
 // Exit codes: 0 every scene narrated; 2 blocked (bad manifest, no engine, TTS error).
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 
@@ -87,30 +94,69 @@ const local = (text, out) => {
 
 const extension = { elevenlabs: 'mp3', kokoro: 'wav', piper: 'wav', say: 'aiff' }[engine];
 if (!extension) fail(`Unknown engine "${engine}". Use auto, elevenlabs, kokoro, piper, or say.`);
+if (!which('ffmpeg')) fail('ffmpeg is missing. Run: brew install ffmpeg. Then rerun narrate.mjs.');
 
 const manifest = readManifest(manifestPath);
 const audioDir = path.join(manifest.dir, 'audio');
 mkdirSync(audioDir, { recursive: true });
+const gap = manifest.sentenceGap ?? 0.3;
+const escapeRegExp = (text) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const pronunciations = Object.entries(manifest.pronounce ?? {}).map(
+  ([written, said]) => [new RegExp(`(?<![\\w-])${escapeRegExp(written)}(?![\\w-])`, 'g'), said],
+);
+const spoken = (text) => pronunciations.reduce((out, [pattern, said]) => out.replace(pattern, said), text);
+// Split after . ! ? followed by space, so "v1.2" and "file.ts" stay whole.
+const sentencesOf = (text) => text.trim().split(/(?<=[.!?]["')\]]?)\s+/).filter(Boolean);
 
 for (const [index, scene] of manifest.scenes.entries()) {
   const id = scene.id ?? String(index + 1).padStart(2, '0');
   if (!scene.narration?.trim()) fail(`scene ${id} has no narration text.`);
-  const out = path.join(audioDir, `${id}.${extension}`);
-  try {
-    if (engine === 'elevenlabs') await elevenlabs(scene.narration, out);
-    else local(scene.narration, out);
-  } catch (error) {
-    fail(`scene ${id}: ${error.message}`);
+  const sentences = [];
+  const parts = [];
+  let start = 0;
+  for (const [n, text] of sentencesOf(scene.narration).entries()) {
+    const part = path.join(audioDir, `${id}.${n}.${extension}`);
+    try {
+      if (engine === 'elevenlabs') await elevenlabs(spoken(text), part);
+      else local(spoken(text), part);
+    } catch (error) {
+      fail(`scene ${id}, sentence ${n + 1}: ${error.message}`);
+    }
+    const seconds = probeDuration(part);
+    if (seconds === null) fail(`scene ${id}: ${engine} wrote ${part}, but ffprobe cannot read it.`);
+    sentences.push({ text, start: Number(start.toFixed(3)), seconds: Number(seconds.toFixed(3)) });
+    parts.push(part);
+    start += seconds + gap;
   }
+
+  // The last sentence gets no trailing gap; the manifest pause follows the scene.
+  const out = path.join(audioDir, `${id}.wav`);
+  const pads = parts.map((_, n) =>
+    `[${n}:a]aresample=48000,aformat=channel_layouts=mono${n < parts.length - 1 ? `,apad=pad_dur=${gap}` : ''}[s${n}]`);
+  const joined = run('ffmpeg', [
+    '-y', '-loglevel', 'error', ...parts.flatMap((part) => ['-i', part]),
+    '-filter_complex', `${pads.join(';')};${parts.map((_, n) => `[s${n}]`).join('')}concat=n=${parts.length}:v=0:a=1[a]`,
+    '-map', '[a]', out,
+  ]);
+  if (joined.status !== 0) fail(`scene ${id}: ffmpeg could not join sentences: ${joined.stderr.slice(-400)}`);
+  for (const part of parts) rmSync(part, { force: true });
   const seconds = probeDuration(out);
-  if (seconds === null) fail(`scene ${id}: ${engine} wrote ${out}, but ffprobe cannot read it.`);
+  if (seconds === null) fail(`scene ${id}: ffprobe cannot read ${out}.`);
   scene.audio = path.relative(manifest.dir, out);
   scene.audioSeconds = Number(seconds.toFixed(3));
+  scene.sentences = sentences;
 }
 
 manifest.ttsEngine = engine;
 writeManifest(manifestPath, manifest);
 const total = manifest.scenes.reduce((sum, scene) => sum + scene.audioSeconds, 0);
 process.stdout.write(
-  `${JSON.stringify({ engine, scenes: manifest.scenes.map(({ id, audio, audioSeconds }) => ({ id, audio, audioSeconds })), narrationSeconds: Number(total.toFixed(3)) }, null, 2)}\n`,
+  `${JSON.stringify({
+    engine,
+    scenes: manifest.scenes.map(({ id, audio, audioSeconds, sentences }) => ({
+      id, audio, audioSeconds, cues: sentences.map(({ start, text }) => `${start}s ${text.slice(0, 48)}`),
+    })),
+    narrationSeconds: Number(total.toFixed(3)),
+    next: 'Set each build\'s --at to its sentence start in cues, then run render-scenes.mjs.',
+  }, null, 2)}\n`,
 );

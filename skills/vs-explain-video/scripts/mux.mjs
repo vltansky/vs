@@ -19,6 +19,9 @@
 // Each scene needs `audio` and one picture: `video` (any length; the last frame
 // holds) or `image` (held for the whole scene).
 //
+// No subtitle stream is added here: render-scenes.mjs burns subtitles into
+// html scenes, and a second, soft track would show every line twice.
+//
 // Prints { output, durationSeconds, expectedSeconds, narrationSeconds, stills }.
 // Exit codes: 0 muxed and duration matches; 1 muxed but duration is off by more
 // than 0.25 s; 2 blocked (bad manifest, missing input, ffmpeg error).
@@ -93,15 +96,13 @@ if (muxed.status !== 0) fail(`ffmpeg failed: ${muxed.stderr.slice(-800)}`);
 const durationSeconds = probeDuration(out);
 const expectedSeconds = start;
 
-// Stills from the middle of the first, middle, and last scene: the frames a
-// reviewer must look at before the video is called done.
+// One still per scene, taken when its narration ends and every build is on
+// screen: overlaps, overflow, and bad wraps only show in the fully built frame.
 const stillsDir = path.join(path.dirname(out), 'stills');
 mkdirSync(stillsDir, { recursive: true });
-const picks = [...new Set([0, Math.floor((n - 1) / 2), n - 1])];
 const stills = [];
-for (const index of picks) {
-  const { id, start: sceneStart, seconds } = timeline[index];
-  const at = sceneStart + seconds / 2;
+for (const { id, start: sceneStart, seconds } of timeline) {
+  const at = sceneStart + Math.max(0, seconds - (manifest.pause ?? 0.4) - 0.1);
   const file = path.join(stillsDir, `${id}.png`);
   const grab = run('ffmpeg', ['-y', '-loglevel', 'error', '-ss', at.toFixed(3), '-i', out, '-frames:v', '1', file]);
   if (grab.status === 0) stills.push({ scene: id, atSeconds: Number(at.toFixed(2)), file });
