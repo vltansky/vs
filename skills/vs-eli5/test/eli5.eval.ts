@@ -55,7 +55,7 @@ describe('vs-eli5 teaching behavior', () => {
 
     try {
       await agent.prompt(
-        'Use $vs-eli5 to create result.html. Explain browser caching to a new product manager who needs to understand why a changed logo can still look old. Keep the explanation to that one mental model.',
+        'Use $vs-eli5 to create result.html. Explain browser caching to a new product manager who needs to understand why a changed logo can still look old. Keep the explanation to that one mental model. Add one interactive prediction exercise: the saved copy is two minutes old; let me compare lifetimes of zero and five minutes, predict saved copy or server, and reveal why. Label this as a simplified model.',
       );
 
       const result = await evaluate(agent, [
@@ -63,6 +63,7 @@ describe('vs-eli5 teaching behavior', () => {
           'creates-visual-explanation',
           ({ workspace }) => source(workspace).length > 0,
         ),
+        check('uses-shared-interactive-prediction', ({ workspace }) => /<Prediction\b/.test(source(workspace))),
         check('uses-and-maps-a-familiar-analogy', ({ workspace }) => {
           const page = source(workspace);
           return (

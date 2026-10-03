@@ -1,0 +1,6 @@
+interface:
+  display_name: "vs-explain-video"
+  short_description: "Narrated 3Blue1Brown-style explainer video for a topic, code path, or PR."
+
+policy:
+  allow_implicit_invocation: true

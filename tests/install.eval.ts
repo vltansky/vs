@@ -52,6 +52,17 @@ describe('plugin installer', () => {
     expect(versions[0]).not.toBe('1.0.1');
   });
 
+  it('ships the MCP server through the Codex plugin manifest', () => {
+    const manifest = JSON.parse(readFileSync('.codex-plugin/plugin.json', 'utf8'));
+    const config = JSON.parse(readFileSync(manifest.mcpServers.replace('./', ''), 'utf8'));
+    expect(config.mcpServers['vs-artifact']).toMatchObject({
+      command: 'node',
+      args: ['./mcp/dist/server.mjs'],
+      cwd: '.',
+    });
+    expect(readFileSync('mcp/dist/view.html', 'utf8')).toContain('vs-artifact-frame');
+  });
+
   it('updates existing marketplaces and installed plugins without reinstalling them', () => {
     const home = mkdtempSync(join(tmpdir(), 'vs-install-'));
     const bin = join(home, 'bin');
@@ -184,6 +195,27 @@ exit 0
         ),
       ).toHaveLength(1);
     }
+  });
+
+  it('installs flat Codex skills with the bundled MCP App server', () => {
+    const home = mkdtempSync(join(tmpdir(), 'vs-flat-'));
+    const bin = join(home, 'bin');
+    const codexHome = join(home, '.codex');
+    const callsFile = join(home, 'calls.log');
+    mkdirSync(bin);
+    writeFileSync(join(bin, 'codex'), '#!/bin/sh\nprintf "%s %s\\n" "$(basename "$0")" "$*" >> "$CALLS_FILE"\n', { mode: 0o755 });
+    symlinkSync(process.execPath, join(bin, 'node'));
+
+    execFileSync('/bin/bash', ['install.sh', '--codex-flat'], {
+      cwd: process.cwd(),
+      env: { ...process.env, CALLS_FILE: callsFile, CODEX_HOME: codexHome, HOME: home, PATH: `${bin}:/usr/bin:/bin` },
+    });
+
+    expect(readFileSync(join(codexHome, 'skills', 'vs-show-me', 'SKILL.md'), 'utf8')).toContain('vs-show-me');
+    expect(readFileSync(join(codexHome, 'skills', 'vs-eli5', 'SKILL.md'), 'utf8')).toContain('vs-eli5');
+    expect(readFileSync(join(codexHome, 'mcp', 'vs-artifact', 'view.html'), 'utf8')).toContain('vs-artifact-frame');
+    expect(readFileSync(join(codexHome, 'mcp', 'vs-artifact', 'server.mjs'), 'utf8')).toContain('vs-artifact');
+    expect(readFileSync(callsFile, 'utf8').trim()).toBe(`codex mcp add vs-artifact -- node ${join(codexHome, 'mcp', 'vs-artifact', 'server.mjs')}`);
   });
 
   it.skipIf(!pwsh)('drives the same CLI sequence from the PowerShell installer', () => {

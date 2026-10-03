@@ -1,6 +1,7 @@
 import { mkdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { cursorOverlayScript } from './cursor-overlay.mjs';
+import { flowPacing, travelPointer } from './record-pacing.mjs';
 
 // The caller supplies its existing Playwright browser and approved context options.
 // This helper owns only the context it creates; closing it flushes the recording.
@@ -17,6 +18,9 @@ export async function captureDemo({ browser, directory, revision, scenario, view
     recordVideo: { dir: output, size: viewport },
   });
   const checkpoints = [];
+  // Always a video, so always paced for a viewer.
+  const pace = flowPacing({ video: true });
+  let pointer = { x: viewport.width / 2, y: viewport.height / 2 };
   let video;
   try {
     const page = await context.newPage();
@@ -29,11 +33,11 @@ export async function captureDemo({ browser, directory, revision, scenario, view
         await locator.scrollIntoViewIfNeeded();
         const box = await locator.boundingBox();
         if (!box || !(await locator.isEnabled())) throw new Error('Demo target is hidden or disabled; inspect the page before retrying.');
-        await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2, { steps: 22 });
+        pointer = await travelPointer(page, pointer, { x: box.x + box.width / 2, y: box.y + box.height / 2 }, pace.travelMs);
         await page.waitForTimeout(450);
         await page.mouse.down();
         try {
-          await page.waitForTimeout(120);
+          await page.waitForTimeout(pace.pressMs);
         } finally {
           await page.mouse.up();
         }
@@ -41,7 +45,7 @@ export async function captureDemo({ browser, directory, revision, scenario, view
       checkpoint: async (caption, verify) => {
         if (!caption || typeof verify !== 'function') throw new Error('Each checkpoint needs a caption and an assertion callback.');
         await verify();
-        await page.waitForTimeout(600);
+        await page.waitForTimeout(pace.resultMs);
         const still = path.join(output, `${checkpoints.length + 1}.png`);
         await page.screenshot({ path: still });
         checkpoints.push({ caption, still });

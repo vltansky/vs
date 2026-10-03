@@ -81,8 +81,11 @@ describe('vs-eli5 rendering', () => {
     expect(SKILL).toMatch(/familiar analogy/i);
     expect(SKILL).toMatch(/map\s+each part/i);
     expect(SKILL).toMatch(/prediction or recall/i);
+    expect(SKILL).toMatch(/<Prediction>/);
+    expect(SKILL).toMatch(/change.{0,50}(?:setup|input)/i);
+    expect(SKILL).not.toMatch(/without adding a\s+custom interaction/);
     expect(SKILL).toMatch(/immediate feedback/i);
-    expect(SKILL).toMatch(/do not create.*MISSION\.md/i);
+    expect(SKILL).toMatch(/do not\s+create[\s\S]{0,60}MISSION\.md/i);
   });
 });
 

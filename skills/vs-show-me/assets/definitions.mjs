@@ -1,3 +1,5 @@
+import { predictionComponentFactory } from './prediction.mjs';
+
 // The vs catalog: the layout, palette, and report components every vs report
 // renders against, loaded by the CLI via `--definitions` so lint, compile,
 // and skill answer against the same catalog the artifact loads in the browser.
@@ -3393,6 +3395,8 @@ export const vsCatalogFactory = (React, css) => {
       Component: asComponent(Crossing),
     },
   ];
+
+  components.push(predictionComponentFactory(React));
 
   const layouts = [
     // The runtime's custom-layout shell already renders blocks in source order

@@ -54,6 +54,45 @@ resolve_codex() {
   return 0
 }
 
+# Flat skills do not load plugin MCP manifests, so register the bundled server
+# against a stable copy that survives changes to the source checkout.
+install_codex_flat() {
+  resolve_codex
+  if ! command -v codex >/dev/null 2>&1 || ! command -v node >/dev/null 2>&1; then
+    fail "codex and node are required for a flat install"
+    return 1
+  fi
+  if ! node -e 'process.exit(Number(process.versions.node.split(".")[0]) >= 22 ? 0 : 1)'; then
+    fail "node 22 or newer is required for the bundled MCP server"
+    return 1
+  fi
+  local source="${BASH_SOURCE[0]:-}" root codex_home server_dir skill dest
+  if [ -z "$source" ] || [ ! -f "$source" ]; then
+    fail "flat install needs a local vs checkout; run ./install.sh --codex-flat there"
+    return 1
+  fi
+  root="$(cd "$(dirname "$source")" && pwd)"
+  if [ ! -f "$root/mcp/dist/server.mjs" ] || [ ! -f "$root/mcp/dist/view.html" ]; then
+    fail "MCP bundle missing; run npm ci && npm run build:mcp, then retry"
+    return 1
+  fi
+  codex_home="${CODEX_HOME:-$HOME/.codex}"
+  server_dir="$codex_home/mcp/vs-artifact"
+  mkdir -p "$codex_home/skills" "$server_dir"
+  for skill in "$root"/skills/vs-*; do
+    [ -f "$skill/SKILL.md" ] || continue
+    dest="$codex_home/skills/$(basename "$skill")"
+    mkdir -p "$dest"
+    cp -R "$skill/." "$dest/"
+  done
+  cp "$root/mcp/dist/server.mjs" "$root/mcp/dist/view.html" "$server_dir/"
+  if ! codex mcp add vs-artifact -- node "$server_dir/server.mjs"; then
+    fail "codex MCP registration failed; retry with codex mcp add vs-artifact -- node $server_dir/server.mjs"
+    return 1
+  fi
+  ok "codex: flat skills and vs-artifact MCP installed"
+}
+
 # Codex dropped plugin-manifest hooks, so the always-on Ponytail hook must be
 # registered in ~/.codex/hooks.json. The merge script ships in the plugin.
 install_codex_hook() {
@@ -98,6 +137,11 @@ install_cursor() {
     rm -rf "$dest.tmp"; fail "cursor: clone failed"
   fi
 }
+
+if [ "${1:-}" = "--codex-flat" ]; then
+  install_codex_flat
+  exit $?
+fi
 
 echo "Installing vs plugin..."
 install_for claude "claude plugin marketplace add" "claude plugin marketplace update vs" "claude plugin install" "claude plugin update"

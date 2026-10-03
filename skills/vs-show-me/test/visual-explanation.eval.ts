@@ -30,7 +30,7 @@ describe('vs-show-me visual explanation behavior', () => {
     try {
       await promptOnce(
         agent,
-        'Use $vs-show-me to create result.html. Explain a background import job to a product manager. It moves from queued to running, then either succeeds or fails. The running example has completed 3 of 5 tasks. A failed job shows its error and can be retried. Make the lifecycle and each state visually easy to understand. Do not invent other metrics.',
+        'Use $vs-show-me to create result.html. Explain a background import job to a product manager. It moves from queued to running, then either succeeds or fails. The running example has completed 3 of 5 tasks. A failed job shows its error and can be retried. Make the lifecycle and each state visually easy to understand. Do not invent other metrics. Add an interactive prediction exercise: choose queued, running, or failed; predict whether retry is allowed and reveal why. Retrying is allowed only after failure.',
       );
 
       const result = await evaluate(
@@ -40,6 +40,7 @@ describe('vs-show-me visual explanation behavior', () => {
             const file = path.join(workspace, 'result.html');
             return fs.existsSync(file) && sourceBlock(workspace).length > 0;
           }),
+          check('uses-shared-interactive-prediction', ({ workspace }) => /<Prediction\b/.test(sourceBlock(workspace))),
           check('shows-branching-relationship', ({ workspace }) =>
             /```mermaid|<(?:Sequence|Flow)\b/.test(sourceBlock(workspace)),
           ),

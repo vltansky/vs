@@ -2,11 +2,12 @@
   "compilerOptions": {
     "module": "preserve",
     "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
     "noEmit": true,
     "skipLibCheck": true,
     "target": "ES2022",
     "types": ["node", "vitest/globals"]
   },
-  "include": ["skills/*/test/*.ts", "tests/*.ts"],
+  "include": ["skills/*/test/*.ts", "tests/*.ts", "mcp/*.ts"],
   "exclude": ["**/fixtures/**", "**/pathgrade-debug/**"]
 }

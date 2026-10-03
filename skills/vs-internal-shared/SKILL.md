@@ -55,6 +55,7 @@ Paste this inline — skills must stay self-contained in case they're installed 
 ├── verification/ # verification result summaries
 ├── perf/         # performance baselines and evaluator checkpoints
 ├── prototypes/   # prototype questions, decisions, and evidence
+├── videos/       # explain-video scenes, narration, and mp4 output
 ├── improve/      # improvement backlog plans and indexes
 ├── sessions/     # workflow session handoffs
 ├── thread-analysis/ # cross-session thread comparison reports
@@ -85,6 +86,14 @@ Use [`references/explanation-surfaces.md`](./references/explanation-surfaces.md)
 before writing a human-facing explanation. It decides whether the result stays
 in short chat or uses the two-layer chat TLDR plus visual HTMDX contract, how to
 choose a trustworthy visual, and when one useful question belongs.
+
+## STE writing
+
+Use [`references/ste-writing.md`](./references/ste-writing.md) when a skill
+writes procedural or beginner-facing prose: steps, runbooks, PR bodies, and
+from-zero explainers. `vs-write` owns the rules and
+`skills/vs-write/scripts/check-ste.mjs` enforces them; other skills link here
+and run the checker.
 
 ## Agent-owned previews
 
@@ -122,7 +131,7 @@ Never write into the project tree (`docs/`, `.context/`, `.octocode/`) for sessi
 Each user-facing vs skill has a kind classification:
 
 - **Workflow** — takes a loose human goal and drives a full outcome (`vs-shape-it`, `vs-improve`, `vs-build-it`, `vs-ship-it`, `vs-bugfix`, `vs-fix-pr`, `vs-baby-sit`, `vs-chief-of-staff`)
-- **Building block** — owns one bounded job and can be used directly or composed by workflows (`vs-ask`, `vs-search-threads`, `vs-tdd`, `vs-qa`, `vs-before-after`, `vs-tldr`, `vs-eli5`, `vs-eval`, `vs-tune-skill`, `vs-pr-walkthrough`, `vs-verify`, `vs-ponytail`, `vs-deslop`, `vs-perf`, `vs-debug-mode`, `vs-roast-code`, `vs-ui`, `vs-architect`, `vs-octocode`, `vs-show-me`, `vs-rfc-research`, `vs-pushback`, `vs-prototype`, `vs-to-issues`, `vs-steal`, `vs-setup-adr`, `vs-decide-for-me`, `vs-next`, `vs-recap`, `vs-retro`, `vs-try-skill`, `vs-write`)
+- **Building block** — owns one bounded job and can be used directly or composed by workflows (`vs-ask`, `vs-search-threads`, `vs-tdd`, `vs-qa`, `vs-before-after`, `vs-tldr`, `vs-explain-back`, `vs-eli5`, `vs-explain-video`, `vs-eval`, `vs-tune-skill`, `vs-pr-walkthrough`, `vs-verify`, `vs-ponytail`, `vs-deslop`, `vs-perf`, `vs-debug-mode`, `vs-roast-code`, `vs-ui`, `vs-architect`, `vs-octocode`, `vs-show-me`, `vs-rfc-research`, `vs-pushback`, `vs-prototype`, `vs-to-issues`, `vs-steal`, `vs-setup-adr`, `vs-decide-for-me`, `vs-next`, `vs-recap`, `vs-retro`, `vs-try-skill`, `vs-write`)
 
 `vs-internal-shared` is repo-local shared reference material, not a user-facing skill kind.
 

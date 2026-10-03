@@ -111,6 +111,16 @@ describe('pr-media-gate blocks a frontend PR body that shows nothing', () => {
     expect(result.stderr).toMatch(/local path/i);
   });
 
+  it('does not count a merge-risk badge as proof: it shows the risk, not the change', () => {
+    const cwd = repoWithBranch(['src/components/Toggle.tsx']);
+    const badge =
+      '<img alt="Two-way door: easy to revert" src="https://raw.githubusercontent.com/vltansky/vs/master/skills/vs-ship-it/assets/badge-two-way-door.svg">';
+    const result = gate(cwd, `${BEFORE_AFTER}\n${badge}\n`);
+
+    expect(result.status).toBe(1);
+    expect(result.json).toMatchObject({ valid: false, images: 0 });
+  });
+
   it('passes an honest stated gap instead of forcing fabricated media', () => {
     const cwd = repoWithBranch(['src/components/Toggle.tsx']);
     const result = gate(
@@ -278,6 +288,51 @@ describe('pr-media-gate requires a merge-risk classification', () => {
     expect(result.status).toBe(0);
     expect(result.json.mergeDanger).toEqual({ door: true, blastRadius: true });
   });
+
+  it('accepts the merge-risk badges themselves as the labels', () => {
+    const cwd = repoWithBranch(['src/server/auth.ts']);
+    const badge = (file: string) =>
+      `<img alt="${file}" src="https://raw.githubusercontent.com/vltansky/vs/master/skills/vs-ship-it/assets/${file}">`;
+    const result = gate(
+      cwd,
+      `**Before** 401\n\n**After** 200\n\n## Merge risk\n\n${badge('badge-one-way-door.svg')}\n\nThe token table is migrated.\n\n${badge('badge-narrow-blast.svg')}\n\nOne route.\n`,
+    );
+
+    expect(result.status).toBe(0);
+    expect(result.json.mergeDanger).toEqual({ door: true, blastRadius: true });
+  });
+});
+
+describe('record-flow paces video for a human viewer', () => {
+  // A recording that plays each step in under a second shows effects nobody can follow:
+  // the caption must be readable before the action, the pointer must visibly travel, and
+  // the result must stay on screen long enough to register.
+  it('holds each caption long enough to read, then shows the pointer travel and the result', async () => {
+    const { stepPacing } = await import('../scripts/record-pacing.mjs');
+    const click = stepPacing({ caption: 'Click Turn off comments', click: '#off' }, { video: true });
+
+    expect(click.leadMs).toBeGreaterThanOrEqual(1200);
+    expect(click.travelMs).toBeGreaterThanOrEqual(500);
+    expect(click.resultMs).toBeGreaterThanOrEqual(1200);
+  });
+
+  it('gives longer captions more reading time, capped so one step never stalls the clip', async () => {
+    const { captionHoldMs } = await import('../scripts/record-pacing.mjs');
+    const short = captionHoldMs('Open menu');
+    const long = captionHoldMs(
+      'The manager confirms the dialog and every viewer reloads without the comments button',
+    );
+
+    expect(long).toBeGreaterThan(short);
+    expect(long).toBeLessThanOrEqual(4000);
+  });
+
+  it('keeps stills-only runs fast: nobody watches a --no-video capture', async () => {
+    const { stepPacing } = await import('../scripts/record-pacing.mjs');
+    const click = stepPacing({ caption: 'Click Turn off comments', click: '#off' }, { video: false });
+
+    expect(click.leadMs + click.travelMs + click.resultMs).toBeLessThan(600);
+  });
 });
 
 describe('record-flow keeps captions as data and pixels on disk', () => {
@@ -319,6 +374,93 @@ describe('record-flow keeps captions as data and pixels on disk', () => {
   });
 });
 
+// A backend PR proves itself the way a frontend one does: the reviewer sees the contract
+// move. An endpoint change shows one request and both responses; a schema change shows the
+// shape before and after. Prose like "the response now includes X" is an assertion, not proof.
+const ENDPOINT_PROOF =
+  '**Endpoint** `POST /v1/tokens/refresh`\n\n```diff\n {\n-  "token": "a"\n+  "token": "a",\n+  "expiresAt": 1\n }\n```\n';
+const SCHEMA_PROOF =
+  '**Schema** `tokens`\n\n```diff\n CREATE TABLE tokens (\n   id text,\n+  expires_at timestamptz\n );\n```\n';
+
+describe('pr-media-gate requires contract proof for backend changes', () => {
+  it('fails an endpoint change whose body has no request/response comparison', () => {
+    const cwd = repoWithBranch(['src/api/tokens.ts']);
+    const result = gate(cwd, BEFORE_AFTER);
+
+    expect(result.status).toBe(1);
+    expect(result.json).toMatchObject({
+      valid: false,
+      apiFiles: ['src/api/tokens.ts'],
+      contract: { endpoint: false },
+    });
+    expect(result.stderr).toMatch(/\*\*Endpoint\*\*/);
+    expect(result.stderr).toMatch(/same request/);
+  });
+
+  it('passes an endpoint change that shows the response diff for one request', () => {
+    const cwd = repoWithBranch(['src/controllers/tokens.controller.ts']);
+    const result = gate(cwd, `${BEFORE_AFTER}\n${ENDPOINT_PROOF}`);
+
+    expect(result.status).toBe(0);
+    expect(result.json.contract).toEqual({ endpoint: true, schema: true });
+  });
+
+  it('does not accept the Endpoint label without a code block under it', () => {
+    const cwd = repoWithBranch(['src/api/tokens.ts']);
+    const result = gate(cwd, `${BEFORE_AFTER}\n**Endpoint** POST /v1/tokens now returns expiresAt.\n`);
+
+    expect(result.status).toBe(1);
+    expect(result.json.contract.endpoint).toBe(false);
+  });
+
+  it('fails a schema change whose body has no before/after shape', () => {
+    const cwd = repoWithBranch(['db/migrations/0042_add_expiry.sql']);
+    const result = gate(cwd, BEFORE_AFTER);
+
+    expect(result.status).toBe(1);
+    expect(result.json).toMatchObject({
+      schemaFiles: ['db/migrations/0042_add_expiry.sql'],
+      contract: { schema: false },
+    });
+    expect(result.stderr).toMatch(/\*\*Schema\*\*/);
+  });
+
+  it('recognizes common schema sources', () => {
+    const files = [
+      'prisma/schema.prisma',
+      'proto/tokens.proto',
+      'api/openapi.yaml',
+      'src/graphql/schema.graphql',
+      'src/db/schema.ts',
+    ];
+    const cwd = repoWithBranch(files);
+    const result = gate(cwd, `${BEFORE_AFTER}\n${SCHEMA_PROOF}`);
+
+    expect(result.json.schemaFiles).toEqual(expect.arrayContaining(files));
+    expect(result.json.contract.schema).toBe(true);
+  });
+
+  it('accepts an honest per-kind gap, but a frontend gap does not excuse the contract', () => {
+    const cwd = repoWithBranch(['src/api/tokens.ts', 'db/migrations/0042.sql']);
+    const stated = gate(
+      cwd,
+      `${BEFORE_AFTER}\nNo contract change: handler refactor, same responses.\n\nNo schema change: the migration only adds an index.\n`,
+    );
+    expect(stated.status).toBe(0);
+
+    const unrelated = gate(cwd, `${BEFORE_AFTER}\n**Still unverified:** visual proof; no browser.\n`);
+    expect(unrelated.status).toBe(1);
+  });
+
+  it('does not treat UI files or plain server code as an endpoint change', () => {
+    const cwd = repoWithBranch(['src/api/TokenBadge.tsx', 'src/server/auth.ts']);
+    const result = gate(cwd, `${BEFORE_AFTER}\n**Still unverified:** visual proof; no browser.\n`);
+
+    expect(result.json.apiFiles).toEqual([]);
+    expect(result.json.schemaFiles).toEqual([]);
+  });
+});
+
 describe('vs-ship-it runs the gate and never reads the pixels', () => {
   const STEP_3 = SHIP_IT.split('### Step 3')[1]?.split('### Step 4')[0] ?? '';
 
@@ -346,6 +488,16 @@ describe('vs-ship-it runs the gate and never reads the pixels', () => {
     expect(SHIP_IT).toMatch(/- \[ \] Every PR classifies merge risk/);
   });
 
+  it('names the backend proof shapes and the prototype-sharing skills', () => {
+    expect(SHIP_IT).toMatch(/\*\*Endpoint\*\*[^\n]*same\s+request/);
+    expect(SHIP_IT).toMatch(/\*\*Schema\*\*[^\n]*`diff`/);
+    expect(SHIP_IT).toMatch(/No contract change: <why>/);
+    expect(SHIP_IT).toMatch(/No schema change: <why>/);
+    expect(SHIP_IT).toMatch(/`using-wix-stash`/);
+    expect(SHIP_IT).toMatch(/Claude\s+Artifact/);
+    expect(SHIP_IT).toMatch(/- \[ \] Endpoint and schema changes/);
+  });
+
   it('gates the body file on hosted media before gh pr create', () => {
     expect(STEP_3).toMatch(/pr-media-gate\.mjs/);
     expect(STEP_3.indexOf('pr-media-gate.mjs')).toBeGreaterThan(
@@ -355,5 +507,157 @@ describe('vs-ship-it runs the gate and never reads the pixels', () => {
       SHIP_IT.indexOf('gh pr create --title'),
     );
     expect(SHIP_IT).toMatch(/- \[ \] .*pr-media-gate/);
+  });
+});
+
+// Surfaces proof selectors: claim↔path asserts. Door/blast stay risk art; Surfaces
+// name what the reviewer must prove, never new merge-risk SVGs.
+const SURFACES = (line: string) => `## Surfaces\n\n${line}\n`;
+const BODY_WITH = (surfaces: string, extra = '') =>
+  `**Before** x\n\n**After** y\n\n${MERGE_DANGER}\n${SURFACES(surfaces)}${extra}`;
+
+describe('pr-media-gate Surfaces claim↔path asserts', () => {
+  it('fails migration-only when the body stamps UI', () => {
+    const cwd = repoWithBranch(['db/migrations/0042_add_expiry.sql']);
+    const result = gate(cwd, `${BODY_WITH('UI')}\n${SCHEMA_PROOF}`);
+
+    expect(result.status).toBe(1);
+    expect(result.stderr).toMatch(/migration-only|UI/i);
+    expect(result.json.surfaces?.ok).toBe(false);
+  });
+
+  it('fails MCP-wrap-only when the body stamps Endpoint', () => {
+    const cwd = repoWithBranch(['mcp/tools/tokens.ts', 'src/mcp/server.ts']);
+    const result = gate(cwd, BODY_WITH('MCP · Endpoint'));
+
+    expect(result.status).toBe(1);
+    expect(result.stderr).toMatch(/MCP-wrap|Endpoint/i);
+    expect(result.json.surfaces?.ok).toBe(false);
+  });
+
+  it('fails when Infra is stacked with a product surface', () => {
+    const cwd = repoWithBranch([
+      '.github/workflows/ci.yml',
+      'src/components/Toggle.tsx',
+    ]);
+    const result = gate(
+      cwd,
+      `${BODY_WITH('Infra · UI')}\n**Still unverified:** visual proof; no browser.\n`,
+    );
+
+    expect(result.status).toBe(1);
+    expect(result.stderr).toMatch(/Infra/i);
+    expect(result.json.surfaces?.ok).toBe(false);
+  });
+
+  it('fails when the body stamps backend or DB as a surface name', () => {
+    const cwd = repoWithBranch(['src/api/tokens.ts']);
+    const backend = gate(cwd, `${BODY_WITH('backend')}\n${ENDPOINT_PROOF}`);
+    expect(backend.status).toBe(1);
+    expect(backend.stderr).toMatch(/backend|DB/i);
+
+    const db = gate(cwd, `${BODY_WITH('DB · Endpoint')}\n${ENDPOINT_PROOF}`);
+    expect(db.status).toBe(1);
+    expect(db.stderr).toMatch(/backend|DB/i);
+  });
+
+  it('fails >3 product surfaces without matching path classes', () => {
+    // Only UI + Endpoint paths; body stamps four product surfaces.
+    const cwd = repoWithBranch([
+      'src/components/Toggle.tsx',
+      'src/api/tokens.ts',
+    ]);
+    const result = gate(
+      cwd,
+      `${BODY_WITH('UI · Endpoint · Schema · CLI')}\n${ENDPOINT_PROOF}\n**Still unverified:** visual proof; no browser.\n`,
+    );
+
+    expect(result.status).toBe(1);
+    expect(result.stderr).toMatch(/>3|more than 3|without matching/i);
+    expect(result.json.surfaces?.ok).toBe(false);
+  });
+
+
+  it('fails skill-only paths when the body stamps a product Surface', () => {
+    // Skill / docs / gate / manifest only — no UI|Endpoint|Schema|CLI|MCP|Infra path class.
+    const cwd = repoWithBranch([
+      'skills/vs-ship-it/SKILL.md',
+      'skills/vs-ship-it/test/ship-it.static.eval.ts',
+      'package.json',
+    ]);
+    const result = gate(cwd, BODY_WITH('Schema'));
+
+    expect(result.status).toBe(1);
+    expect(result.json.surfaces?.ok).toBe(false);
+    expect(result.json.surfaces?.claimed).toEqual(['Schema']);
+    expect(result.stderr).toMatch(/unmatched|skill-only|Schema/i);
+  });
+
+  it('passes skill-only paths when Surfaces is omitted', () => {
+    const cwd = repoWithBranch([
+      'skills/vs-ship-it/SKILL.md',
+      'skills/vs-internal-shared/scripts/pr-media-gate.mjs',
+    ]);
+    const result = gate(
+      cwd,
+      '**Before** x\n\n**After** y\n\n' + MERGE_DANGER,
+    );
+
+    expect(result.status).toBe(0);
+    expect(result.json.surfaces).toMatchObject({ ok: true, claimed: [] });
+  });
+
+  it('passes a matching Surfaces line for the changed path classes', () => {
+    const cwd = repoWithBranch(['src/api/tokens.ts', 'db/migrations/0042.sql']);
+    const result = gate(cwd, `${BODY_WITH('Endpoint · Schema')}\n${ENDPOINT_PROOF}\n${SCHEMA_PROOF}`);
+
+    expect(result.status).toBe(0);
+    expect(result.json.surfaces).toMatchObject({
+      ok: true,
+      claimed: ['Endpoint', 'Schema'],
+    });
+  });
+
+
+  it('passes Surfaces chips + module bullets for matching path classes', () => {
+    const cwd = repoWithBranch([
+      'src/api/tokens.ts',
+      'db/migrations/0042.sql',
+      'src/components/Toggle.tsx',
+    ]);
+    const chips = [
+      '<img alt="Surface: Endpoint · 2 modules" src="https://raw.githubusercontent.com/vltansky/vs/master/skills/vs-ship-it/assets/badge-surface-endpoint-2.svg">',
+      '<img alt="Surface: Schema · 1 module" src="https://raw.githubusercontent.com/vltansky/vs/master/skills/vs-ship-it/assets/badge-surface-schema-1.svg">',
+      '<img alt="Surface: UI · 1 module" src="https://raw.githubusercontent.com/vltansky/vs/master/skills/vs-ship-it/assets/badge-surface-ui-1.svg">',
+    ].join(' ');
+    const bullets = [
+      '- **Token API** (Endpoint) — refresh handler',
+      '- **Hosting rewrite** (Endpoint) — /api/tokens',
+      '- **tokens table** (Schema) — expiry column',
+      '- **Toggle UI** — settings card',
+    ].join('\n');
+    const surfaces = `${chips}\n\n${bullets}`;
+    const result = gate(
+      cwd,
+      `${BODY_WITH(surfaces)}\n${ENDPOINT_PROOF}\n${SCHEMA_PROOF}\n**Still unverified:** visual proof; no browser.\n`,
+    );
+    expect(result.status).toBe(0);
+    expect(result.json.surfaces).toMatchObject({
+      ok: true,
+      claimed: expect.arrayContaining(['Endpoint', 'Schema', 'UI']),
+    });
+    // Surface chips are catalog art, not visual proof media.
+    expect(result.json.images).toBe(0);
+  });
+
+  it('passes Infra alone on an infra-only PR', () => {
+    const cwd = repoWithBranch(['.github/workflows/ci.yml', 'Dockerfile']);
+    const result = gate(cwd, BODY_WITH('Infra'));
+
+    expect(result.status).toBe(0);
+    expect(result.json.surfaces).toMatchObject({
+      ok: true,
+      claimed: ['Infra'],
+    });
   });
 });

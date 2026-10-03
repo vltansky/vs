@@ -61,8 +61,8 @@ describe('vs-ship-it publishing boundary', () => {
   it('shows the PR format and available proof in the README flow', () => {
     expect(README).not.toContain('Review explicitly approved?');
     expect(README).toMatch(/Prepare PR description<br\/>feature_area: title/);
-    expect(README).toMatch(/Problem \+ one visual \+ Before\/After<br\/>Why this change/);
-    expect(README).toMatch(/User impact<br\/>Evidence \+ gaps<br\/>Merge risk \(Door \/ Blast\)<br\/>Review focus/);
+    expect(README).toMatch(/Problem scenario \(STE100\) \+ Endpoint\/Schema\/UI proof<br\/>What was done/);
+    expect(README).toMatch(/Merge risk \(Door \/ Blast\)<br\/>Surfaces<br\/>Problem scenario \(STE100\) \+ Endpoint\/Schema\/UI proof<br\/>What was done<br\/>User impact<br\/>Evidence \+ gaps<br\/>Review focus/);
     expect(README).toMatch(/Reuse or capture proof<br\/>matched Before\/After screenshots/);
     expect(README).toMatch(/short video for interactions/);
   });
@@ -72,11 +72,13 @@ describe('vs-ship-it independent PR preparation', () => {
   it('prepares reviewer-facing copy without asking for wording approval', () => {
     expect(PR_WORKFLOW).toMatch(/Write the description directly from the live conversation/i);
     expect(PR_WORKFLOW).toMatch(/Do not ask the user to write or approve PR\s+copy/i);
+    expect(PR_WORKFLOW).toContain('## Merge risk');
+    expect(PR_WORKFLOW).toContain('## Surfaces');
     expect(PR_WORKFLOW).toContain('## What Problem This Solves');
-    expect(PR_WORKFLOW).toContain('## Why This Change Was Made');
+    expect(PR_WORKFLOW).toContain('## What Was Done');
+    expect(PR_WORKFLOW).not.toContain('Why This Change Was Made');
     expect(PR_WORKFLOW).toContain('## User Impact');
     expect(PR_WORKFLOW).toContain('## Evidence');
-    expect(PR_WORKFLOW).toContain('## Merge risk');
     expect(PR_WORKFLOW).toContain('## Review focus');
   });
 
@@ -241,6 +243,26 @@ describe('vs-ship-it PR association and stopping point', () => {
     expect(SKILL).toMatch(/visibly separate\s+babysitting phase/i);
   });
 
+  // A/B (ship-it-cost.ab.eval.ts): without this, Claude Code ended the turn on the
+  // creation handoff with "Next: hand off to vs-baby-sit" and never watched CI.
+  it('keeps the creation handoff from ending the turn', () => {
+    expect(SKILL).toMatch(/creation handoff is a progress message,\s+not the end of the turn/i);
+    expect(SKILL).toMatch(/start it in\s+the same turn/i);
+    expect(SKILL).toMatch(/is a skipped phase,\s+not a handoff/i);
+  });
+
+  // The turn ends on babysit's "Review needed" stop, which carried no link, and the
+  // creation handoff hid the URL behind a Markdown label — the PR was hard to find.
+  it('ends every turn with the bare full PR URL as the last line', () => {
+    expect(SKILL).toMatch(/last line of the turn's final message is the\s+bare full PR URL/i);
+    expect(SKILL).toMatch(/Review needed[\s\S]{0,200}bare full PR URL|bare full PR URL[\s\S]{0,300}Review needed/i);
+    expect(SKILL).toMatch(/The final message ends with the bare full PR URL/i);
+  });
+
+  it('does not infer a watch opt-out from missing CI or a sandbox remote', () => {
+    expect(SKILL).toMatch(/No CI workflow in the tree,[\s\S]{0,120}are not opt-outs/i);
+  });
+
   it('ends the composed workflow at a human review gate', () => {
     expect(SKILL).toMatch(/`Review needed: @<user-or-team>`/);
     expect(SKILL).toMatch(/Do\s+not resume watching because auto-merge is armed/i);
@@ -253,22 +275,102 @@ describe('vs-ship-it PR association and stopping point', () => {
   });
 });
 
-describe('vs-ship-it door, blast radius, and summary visual', () => {
+describe('vs-ship-it door, blast radius, and What Problem scenario', () => {
   it('requires Door and Blast radius in the PR body template', () => {
-    expect(PR_WORKFLOW).toMatch(/\*\*Door:\*\*.*one-way.*two-way/i);
-    expect(PR_WORKFLOW).toMatch(/\*\*Blast [Rr]adius:\*\*/);
-    expect(PR_WORKFLOW).toMatch(/## Merge risk|## Blast [Rr]adius|## Door/i);
+    // The badge is the label: the template offers both door choices and a blast choice.
+    expect(PR_WORKFLOW).toMatch(/badge-<one-way \| two-way>-door\.svg/);
+    expect(PR_WORKFLOW).toMatch(/badge-<wide \| narrow>-blast\.svg/);
+    expect(PR_WORKFLOW).toMatch(/## Merge risk/);
   });
 
-  it('requires the leading summary shape to pick one visual from an explicit menu', () => {
-    expect(PR_WORKFLOW).toMatch(/pseudocode/i);
-    expect(PR_WORKFLOW).toMatch(/call tree/i);
-    expect(PR_WORKFLOW).toMatch(/component tree/i);
-    expect(PR_WORKFLOW).toMatch(/file tree/i);
-    expect(PR_WORKFLOW).toMatch(/Mermaid/i);
-    expect(PR_WORKFLOW).toMatch(/Matched diff of that shape/);
-    expect(PR_WORKFLOW).not.toMatch(/occasionally two|sometimes two/i);
-    expect(PR_WORKFLOW).toMatch(/pick \*\*one\*\*|use one|one visual/i);
+  it('requires inline merge-risk badges that match the door and blast lines', () => {
+    const assetsDir = path.resolve(__dirname, '..', 'assets');
+    for (const file of [
+      'badge-two-way-door.svg',
+      'badge-one-way-door.svg',
+      'badge-wide-blast.svg',
+      'badge-narrow-blast.svg',
+    ]) {
+      expect(fs.existsSync(path.join(assetsDir, file))).toBe(true);
+    }
+    expect(
+      fs.existsSync(path.resolve(__dirname, '..', 'scripts', 'generate-badges.mts')),
+    ).toBe(true);
+
+    const RAW =
+      /raw\.githubusercontent\.com\/vltansky\/vs\/master\/skills\/vs-ship-it\/assets\//;
+    expect(PR_WORKFLOW).toMatch(new RegExp(RAW.source + 'badge-two-way-door\\.svg'));
+    expect(PR_WORKFLOW).toMatch(/badge-one-way-door\.svg/);
+    expect(PR_WORKFLOW).toMatch(/badge-wide-blast\.svg/);
+    expect(PR_WORKFLOW).toMatch(/badge-narrow-blast\.svg/);
+    expect(PR_WORKFLOW).toMatch(/Two-way door: easy to revert/);
+    expect(PR_WORKFLOW).toMatch(/One-way door: hard to reverse/);
+    expect(PR_WORKFLOW).toMatch(/Wide blast radius: many consumers/);
+    expect(PR_WORKFLOW).toMatch(/after the assets land on\s+`master`/i);
+    expect(PR_WORKFLOW).toMatch(/Never map one-way to "safe to merge"/i);
+    expect(PR_WORKFLOW).toMatch(/Blast radius\s+is a separate axis from the door/i);
+    expect(PR_WORKFLOW).toMatch(/Walkthrough HTML is out of scope/i);
+    expect(PR_WORKFLOW).toMatch(/embed the wide-blast\s+badge only when blast is wide/i);
+    expect(PR_WORKFLOW).toMatch(/Badges\s+classify risk and are not visual proof/i);
+    // The old full-width illustrations are gone; badges are single-file, theme-neutral.
+    expect(PR_WORKFLOW).not.toMatch(/preset-[a-z-]+\.png/);
+
+    // Body-template skeleton: each badge alone on its line with bullets under it, no
+    // text label; wide-blast lives only in a comment so agents do not stamp it onto narrow PRs.
+    const bodyTemplate =
+      PR_WORKFLOW.match(/````markdown[\s\S]*?````/)?.[0] ?? '';
+    expect(bodyTemplate.length).toBeGreaterThan(0);
+    const templateLive = bodyTemplate.replace(/<!--[\s\S]*?-->/g, '');
+    expect(templateLive).toMatch(/^<img [^>]*badge-two-way-door\.svg">\n\n-/m);
+    expect(templateLive).toMatch(/^<img [^>]*badge-narrow-blast\.svg">\n\n-/m);
+    expect(templateLive).not.toMatch(/\*\*Door:\*\*|\*\*Blast radius:\*\*/);
+    expect(templateLive).not.toMatch(/badge-wide-blast\.svg/);
+    expect(bodyTemplate).toMatch(/<!--[\s\S]*badge-wide-blast\.svg[\s\S]*-->/);
+    expect(bodyTemplate).toMatch(/do not stamp wide-blast/i);
+  });
+
+  it('locks What Problem to STE100 scenario flow with no How in Why', () => {
+    expect(PR_WORKFLOW).toMatch(/ASD-STE100|STE100/i);
+    expect(PR_WORKFLOW).toMatch(/actor\s*→\s*attempt\s*→\s*block|actor → attempt → block/i);
+    expect(PR_WORKFLOW).toMatch(/user\/admin/i);
+    expect(PR_WORKFLOW).toMatch(/\bsystem\b/i);
+    expect(PR_WORKFLOW).toMatch(/either is OK|either OK/i);
+    expect(PR_WORKFLOW).toMatch(/No How in Why/i);
+    expect(PR_WORKFLOW).toMatch(/mintable tokens/i);
+    expect(PR_WORKFLOW).toMatch(/How stays in \*\*Endpoint\*\* \/ \*\*Schema\*\* \/ \*\*UI\*\*|How stays in Endpoint/i);
+    expect(PR_WORKFLOW).toMatch(/not a multi-paragraph prose wall/i);
+    // Template placeholder is scenario, not the old visual menu.
+    const bodyTemplate = PR_WORKFLOW.match(/````markdown[\s\S]*?````/)?.[0] ?? '';
+    expect(bodyTemplate).toMatch(/Short STE100 scenario/i);
+    expect(bodyTemplate).not.toMatch(/single chosen visual|pseudocode,\s*call tree/i);
+  });
+
+  it('writes What Was Done as fix-first bullets with optional mermaid and alternatives', () => {
+    const bodyTemplate = PR_WORKFLOW.match(/````markdown[\s\S]*?````/)?.[0] ?? '';
+    const done = bodyTemplate.split('## What Was Done')[1]?.split('## User Impact')[0] ?? '';
+    expect(done).toMatch(/^- \*\*Fix:\*\*[\s\S]*^- \*\*Cause:\*\*[\s\S]*^- \*\*Why this works:\*\*[\s\S]*^- \*\*Scope:\*\*/m);
+    // Mermaid is conditional: it lives only inside an HTML comment, never live in the template.
+    const live = bodyTemplate.replace(/<!--[\s\S]*?-->/g, '');
+    expect(live).not.toContain('```mermaid');
+    expect(bodyTemplate).toMatch(/<!--\s+Optional mermaid:[\s\S]*```mermaid[\s\S]*-->/);
+    expect(PR_WORKFLOW).toMatch(/never redraw one before\/after\s+decision/i);
+    // Alternatives Considered follows What Was Done, is optional, and bans strawmen.
+    expect(bodyTemplate.indexOf('## Alternatives Considered')).toBeGreaterThan(
+      bodyTemplate.indexOf('## What Was Done'),
+    );
+    expect(bodyTemplate).toMatch(/\| Option \| Why not \|/);
+    expect(bodyTemplate).toMatch(/only when real alternatives were weighed[\s\S]*never\s+invent strawmen/i);
+    expect(PR_WORKFLOW).toMatch(/no prose walls anywhere in the body/i);
+  });
+
+  it('checks for a stale base and unrequested scope before writing the body', () => {
+    const step1 = PR_WORKFLOW.split('### Step 1')[1]?.split('### Step 2')[0] ?? '';
+    expect(step1).toContain('git fetch origin <default>');
+    expect(step1).toContain('git diff --stat origin/<default>...HEAD');
+    expect(step1).toMatch(/rebuild the branch\s+on fresh `origin\/<default>`/);
+    expect(step1).toMatch(/re-apply only the scoped change/);
+    expect(step1).toMatch(/remove unrequested extras[\s\S]*ask once[\s\S]*never ship them silently/i);
+    expect(PR_WORKFLOW).toMatch(/`origin\/<base>` fetched in Step 1, never a stale local ref/);
   });
 
   it('does not add a vs-pr skill or slash', () => {
@@ -276,5 +378,239 @@ describe('vs-ship-it door, blast radius, and summary visual', () => {
     expect(fs.existsSync(path.join(skillsRoot, 'vs-pr'))).toBe(false);
     expect(SKILL).not.toContain('`/vs-pr`');
     expect(SKILL).not.toMatch(/(?:^|[^-\w])\/vs-pr(?:[^-\w]|$)/);
+  });
+});
+
+describe('vs-ship-it merge risk first and Surfaces proof selectors', () => {
+  const bodyTemplate =
+    PR_WORKFLOW.match(/````markdown[\s\S]*?````/)?.[0] ?? '';
+
+  it('puts Merge risk (door + blast) at the top of the body template, before What Problem', () => {
+    expect(bodyTemplate.length).toBeGreaterThan(0);
+    const mergeAt = bodyTemplate.indexOf('## Merge risk');
+    const problemAt = bodyTemplate.indexOf('## What Problem This Solves');
+    const surfacesAt = bodyTemplate.indexOf('## Surfaces');
+    expect(mergeAt).toBeGreaterThan(-1);
+    expect(problemAt).toBeGreaterThan(-1);
+    expect(surfacesAt).toBeGreaterThan(-1);
+    expect(mergeAt).toBeLessThan(problemAt);
+    expect(surfacesAt).toBeGreaterThan(mergeAt);
+    expect(surfacesAt).toBeLessThan(problemAt);
+  });
+
+  it('locks Surfaces vocabulary to UI|Endpoint|Schema|CLI|MCP|Infra', () => {
+    expect(PR_WORKFLOW).toMatch(/## Surfaces/);
+    expect(PR_WORKFLOW).toMatch(/UI · Endpoint · Schema · CLI · MCP/);
+    expect(PR_WORKFLOW).toMatch(/\bInfra\b/);
+    // Endpoint not backend; Schema covers wire + persistence (no separate DB badge).
+    expect(PR_WORKFLOW).toMatch(/Endpoint not backend/i);
+    expect(PR_WORKFLOW).toMatch(/Schema[^\n]*wire[^\n]*persistence|wire \+ persistence/i);
+    expect(PR_WORKFLOW).toMatch(/no separate DB/i);
+    expect(PR_WORKFLOW).toMatch(/Infra only when[^\n]*solely CI\/deploy\/flags\/env/i);
+    expect(PR_WORKFLOW).toMatch(/never stack[^\n]*product surface/i);
+    // Wrapper precedence.
+    expect(PR_WORKFLOW).toMatch(/MCP wrap of unchanged route[^\n]*MCP only/i);
+    expect(PR_WORKFLOW).toMatch(/CLI shim of unchanged MCP[^\n]*CLI only/i);
+  });
+
+  it('omits Surfaces for skill-only when paths prove no product or Infra class', () => {
+    expect(PR_WORKFLOW).toMatch(/Omit Surfaces when paths prove\s+no product surface/i);
+    expect(PR_WORKFLOW).toMatch(/skill-only \/ docs-only/i);
+    expect(PR_WORKFLOW).toMatch(/never invent a product stamp/i);
+    const bodyTemplate =
+      PR_WORKFLOW.match(/````markdown[\s\S]*?````/)?.[0] ?? '';
+    const templateLive = bodyTemplate.replace(/<!--[\s\S]*?-->/g, '');
+    // Template must not present the full vocabulary as a default selected stamp line.
+    expect(templateLive).not.toMatch(/^UI · Endpoint · Schema · CLI · MCP\s*$/m);
+    // Omit rule stays in the Surfaces comment / prose (chips are an example shape).
+    expect(bodyTemplate).toMatch(/Omit Surfaces when paths prove no product surface/i);
+  });
+
+  it('ships door/blast plus counted Surfaces chips; Surfaces are not risk art', () => {
+    const assetsDir = path.resolve(__dirname, '..', 'assets');
+    const badges = fs.readdirSync(assetsDir).filter((f) => f.endsWith('.svg')).sort();
+    const doorBlast = [
+      'badge-narrow-blast.svg',
+      'badge-one-way-door.svg',
+      'badge-two-way-door.svg',
+      'badge-wide-blast.svg',
+    ];
+    const kinds = ['cli', 'endpoint', 'infra', 'mcp', 'schema', 'ui'];
+    const surface = kinds.flatMap((kind) =>
+      [1, 2, 3, 4, 5, 6].map((n) => `badge-surface-${kind}-${n}.svg`),
+    );
+    expect(badges).toEqual([...doorBlast, ...surface].sort());
+    // Generator is the source of truth — counted surface files must exist.
+    expect(
+      fs.existsSync(path.resolve(__dirname, '..', 'scripts', 'generate-badges.mts')),
+    ).toBe(true);
+    expect(PR_WORKFLOW).toMatch(/Surfaces are proof selectors/i);
+    expect(PR_WORKFLOW).toMatch(/not risk art/i);
+    expect(PR_WORKFLOW).toMatch(/badge-surface-\{kind\}-\{n\}\.svg|badge-surface-<kind>-<n>\.svg|badge-surface-endpoint-\{n\}\.svg/);
+    expect(PR_WORKFLOW).toMatch(/#1a7f64/);
+    expect(PR_WORKFLOW).toMatch(/#8250df/);
+    expect(PR_WORKFLOW).toMatch(/#0969da/);
+    expect(PR_WORKFLOW).toMatch(/#57606a/);
+    expect(PR_WORKFLOW).toMatch(/#0e8a7d/);
+    expect(PR_WORKFLOW).toMatch(/#c2530a/);
+    expect(PR_WORKFLOW).toMatch(/Never invent backend\/DB surface names/i);
+    expect(PR_WORKFLOW).not.toMatch(/badge-(?:backend|db)(?:-\d+)?\.svg/i);
+    // Optional CLI/MCP proof blocks stay Later — do not implement in this cut.
+    expect(PR_WORKFLOW).not.toMatch(/\*\*CLI\*\*[^\n]*```/);
+    expect(PR_WORKFLOW).not.toMatch(/\*\*MCP\*\*[^\n]*```/);
+  });
+
+  it('locks Surfaces to one-line chips then deployable-module bullets', () => {
+    const bodyTemplate =
+      PR_WORKFLOW.match(/````markdown[\s\S]*?````/)?.[0] ?? '';
+    const templateLive = bodyTemplate.replace(/<!--[\s\S]*?-->/g, '');
+    expect(templateLive).toMatch(
+      /badge-surface-endpoint-\d+\.svg"> <img [^>]*badge-surface-schema-\d+\.svg"> <img [^>]*badge-surface-ui-\d+\.svg"/,
+    );
+    expect(templateLive).toMatch(/- \*\*<Deployable module>\*\*/);
+    expect(PR_WORKFLOW).toMatch(/ONE line/i);
+    expect(PR_WORKFLOW).toMatch(/deployable module/i);
+    expect(PR_WORKFLOW).toMatch(/Count on chip/i);
+    expect(PR_WORKFLOW).toMatch(/No separate[\s\S]*Affected modules|no separate Affected modules/i);
+    expect(PR_WORKFLOW).toMatch(/Door\/Blast own risk|Door and Blast own/i);
+    expect(PR_WORKFLOW).toMatch(/bullets[\s\S]*not a prose wall|Badge alone on its line; bullets/i);
+  });
+});
+
+describe('vs-ship-it build-when-empty compose', () => {
+  it('runs build-it first when nothing is built yet, then resumes ship-it', () => {
+    expect(SKILL).toMatch(/no scoped changes to publish/i);
+    expect(SKILL).toMatch(/nothing new vs (?:the )?base|commits ahead of the default/i);
+    expect(SKILL).toMatch(/do \*\*not\*\* create an empty PR|do not create an empty PR/i);
+    expect(SKILL).toMatch(/do \*\*not\*\* stop with only ["']?nothing to ship|do not stop with only ["']?nothing to ship/i);
+    expect(SKILL).toMatch(/running build-it first|run(?:ning)? build-it first/i);
+    expect(SKILL).toMatch(/Read and follow[`\s\/]*`?vs-build-it`?/i);
+    expect(SKILL).toMatch(/resume ship-it/i);
+  });
+
+  it('asks once when there is no buildable intent, and does not invent scope', () => {
+    expect(SKILL).toMatch(/buildable intent/i);
+    expect(SKILL).toMatch(/ask once what to build/i);
+    expect(SKILL).toMatch(/do not invent scope/i);
+  });
+
+  it('skips the empty-tree gate inside a build-it→ship-it handoff', () => {
+    expect(SKILL).toMatch(/Do not recurse/i);
+    expect(SKILL).toMatch(/already inside a build-it.?ship-it handoff/i);
+  });
+
+  it('applies the gate before Direct-push and the PR workflow', () => {
+    const gateAt = SKILL.search(/## Nothing built yet/);
+    const chooseAt = SKILL.indexOf('## Choose the outcome');
+    const directAt = SKILL.indexOf('### Direct-push path');
+    const prAt = SKILL.indexOf('## PR workflow');
+    expect(gateAt).toBeGreaterThan(-1);
+    expect(chooseAt).toBeGreaterThan(-1);
+    expect(gateAt).toBeLessThan(chooseAt);
+    expect(gateAt).toBeLessThan(directAt);
+    expect(gateAt).toBeLessThan(prAt);
+  });
+
+  it('composes direct-push empty trees only when a destination was named', () => {
+    expect(SKILL).toMatch(/Direct-push with an empty tree/i);
+    expect(SKILL).toMatch(/only if (?:the )?user named a destination/i);
+    expect(SKILL).toMatch(/prefer (?:the )?PR path after build/i);
+  });
+
+  it('covers skill-only and docs-only planned work that is not implemented yet', () => {
+    expect(SKILL).toMatch(/skill-only \/ docs-only/i);
+    expect(SKILL).toMatch(/planned skill change|not implemented yet/i);
+  });
+});
+
+describe('vs-ship-it What Problem Why-block gate (fixtures)', () => {
+  /** Score a Why / What-problem block: null = pass, string = fail reason. */
+  function whyGateFailure(why: string): string | null {
+    const trimmed = why.trim();
+    if (!trimmed) return 'empty Why';
+
+    // Multi-paragraph / multi-line wall (blank-line blocks OR 2+ non-empty lines).
+    const paragraphs = trimmed.split(/\n\s*\n/).map((p) => p.trim()).filter(Boolean);
+    const lines = trimmed.split(/\n/).map((l) => l.trim()).filter(Boolean);
+    if (paragraphs.length > 1 || lines.length > 1) return 'multi-paragraph prose wall';
+
+    const howKeywords: Array<[RegExp, string]> = [
+      // Domain-agnostic How shapes (catch generic mechanism leakage).
+      [/\bthis PR adds\b/i, 'this PR adds'],
+      [/\bwe introduce\b/i, 'we introduce'],
+      [/\bnew (?:HTTPS )?endpoint\b/i, 'new endpoint'],
+      [/\bnew (?:HTTPS )?route/i, 'new route as solution'],
+      [/\b(?:Hosting\s+)?rewrite\b/i, 'rewrite as solution'],
+      [/\b(?:Firestore\s+)?collections?\b/i, 'collections as solution'],
+      [/\bmigration\b/i, 'migration as solution'],
+      // Exemplar-only (playground / token domain) — same How smell, product-local words.
+      [/\bmintable\b/i, 'mintable tokens'],
+      [/\btoken\s+mint/i, 'token mint'],
+      [/\bmint(?:able)?(?:,|\s+revocable|\s+staff|\s+tokens)/i, 'mint/tokens as solution'],
+      [/\bstaffApiTokens\b/, 'staffApiTokens'],
+      [/\bpiggyback(?:ing)?\s+(?:MCP\s+)?OAuth\b/i, 'OAuth piggyback as solution'],
+      [/\bwithout piggybacking\b/i, 'OAuth piggyback phrasing'],
+      [/\bsame JSON shape\b/i, 'JSON shape as solution'],
+      [/\bAdmin-SDK-only\b/i, 'Admin-SDK-only as solution'],
+    ];
+    for (const [re, label] of howKeywords) {
+      if (re.test(trimmed)) return `How keyword: ${label}`;
+    }
+
+    // Scenario flow must read as actor → attempt → block (always require an arrow).
+    if (!/(?:→|->)/.test(trimmed)) {
+      return 'missing scenario arrows';
+    }
+
+    return null;
+  }
+
+  const FAIL_HOW = `Agents cannot curl the WhatsApp Assistant Playground preview without a browser Firebase Auth session. Admins need mintable, revocable staff tokens so automation can hit a preview-only HTTPS route with the same JSON shape as the existing onCall Playground path — without piggybacking MCP OAuth or live send.`;
+
+  const FAIL_WALL = `Agents cannot reach the preview endpoint.
+Admins also need a better auth story for automation.
+The platform should expose something safer than a browser session.`;
+
+  const FAIL_ARROWLESS =
+    'Agents cannot curl the Playground preview without a browser Firebase Auth session.';
+
+  const PASS_SYSTEM =
+    'Agent sends `POST /api/assistant/preview` → request fails → only a browser Firebase Auth session works.';
+  const PASS_USER =
+    'Admin needs an agent to call Playground preview → agent has no browser session → call is blocked.';
+
+  it('FAILS when Why contains How keywords or is a multi-paragraph wall', () => {
+    expect(whyGateFailure(FAIL_HOW)).toMatch(/How keyword|mintable/i);
+    expect(whyGateFailure(FAIL_WALL)).toBe('multi-paragraph prose wall');
+    expect(whyGateFailure('This PR adds staffApiTokens and a Hosting rewrite.')).toMatch(
+      /How keyword/i,
+    );
+    expect(
+      whyGateFailure(
+        'We add mintable tokens so agents can call the route without piggybacking MCP OAuth.',
+      ),
+    ).toMatch(/How keyword/i);
+    // Domain-agnostic How (not playground/token-specific).
+    expect(whyGateFailure('this PR adds a new endpoint')).toMatch(/How keyword/i);
+    expect(
+      whyGateFailure('we introduce a rewrite / collection / migration'),
+    ).toMatch(/How keyword/i);
+  });
+
+  it('FAILS when Why has no scenario arrow', () => {
+    expect(whyGateFailure(FAIL_ARROWLESS)).toBe('missing scenario arrows');
+    expect(
+      whyGateFailure('Admin needs preview access but the agent is blocked.'),
+    ).toBe('missing scenario arrows');
+  });
+
+  it('PASSES on short STE100 scenario flows (system and user/admin)', () => {
+    expect(whyGateFailure(PASS_SYSTEM)).toBeNull();
+    expect(whyGateFailure(PASS_USER)).toBeNull();
+  });
+
+  it('documents both perspectives as examples in the skill', () => {
+    expect(PR_WORKFLOW).toMatch(/Agent sends `POST \/api\/assistant\/preview`/i);
+    expect(PR_WORKFLOW).toMatch(/Admin needs an agent to call Playground preview/i);
   });
 });

@@ -103,8 +103,8 @@ Publishes the scoped work and reports its CI and review status.
 flowchart TD
     I[Permission to publish] --> D{PR or direct push?}
     D -- PR --> C["Check, commit, push<br/>/vs-eval for skill contracts"]
-    C --> B["Prepare PR description<br/>feature_area: title<br/>Problem + one visual + Before/After<br/>Why this change<br/>User impact<br/>Evidence + gaps<br/>Merge risk (Door / Blast)<br/>Review focus"]
-    B --> M["Reuse or capture proof<br/>matched Before/After screenshots<br/>short video for interactions<br/>paired output, key diff hunk, mermaid flow"]
+    C --> B["Prepare PR description<br/>feature_area: title<br/>Merge risk (Door / Blast)<br/>Surfaces<br/>Problem scenario (STE100) + Endpoint/Schema/UI proof<br/>What was done<br/>User impact<br/>Evidence + gaps<br/>Review focus"]
+    B --> M["Reuse or capture proof<br/>matched Before/After screenshots<br/>short video for interactions<br/>paired output, key diff hunk, optional mermaid"]
     M --> O[Create and verify a regular PR] --> L{10+ changed files?}
     L -- yes --> T["Start exact-head walkthrough asynchronously<br/>/vs-pr-walkthrough"] --> W["Follow CI and GitHub review<br/>repairs go draft until the new head is green<br/>/vs-baby-sit"]
     L -- no --> W
@@ -201,7 +201,9 @@ Architecture: /vs-architect -> /vs-shape-it -> /vs-build-it
 | `/vs-write` | Write or reshape clear prose without losing substance |
 | `/vs-before-after` | Show the functional behavior before and after a diff |
 | `/vs-tldr` | Compress the last explanation: shorter and simpler, same meaning |
+| `/vs-explain-back` | Rewrite the user's messy explanation as a clean proposal, then ask clarifying questions |
 | `/vs-eli5` | Explain from zero with big pictures and few words, via `/vs-show-me` |
+| `/vs-explain-video` | Make a short narrated explainer video of a topic, code path, or PR |
 | `/vs-eval` | Write PathGrade static pins and live evals with exclusive contracts, not slogan mentions |
 | `/vs-tune-skill` | Grade one named skill from local chats and propose a scratch diff |
 | `/vs-pr-walkthrough` | Turn a large GitHub PR into an interactive diff ordered as a logical story |
@@ -257,6 +259,14 @@ codex plugin add vs@vs
 ```
 
 Codex refreshes Git marketplaces and installed plugins automatically at startup.
+The plugin includes the bundled `vs-artifact` MCP server for `/vs-show-me` and
+`/vs-eli5`.
+
+For a flat Codex install from a local checkout, run `./install.sh --codex-flat`
+or `./install.ps1 --codex-flat` on Windows. This copies the VS skills and the
+bundled server into `CODEX_HOME` and registers `vs-artifact` with `codex mcp`.
+Restart Codex to load the new tools. Copying a skill directory alone does not
+register MCP; the HTML, URL, screenshot, and chat summary fallback still works.
 
 #### Claude Code
 
@@ -278,7 +288,7 @@ git clone https://github.com/vltansky/vs ~/.cursor/plugins/local/vs
 ```
 
 You can also copy any self-contained directory under `skills/` into your agent's
-skills folder.
+skills folder. Use the flat installer above when you want MCP App presentation.
 
 ## Included tooling
 

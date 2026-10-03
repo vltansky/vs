@@ -261,6 +261,28 @@ artifact reflects it. For `simplify`, apply
 familiar words and short sentences, explain necessary terms, and preserve the
 source's meaning, facts, and important details.
 
+## Interactive explanations
+
+For a causal explanation or tradeoff the reader can learn by varying an input,
+include one small `<Prediction>` experiment from the shared catalog. Choose two
+to four meaningful setups; use its native controls to change the setup, predict
+an outcome, then reveal the result and its reason. The component resets the
+prediction and reveal when the setup changes. Use the same component for
+`/vs-eli5`; do not build a second interaction framework.
+
+Keep the core explanation and visual model readable before any click. Use
+source-backed scenarios; label invented numbers and rules as an illustrative
+simulation, never live measurements. Check a wrong prediction, a correct one,
+and a setup change after reveal in the browser, including keyboard use.
+`Read all answers` provides a direct reading path. The experiment works locally
+inside MCP Apps and in the standalone HTML fallback, without WebMCP or new
+network calls. Do not claim a click sends context to the chat agent.
+
+Skip the experiment for a static fact, report, or proposal where changing an
+input adds no learning value. A plain prediction or recall prompt with nearby
+feedback is enough there. Keep this to one explanation, with no scores,
+persistence, learning records, or lesson navigation.
+
 ## Authored WebMCP tools
 
 Do not register a tool merely to read the artifact—the source and rendered page
@@ -529,6 +551,31 @@ it. Score handoffs with `skills/vs-show-me/scripts/reject-htmdx-handoff.mjs`
 (identity `785c48021f874e6ec5b61cbdd4919886a2c003c1ad14d12426c9f1080ca0a217`;
 exit 1 is a fail). Exclusive cases live under `test/fixtures/handoff`.
 `Shot:` is a real image path, or `Shot failed: <reason>`. `Shot: n/a` is not a shot.
+
+
+## MCP Apps host (progressive enhancement)
+
+When the host supports MCP Apps, present the saved HTMDX artifact as App UI
+after it is on disk. When it does not, keep the portable `.html` + URL +
+first-screen shot + TLDR path. Load and follow:
+
+[../vs-internal-shared/references/mcp-apps-host.md](../vs-internal-shared/references/mcp-apps-host.md)
+
+Branch:
+
+- **App-capable host** → after save/verify, present via MCP App using
+  `ui://vs/show-me` (`text/html;profile=mcp-app`), with critical payload in
+  `content` / `structuredContent` and `_meta.ui.resourceUri` (optional
+  `openai/outputTemplate` alias). Shape helper:
+  `node scripts/mcp-app-resource-shape.mjs --skill show-me --html "$ARTIFACT_PATH"`.
+  Call `mcp__vs_artifact__vs_show_me` (or the host's `vs.show-me` equivalent)
+  with the saved artifact path when available. If the call is unavailable or
+  fails, use the file, URL, and shot handoff below.
+- **Non-App host (e.g. Grok Bot)** → mandatory fallback: existing HTMDX file +
+  URL + first-screen shot + TLDR. Do not skip the fallback because an App path
+  exists in the reference.
+
+If CDN-pinned HTMDX cannot load in an App iframe, keep the file fallback; do not introduce a bundler here. OpenAI sidebar/file/composer entrypoints are out of scope.
 
 ## Flow Contract
 

@@ -1,13 +1,16 @@
 ---
 name: vs-pr-walkthrough
-description: "Use when a large or unfamiliar GitHub PR is hard to read in GitHub's alphabetical file order, or the user asks for a logical walkthrough of a PR. Produces one interactive HTML diff ordered as a step-by-step product or execution story."
+description: "Use when a large or unfamiliar GitHub PR is hard to read in GitHub's alphabetical file order, or the user asks for a logical walkthrough of a PR. Produces one interactive HTML walkthrough ordered as a step-by-step product or execution story with a pseudocode section spine, pair-file cards, and click-expand real hunks."
 ---
 
 # PR Walkthrough
 
 Turn a large GitHub PR into a review surface that reads from cause to effect.
-The artifact contains the complete diff, but orders files by the product journey
-or execution path instead of by directory.
+The HTML orders the change as a product or execution story with a short
+pseudocode spine per section, then one pair-file card per path (pair-file
+pseudocode + click-expand real hunks, collapsed by default). Real code also
+opens on GitHub via blob-at-headSha links (plus the PR URL and exact head SHA
+commit link).
 
 Based on the original `pr-walkthrough` skill by **Oren Roth**.
 
@@ -102,19 +105,61 @@ behavioral stages; never split one stage merely to hit a number.
 Each section must:
 
 - say what happens, not name a directory;
-- contain files in first-needed reading order;
-- explain what the step establishes for the next section;
+- list `files` in first-needed reading order — each entry is a pair-file object
+  `{ path, pseudocode }` (legacy bare string paths are accepted only as a
+  migration shape; with a diff present, pair-file `pseudocode` is required for
+  every rendered card and fail-closed otherwise);
+- carry a short fenced language-agnostic `pseudocode` **section spine**
+  (required) that the reader can use to predict the next step;
+- keep `lede` optional and secondary — at most one line of context, not the
+  primary spine;
 - use `watch` for a verified decision, assumption, workaround, or uncertainty
-  the diff cannot explain by itself.
+  the story cannot explain by itself.
 
-Place each file exactly once. Cross-reference a file in prose instead of
-duplicating its diff. Put generated files, registrations, snapshots, and
-lockfiles in a final `Aside · Plumbing` section.
+### Section spine + pair-file cards + click-expand real hunks
 
-Narrative fields accept only `<b>`, `<i>`, `<em>`, `<strong>`, `<code>`, and
-`<br>` with no attributes. Everything else is escaped, including private source
-code. Use `notes` sparingly for context immediately above one exact file path,
-and `path_prefix` when a monorepo prefix adds visual noise.
+The HTML contract is three layers:
+
+1. **Section spine** — short fenced language-agnostic `pseudocode` per section
+   (~12 non-empty lines max), same litmus as before.
+2. **Pair-file cards** — under each section, one card per path in `files`
+   reading order. Each card shows:
+   - the file path;
+   - short **pair-file pseudocode** (language-agnostic, what THAT file’s change
+     does — not a real TS/Python dump; ~12 lines max; reject oversize);
+   - a **Show real diff** control that expands/collapses the green/red unified
+     hunks **in place** for that file only (collapsed by default);
+   - a small GitHub blob link at headSha:
+     `https://github.com/<owner>/<repo>/blob/<headSha>/<path>`
+     (deleted files may 404 at tip — known Low residual, do not block).
+3. **Real hunks** come back into the HTML, but ONLY behind the click-expand
+   control — not always-visible panels like the pre-pseudocode-only layout.
+
+Constraints:
+
+- Language-agnostic: not a real TypeScript/Python dump, not a line-by-line
+  prose tour of the algorithm.
+- About **~12 lines** max for both section and pair-file pseudocode (the
+  renderer rejects more than 12 non-empty lines).
+- Litmus inspired by `/vs-show-me`: use full conditional pseudocode when the
+  reader must **predict the next step under a condition**; keep
+  **who/what connects** sections lighter (still a short `pseudocode` block,
+  just fewer branches). Do not turn every section into three surfaces.
+- This does **not** change `/vs-ship-it` Summary pick-one — that firewall stays
+  untouched. Do not change pathgrade.
+
+Place each file exactly once across `files` arrays — that order is both the
+strict placement map and the HTML reading-order card list. Cross-reference a
+file in prose instead of duplicating it. Put generated files, registrations,
+snapshots, and lockfiles in a final `Aside · Plumbing` section. `pr.diff` is
+fetched for authoring order, strict placement, and the click-expand hunk
+panels.
+
+Narrative fields (`intro`, `subtitle`, `pr_label`, `lede`, `watch`,
+`notes[].text`) accept only `<b>`, `<i>`, `<em>`, `<strong>`, `<code>`, and
+`<br>` with no attributes. Everything else is escaped. Section and pair-file
+`pseudocode` are plain text rendered as escaped fenced blocks, not rich HTML.
+Use `notes` sparingly for authoring context tied to an exact file path.
 
 ## 4. Render strictly
 
@@ -127,17 +172,19 @@ node <this-skill-dir>/scripts/render-walkthrough.mjs config.json \
 ```
 
 The original positional CLI, optional renderer-side diff fetching, `subtitle`,
-`pr_label`, `path_prefix`, configurable `fold`, rich narrative allowlist,
-per-file `notes`, and self-contained syntax highlighting are all supported. If
-`--diff` is omitted, the renderer confirms the live PR still equals `headSha`
-before fetching the diff. The captured-diff form above is preferred in VS
-because it also serves as durable review evidence.
+`pr_label`, configurable `fold`, rich narrative allowlist, and per-file `notes`
+(for authoring/order validation) are all supported. If `--diff` is omitted, the
+renderer confirms the live PR still equals `headSha` before fetching the diff.
+The captured-diff form above is preferred in VS because it also serves as
+durable authoring evidence.
 
 Rendering fails when:
 
 - a changed file is missing from the section map;
 - a file is listed twice;
 - a listed path is absent from the exact diff;
+- a pair-file card lacks required `pseudocode` when a diff is present;
+- section or pair-file pseudocode exceeds ~12 non-empty lines;
 - the PR URL, head SHA, section ID, or config shape is invalid.
 
 Do not weaken or bypass these checks. An incomplete map makes the ordering
@@ -145,16 +192,15 @@ untrustworthy, and a stale map can explain code that is no longer in the PR.
 
 The saved page must provide:
 
-- the original GitHub-native, single-column walkthrough UI;
-- the full unified diff grouped by the authored story;
-- per-file and per-section viewed controls;
+- a single-column walkthrough UI ordered as the authored story;
+- per-section short fenced language-agnostic pseudocode (the section spine);
+- per-file cards with pair-file pseudocode, Show real diff click-expand
+  (collapsed by default), and blob-at-headSha links;
+- real unified hunks only behind that expand control (not always-visible);
+- PR URL and exact head SHA commit link(s);
+- per-section viewed controls;
 - progress persisted by PR URL plus exact head SHA;
-- direct GitHub links for files and changed lines;
-- collapse controls, with tests and plumbing folded by default;
-- self-contained syntax highlighting for TypeScript/JavaScript, JVM languages,
-  Python, JSON, CSS, shell, and YAML;
-- optional ticket/team subtitle, custom PR label, shortened display paths, and
-  exact-path notes.
+- optional ticket/team subtitle, custom PR label, and watch items.
 
 ## 5. Verify the artifact
 
@@ -162,9 +208,10 @@ Verify both mechanics and the rendered page:
 
 1. Re-fetch the PR head SHA and confirm it still equals `config.json.headSha`.
 2. Run the renderer again; strict placement must pass with no ignored files.
-3. Open the HTML and verify the title, first section, diff rows, progress, and
-   one GitHub line link.
-4. Mark one file viewed, reload, and confirm exact-head progress persists.
+3. Open the HTML and verify the title, first section, section spine, pair-file
+   cards, collapsed Show real diff controls, progress, and the PR URL plus head
+   SHA links.
+4. Mark one section read, reload, and confirm exact-head progress persists.
 5. Capture a first-screen screenshot.
 
 The page needs custom stateful behavior, so it is bespoke HTML rather than
@@ -176,8 +223,9 @@ through HTMDX.
 
 Start from the previous config, capture the new exact head and diff, then
 re-read every changed or newly added file before updating the narrative. Never
-carry a `watch`, note, or lede forward merely because its file path still
-exists. Viewed state intentionally starts fresh for the new head SHA.
+carry a `watch`, note, `lede`, section `pseudocode`, or pair-file `pseudocode`
+forward merely because its file path still exists. Viewed state intentionally
+starts fresh for the new head SHA.
 
 ## VS adaptations
 
@@ -213,8 +261,9 @@ Do not paste the walkthrough or diff into chat.
 - **Kind:** Building block
 - **Inputs:** a GitHub PR URL or number, its exact head SHA, complete unified
   diff, and enough surrounding code to establish reading order
-- **Outputs:** one interactive HTML walkthrough plus its JSON source map and
-  captured diff
+- **Outputs:** one interactive HTML walkthrough (section spine, pair-file
+  cards with click-expand real hunks) plus its JSON source map and optional
+  captured diff for authoring
 - **Status:** `READY_FOR_REVIEW | BLOCKED_STALE_HEAD | BLOCKED_INCOMPLETE_MAP | SKIPPED_SMALL_PR`
 - **Consumers:** direct human invocation, onboarding a reviewer to an
   unfamiliar PR, and `vs-ship-it` for automatic large-PR review handoff

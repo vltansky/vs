@@ -51,9 +51,23 @@ describe('demo evidence capture', () => {
     const { events, manifest } = exercise('success');
     expect(events.indexOf('assert')).toBeLessThan(events.indexOf('still'));
     expect(events.indexOf('close')).toBeLessThan(events.indexOf('video-path'));
-    expect(events.filter((e: unknown) => ['move', 'down', 'up'].includes(String(e)))).toEqual(['move', 'down', 'up']);
+    // Consecutive moves are one visible pointer travel; the press still follows it.
+    const pointer = events
+      .filter((e: unknown) => ['move', 'down', 'up'].includes(String(e)))
+      .filter((e: unknown, i: number, all: unknown[]) => e !== 'move' || all[i - 1] !== 'move');
+    expect(pointer).toEqual(['move', 'down', 'up']);
     expect(manifest).toMatchObject({ revision: 'abc123', scenario: 'retry', visualInspection: 'pending' });
     expect(manifest.checkpoints).toHaveLength(1);
+  });
+  it('paces the clip for a viewer: the pointer travels and each checkpoint holds', () => {
+    const { events } = exercise('success');
+    const waits = (from: number, to: number) =>
+      events.slice(from, to).filter((e: unknown) => typeof e === 'number').reduce((a: number, b: number) => a + b, 0);
+    const firstMove = events.indexOf('move');
+    const down = events.indexOf('down');
+    expect(events.filter((e: unknown) => e === 'move').length).toBeGreaterThan(1);
+    expect(waits(firstMove, down)).toBeGreaterThanOrEqual(900);
+    expect(waits(events.indexOf('assert'), events.indexOf('still'))).toBeGreaterThanOrEqual(1200);
   });
   it.each(['fail', 'empty'])('closes failed %s recordings without a success manifest', mode => {
     const { events, error, manifest } = exercise(mode);

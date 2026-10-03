@@ -1,0 +1,49 @@
+<!doctype html>
+<!--
+  Explain-video scene template. Copy one file per scene, keep one idea per scene.
+  Time each build with --at (seconds from scene start) so it lands on the
+  narration word it illustrates. render-scenes.mjs pauses and seeks every CSS
+  animation, so only CSS/Web Animations or window.seek(t) move on screen.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<style>
+  :root {
+    --bg: #171717; --ink: #ece6e2; --muted: #8a8a8a;
+    --blue: #58c4dd; --yellow: #f7d96f; --green: #83c167; --red: #fc6255;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  html, body { width: 1280px; height: 720px; overflow: hidden; background: var(--bg); color: var(--ink); }
+  body { font: 34px/1.35 "CMU Serif", "Latin Modern Roman", Georgia, serif; display: grid; place-items: center; }
+  .stage { width: 1120px; display: grid; gap: 36px; justify-items: center; text-align: center; }
+  h1 { font-weight: 400; font-size: 52px; }
+  .label { fill: var(--ink); font: 28px "CMU Serif", Georgia, serif; }
+  .caption { color: var(--muted); font-size: 28px; }
+
+  /* Builds: fade + rise, and stroke "write-on" like Manim's Create; pop for a highlight. */
+  .fade { animation: fade .6s ease-out both; animation-delay: var(--at, 0s); }
+  .write { stroke-dasharray: var(--len, 1200); stroke-dashoffset: var(--len, 1200);
+           animation: write 1.2s ease-in-out both; animation-delay: var(--at, 0s); }
+  .pop { animation: pop .7s ease-out both; animation-delay: var(--at, 0s); transform-box: fill-box; transform-origin: center; }
+  @keyframes fade { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+  @keyframes write { to { stroke-dashoffset: 0; } }
+  @keyframes pop { from { opacity: 0; transform: scale(.3); } 60% { opacity: 1; transform: scale(1.25); } to { opacity: 1; transform: none; } }
+</style>
+</head>
+<body>
+  <main class="stage">
+    <h1 class="fade" style="--at: 0s">Why does the cache miss?</h1>
+    <svg width="900" height="260" viewBox="0 0 900 260" fill="none" stroke-width="4">
+      <rect class="write" style="--at: .6s; --len: 760" x="40" y="70" width="240" height="120" rx="14" stroke="#58c4dd"/>
+      <text class="label fade" style="--at: 1.2s" x="160" y="140" text-anchor="middle">request</text>
+      <path class="write" style="--at: 2s; --len: 340" d="M290 130 H610" stroke="#ece6e2"/>
+      <path class="fade" style="--at: 3s" d="M596 116 L614 130 L596 144" stroke="#ece6e2"/>
+      <rect class="write" style="--at: 3s; --len: 760" x="620" y="70" width="240" height="120" rx="14" stroke="#f7d96f"/>
+      <text class="label fade" style="--at: 3.6s" x="740" y="140" text-anchor="middle">cache</text>
+      <circle class="pop" style="--at: 4.4s" cx="740" cy="220" r="10" fill="#fc6255" stroke="none"/>
+    </svg>
+    <p class="caption fade" style="--at: 4.6s">The key changes on every request.</p>
+  </main>
+</body>
+</html>

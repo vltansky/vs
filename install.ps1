@@ -97,6 +97,33 @@ function Install-CodexHook {
   }
 }
 
+# Flat skills do not load plugin MCP manifests, so use a stable server copy.
+function Install-CodexFlat {
+  if (-not (Get-Command codex -ErrorAction SilentlyContinue) -or -not (Get-Command node -ErrorAction SilentlyContinue)) {
+    throw 'codex and node are required for a flat install'
+  }
+  & node -e 'process.exit(Number(process.versions.node.split(".")[0]) >= 22 ? 0 : 1)'
+  if ($LASTEXITCODE -ne 0) { throw 'node 22 or newer is required for the bundled MCP server' }
+  if (-not $PSScriptRoot -or -not (Test-Path -LiteralPath (Join-Path $PSScriptRoot 'mcp/dist/server.mjs')) -or -not (Test-Path -LiteralPath (Join-Path $PSScriptRoot 'mcp/dist/view.html'))) {
+    throw 'flat install needs a local vs checkout with the MCP bundle; run npm ci and npm run build:mcp there'
+  }
+  $codexHome = if ($env:CODEX_HOME) { $env:CODEX_HOME } else { Join-Path $HOME '.codex' }
+  $skillsHome = Join-Path $codexHome 'skills'
+  $serverDir = Join-Path $codexHome 'mcp/vs-artifact'
+  New-Item -ItemType Directory -Force -Path $skillsHome, $serverDir | Out-Null
+  Get-ChildItem -LiteralPath (Join-Path $PSScriptRoot 'skills') -Directory -Filter 'vs-*' | ForEach-Object {
+    if (-not (Test-Path -LiteralPath (Join-Path $_.FullName 'SKILL.md'))) { return }
+    $dest = Join-Path $skillsHome $_.Name
+    New-Item -ItemType Directory -Force -Path $dest | Out-Null
+    Get-ChildItem -LiteralPath $_.FullName -Force | ForEach-Object { Copy-Item -LiteralPath $_.FullName -Destination $dest -Recurse -Force }
+  }
+  Copy-Item -LiteralPath (Join-Path $PSScriptRoot 'mcp/dist/server.mjs'), (Join-Path $PSScriptRoot 'mcp/dist/view.html') -Destination $serverDir -Force
+  $serverPath = Join-Path $serverDir 'server.mjs'
+  & codex mcp add vs-artifact -- node $serverPath
+  if ($LASTEXITCODE -ne 0) { throw "codex MCP registration failed; retry with codex mcp add vs-artifact -- node $serverPath" }
+  Write-Ok 'codex: flat skills and vs-artifact MCP installed'
+}
+
 function Remove-Path {
   param([string]$Path)
   if (-not (Test-Path -LiteralPath $Path)) { return }
@@ -149,6 +176,11 @@ function Install-Cursor {
   }
   Remove-Path $tmp
   Write-Fail 'cursor: clone failed'
+}
+
+if ($args.Count -gt 0 -and $args[0] -eq '--codex-flat') {
+  Install-CodexFlat
+  return
 }
 
 Write-Host 'Installing vs plugin...'

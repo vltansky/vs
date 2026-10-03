@@ -19,6 +19,8 @@
 // Captions are data: they are drawn into the page (so every still and video frame carries
 // its own annotation), written to captions.vtt, and listed in manifest.json. The model
 // reads the manifest to write the PR body; it never has to open an image.
+// Video is paced for a viewer (record-pacing.mjs): read the caption, watch the pointer travel,
+// see the result. --no-video keeps only the settle a screenshot needs.
 //
 // Playwright is resolved from PLAYWRIGHT_MODULE, then from the working directory. The vs
 // plugin ships no browser dependency on purpose: the project under test already has one.
@@ -31,6 +33,7 @@ import { createRequire } from 'node:module';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { cursorOverlayScript } from './cursor-overlay.mjs';
+import { flowPacing, stepPacing, travelPointer } from './record-pacing.mjs';
 
 const ACTION_KEYS = ['click', 'hover', 'type', 'press', 'goto', 'scroll', 'waitFor', 'wait'];
 const STEP_KEYS = new Set(['caption', 'still', ...ACTION_KEYS]);
@@ -173,9 +176,12 @@ const setCaption = async (text) => {
   }, text);
 };
 
+const pace = flowPacing({ video: wantVideo });
+let pointer = { x: viewport.width / 2, y: viewport.height / 2 };
+
 // Real pointer coordinates: element.click() fires no pointer events, so the cursor overlay
 // would draw nothing and the video would show effects without a cause.
-const moveTo = async (selector) => {
+const moveTo = async (selector, travelMs) => {
   const locator = page.locator(selector).first();
   await locator.waitFor({ state: 'visible' });
   await locator.scrollIntoViewIfNeeded();
@@ -183,24 +189,25 @@ const moveTo = async (selector) => {
   if (!box) throw new Error(`${selector} has no bounding box`);
   const x = box.x + box.width / 2;
   const y = box.y + box.height / 2;
-  await page.mouse.move(x, y, { steps: 12 });
-  return { x, y };
+  await travelPointer(page, pointer, { x, y }, travelMs);
+  pointer = { x, y };
+  return pointer;
 };
 
-const runAction = async (step) => {
+const runAction = async (step, timing) => {
   if (step.goto) await page.goto(step.goto, { waitUntil: 'load' });
-  if (step.hover) await moveTo(step.hover);
+  if (step.hover) await moveTo(step.hover, timing.travelMs);
   if (step.click) {
-    await moveTo(step.click);
+    await moveTo(step.click, timing.travelMs);
     await page.mouse.down();
-    await page.waitForTimeout(90);
+    await page.waitForTimeout(timing.pressMs);
     await page.mouse.up();
   }
   if (step.type) {
-    await moveTo(step.type.selector);
+    await moveTo(step.type.selector, timing.travelMs);
     await page.mouse.down();
     await page.mouse.up();
-    await page.keyboard.type(step.type.text, { delay: 45 });
+    await page.keyboard.type(step.type.text, { delay: timing.typeDelayMs });
   }
   if (step.press) await page.keyboard.press(step.press);
   if (step.scroll) await page.mouse.wheel(0, step.scroll);
@@ -211,15 +218,20 @@ const runAction = async (step) => {
 const steps = [];
 try {
   await page.goto(flow.url, { waitUntil: 'load' });
-  await page.mouse.move(viewport.width / 2, viewport.height / 2);
+  await page.mouse.move(pointer.x, pointer.y);
+  if (pace.startMs > 0) await page.waitForTimeout(pace.startMs);
   for (const [index, step] of flow.steps.entries()) {
     const atMs = elapsed();
     if (typeof step.caption === 'string') await setCaption(step.caption);
     if (cues.length > 0) cues[cues.length - 1].endMs = atMs;
     if (typeof step.caption === 'string') cues.push({ text: step.caption, startMs: atMs, endMs: null });
-    await runAction(step);
-    // Let the ripple and any transition settle so the still shows the result, not the press.
-    await page.waitForTimeout(step.still ? 350 : 250);
+    const timing = stepPacing(step, { video: wantVideo });
+    // Hold the new caption before acting so the viewer knows what to watch for.
+    if (timing.leadMs > 0) await page.waitForTimeout(timing.leadMs);
+    await runAction(step, timing);
+    // Let the ripple and any transition settle so the still shows the result, not the press;
+    // on video, hold long enough for the viewer to register the result.
+    await page.waitForTimeout(timing.resultMs);
     const action = ACTION_KEYS.filter((key) => key in step).map((key) => `${key}=${JSON.stringify(step[key])}`).join(' ');
     const record = { index: index + 1, caption: currentCaption, action: action || null, atMs };
     if (step.still) {
@@ -230,7 +242,7 @@ try {
     }
     steps.push(record);
   }
-  await page.waitForTimeout(600);
+  await page.waitForTimeout(pace.endMs);
 } catch (error) {
   await browser.close().catch(() => {});
   fail(`${error.message}\n  Is ${flow.url} serving? Check the selector in the failing step and re-run.`);

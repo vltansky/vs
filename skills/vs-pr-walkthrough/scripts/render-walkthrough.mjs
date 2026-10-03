@@ -1,29 +1,10 @@
 #!/usr/bin/env node
 
-import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 
-const DEFAULT_FOLD = String.raw`\.spec\.|\.driver\.|^docs/|lock|version_file|snap`;
 const RICH_TAGS = /&lt;(\/?)((?:b|i|em|strong|code|br))\s*\/?&gt;/gi;
-const LANG = {
-  ts: 'ts', tsx: 'ts', mts: 'ts', cts: 'ts', js: 'ts', jsx: 'ts', mjs: 'ts', cjs: 'ts',
-  scala: 'jvm', java: 'jvm', kt: 'jvm', kts: 'jvm', json: 'json', py: 'py',
-  css: 'css', scss: 'css', less: 'css', sh: 'sh', bash: 'sh', zsh: 'sh', yml: 'yaml', yaml: 'yaml',
-  md: '', snap: '',
-};
-const KEYWORDS = Object.fromEntries(Object.entries({
-  ts: `abstract any as async await boolean break case catch class const constructor continue declare default delete do else enum export extends false finally for from function get if implements import in infer instanceof interface is keyof let new null number of private protected public readonly return satisfies set static string super switch symbol this throw true try type typeof undefined unknown var void while yield`,
-  jvm: `abstract case catch class def do else enum extends false final finally for forSome if implicit import lazy match new null object override package private protected return sealed super this throw trait true try type val var while with yield boolean int long double public static void interface implements`,
-  py: `and as assert async await break class continue def del elif else except False finally for from global if import in is lambda None nonlocal not or pass raise return True try while with yield`,
-  json: `true false null`,
-  css: `important from to and not only screen print media supports keyframes mixin include use`,
-  sh: `if then else elif fi for while do done case esac function return local export echo cd set unset in`,
-  yaml: `true false null yes no on off`,
-}).map(([language, words]) => [language, new Set(words.split(/\s+/))]));
-const TOKENS = /(?<str>"(?:\\.|[^"\\])*"?|'(?:\\.|[^'\\])*'?|`(?:\\.|[^`\\])*`?)|(?<comment>\/\/.*|#.*)|(?<ann>@[A-Za-z_]\w*)|(?<num>\b\d[\d_]*(?:\.\d+)?(?:[eE][-+]?\d+)?\b)|(?<word>[A-Za-z_$][\w$]*)/g;
-const HASH_COMMENT = new Set(['py', 'sh', 'yaml']);
 
 function fail(message) {
   process.stderr.write(`walkthrough: ${message}\n`);
@@ -74,41 +55,43 @@ function rich(value = '') {
   return escapeHtml(value).replace(RICH_TAGS, (_, slash, tag) => `<${slash}${tag.toLowerCase()}>`);
 }
 
-function languageFor(file) {
-  const extension = file.includes('.') ? file.split('.').at(-1).toLowerCase() : '';
-  return LANG[extension] ?? '';
+function countNonEmptyLines(text) {
+  return String(text).split('\n').filter((line) => line.trim().length > 0).length;
 }
 
-function highlight(text, language, state) {
-  if (!language) return escapeHtml(text);
-  const stripped = text.trim();
-  if (state.block) {
-    if (text.includes('*/')) state.block = false;
-    return `<span class="tk-c">${escapeHtml(text)}</span>`;
+function assertPseudocode(text, label) {
+  if (typeof text !== 'string' || !text.trim()) {
+    fail(`${label} pseudocode is required`);
   }
-  if (stripped.startsWith('/*')) {
-    if (!stripped.includes('*/')) state.block = true;
-    return `<span class="tk-c">${escapeHtml(text)}</span>`;
+  const lines = countNonEmptyLines(text);
+  if (lines > 12) {
+    fail(`${label} pseudocode exceeds 12 lines (${lines})`);
   }
-  if (stripped.startsWith('*') && !stripped.startsWith('*=')) return `<span class="tk-c">${escapeHtml(text)}</span>`;
+}
 
-  const output = [];
-  let last = 0;
-  for (const match of text.matchAll(TOKENS)) {
-    output.push(escapeHtml(text.slice(last, match.index)));
-    const value = match[0];
-    let className = '';
-    if (match.groups.comment && (!value.startsWith('#') || HASH_COMMENT.has(language))) className = 'tk-c';
-    else if (match.groups.str) className = 'tk-s';
-    else if (match.groups.num) className = 'tk-n';
-    else if (match.groups.ann) className = 'tk-a';
-    else if (KEYWORDS[language]?.has(value)) className = 'tk-k';
-    else if (/^[A-Z]/.test(value)) className = 'tk-t';
-    output.push(className ? `<span class="${className}">${escapeHtml(value)}</span>` : escapeHtml(value));
-    last = match.index + value.length;
+function normalizeFileEntry(entry, sectionId, index) {
+  if (typeof entry === 'string') {
+    if (!entry) fail(`section ${sectionId}.files[${index}] path must be non-empty`);
+    return { path: entry, pseudocode: null, legacy: true };
   }
-  output.push(escapeHtml(text.slice(last)));
-  return output.join('');
+  if (!entry || typeof entry !== 'object' || Array.isArray(entry)) {
+    fail(`section ${sectionId}.files[${index}] must be a path string or {path, pseudocode} object`);
+  }
+  if (typeof entry.path !== 'string' || !entry.path) {
+    fail(`section ${sectionId}.files[${index}].path must be a non-empty string`);
+  }
+  if (entry.pseudocode !== undefined && entry.pseudocode !== null && typeof entry.pseudocode !== 'string') {
+    fail(`section ${sectionId}.files[${index}].pseudocode must be a string`);
+  }
+  return {
+    path: entry.path,
+    pseudocode: typeof entry.pseudocode === 'string' ? entry.pseudocode : null,
+    legacy: false,
+  };
+}
+
+function filePaths(section) {
+  return (section.files ?? []).map((entry) => entry.path);
 }
 
 function validateConfig(config) {
@@ -136,8 +119,12 @@ function validateConfig(config) {
     ids.add(section.id);
     if (typeof section.title !== 'string' || !section.title.trim()) fail(`section ${section.id}.title must be a non-empty string`);
     if (section.lede !== undefined && typeof section.lede !== 'string') fail(`section ${section.id}.lede must be a string`);
-    if (!Array.isArray(section.files) || section.files.length === 0 || section.files.some((file) => typeof file !== 'string' || !file)) {
-      fail(`section ${section.id}.files must be a non-empty string array`);
+    assertPseudocode(section.pseudocode, `section ${section.id}`);
+    if (section.files !== undefined) {
+      if (!Array.isArray(section.files)) fail(`section ${section.id}.files must be an array`);
+      section.files = section.files.map((entry, fileIndex) => normalizeFileEntry(entry, section.id, fileIndex));
+    } else {
+      section.files = [];
     }
     if (section.watch !== undefined && (!Array.isArray(section.watch) || section.watch.some((item) => typeof item !== 'string'))) {
       fail(`section ${section.id}.watch must be a string array`);
@@ -146,6 +133,17 @@ function validateConfig(config) {
       fail(`section ${section.id}.notes must contain {file, text} objects`);
     }
     if (section.fold !== undefined && typeof section.fold !== 'boolean') fail(`section ${section.id}.fold must be boolean`);
+  }
+}
+
+function requirePairFilePseudocode(config) {
+  for (const section of config.sections) {
+    for (const entry of section.files) {
+      if (entry.pseudocode === null || entry.pseudocode === undefined || !String(entry.pseudocode).trim()) {
+        fail(`section ${section.id} file ${entry.path}: pair-file pseudocode is required when a diff is present`);
+      }
+      assertPseudocode(entry.pseudocode, `section ${section.id} file ${entry.path} pair-file`);
+    }
   }
 }
 
@@ -207,8 +205,9 @@ function validatePlacement(config, files) {
   const invalidNotes = new Set();
 
   for (const section of config.sections) {
-    const sectionFiles = new Set(section.files);
-    for (const file of section.files) {
+    const paths = filePaths(section);
+    const sectionFiles = new Set(paths);
+    for (const file of paths) {
       if (seen.has(file)) duplicates.add(file);
       seen.add(file);
       if (!changed.has(file)) unknown.add(file);
@@ -226,10 +225,6 @@ function validatePlacement(config, files) {
   if (problems.length) fail(problems.join('\n'));
 }
 
-function githubAnchor(file) {
-  return `diff-${crypto.createHash('sha256').update(file).digest('hex')}`;
-}
-
 function fetchDiff(config, destination) {
   const match = /^https:\/\/github\.com\/([^/]+)\/([^/]+)\/pull\/(\d+)$/.exec(config.pr);
   const [, owner, repo, number] = match;
@@ -245,104 +240,129 @@ function fetchDiff(config, destination) {
   return destination;
 }
 
-function renderRows(file, pr) {
+function renderPseudocode(text, extraClass = '') {
+  const cls = extraClass ? `pseudocode ${extraClass}` : 'pseudocode';
+  return `<pre class="${cls}"><code>${escapeHtml(text.trimEnd())}</code></pre>`;
+}
+
+function blobUrl(owner, repo, headSha, filePath) {
+  const encoded = filePath.split('/').map(encodeURIComponent).join('/');
+  return `https://github.com/${owner}/${repo}/blob/${headSha}/${encoded}`;
+}
+
+function renderHunks(file) {
   if (file.binary) return '<p class="empty">Binary diff — open this file on GitHub.</p>';
   if (file.hunks.length === 0) return '<p class="empty">No textual hunks.</p>';
   const rows = [];
-  const language = languageFor(file.path);
-  const state = {};
   for (const hunk of file.hunks) {
     rows.push(`<tr class="hunk"><td></td><td></td><td><code>@@ ${escapeHtml(hunk.context)}</code></td></tr>`);
     for (const row of hunk.rows) {
-      const number = row.kind === 'del' ? row.old : row.new;
-      const side = row.kind === 'del' ? 'L' : 'R';
-      const href = `${pr}/files#${githubAnchor(file.path)}${side}${number}`;
+      const mark = row.kind === 'add' ? '+' : row.kind === 'del' ? '−' : ' ';
       rows.push(
-        `<tr class="line ${row.kind}" data-href="${escapeHtml(href)}" title="Open this line on GitHub">` +
+        `<tr class="line ${row.kind}">` +
         `<td class="ln">${row.old ?? ''}</td><td class="ln">${row.new ?? ''}</td>` +
-        `<td><code><span class="mark">${row.kind === 'add' ? '+' : row.kind === 'del' ? '−' : ' '}</span>${highlight(row.text, language, state)}</code></td></tr>`,
+        `<td><code><span class="mark">${mark}</span>${escapeHtml(row.text)}</code></td></tr>`,
       );
     }
   }
   return `<table class="diff"><tbody>${rows.join('')}</tbody></table>`;
 }
 
-function renderFile(file, section, config, foldPattern) {
-  const defaultFold = section.fold || foldPattern.test(file.path);
-  const badge = file.status === 'modified' ? '' : `<span class="pill pill-${file.status}">${escapeHtml(file.status)}</span>`;
-  const displayPath = config.path_prefix && file.path.startsWith(config.path_prefix)
-    ? file.path.slice(config.path_prefix.length)
-    : file.path;
-  const note = section.notes?.find((candidate) => candidate.file === file.path);
+function renderFileCard(entry, diffFile, section, config, owner, repo) {
+  const displayPath = config.path_prefix && entry.path.startsWith(config.path_prefix)
+    ? entry.path.slice(config.path_prefix.length)
+    : entry.path;
+  const badge = !diffFile || diffFile.status === 'modified'
+    ? ''
+    : `<span class="pill pill-${diffFile.status}">${escapeHtml(diffFile.status)}</span>`;
+  const stats = diffFile
+    ? `<span class="stat"><span class="a">+${diffFile.added}</span> <span class="d">−${diffFile.removed}</span></span>`
+    : '';
+  const href = blobUrl(owner, repo, config.headSha, entry.path);
+  const note = section.notes?.find((candidate) => candidate.file === entry.path);
   const noteHtml = note ? `<div class="note">${rich(note.text)}</div>` : '';
-  return `${noteHtml}<article class="file${defaultFold ? ' collapsed' : ''}" data-path="${escapeHtml(file.path)}" data-default-fold="${defaultFold}">
-    <div class="file-head">
-      <button class="file-toggle" type="button" aria-label="Toggle ${escapeHtml(file.path)}"><span class="chev">▾</span><strong class="fname">${escapeHtml(displayPath)}</strong></button>
-      ${badge}<span class="stat"><span class="a">+${file.added}</span> <span class="d">−${file.removed}</span></span>
-      <a class="ghlink" href="${escapeHtml(`${config.pr}/files#${githubAnchor(file.path)}`)}" target="_blank" rel="noopener">view on GitHub ↗</a>
-      <label class="viewed-box"><input class="file-viewed" type="checkbox"> Viewed</label>
+  const hunkBody = diffFile ? renderHunks(diffFile) : '<p class="empty">No diff for this path.</p>';
+  return `${noteHtml}<article class="file-card" data-path="${escapeHtml(entry.path)}">
+    <div class="file-card-head">
+      <strong class="fname">${escapeHtml(displayPath)}</strong>
+      ${badge}${stats}
+      <a class="ghlink" href="${escapeHtml(href)}" target="_blank" rel="noopener">GitHub ↗</a>
     </div>
-    <div class="file-body">${renderRows(file, config.pr)}</div>
+    ${renderPseudocode(entry.pseudocode, 'pair-pseudocode')}
+    <details class="real-diff">
+      <summary>Show real diff</summary>
+      <div class="file-body">${hunkBody}</div>
+    </details>
   </article>`;
 }
 
-function renderSection(section, byPath, config, foldPattern) {
+function renderSection(section, byPath, config, owner, repo) {
+  const lede = section.lede?.trim()
+    ? `<div class="lede">${rich(section.lede)}</div>`
+    : '';
   const watch = section.watch?.length
     ? `<aside class="watch"><strong>What to look at</strong><ul>${section.watch.map((item) => `<li>${rich(item)}</li>`).join('')}</ul></aside>`
     : '';
-  const files = section.files.map((file) => renderFile(byPath.get(file), section, config, foldPattern)).join('\n');
-  return `<section class="section" id="${escapeHtml(section.id)}" data-complete="false">
-    <div class="sec-head"><button class="section-toggle" type="button"><span class="sec-chev">▾</span><h2>${escapeHtml(section.title)}</h2></button><span class="sec-count">0 / ${section.files.length}</span><label class="viewed-box"><input class="section-viewed" type="checkbox"> Section read</label></div>
-    <div class="lede">${rich(section.lede)}</div>${watch}${files}
+  const cards = section.files.map((entry) => renderFileCard(entry, byPath.get(entry.path), section, config, owner, repo)).join('\n');
+  const folded = section.fold ? ' folded' : '';
+  const fileCount = section.files.length;
+  return `<section class="section${folded}" id="${escapeHtml(section.id)}" data-complete="false">
+    <div class="sec-head"><button class="section-toggle" type="button"><span class="sec-chev">▾</span><h2>${escapeHtml(section.title)}</h2></button><span class="sec-count">${fileCount} files</span><label class="viewed-box"><input class="section-viewed" type="checkbox"> Section read</label></div>
+    ${lede}${renderPseudocode(section.pseudocode)}${cards}${watch}
   </section>`;
 }
 
 function renderDocument(config, files) {
   const byPath = new Map(files.map((file) => [file.path, file]));
-  const totalAdded = files.reduce((sum, file) => sum + file.added, 0);
-  const totalRemoved = files.reduce((sum, file) => sum + file.removed, 0);
   const storageKey = `vs-pr-walkthrough:${config.pr}@${config.headSha}`;
-  const foldPattern = new RegExp(config.fold ?? DEFAULT_FOLD);
   const number = config.pr.split('/').at(-1);
   const repo = config.pr.split('/')[4];
+  const owner = config.pr.split('/')[3];
   const title = config.title || 'PR review';
   const prLabel = config.pr_label || `${repo} PR #${number}`;
+  const commitUrl = `https://github.com/${owner}/${repo}/commit/${config.headSha}`;
+  const shortSha = config.headSha.slice(0, 7);
+  const sectionCount = config.sections.length;
   const navigation = config.sections.map((section) => {
-    const chosen = section.files.map((file) => byPath.get(file));
+    const chosen = section.files.map((entry) => byPath.get(entry.path)).filter(Boolean);
     const added = chosen.reduce((sum, file) => sum + file.added, 0);
     const removed = chosen.reduce((sum, file) => sum + file.removed, 0);
-    return `<li><a href="#${escapeHtml(section.id)}">${escapeHtml(section.title)}</a><span class="toc-stat">${chosen.length} files · <span class="a">+${added}</span> <span class="d">−${removed}</span></span></li>`;
+    const fileHint = section.files.length
+      ? `${section.files.length} files · <span class="a">+${added}</span> <span class="d">−${removed}</span>`
+      : 'story';
+    return `<li><a href="#${escapeHtml(section.id)}">${escapeHtml(section.title)}</a><span class="toc-stat">${fileHint}</span></li>`;
   }).join('');
-  const sections = config.sections.map((section) => renderSection(section, byPath, config, foldPattern)).join('\n');
+  const sections = config.sections.map((section) => renderSection(section, byPath, config, owner, repo)).join('\n');
+  const fileCount = files.length;
+  const totalAdded = files.reduce((sum, file) => sum + file.added, 0);
+  const totalRemoved = files.reduce((sum, file) => sum + file.removed, 0);
 
   return `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>${escapeHtml(title)} · PR walkthrough</title>
 <style>
-:root{--bg:#fff;--bg-alt:#f6f8fa;--fg:#1f2328;--muted:#59636e;--border:#d1d9e0;--accent:#0969da;--add-bg:#e6ffec;--add-ln:#ccffd8;--del-bg:#ffebe9;--del-ln:#ffd7d5;--hunk-bg:#f6f8fa;--viewed-bg:#eef6ef;--pill:#ddf4ff;--shadow:0 1px 3px rgba(31,35,40,.08);--tk-c:#59636e;--tk-s:#0a3069;--tk-k:#cf222e;--tk-n:#0550ae;--tk-t:#953800;--tk-a:#8250df;--topbar:47px}
-@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0d1117;--bg-alt:#151b23;--fg:#e6edf3;--muted:#9198a1;--border:#3d444d;--accent:#4493f8;--add-bg:#12261e;--add-ln:#1b4721;--del-bg:#25171c;--del-ln:#542426;--hunk-bg:#151b23;--viewed-bg:#12261e;--pill:#121d2f;--shadow:none;--tk-c:#9198a1;--tk-s:#a5d6ff;--tk-k:#ff7b72;--tk-n:#79c0ff;--tk-t:#ffa657;--tk-a:#d2a8ff}}
-*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Noto Sans,Helvetica,Arial,sans-serif}a{color:var(--accent);text-decoration:none}a:hover{text-decoration:underline}button{font:inherit;color:inherit}code{font-family:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;font-size:.92em;background:var(--bg-alt);padding:.12em .4em;border-radius:6px}.wrap{max-width:1180px;margin:0 auto;padding:24px 16px 96px}.top{border-bottom:1px solid var(--border);padding-bottom:16px;margin-bottom:8px}.top h1{font-size:22px;margin:0 0 6px}.sub{color:var(--muted)}.a{color:#1a7f37}.d{color:#cf222e}.progressbar{position:sticky;top:0;z-index:20;background:var(--bg);border-bottom:1px solid var(--border);padding:10px 0 12px;margin-bottom:18px;display:flex;align-items:center;gap:12px}.ring{width:22px;height:22px;flex:none;transform:rotate(-90deg)}.ring circle{fill:none;stroke-width:3}.ring .track{stroke:var(--border)}.ring .fill{stroke:#1f883d;stroke-linecap:round;transition:stroke-dashoffset .25s ease}.pb-label{font-size:13px;color:var(--muted);white-space:nowrap}.pb-label b{color:var(--fg)}.pb-track{flex:1;height:5px;border-radius:20px;background:var(--bg-alt);border:1px solid var(--border);overflow:hidden}.pb-fill{height:100%;width:0;background:#1f883d;transition:width .25s}.hint{background:var(--pill);border:1px solid var(--border);border-radius:6px;padding:10px 12px;margin:16px 0 24px}.controls{display:flex;gap:10px;margin:0 0 18px;flex-wrap:wrap}.controls button,.progressbar button{font-size:13px;padding:5px 12px;border:1px solid var(--border);background:var(--bg-alt);border-radius:6px;cursor:pointer}.toc{background:var(--bg-alt);border:1px solid var(--border);border-radius:6px;padding:12px 16px;margin-bottom:32px}.toc ol{margin:0;padding-left:20px}.toc li{margin:4px 0}.toc-stat{color:var(--muted);font-size:12px;margin-left:8px}.section{margin-bottom:56px;scroll-margin-top:60px}.sec-head{display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--border);padding-bottom:8px;margin:0 0 10px}.section-toggle{display:flex;align-items:center;gap:12px;min-width:0;flex:1;border:0;background:transparent;padding:0;text-align:left;cursor:pointer}.section-toggle h2{font-size:19px;margin:0}.sec-count{font-size:12px;color:var(--muted);white-space:nowrap}.sec-chev,.chev{color:var(--muted);width:12px;flex:none;display:inline-block;transition:transform .15s}.section.folded .sec-chev,.file.collapsed .chev{transform:rotate(-90deg)}.section.folded>.lede,.section.folded>.watch,.section.folded>.note,.section.folded>.file{display:none}.section.folded{margin-bottom:18px}.lede{background:var(--bg-alt);border-left:3px solid var(--accent);padding:12px 14px;border-radius:0 6px 6px 0;margin-bottom:16px;font-size:14.5px}.watch{border:1px solid var(--border);border-radius:6px;padding:10px 16px 12px;margin-bottom:22px}.watch strong{font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}.watch ul{margin:6px 0 0;padding-left:20px}.note{color:var(--muted);margin:18px 0 6px;padding-left:12px;border-left:2px solid var(--border)}.file{border:1px solid var(--border);border-radius:6px;margin:10px 0 18px;box-shadow:var(--shadow)}.file-head{display:flex;align-items:center;gap:10px;background:var(--bg-alt);padding:8px 12px;border-bottom:1px solid var(--border);position:sticky;top:var(--topbar);z-index:5;border-radius:5px 5px 0 0}.file.collapsed .file-head{border-radius:5px}.file-toggle{display:flex;align-items:center;gap:10px;min-width:0;flex:1;border:0;background:transparent;padding:0;text-align:left;cursor:pointer}.fname{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font:600 12.5px ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}.viewed-box{display:inline-flex;align-items:center;gap:6px;font-size:12px;white-space:nowrap;border:1px solid var(--border);border-radius:6px;padding:4px 10px;background:var(--bg);cursor:pointer}.viewed-box input{margin:0;accent-color:var(--accent)}.file.viewed .file-head{background:var(--viewed-bg)}.file.viewed .fname{color:var(--muted);font-weight:400;text-decoration:line-through}.file.viewed{opacity:.82}.file-body{overflow-x:auto}.file.collapsed .file-body{display:none}.pill{font-size:11px;padding:1px 7px;border-radius:20px;border:1px solid var(--border)}.pill-added{background:var(--add-bg)}.pill-deleted{background:var(--del-bg)}.pill-renamed{background:var(--pill)}.stat{font-size:12px;white-space:nowrap}.ghlink{font-size:12px;white-space:nowrap}.diff{border-collapse:collapse;width:100%;font:12px/1.45 ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace}.diff td{vertical-align:top}.diff .ln{width:1%;min-width:44px;text-align:right;padding:0 10px;color:var(--muted);user-select:none;border-right:1px solid var(--border)}.diff td:last-child{padding:0 10px;white-space:pre-wrap;word-break:break-word}.diff td code{font:inherit;background:none;padding:0;border-radius:0}.line[data-href]{cursor:pointer}.line[data-href]:hover td{filter:brightness(.97)}.line.add td:last-child{background:var(--add-bg)}.line.add .ln{background:var(--add-ln)}.line.del td:last-child{background:var(--del-bg)}.line.del .ln{background:var(--del-ln)}.hunk td{background:var(--hunk-bg);color:var(--muted);padding:4px 10px;border-top:1px solid var(--border);border-bottom:1px solid var(--border)}.mark{display:inline-block;width:1ch;margin-right:6px;color:var(--muted)}.tk-c{color:var(--tk-c);font-style:italic}.tk-s{color:var(--tk-s)}.tk-k{color:var(--tk-k)}.tk-n{color:var(--tk-n)}.tk-t{color:var(--tk-t)}.tk-a{color:var(--tk-a)}.empty{padding:14px;color:var(--muted)}
-@media(max-width:720px){.wrap{padding:14px 10px 64px}.file-head{gap:7px}.ghlink,.stat{display:none}.viewed-box{padding:4px 7px}.sec-head{align-items:flex-start;flex-wrap:wrap}}
+:root{--bg:#fff;--bg-alt:#f6f8fa;--fg:#1f2328;--muted:#59636e;--border:#d1d9e0;--accent:#0969da;--add-bg:#e6ffec;--add-ln:#ccffd8;--del-bg:#ffebe9;--del-ln:#ffd7d5;--hunk-bg:#f6f8fa;--viewed-bg:#eef6ef;--pill:#ddf4ff;--shadow:0 1px 3px rgba(31,35,40,.08)}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0d1117;--bg-alt:#151b23;--fg:#e6edf3;--muted:#9198a1;--border:#3d444d;--accent:#4493f8;--add-bg:#12261e;--add-ln:#1b4721;--del-bg:#25171c;--del-ln:#542426;--hunk-bg:#151b23;--viewed-bg:#12261e;--pill:#121d2f;--shadow:none}}
+*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Noto Sans,Helvetica,Arial,sans-serif}a{color:var(--accent);text-decoration:none}a:hover{text-decoration:underline}button{font:inherit;color:inherit}code{font-family:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;font-size:.92em;background:var(--bg-alt);padding:.12em .4em;border-radius:6px}.wrap{max-width:960px;margin:0 auto;padding:24px 16px 96px}.top{border-bottom:1px solid var(--border);padding-bottom:16px;margin-bottom:8px}.top h1{font-size:22px;margin:0 0 6px}.sub{color:var(--muted)}.a{color:#1a7f37}.d{color:#cf222e}.progressbar{position:sticky;top:0;z-index:20;background:var(--bg);border-bottom:1px solid var(--border);padding:10px 0 12px;margin-bottom:18px;display:flex;align-items:center;gap:12px}.ring{width:22px;height:22px;flex:none;transform:rotate(-90deg)}.ring circle{fill:none;stroke-width:3}.ring .track{stroke:var(--border)}.ring .fill{stroke:#1f883d;stroke-linecap:round;transition:stroke-dashoffset .25s ease}.pb-label{font-size:13px;color:var(--muted);white-space:nowrap}.pb-label b{color:var(--fg)}.pb-track{flex:1;height:5px;border-radius:20px;background:var(--bg-alt);border:1px solid var(--border);overflow:hidden}.pb-fill{height:100%;width:0;background:#1f883d;transition:width .25s}.hint{background:var(--pill);border:1px solid var(--border);border-radius:6px;padding:10px 12px;margin:16px 0 24px}.controls{display:flex;gap:10px;margin:0 0 18px;flex-wrap:wrap}.controls button,.progressbar button{font-size:13px;padding:5px 12px;border:1px solid var(--border);background:var(--bg-alt);border-radius:6px;cursor:pointer}.toc{background:var(--bg-alt);border:1px solid var(--border);border-radius:6px;padding:12px 16px;margin-bottom:32px}.toc ol{margin:0;padding-left:20px}.toc li{margin:4px 0}.toc-stat{color:var(--muted);font-size:12px;margin-left:8px}.section{margin-bottom:40px;scroll-margin-top:60px}.sec-head{display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--border);padding-bottom:8px;margin:0 0 10px}.section-toggle{display:flex;align-items:center;gap:12px;min-width:0;flex:1;border:0;background:transparent;padding:0;text-align:left;cursor:pointer}.section-toggle h2{font-size:19px;margin:0}.sec-count{font-size:12px;color:var(--muted);white-space:nowrap}.sec-chev{color:var(--muted);width:12px;flex:none;display:inline-block;transition:transform .15s}.section.folded .sec-chev{transform:rotate(-90deg)}.section.folded>.lede,.section.folded>.pseudocode,.section.folded>.file-card,.section.folded>.note,.section.folded>.watch{display:none}.section.folded{margin-bottom:18px}.lede{background:var(--bg-alt);border-left:3px solid var(--accent);padding:12px 14px;border-radius:0 6px 6px 0;margin-bottom:12px;font-size:14.5px}.pseudocode{background:var(--bg-alt);border:1px solid var(--border);border-left:3px solid var(--accent);border-radius:0 6px 6px 0;padding:12px 14px;margin:0 0 12px;overflow-x:auto;font:13px/1.45 ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace}.pseudocode code{background:none;padding:0;font:inherit;white-space:pre}.pair-pseudocode{border-left-color:var(--muted);margin-bottom:10px;font-size:12.5px}.file-card{border:1px solid var(--border);border-radius:6px;margin:10px 0 16px;box-shadow:var(--shadow);padding:0 0 10px;background:var(--bg)}.file-card-head{display:flex;align-items:center;gap:10px;background:var(--bg-alt);padding:8px 12px;border-bottom:1px solid var(--border);border-radius:5px 5px 0 0;flex-wrap:wrap}.fname{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font:600 12.5px ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;flex:1;min-width:0}.pill{font-size:11px;padding:1px 7px;border-radius:20px;border:1px solid var(--border)}.pill-added{background:var(--add-bg)}.pill-deleted{background:var(--del-bg)}.pill-renamed{background:var(--pill)}.stat{font-size:12px;white-space:nowrap}.ghlink{font-size:12px;white-space:nowrap}.file-card>.pseudocode{margin:10px 12px}.real-diff{margin:0 12px}.real-diff>summary{cursor:pointer;font-size:13px;color:var(--accent);user-select:none;padding:4px 0}.real-diff>summary:hover{text-decoration:underline}.file-body{overflow-x:auto;margin-top:8px;border:1px solid var(--border);border-radius:6px}.diff{border-collapse:collapse;width:100%;font:12px/1.45 ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace}.diff td{vertical-align:top}.diff .ln{width:1%;min-width:44px;text-align:right;padding:0 10px;color:var(--muted);user-select:none;border-right:1px solid var(--border)}.diff td:last-child{padding:0 10px;white-space:pre-wrap;word-break:break-word}.diff td code{font:inherit;background:none;padding:0;border-radius:0}.line.add td:last-child{background:var(--add-bg)}.line.add .ln{background:var(--add-ln)}.line.del td:last-child{background:var(--del-bg)}.line.del .ln{background:var(--del-ln)}.hunk td{background:var(--hunk-bg);color:var(--muted);padding:4px 10px;border-top:1px solid var(--border);border-bottom:1px solid var(--border)}.mark{display:inline-block;width:1ch;margin-right:6px;color:var(--muted)}.empty{padding:14px;color:var(--muted)}.watch{border:1px solid var(--border);border-radius:6px;padding:10px 16px 12px;margin:16px 0 8px}.watch strong{font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}.watch ul{margin:6px 0 0;padding-left:20px}.note{color:var(--muted);margin:12px 12px 0;padding-left:12px;border-left:2px solid var(--border)}.viewed-box{display:inline-flex;align-items:center;gap:6px;font-size:12px;white-space:nowrap;border:1px solid var(--border);border-radius:6px;padding:4px 10px;background:var(--bg);cursor:pointer}.viewed-box input{margin:0;accent-color:var(--accent)}.section[data-complete="true"] .sec-head{background:var(--viewed-bg);border-radius:6px;padding:8px 10px;margin-left:-10px;margin-right:-10px;border-bottom-color:transparent}.gh-links{font-size:13px;margin-top:6px}.gh-links a{margin-right:12px}
+@media(max-width:720px){.wrap{padding:14px 10px 64px}.sec-head{align-items:flex-start;flex-wrap:wrap}}
 </style></head><body>
-<div class="wrap"><header class="top"><h1>${escapeHtml(title)}</h1><div class="sub"><a href="${escapeHtml(config.pr)}" target="_blank" rel="noopener">${rich(prLabel)}</a> · ${files.length} files · <span class="a">+${totalAdded}</span> <span class="d">−${totalRemoved}</span> · ${rich(config.subtitle)}</div></header>
-<div class="progressbar"><svg class="ring" viewBox="0 0 22 22" aria-hidden="true"><circle class="track" cx="11" cy="11" r="9"></circle><circle class="fill" id="ringFill" cx="11" cy="11" r="9" stroke-dasharray="56.55" stroke-dashoffset="56.55"></circle></svg><div class="pb-label" id="progressText"><b>0</b> / <b>${files.length}</b> viewed</div><div class="pb-track"><div class="pb-fill" id="progressFill"></div></div><button id="reset" type="button">Reset</button></div>
-<div class="hint">${rich(config.intro)}</div><div class="controls"><button id="collapse" type="button">Collapse all</button><button id="expand" type="button">Expand all</button><button id="collapseNoise" type="button">Collapse tests &amp; docs</button></div><nav class="toc"><ol>${navigation}</ol></nav><main>${sections}</main></div>
+<div class="wrap"><header class="top"><h1>${escapeHtml(title)}</h1><div class="sub"><a href="${escapeHtml(config.pr)}" target="_blank" rel="noopener">${rich(prLabel)}</a> · ${fileCount} files · <span class="a">+${totalAdded}</span> <span class="d">−${totalRemoved}</span> · ${rich(config.subtitle)}</div><div class="gh-links"><a href="${escapeHtml(config.pr)}" target="_blank" rel="noopener">Open PR on GitHub ↗</a><a href="${escapeHtml(commitUrl)}" target="_blank" rel="noopener">Head ${escapeHtml(shortSha)} ↗</a></div></header>
+<div class="progressbar"><svg class="ring" viewBox="0 0 22 22" aria-hidden="true"><circle class="track" cx="11" cy="11" r="9"></circle><circle class="fill" id="ringFill" cx="11" cy="11" r="9" stroke-dasharray="56.55" stroke-dashoffset="56.55"></circle></svg><div class="pb-label" id="progressText"><b>0</b> / <b>${sectionCount}</b> sections</div><div class="pb-track"><div class="pb-fill" id="progressFill"></div></div><button id="reset" type="button">Reset</button></div>
+<div class="hint">${rich(config.intro || 'Read the section spine and pair-file pseudocode, then expand Show real diff only when you need the hunks.')}</div><div class="controls"><button id="collapse" type="button">Collapse all</button><button id="expand" type="button">Expand all</button></div><nav class="toc"><ol>${navigation}</ol></nav><main>${sections}</main></div>
 <script>
 const STORE=${safeJson(storageKey)};
 const RING=56.55;
-const allFiles=()=>[...document.querySelectorAll('.file')];
+const allSections=()=>[...document.querySelectorAll('.section')];
 const load=()=>{try{return new Set(JSON.parse(localStorage.getItem(STORE)||'[]'))}catch{return new Set()}};
 const save=(seen)=>{try{localStorage.setItem(STORE,JSON.stringify([...seen]))}catch{}};
-function applyViewed(file,on){file.classList.toggle('viewed',on);file.querySelector('.file-viewed').checked=on;if(on)file.classList.add('collapsed');else file.classList.remove('collapsed')}
-function refresh(){const files=allFiles();const done=files.filter(file=>file.classList.contains('viewed')).length;const pct=files.length?done/files.length:0;document.querySelector('#progressText').innerHTML='<b>'+done+'</b> / <b>'+files.length+'</b> viewed';document.querySelector('#progressFill').style.width=(pct*100)+'%';document.querySelector('#ringFill').setAttribute('stroke-dashoffset',String(RING*(1-pct)));for(const section of document.querySelectorAll('.section')){const inSection=[...section.querySelectorAll('.file')];const sectionDone=inSection.filter(file=>file.classList.contains('viewed')).length;const complete=inSection.length>0&&sectionDone===inSection.length;section.querySelector('.sec-count').textContent=sectionDone+' / '+inSection.length;section.querySelector('.section-viewed').checked=complete;const was=section.dataset.complete==='true';if(complete!==was){section.classList.toggle('folded',complete);section.dataset.complete=String(complete)}}}
-function collapseNoise(){allFiles().forEach(file=>{if(file.dataset.defaultFold==='true')file.classList.add('collapsed')})}
-document.addEventListener('click',(event)=>{const fileToggle=event.target.closest('.file-toggle');if(fileToggle){fileToggle.closest('.file').classList.toggle('collapsed');return}const sectionToggle=event.target.closest('.section-toggle');if(sectionToggle){sectionToggle.closest('.section').classList.toggle('folded');return}const row=event.target.closest('.line[data-href]');if(row)window.open(row.dataset.href,'_blank','noopener')});
-document.addEventListener('change',(event)=>{if(event.target.matches('.file-viewed')){const seen=load();const file=event.target.closest('.file');event.target.checked?seen.add(file.dataset.path):seen.delete(file.dataset.path);applyViewed(file,event.target.checked);save(seen);refresh()}if(event.target.matches('.section-viewed')){const seen=load();event.target.closest('.section').querySelectorAll('.file').forEach(file=>{event.target.checked?seen.add(file.dataset.path):seen.delete(file.dataset.path);applyViewed(file,event.target.checked)});save(seen);refresh()}});
-document.querySelector('#expand').onclick=()=>allFiles().forEach(file=>file.classList.remove('collapsed'));
-document.querySelector('#collapse').onclick=()=>allFiles().forEach(file=>file.classList.add('collapsed'));
-document.querySelector('#collapseNoise').onclick=collapseNoise;
-document.querySelector('#reset').onclick=()=>{localStorage.removeItem(STORE);document.querySelectorAll('.section').forEach(section=>{section.classList.remove('folded');section.dataset.complete='false'});allFiles().forEach(file=>{file.classList.remove('viewed','collapsed');file.querySelector('.file-viewed').checked=false});collapseNoise();refresh()};
-collapseNoise();load().forEach(filePath=>{const file=allFiles().find(candidate=>candidate.dataset.path===filePath);if(file)applyViewed(file,true)});refresh();
+function applyRead(section,on){section.dataset.complete=String(on);section.classList.toggle('folded',on);section.querySelector('.section-viewed').checked=on}
+function refresh(){const sections=allSections();const done=sections.filter(section=>section.dataset.complete==='true').length;const pct=sections.length?done/sections.length:0;document.querySelector('#progressText').innerHTML='<b>'+done+'</b> / <b>'+sections.length+'</b> sections';document.querySelector('#progressFill').style.width=(pct*100)+'%';document.querySelector('#ringFill').setAttribute('stroke-dashoffset',String(RING*(1-pct)));}
+document.addEventListener('click',(event)=>{const sectionToggle=event.target.closest('.section-toggle');if(sectionToggle){sectionToggle.closest('.section').classList.toggle('folded')}});
+document.addEventListener('change',(event)=>{if(event.target.matches('.section-viewed')){const seen=load();const section=event.target.closest('.section');event.target.checked?seen.add(section.id):seen.delete(section.id);applyRead(section,event.target.checked);save(seen);refresh()}});
+document.querySelector('#expand').onclick=()=>allSections().forEach(section=>section.classList.remove('folded'));
+document.querySelector('#collapse').onclick=()=>allSections().forEach(section=>section.classList.add('folded'));
+document.querySelector('#reset').onclick=()=>{localStorage.removeItem(STORE);allSections().forEach(section=>{section.classList.remove('folded');applyRead(section,false)});refresh()};
+load().forEach(id=>{const section=allSections().find(candidate=>candidate.id===id);if(section)applyRead(section,true)});refresh();
 </script></body></html>`;
 }
 
@@ -358,6 +378,7 @@ const base = path.resolve(cli.config).replace(/\.[^.]+$/, '');
 const diffPath = cli.diff ?? fetchDiff(config, `${base}.diff`);
 const files = parseDiff(read(diffPath, 'diff'));
 validatePlacement(config, files);
+requirePairFilePseudocode(config);
 const output = path.resolve(cli.out ?? config.out ?? `${base}.html`);
 fs.mkdirSync(path.dirname(output), { recursive: true });
 fs.writeFileSync(output, renderDocument(config, files));
