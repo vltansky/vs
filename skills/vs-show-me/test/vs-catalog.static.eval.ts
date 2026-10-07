@@ -1,5 +1,7 @@
 import * as fs from 'fs';
+import * as os from 'os';
 import * as path from 'path';
+import { spawnSync } from 'child_process';
 import { pathToFileURL } from 'url';
 import { describe, expect, it } from 'vitest';
 
@@ -78,6 +80,9 @@ describe('the vs catalog is one source the CLI and the browser both load', () =>
       'Brief',
       'Zones',
       'Crossing',
+      'Machine',
+      'Code',
+      'Mock',
       'Prediction',
     ]);
     for (const component of catalog.components) {
@@ -308,13 +313,24 @@ describe('the vs catalog is one source the CLI and the browser both load', () =>
     const element = tree.Component({
       body: '- plugins/\n  - + plugin/: installable\n  - project.json\n- − tests/',
     });
-    const treeRows = element.children[0].children;
-    const text = (row: { children: Array<{ props: { className: string }; children: string[] } | null> }) =>
-      row.children.filter(Boolean).map((child) => child!.children.join(''));
+    const treeChildren = element.children[0].children.filter(Boolean);
+    // First child is the +/−/~ stats header when any row is marked.
+    const treeRows = treeChildren.slice(1);
+    const text = (row: {
+      children: Array<{ props?: { className?: string }; children?: unknown[] } | string | null>;
+    }) => {
+      const main = row.children.filter(Boolean)[0] as {
+        children: Array<{ props?: { className?: string }; children?: unknown[] } | null>;
+      };
+      return main.children.filter(Boolean).map((child) => (child!.children ?? []).join(''));
+    };
     expect(text(treeRows[0])).toEqual(['plugins/']);
     expect(text(treeRows[1])).toEqual(['├─ ', '+ ', 'plugin/', '  — installable']);
     expect(text(treeRows[2])).toEqual(['└─ ', 'project.json']);
-    const removed = treeRows[3].children.filter(Boolean);
+    const removedMain = treeRows[3].children.filter(Boolean)[0] as {
+      children: Array<{ props: { className: string } } | null>;
+    };
+    const removed = removedMain.children.filter(Boolean);
     expect(removed[1].props.className).toContain('line-through');
   });
 
@@ -609,6 +625,32 @@ describe('the vs catalog is one source the CLI and the browser both load', () =>
       (l: { name: string }) => l.name === 'vs-proposal',
     );
     expect(proposal.Component({ children: 'body', slots: {} })).toBe('body');
+  });
+
+  it('keeps one catalog fence per template and the inlined script parses', () => {
+    // A past $& string-replace left an orphan `// vs-catalog:end…` mid-factory;
+    // non-greedy sync then wrote a fresh block above the debris and the
+    // <script> went parse-dead. Exactly one begin/end pair, and node --check
+    // on the extracted fence, is the gate that the portable page can register.
+    for (const [name, shell] of Object.entries(TEMPLATES)) {
+      const begins = shell.match(/^\/\/ vs-catalog:begin.*$/gm) ?? [];
+      const ends = shell.match(/^\/\/ vs-catalog:end$/gm) ?? [];
+      expect(begins, name + ' begin markers').toHaveLength(1);
+      expect(ends, name + ' end markers').toHaveLength(1);
+      // No orphan like `// vs-catalog:end');` from $& expansion.
+      expect(shell).not.toMatch(/\/\/ vs-catalog:end\S/);
+
+      const start = shell.indexOf('// vs-catalog:begin');
+      const end = shell.indexOf('// vs-catalog:end', start);
+      expect(start).toBeGreaterThan(-1);
+      expect(end).toBeGreaterThan(start);
+      const extracted = shell.slice(start, end + '// vs-catalog:end'.length);
+      const file = path.join(os.tmpdir(), `vs-catalog-check-${name}.mjs`);
+      fs.writeFileSync(file, extracted);
+      const check = spawnSync(process.execPath, ['--check', file], { encoding: 'utf8' });
+      expect(check.status, name + ' node --check\n' + (check.stderr || check.stdout)).toBe(0);
+      fs.unlinkSync(file);
+    }
   });
 
   it('inlines the identical stylesheet and factory in every template shell', async () => {

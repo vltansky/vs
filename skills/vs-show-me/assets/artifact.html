@@ -920,6 +920,178 @@ const vsLayoutCss = `
   .htmdx-app[data-htmdx-layout^='vs'] .vs-tree-row { white-space: pre; }
   .htmdx-app[data-htmdx-layout^='vs'] .vs-tree-guide { color: var(--md-sys-color-outline); }
   .htmdx-app[data-htmdx-layout^='vs'] .vs-tree-note { color: var(--md-sys-color-on-surface-variant); }
+  .htmdx-app[data-htmdx-layout^='vs'] .vs-tree-stats {
+    display: flex;
+    gap: 10px;
+    margin: 0 0 8px;
+    font-family: var(--vs-sans);
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--md-sys-color-on-surface-variant);
+  }
+  .htmdx-app[data-htmdx-layout^='vs'] .vs-tree-stats [data-mark='add'] { color: #047857; }
+  .htmdx-app[data-htmdx-layout^='vs'] .vs-tree-stats [data-mark='remove'] { color: #b91c1c; }
+  .htmdx-app[data-htmdx-layout^='vs'] .vs-tree-stats [data-mark='change'] { color: #b45309; }
+  .htmdx-app[data-htmdx-layout^='vs'] .vs-tree-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 12px;
+    align-items: baseline;
+  }
+  .htmdx-app[data-htmdx-layout^='vs'] .vs-tree-main { min-width: 0; }
+  .htmdx-app[data-htmdx-layout^='vs'] .vs-tree-path {
+    font-size: 0.75rem;
+    color: var(--md-sys-color-on-surface-variant);
+    text-align: right;
+    white-space: nowrap;
+  }
+  /* Machine: tap a state, see its screen. */
+  .htmdx-app[data-htmdx-layout^='vs'] .vs-machine {
+    display: grid;
+    gap: 12px;
+    padding: 14px;
+    border: 1px solid var(--md-sys-color-outline-variant);
+    border-radius: 8px;
+    background: var(--md-sys-color-surface-container-lowest);
+  }
+  .htmdx-app[data-htmdx-layout^='vs'] .vs-machine-states {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .htmdx-app[data-htmdx-layout^='vs'] .vs-machine-state {
+    font: inherit;
+    color: inherit;
+    background: var(--md-sys-color-surface-container);
+    border: 1px solid var(--md-sys-color-outline-variant);
+    border-radius: 999px;
+    padding: 6px 12px;
+    cursor: pointer;
+  }
+  .htmdx-app[data-htmdx-layout^='vs'] .vs-machine-state[aria-pressed='true'] {
+    border-color: var(--md-sys-color-primary);
+    color: var(--md-sys-color-primary);
+    background: color-mix(in srgb, var(--md-sys-color-primary) 12%, transparent);
+  }
+  .htmdx-app[data-htmdx-layout^='vs'] .vs-machine-state[data-final] { font-style: italic; }
+  .htmdx-app[data-htmdx-layout^='vs'] .vs-machine-now {
+    font-size: 0.875rem;
+    color: var(--md-sys-color-on-surface-variant);
+  }
+  .htmdx-app[data-htmdx-layout^='vs'] .vs-machine-now b { color: var(--md-sys-color-on-surface); }
+  .htmdx-app[data-htmdx-layout^='vs'] .vs-machine-transitions {
+    margin: 0;
+    padding-left: 1.1rem;
+    font-size: 0.8rem;
+    color: var(--md-sys-color-on-surface-variant);
+  }
+  .htmdx-app[data-htmdx-layout^='vs'] .vs-machine-screen {
+    padding: 12px 14px;
+    border: 1px solid var(--md-sys-color-outline-variant);
+    border-radius: 8px;
+    background: var(--md-sys-color-surface-container);
+    font-size: 0.95rem;
+  }
+  /* Code: gutter + highlight + note under a line. */
+  .htmdx-app[data-htmdx-layout^='vs'] .vs-code {
+    overflow: hidden;
+    border: 1px solid var(--md-sys-color-outline-variant);
+    border-radius: 8px;
+    background: var(--md-sys-color-surface-container-lowest);
+  }
+  .htmdx-app[data-htmdx-layout^='vs'] .vs-code-head {
+    display: flex;
+    gap: 10px;
+    align-items: baseline;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--md-sys-color-outline-variant);
+    font-size: 0.75rem;
+    color: var(--md-sys-color-on-surface-variant);
+  }
+  .htmdx-app[data-htmdx-layout^='vs'] .vs-code-head b { color: var(--md-sys-color-on-surface); }
+  .htmdx-app[data-htmdx-layout^='vs'] .vs-code-copy {
+    margin-left: auto;
+    font: inherit;
+    color: inherit;
+    background: var(--md-sys-color-surface-container);
+    border: 1px solid var(--md-sys-color-outline-variant);
+    border-radius: 6px;
+    padding: 2px 8px;
+    cursor: pointer;
+  }
+  .htmdx-app[data-htmdx-layout^='vs'] .vs-code-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: var(--vs-mono);
+    font-size: 0.8125rem;
+    line-height: 1.55;
+  }
+  .htmdx-app[data-htmdx-layout^='vs'] .vs-code-table td { padding: 0 12px; vertical-align: top; }
+  .htmdx-app[data-htmdx-layout^='vs'] .vs-code-table .ln {
+    width: 1%;
+    padding-right: 0;
+    color: var(--md-sys-color-on-surface-variant);
+    text-align: right;
+    user-select: none;
+    opacity: 0.7;
+  }
+  .htmdx-app[data-htmdx-layout^='vs'] .vs-code-table tr[data-hl] { background: color-mix(in srgb, var(--md-sys-color-primary) 12%, transparent); }
+  .htmdx-app[data-htmdx-layout^='vs'] .vs-code-table .src { white-space: pre; }
+  .htmdx-app[data-htmdx-layout^='vs'] .vs-code-note {
+    display: block;
+    margin: 4px 0 8px;
+    padding: 6px 10px;
+    border-left: 3px solid var(--md-sys-color-primary);
+    background: var(--md-sys-color-surface-container);
+    color: var(--md-sys-color-on-surface);
+    font-family: var(--vs-sans);
+    font-size: 0.8rem;
+    white-space: normal;
+  }
+  /* Mock: markup frame with numbered pins on named elements. */
+  .htmdx-app[data-htmdx-layout^='vs'] .vs-mock {
+    display: grid;
+    gap: 10px;
+  }
+  .htmdx-app[data-htmdx-layout^='vs'] .vs-mock-frame {
+    position: relative;
+    padding: 12px;
+    border: 1px solid var(--md-sys-color-outline-variant);
+    border-radius: 8px;
+    background: var(--md-sys-color-surface-container-lowest);
+  }
+  .htmdx-app[data-htmdx-layout^='vs'] .vs-mock-host { position: relative; display: inline-block; max-width: 100%; }
+  .htmdx-app[data-htmdx-layout^='vs'] .vs-mock-marker {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--md-sys-color-primary);
+    color: var(--md-sys-color-on-primary);
+    font-size: 11px;
+    line-height: 20px;
+    font-weight: 700;
+    text-align: center;
+    box-shadow: 0 0 0 2px var(--md-sys-color-surface);
+    pointer-events: none;
+    z-index: 2;
+  }
+  .htmdx-app[data-htmdx-layout^='vs'] .vs-mock-legend { list-style: none; margin: 0; padding: 0; }
+  .htmdx-app[data-htmdx-layout^='vs'] .vs-mock-legend li { display: flex; gap: 8px; margin: 4px 0; font-size: 0.875rem; }
+  .htmdx-app[data-htmdx-layout^='vs'] .vs-mock-num {
+    display: inline-grid;
+    place-items: center;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--md-sys-color-primary);
+    color: var(--md-sys-color-on-primary);
+    font-size: 11px;
+    font-weight: 700;
+    flex: none;
+  }
   /* Sequence: like Trend, currentColor on the wrapper is the entire message
      theme; actors and lifelines carry their own classes inside the SVG. */
   .htmdx-app[data-htmdx-layout^='vs'] .vs-seq { margin: 0; color: var(--md-sys-color-primary); }
@@ -2408,12 +2580,15 @@ const vsCatalogFactory = (React, css) => {
 
   // Tree shows a hierarchy the way a terminal does - drawn guides, two-space
   // indents - plus diff marks so one tree carries a proposal's before/after
-  // layout instead of two panes the reader must diff by eye.
+  // layout instead of two panes the reader must diff by eye. A trailing
+  // `@ path:line` becomes its own right-hand cell so call trees stay scannable,
+  // and `<Component/>` names stay plain text in the label.
   const TREE_MARKS = { '+': 'add', '−': 'remove', '~': 'change' };
   const TREE_TONE = { add: 'text-emerald-700', remove: 'text-red-700', change: 'text-amber-700' };
   const TREE_GLYPH = { add: '+', remove: '−', change: '~' };
+  const TREE_PATH = /\s+@\s+(\S+:\d+)\s*$/;
   const treeRows = (body) =>
-    String(body)
+    decodeEntities(String(body))
       .split('\n')
       .map((line) => line.match(/^(\s*)- (.*)$/))
       .filter(Boolean)
@@ -2422,7 +2597,13 @@ const vsCatalogFactory = (React, css) => {
         const key = text[0] === '-' ? '−' : text[0];
         const mark = text[1] === ' ' && TREE_MARKS[key] ? TREE_MARKS[key] : null;
         if (mark) text = text.slice(2).trim();
-        return { depth: Math.floor(match[1].length / 2), mark, text };
+        const pathMatch = text.match(TREE_PATH);
+        let path = '';
+        if (pathMatch) {
+          path = pathMatch[1];
+          text = text.slice(0, pathMatch.index).trim();
+        }
+        return { depth: Math.floor(match[1].length / 2), mark, text, path };
       });
   // A level continues while a later row still sits on it; the guide glyph per
   // level is decided by looking ahead to where the depth next drops below it.
@@ -2444,29 +2625,52 @@ const vsCatalogFactory = (React, css) => {
   };
   const Tree = ({ body = '' }) => {
     const parsed = treeRows(body);
+    const counts = { add: 0, remove: 0, change: 0 };
+    for (const row of parsed) if (row.mark) counts[row.mark] += 1;
+    const hasPaths = parsed.some((row) => row.path);
+    const hasMarks = counts.add + counts.remove + counts.change > 0;
     return wrap(
       'Tree',
       h(
         'div',
         { className: 'vs-tree rounded-lg border bg-card px-4 py-3' },
+        hasMarks
+          ? h(
+              'div',
+              { className: 'vs-tree-stats', 'aria-label': 'change counts' },
+              h('span', { 'data-mark': 'add' }, '+' + counts.add),
+              h('span', { 'data-mark': 'remove' }, '−' + counts.remove),
+              h('span', { 'data-mark': 'change' }, '~' + counts.change),
+            )
+          : null,
         parsed.map((row, index) => {
           const { label, value } = labelValue(row.text);
           const guide = treeGuide(parsed, index);
-          return h(
+          const main = h(
             'div',
-            { key: index, className: 'vs-tree-row' },
+            { className: 'vs-tree-main' },
             guide ? h('span', { 'aria-hidden': 'true', className: 'vs-tree-guide' }, guide) : null,
             row.mark ? h('span', { className: 'font-bold ' + TREE_TONE[row.mark] }, TREE_GLYPH[row.mark] + ' ') : null,
             h(
               'span',
               {
-                className: row.mark
-                  ? TREE_TONE[row.mark] + (row.mark === 'remove' ? ' line-through' : '')
-                  : 'text-card-foreground',
+                className:
+                  'vs-tree-label ' +
+                  (row.mark
+                    ? TREE_TONE[row.mark] + (row.mark === 'remove' ? ' line-through' : '')
+                    : 'text-card-foreground'),
               },
               plain(label),
             ),
             value ? h('span', { className: 'vs-tree-note' }, '  — ' + plain(value)) : null,
+          );
+          return h(
+            'div',
+            { key: index, className: 'vs-tree-row' },
+            main,
+            hasPaths
+              ? h('span', { className: 'vs-tree-path' }, row.path || '')
+              : null,
           );
         }),
       ),
@@ -3064,6 +3268,503 @@ const vsCatalogFactory = (React, css) => {
       ),
     );
 
+  // Machine is the interactive lifecycle companion to a mermaid stateDiagram:
+  // tap a state to see that state's screen. Simple topology-only machines stay
+  // in mermaid; use this when each state has a screen the reader must see.
+  const MACHINE_STATE = /^state\s+(\S+)(?:\s+(final))?\s*:\s*(.*)$/i;
+  const MACHINE_EDGE = /^(\S+)\s*->\s*(\S+)\s*:\s*(.*)$/;
+  const MACHINE_SCREEN = /^screen\s+(\S+)\s*:\s*(.*)$/i;
+  const parseMachine = (body) => {
+    const states = [];
+    const edges = [];
+    const screens = {};
+    const seen = new Set();
+    for (const row of rows(body)) {
+      const state = row.match(MACHINE_STATE);
+      if (state) {
+        const id = state[1];
+        if (seen.has(id)) throw new Error('Machine state "' + id + '" is repeated.');
+        seen.add(id);
+        states.push({ id, final: Boolean(state[2]), say: state[3].trim() });
+        continue;
+      }
+      const edge = row.match(MACHINE_EDGE);
+      if (edge) {
+        edges.push({ from: edge[1], to: edge[2], label: edge[3].trim() });
+        continue;
+      }
+      const screen = row.match(MACHINE_SCREEN);
+      if (screen) {
+        screens[screen[1]] = screen[2].trim();
+        continue;
+      }
+      throw new Error('Machine rows are: - state id: say, - from -> to: label, or - screen id: text.');
+    }
+    if (states.length < 2) throw new Error('Machine needs at least two states.');
+    for (const state of states) {
+      if (!(state.id in screens)) {
+        throw new Error('Machine state "' + state.id + '" has no screen. Add "- screen ' + state.id + ': …".');
+      }
+    }
+    for (const edge of edges) {
+      if (!seen.has(edge.from) || !seen.has(edge.to)) {
+        throw new Error('Machine transition "' + edge.from + ' -> ' + edge.to + '" names an unknown state.');
+      }
+    }
+    return { states, edges, screens };
+  };
+  const Machine = ({ body = '', initial = '', caption = '' }) => {
+    if (!h) return body;
+    let data;
+    try {
+      data = parseMachine(body);
+    } catch (error) {
+      return wrap('Machine', h('p', { role: 'alert' }, error.message));
+    }
+    const start =
+      (initial && data.states.some((state) => state.id === initial) && initial) || data.states[0].id;
+    const render = (selected, setSelected) => {
+      const current = data.states.find((state) => state.id === selected) || data.states[0];
+      return wrap(
+        'Machine',
+        h(
+          'div',
+          { className: 'vs-machine', 'data-state': current.id },
+          caption ? h('div', { className: 'text-sm italic text-muted-foreground' }, plain(caption)) : null,
+          h(
+            'div',
+            { className: 'vs-machine-states', role: 'toolbar', 'aria-label': 'States' },
+            data.states.map((state) =>
+              h(
+                'button',
+                {
+                  key: state.id,
+                  type: 'button',
+                  className: 'vs-machine-state',
+                  'data-machine-state': state.id,
+                  'data-state': state.id,
+                  'data-final': state.final || undefined,
+                  'aria-pressed': current.id === state.id,
+                  onClick: setSelected ? () => setSelected(state.id) : undefined,
+                },
+                state.id,
+              ),
+            ),
+          ),
+          h(
+            'div',
+            { className: 'vs-machine-now' },
+            h('b', null, current.id),
+            current.say ? ' — ' + current.say : '',
+          ),
+          data.edges.length
+            ? h(
+                'ul',
+                { className: 'vs-machine-transitions' },
+                data.edges.map((edge, index) =>
+                  h('li', { key: index }, edge.from + ' → ' + edge.to + (edge.label ? ': ' + edge.label : '')),
+                ),
+              )
+            : null,
+          data.states.map((state) =>
+            h(
+              'div',
+              {
+                key: state.id,
+                className: 'vs-machine-screen',
+                'data-machine-screen': state.id,
+                hidden: state.id !== current.id,
+              },
+              data.screens[state.id],
+            ),
+          ),
+        ),
+      );
+    };
+    if (!React.useState) return render(start, null);
+    const [selected, setSelected] = React.useState(start);
+    return render(selected, setSelected);
+  };
+
+  // Code is a numbered slice with optional highlights and notes under a line.
+  // Notes use the Figure-style "- @N text" grammar against the gutter numbers
+  // (absolute, after start=). A note outside the visible range is an error.
+  const CODE_NOTE = /^\s*-\s+@(\d+)\s+(.*)$/;
+  const parseHl = (value) => {
+    const set = new Set();
+    String(value || '')
+      .split(',')
+      .map((part) => part.trim())
+      .filter(Boolean)
+      .forEach((part) => {
+        const match = part.match(/^(\d+)(?:-(\d+))?$/);
+        if (!match) return;
+        const a = Number(match[1]);
+        const b = Number(match[2] || match[1]);
+        for (let n = a; n <= b; n++) set.add(n);
+      });
+    return set;
+  };
+  const parseCodeBody = (body) => {
+    const source = decodeEntities(String(body)).replace(/\n$/, '');
+    const lines = source.split('\n');
+    const code = [];
+    const notes = [];
+    for (const line of lines) {
+      const note = line.match(CODE_NOTE);
+      if (note) notes.push({ line: Number(note[1]), text: note[2].trim() });
+      else code.push(line);
+    }
+    while (code.length && code[code.length - 1] === '') code.pop();
+    while (code.length && code[0] === '') code.shift();
+    return { code, notes };
+  };
+  const Code = ({ body = '', start = '1', hl = '', lang = '', title = '', caption = '' }) => {
+    if (!h) return body;
+    const startAt = Math.max(1, Number(start) || 1);
+    const { code, notes } = parseCodeBody(body);
+    if (!code.length) {
+      return wrap('Code', h('p', { role: 'alert' }, 'Code needs at least one source line.'));
+    }
+    const endAt = startAt + code.length - 1;
+    const highlights = parseHl(hl);
+    for (const note of notes) {
+      if (note.line < startAt || note.line > endAt) {
+        return wrap(
+          'Code',
+          h(
+            'p',
+            { role: 'alert' },
+            'Code note @' + note.line + ' is outside the visible range ' + startAt + '–' + endAt + '.',
+          ),
+        );
+      }
+    }
+    const notesByLine = new Map();
+    for (const note of notes) {
+      const list = notesByLine.get(note.line) || [];
+      list.push(note);
+      notesByLine.set(note.line, list);
+    }
+    const copyText = code.join('\n');
+    const onCopy =
+      typeof navigator !== 'undefined' && navigator.clipboard
+        ? () => {
+            navigator.clipboard.writeText(copyText).catch(() => {});
+          }
+        : undefined;
+    return wrap(
+      'Code',
+      h(
+        'div',
+        { className: 'vs-code', 'data-lang': lang || undefined },
+        h(
+          'div',
+          { className: 'vs-code-head' },
+          title ? h('b', null, plain(title)) : null,
+          h('span', null, 'L' + startAt + '–' + endAt),
+          lang ? h('span', null, lang) : null,
+          h('button', { type: 'button', className: 'vs-code-copy', onClick: onCopy }, 'Copy'),
+        ),
+        caption ? h('div', { className: 'px-3 py-2 text-sm italic text-muted-foreground' }, plain(caption)) : null,
+        h(
+          'table',
+          { className: 'vs-code-table' },
+          h(
+            'tbody',
+            null,
+            code.map((line, index) => {
+              const ln = startAt + index;
+              const rowNotes = notesByLine.get(ln) || [];
+              return h(
+                'tr',
+                { key: ln, 'data-hl': highlights.has(ln) || undefined },
+                h('td', { className: 'ln', 'data-ln': ln, 'data-hl': highlights.has(ln) || undefined }, String(ln)),
+                h(
+                  'td',
+                  { className: 'src' },
+                  line.length ? line : ' ',
+                  rowNotes.map((note, noteIndex) =>
+                    h(
+                      'span',
+                      { key: noteIndex, className: 'vs-code-note', 'data-code-note': String(ln) },
+                      note.text,
+                    ),
+                  ),
+                ),
+              );
+            }),
+          ),
+        ),
+      ),
+    );
+  };
+
+  // Mock wraps hand-built UI markup and pins numbered markers onto named
+  // elements (`id` or `data-ref`). Markup is parsed into React nodes through an
+  // allowlist — never via dangerouslySetInnerHTML — so a sketch cannot ship a
+  // script, handler, or foreign tag. A pin for a missing name is an error.
+  const MOCK_MARKUP = /^markup:\s*(.*)$/i;
+  const MOCK_PIN = /^#([^\s]+)\s+(.*)$/;
+  const MOCK_SAFE_REF = /^[A-Za-z][\w:-]{0,63}$/;
+  const MOCK_TAGS = new Set([
+    'div',
+    'section',
+    'figure',
+    'span',
+    'button',
+    'p',
+    'b',
+    'i',
+    'strong',
+    'em',
+    'code',
+    'small',
+    'label',
+    'ul',
+    'ol',
+    'li',
+  ]);
+  const MOCK_VOID = new Set(['br', 'hr', 'img', 'input']);
+  const MOCK_ATTRS = new Set([
+    'class',
+    'id',
+    'style',
+    'type',
+    'role',
+    'tabindex',
+    'data-ref',
+    'data-tip',
+    'aria-label',
+    'aria-hidden',
+    'aria-pressed',
+    'hidden',
+    'disabled',
+  ]);
+  const MOCK_STYLE_PROP =
+    /^(?:position|top|right|bottom|left|inset|width|height|min-width|min-height|max-width|max-height|margin|margin-[\w-]+|padding|padding-[\w-]+|display|flex|flex-[\w-]+|grid|grid-[\w-]+|gap|row-gap|column-gap|align-[\w-]+|justify-[\w-]+|font|font-[\w-]+|line-height|letter-spacing|color|background|background-color|border|border-[\w-]+|border-radius|opacity|overflow|overflow-[\w-]+|white-space|text-[\w-]+|box-sizing|z-index|vertical-align|cursor)$/i;
+  const MOCK_STYLE_VAL = /^(?!.*(?:expression\s*\(|url\s*\(|javascript:|@import|-moz-binding|behavior\s*:))[\w#%.\-+*/,()\s]+$/i;
+  const escapeRegExp = (value) => String(value).replace(/[.*+?^${}()|[\]\\]/g, (ch) => '\\' + ch);
+  const sanitizeMockStyle = (value) => {
+    const parts = [];
+    for (const decl of String(value).split(';')) {
+      const trimmed = decl.trim();
+      if (!trimmed) continue;
+      const colon = trimmed.indexOf(':');
+      if (colon < 0) throw new Error('Mock style is malformed: "' + trimmed + '".');
+      const prop = trimmed.slice(0, colon).trim();
+      const val = trimmed.slice(colon + 1).trim();
+      if (!MOCK_STYLE_PROP.test(prop) || !MOCK_STYLE_VAL.test(val)) {
+        throw new Error('Mock style rejected unsafe declaration: ' + prop);
+      }
+      parts.push(prop + ':' + val);
+    }
+    return parts.join(';');
+  };
+  const styleObject = (css) => {
+    const out = {};
+    if (!css) return out;
+    for (const decl of String(css).split(';')) {
+      const trimmed = decl.trim();
+      if (!trimmed) continue;
+      const colon = trimmed.indexOf(':');
+      if (colon < 0) continue;
+      const prop = trimmed.slice(0, colon).trim();
+      const val = trimmed.slice(colon + 1).trim();
+      const camel = prop.replace(/-([a-z])/g, (_, c) => c.toUpperCase());
+      out[camel] = val;
+    }
+    return out;
+  };
+  const parseMockAttrs = (raw) => {
+    const attrs = {};
+    const re = /([:@\w-]+)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'=<>`]+)))?/g;
+    let match;
+    while ((match = re.exec(raw))) {
+      const name = match[1].toLowerCase();
+      const value = match[2] ?? match[3] ?? match[4] ?? '';
+      if (name.startsWith('on')) throw new Error('Mock rejects event-handler attributes (' + name + ').');
+      if (name === 'href' || name === 'src' || name === 'xlink:href') {
+        throw new Error('Mock rejects URL attributes (' + name + ').');
+      }
+      if (!(MOCK_ATTRS.has(name) || name.startsWith('data-') || name.startsWith('aria-'))) {
+        throw new Error('Mock attribute "' + name + '" is not allowlisted.');
+      }
+      if (name === 'style') attrs.style = styleObject(sanitizeMockStyle(value));
+      else if (name === 'class') attrs.className = value;
+      else if (name === 'tabindex') attrs.tabIndex = Number(value);
+      else if (name === 'hidden' || name === 'disabled') attrs[name] = value === '' || value === name || value === 'true';
+      else attrs[name] = value;
+    }
+    return attrs;
+  };
+  // Allowlisted HTML → React nodes. Comments are dropped; unknown tags and
+  // handlers throw so the page surfaces an alert instead of shipping them.
+  const parseMockHtml = (html) => {
+    const source = String(html);
+    let i = 0;
+    const parseNodes = () => {
+      const nodes = [];
+      while (i < source.length) {
+        if (source.startsWith('</', i)) break;
+        if (source[i] !== '<') {
+          const next = source.indexOf('<', i);
+          const text = source.slice(i, next < 0 ? source.length : next);
+          i = next < 0 ? source.length : next;
+          if (text) nodes.push(text);
+          continue;
+        }
+        if (source.startsWith('<!--', i)) {
+          const end = source.indexOf('-->', i + 4);
+          if (end < 0) throw new Error('Mock markup has an unclosed comment.');
+          i = end + 3;
+          continue;
+        }
+        if (source.startsWith('<!', i)) throw new Error('Mock markup rejects doctype/declarations.');
+        const gt = source.indexOf('>', i + 1);
+        if (gt < 0) throw new Error('Mock markup has an unclosed tag.');
+        let body = source.slice(i + 1, gt).trim();
+        i = gt + 1;
+        const selfClosing = body.endsWith('/');
+        if (selfClosing) body = body.slice(0, -1).trim();
+        const parts = body.match(/^([a-zA-Z][\w:-]*)\s*([\s\S]*)$/);
+        if (!parts) throw new Error('Mock markup has a malformed tag.');
+        const tag = parts[1].toLowerCase();
+        if (MOCK_VOID.has(tag)) throw new Error('Mock tag <' + tag + '> is not allowlisted.');
+        if (!MOCK_TAGS.has(tag)) throw new Error('Mock tag <' + tag + '> is not allowlisted.');
+        const attrs = parseMockAttrs(parts[2] || '');
+        let children = [];
+        if (!selfClosing) {
+          children = parseNodes();
+          const close = source.slice(i).match(new RegExp('^</' + escapeRegExp(tag) + '\\s*>', 'i'));
+          if (!close) throw new Error('Mock markup missing </' + tag + '>.');
+          i += close[0].length;
+        }
+        nodes.push({ tag, attrs, children });
+      }
+      return nodes;
+    };
+    const roots = parseNodes();
+    if (i < source.length && source.slice(i).trim()) {
+      throw new Error('Mock markup has trailing content after the root.');
+    }
+    return roots;
+  };
+  const parseMock = (body) => {
+    let markup = '';
+    const pins = [];
+    for (const row of rows(body)) {
+      const mark = row.match(MOCK_MARKUP);
+      if (mark) {
+        markup += (markup ? '\n' : '') + mark[1];
+        continue;
+      }
+      const pin = row.match(MOCK_PIN);
+      if (pin) {
+        if (!MOCK_SAFE_REF.test(pin[1])) {
+          throw new Error(
+            'Mock pin ref "' +
+              pin[1] +
+              '" is unsafe. Use a letter-led id/data-ref ([A-Za-z][\\w:-]{0,63}).',
+          );
+        }
+        pins.push({ ref: pin[1], text: pin[2].trim() });
+        continue;
+      }
+      throw new Error('Mock rows are: - markup: <html…> or - #ref legend text.');
+    }
+    if (!markup) throw new Error('Mock needs a "- markup: …" row with the UI HTML.');
+    return { markup, pins, tree: parseMockHtml(markup) };
+  };
+  const mockMarker = (num, ref) =>
+    h(
+      'span',
+      {
+        className: 'vs-mock-marker',
+        'data-pin-for': '#' + ref,
+        style: { position: 'absolute', top: '-4px', right: '-4px' },
+      },
+      String(num),
+    );
+  const renderMockTree = (nodes, pinIndex) =>
+    nodes.map((node, index) => {
+      if (typeof node === 'string') return node;
+      const props = { ...node.attrs };
+      const ref = props.id || props['data-ref'];
+      const pinNum = ref && pinIndex.has(ref) ? pinIndex.get(ref) : null;
+      if (pinNum != null) {
+        const style = { ...(props.style || {}), position: (props.style && props.style.position) || 'relative' };
+        props.style = style;
+      }
+      const kids = renderMockTree(node.children, pinIndex);
+      if (pinNum != null) kids.unshift(mockMarker(pinNum, ref));
+      return h(node.tag, { key: index, ...props }, ...kids);
+    });
+  const Mock = ({ body = '', caption = '' }) => {
+    if (!h) return body;
+    let parsed;
+    try {
+      parsed = parseMock(body);
+    } catch (error) {
+      return wrap('Mock', h('p', { role: 'alert' }, error.message));
+    }
+    const pinIndex = new Map();
+    const missing = [];
+    parsed.pins.forEach((pin, index) => {
+      pinIndex.set(pin.ref, index + 1);
+    });
+    const collectRefs = (nodes, found) => {
+      for (const node of nodes) {
+        if (typeof node === 'string') continue;
+        if (node.attrs.id) found.add(node.attrs.id);
+        if (node.attrs['data-ref']) found.add(node.attrs['data-ref']);
+        collectRefs(node.children, found);
+      }
+    };
+    const found = new Set();
+    collectRefs(parsed.tree, found);
+    for (const pin of parsed.pins) {
+      if (!found.has(pin.ref)) missing.push(pin.ref);
+    }
+    if (missing.length) {
+      return wrap(
+        'Mock',
+        h(
+          'p',
+          { role: 'alert' },
+          'Mock pin #' +
+            missing[0] +
+            ' matches no element. Give the target an id or data-ref="' +
+            missing[0] +
+            '".',
+        ),
+      );
+    }
+    return wrap(
+      'Mock',
+      h(
+        'figure',
+        { className: 'vs-mock' },
+        h('div', { className: 'vs-mock-frame' }, h('div', { className: 'vs-mock-host' }, ...renderMockTree(parsed.tree, pinIndex))),
+        caption ? h('figcaption', { className: 'text-sm italic text-muted-foreground' }, plain(caption)) : null,
+        parsed.pins.length
+          ? h(
+              'ol',
+              { className: 'vs-mock-legend' },
+              parsed.pins.map((pin, index) =>
+                h(
+                  'li',
+                  { key: index },
+                  h('span', { className: 'vs-mock-num' }, String(index + 1)),
+                  h('span', null, plain(pin.text)),
+                ),
+              ),
+            )
+          : null,
+      ),
+    );
+  };
+
   const History = ({ body = '' }) =>
     wrap(
       'History',
@@ -3355,9 +4056,9 @@ const vsCatalogFactory = (React, css) => {
       name: 'Tree',
       body: 'markdown',
       purpose:
-        "Show a hierarchy - a file or module layout, a component tree, or a call stack (caller above callee) - written as nested '- name' rows indented two spaces per level. A leading '+' marks an addition (green), '−' a removal (red, struck through), '~' a change (amber); unmarked rows are unchanged context. Text after ':' renders as a muted note - the row's responsibility, hook, or file. This is the component for a proposal's before/after structure - one tree with marks, not two panes the reader must diff by eye.",
+        "Show a hierarchy - a file or module layout, a component tree, or a call stack (caller above callee) - written as nested '- name' rows indented two spaces per level. A leading '+' marks an addition (green), '−' a removal (red, struck through), '~' a change (amber); unmarked rows are unchanged context. A trailing '@ path:line' renders in its own right-hand column, and the header counts +/−/~ when any row is marked. `<Component/>` names stay plain text. Text after ':' (that is not a path) renders as a muted note. This is the component for a proposal's before/after structure - one tree with marks, not two panes the reader must diff by eye.",
       example:
-        '<Tree>\n- plugins/\n  - my-project/\n    - + plugin/: the installable package\n    - + tests/: plugin-only tests\n    - project.json\n- − tests/: moved into the project\n</Tree>',
+        '<Tree>\n- ~ <Composer/> @ web/src/composer/Composer.tsx:41\n  - + <SendLaterMenu/> @ web/src/composer/SendLaterMenu.tsx:12\n  - + POST /api/scheduled @ web/src/api/scheduled.ts:9\n  - − legacyQueue(message) @ web/src/composer/queue.ts:30\n</Tree>',
       Component: asComponent(Tree),
     },
     {
@@ -3508,6 +4209,47 @@ const vsCatalogFactory = (React, css) => {
         { name: 'to', type: 'string', description: "The right end, with an optional ' — caption'." },
       ],
       Component: asComponent(Crossing),
+    },
+    {
+      name: 'Machine',
+      body: 'markdown',
+      purpose:
+        "Walk a lifecycle with one screen per state: '- state id: say' rows (add 'final' before the colon for terminals), '- from -> to: label' transitions, and '- screen id: text' for the mock under the diagram. `initial` selects the starting state; tapping a state shows exactly that screen. Prefer this over a mermaid stateDiagram when the reader must see the UI in each state; keep mermaid for topology-only machines.",
+      example:
+        '<Machine initial="scheduled" caption="Tap a state to see its screen.">\n- state scheduled: Waiting for send_at.\n- state sending: Worker holds it.\n- state sent final: In Sent.\n- state failed: Kept with the error.\n- state cancelled final: Back in Drafts.\n- scheduled -> sending: due\n- sending -> sent: ok\n- sending -> failed: fail\n- scheduled -> cancelled: cancel\n- failed -> cancelled: cancel\n- failed -> sending: retry\n- screen scheduled: Scheduled for Mon 8:00\n- screen sending: Sending…\n- screen sent: Sent\n- screen failed: Not sent\n- screen cancelled: Cancelled\n</Machine>',
+      props: [
+        { name: 'initial', type: 'string', description: 'State id selected on first render.' },
+        { name: 'caption', type: 'string', description: 'One-line caption above the state strip.' },
+      ],
+      Component: asComponent(Machine),
+    },
+    {
+      name: 'Code',
+      body: 'markdown',
+      purpose:
+        "Show a code slice with real line numbers, highlights, and short notes under a line. The body is the source; trailing '- @N note' rows (Figure-style) attach to gutter number N after `start`. `hl` takes absolute numbers or ranges (`42` or `4-5,9`). A note outside the visible range errors instead of rendering. Keep the built-in Copy control.",
+      example:
+        '<Code start="38" hl="42" lang="ts" title="limits.ts">\nexport async function assertUnderLimit(userId: string) {\n  if (await store.countScheduled(userId) >= 50) throw new LimitError(50)\n}\n- @42 Throws when the user is already at the limit\n</Code>',
+      props: [
+        { name: 'start', type: 'string', default: '1', description: 'First gutter number.' },
+        { name: 'hl', type: 'string', description: 'Comma-separated absolute line numbers or ranges to highlight.' },
+        { name: 'lang', type: 'string', description: 'Language label in the header.' },
+        { name: 'title', type: 'string', description: 'File or sketch title in the header.' },
+        { name: 'caption', type: 'string', description: 'One-line caption under the header.' },
+      ],
+      Component: asComponent(Code),
+    },
+    {
+      name: 'Mock',
+      body: 'markdown',
+      purpose:
+        "Pin numbered markers onto a hand-built UI mock. One or more '- markup: <html…>' rows are parsed into React through an allowlist (div/section/figure/span/button and a few text tags; no handlers, URLs, or foreign tags); '- #ref legend' rows place a marker on the element with that id or data-ref. Refs must be letter-led `[A-Za-z][\\w:-]{0,63}`. A missing or unsafe target errors. Use this when Figure's image pins are not enough because the mock is markup.",
+      example:
+        '<Mock caption="Composer footer">\n- markup: <div class="ui"><button type="button" id="send-later" data-ref="send-later">Send later ▾</button></div>\n- #send-later New button\n</Mock>',
+      props: [
+        { name: 'caption', type: 'string', description: 'One-line caption under the mock.' },
+      ],
+      Component: asComponent(Mock),
     },
   ];
 
