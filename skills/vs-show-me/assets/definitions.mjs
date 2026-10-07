@@ -3386,9 +3386,155 @@ export const vsCatalogFactory = (React, css) => {
   };
 
   // Mock wraps hand-built UI markup and pins numbered markers onto named
-  // elements (`id` or `data-ref`). A pin for a missing name is an error.
+  // elements (`id` or `data-ref`). Markup is parsed into React nodes through an
+  // allowlist — never via dangerouslySetInnerHTML — so a sketch cannot ship a
+  // script, handler, or foreign tag. A pin for a missing name is an error.
   const MOCK_MARKUP = /^markup:\s*(.*)$/i;
   const MOCK_PIN = /^#([^\s]+)\s+(.*)$/;
+  const MOCK_SAFE_REF = /^[A-Za-z][\w:-]{0,63}$/;
+  const MOCK_TAGS = new Set([
+    'div',
+    'section',
+    'figure',
+    'span',
+    'button',
+    'p',
+    'b',
+    'i',
+    'strong',
+    'em',
+    'code',
+    'small',
+    'label',
+    'ul',
+    'ol',
+    'li',
+  ]);
+  const MOCK_VOID = new Set(['br', 'hr', 'img', 'input']);
+  const MOCK_ATTRS = new Set([
+    'class',
+    'id',
+    'style',
+    'type',
+    'role',
+    'tabindex',
+    'data-ref',
+    'data-tip',
+    'aria-label',
+    'aria-hidden',
+    'aria-pressed',
+    'hidden',
+    'disabled',
+  ]);
+  const MOCK_STYLE_PROP =
+    /^(?:position|top|right|bottom|left|inset|width|height|min-width|min-height|max-width|max-height|margin|margin-[\w-]+|padding|padding-[\w-]+|display|flex|flex-[\w-]+|grid|grid-[\w-]+|gap|row-gap|column-gap|align-[\w-]+|justify-[\w-]+|font|font-[\w-]+|line-height|letter-spacing|color|background|background-color|border|border-[\w-]+|border-radius|opacity|overflow|overflow-[\w-]+|white-space|text-[\w-]+|box-sizing|z-index|vertical-align|cursor)$/i;
+  const MOCK_STYLE_VAL = /^(?!.*(?:expression\s*\(|url\s*\(|javascript:|@import|-moz-binding|behavior\s*:))[\w#%.\-+*/,()\s]+$/i;
+  const escapeRegExp = (value) => String(value).replace(/[.*+?^${}()|[\]\\]/g, (ch) => '\\' + ch);
+  const sanitizeMockStyle = (value) => {
+    const parts = [];
+    for (const decl of String(value).split(';')) {
+      const trimmed = decl.trim();
+      if (!trimmed) continue;
+      const colon = trimmed.indexOf(':');
+      if (colon < 0) throw new Error('Mock style is malformed: "' + trimmed + '".');
+      const prop = trimmed.slice(0, colon).trim();
+      const val = trimmed.slice(colon + 1).trim();
+      if (!MOCK_STYLE_PROP.test(prop) || !MOCK_STYLE_VAL.test(val)) {
+        throw new Error('Mock style rejected unsafe declaration: ' + prop);
+      }
+      parts.push(prop + ':' + val);
+    }
+    return parts.join(';');
+  };
+  const styleObject = (css) => {
+    const out = {};
+    if (!css) return out;
+    for (const decl of String(css).split(';')) {
+      const trimmed = decl.trim();
+      if (!trimmed) continue;
+      const colon = trimmed.indexOf(':');
+      if (colon < 0) continue;
+      const prop = trimmed.slice(0, colon).trim();
+      const val = trimmed.slice(colon + 1).trim();
+      const camel = prop.replace(/-([a-z])/g, (_, c) => c.toUpperCase());
+      out[camel] = val;
+    }
+    return out;
+  };
+  const parseMockAttrs = (raw) => {
+    const attrs = {};
+    const re = /([:@\w-]+)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'=<>`]+)))?/g;
+    let match;
+    while ((match = re.exec(raw))) {
+      const name = match[1].toLowerCase();
+      const value = match[2] ?? match[3] ?? match[4] ?? '';
+      if (name.startsWith('on')) throw new Error('Mock rejects event-handler attributes (' + name + ').');
+      if (name === 'href' || name === 'src' || name === 'xlink:href') {
+        throw new Error('Mock rejects URL attributes (' + name + ').');
+      }
+      if (!(MOCK_ATTRS.has(name) || name.startsWith('data-') || name.startsWith('aria-'))) {
+        throw new Error('Mock attribute "' + name + '" is not allowlisted.');
+      }
+      if (name === 'style') attrs.style = styleObject(sanitizeMockStyle(value));
+      else if (name === 'class') attrs.className = value;
+      else if (name === 'tabindex') attrs.tabIndex = Number(value);
+      else if (name === 'hidden' || name === 'disabled') attrs[name] = value === '' || value === name || value === 'true';
+      else attrs[name] = value;
+    }
+    return attrs;
+  };
+  // Allowlisted HTML → React nodes. Comments are dropped; unknown tags and
+  // handlers throw so the page surfaces an alert instead of shipping them.
+  const parseMockHtml = (html) => {
+    const source = String(html);
+    let i = 0;
+    const parseNodes = () => {
+      const nodes = [];
+      while (i < source.length) {
+        if (source.startsWith('</', i)) break;
+        if (source[i] !== '<') {
+          const next = source.indexOf('<', i);
+          const text = source.slice(i, next < 0 ? source.length : next);
+          i = next < 0 ? source.length : next;
+          if (text) nodes.push(text);
+          continue;
+        }
+        if (source.startsWith('<!--', i)) {
+          const end = source.indexOf('-->', i + 4);
+          if (end < 0) throw new Error('Mock markup has an unclosed comment.');
+          i = end + 3;
+          continue;
+        }
+        if (source.startsWith('<!', i)) throw new Error('Mock markup rejects doctype/declarations.');
+        const gt = source.indexOf('>', i + 1);
+        if (gt < 0) throw new Error('Mock markup has an unclosed tag.');
+        let body = source.slice(i + 1, gt).trim();
+        i = gt + 1;
+        const selfClosing = body.endsWith('/');
+        if (selfClosing) body = body.slice(0, -1).trim();
+        const parts = body.match(/^([a-zA-Z][\w:-]*)\s*([\s\S]*)$/);
+        if (!parts) throw new Error('Mock markup has a malformed tag.');
+        const tag = parts[1].toLowerCase();
+        if (MOCK_VOID.has(tag)) throw new Error('Mock tag <' + tag + '> is not allowlisted.');
+        if (!MOCK_TAGS.has(tag)) throw new Error('Mock tag <' + tag + '> is not allowlisted.');
+        const attrs = parseMockAttrs(parts[2] || '');
+        let children = [];
+        if (!selfClosing) {
+          children = parseNodes();
+          const close = source.slice(i).match(new RegExp('^</' + escapeRegExp(tag) + '\\s*>', 'i'));
+          if (!close) throw new Error('Mock markup missing </' + tag + '>.');
+          i += close[0].length;
+        }
+        nodes.push({ tag, attrs, children });
+      }
+      return nodes;
+    };
+    const roots = parseNodes();
+    if (i < source.length && source.slice(i).trim()) {
+      throw new Error('Mock markup has trailing content after the root.');
+    }
+    return roots;
+  };
   const parseMock = (body) => {
     let markup = '';
     const pins = [];
@@ -3400,59 +3546,45 @@ export const vsCatalogFactory = (React, css) => {
       }
       const pin = row.match(MOCK_PIN);
       if (pin) {
+        if (!MOCK_SAFE_REF.test(pin[1])) {
+          throw new Error(
+            'Mock pin ref "' +
+              pin[1] +
+              '" is unsafe. Use a letter-led id/data-ref ([A-Za-z][\\w:-]{0,63}).',
+          );
+        }
         pins.push({ ref: pin[1], text: pin[2].trim() });
         continue;
       }
       throw new Error('Mock rows are: - markup: <html…> or - #ref legend text.');
     }
     if (!markup) throw new Error('Mock needs a "- markup: …" row with the UI HTML.');
-    return { markup, pins };
+    return { markup, pins, tree: parseMockHtml(markup) };
   };
-  // Attach pins in the markup string so each marker is a child of its target
-  // and CSS can keep it within 8px of that element's corner without measuring.
-  const injectMockPins = (markup, pins) => {
-    let html = markup;
-    const missing = [];
-    pins.forEach((pin, index) => {
-      const num = index + 1;
-      const marker =
-        '<span class="vs-mock-marker" data-pin-for="#' +
-        pin.ref +
-        '" style="top:-4px;right:-4px">' +
-        num +
-        '</span>';
-      const patterns = [
-        new RegExp('(<(?:[a-zA-Z][\\w:-]*)\\b[^>]*\\bid=["\']' + pin.ref + '["\'][^>]*)(/?)(>)', 'i'),
-        new RegExp('(<(?:[a-zA-Z][\\w:-]*)\\b[^>]*\\bdata-ref=["\']' + pin.ref + '["\'][^>]*)(/?)(>)', 'i'),
-      ];
-      let placed = false;
-      for (const pattern of patterns) {
-        if (!pattern.test(html)) continue;
-        html = html.replace(pattern, (full, start, selfClose, end) => {
-          if (selfClose === '/') {
-            // <span id="x" /> → <span id="x" style="position:relative">marker</span>
-            const opened = start.replace(/\s*$/, '');
-            if (!/\bstyle=/i.test(opened)) {
-              return opened + ' style="position:relative"' + end + marker + '</' + opened.match(/^<([a-zA-Z][\w:-]*)/)[1] + '>';
-            }
-            return opened + end + marker + '</' + opened.match(/^<([a-zA-Z][\w:-]*)/)[1] + '>';
-          }
-          const withPos = /\bstyle=/i.test(start)
-            ? start.replace(/style=(["'])(.*?)\1/i, (m, q, style) => {
-                return /position\s*:/i.test(style)
-                  ? m
-                  : 'style=' + q + 'position:relative;' + style + q;
-              })
-            : start + ' style="position:relative"';
-          return withPos + end + marker;
-        });
-        placed = true;
-        break;
+  const mockMarker = (num, ref) =>
+    h(
+      'span',
+      {
+        className: 'vs-mock-marker',
+        'data-pin-for': '#' + ref,
+        style: { position: 'absolute', top: '-4px', right: '-4px' },
+      },
+      String(num),
+    );
+  const renderMockTree = (nodes, pinIndex) =>
+    nodes.map((node, index) => {
+      if (typeof node === 'string') return node;
+      const props = { ...node.attrs };
+      const ref = props.id || props['data-ref'];
+      const pinNum = ref && pinIndex.has(ref) ? pinIndex.get(ref) : null;
+      if (pinNum != null) {
+        const style = { ...(props.style || {}), position: (props.style && props.style.position) || 'relative' };
+        props.style = style;
       }
-      if (!placed) missing.push(pin.ref);
+      const kids = renderMockTree(node.children, pinIndex);
+      if (pinNum != null) kids.unshift(mockMarker(pinNum, ref));
+      return h(node.tag, { key: index, ...props }, ...kids);
     });
-    return { html, missing };
-  };
   const Mock = ({ body = '', caption = '' }) => {
     if (!h) return body;
     let parsed;
@@ -3461,14 +3593,35 @@ export const vsCatalogFactory = (React, css) => {
     } catch (error) {
       return wrap('Mock', h('p', { role: 'alert' }, error.message));
     }
-    const { html, missing } = injectMockPins(parsed.markup, parsed.pins);
+    const pinIndex = new Map();
+    const missing = [];
+    parsed.pins.forEach((pin, index) => {
+      pinIndex.set(pin.ref, index + 1);
+    });
+    const collectRefs = (nodes, found) => {
+      for (const node of nodes) {
+        if (typeof node === 'string') continue;
+        if (node.attrs.id) found.add(node.attrs.id);
+        if (node.attrs['data-ref']) found.add(node.attrs['data-ref']);
+        collectRefs(node.children, found);
+      }
+    };
+    const found = new Set();
+    collectRefs(parsed.tree, found);
+    for (const pin of parsed.pins) {
+      if (!found.has(pin.ref)) missing.push(pin.ref);
+    }
     if (missing.length) {
       return wrap(
         'Mock',
         h(
           'p',
           { role: 'alert' },
-          'Mock pin #' + missing[0] + ' matches no element. Give the target an id or data-ref="' + missing[0] + '".',
+          'Mock pin #' +
+            missing[0] +
+            ' matches no element. Give the target an id or data-ref="' +
+            missing[0] +
+            '".',
         ),
       );
     }
@@ -3477,10 +3630,7 @@ export const vsCatalogFactory = (React, css) => {
       h(
         'figure',
         { className: 'vs-mock' },
-        h('div', {
-          className: 'vs-mock-frame',
-          dangerouslySetInnerHTML: { __html: '<div class="vs-mock-host">' + html + '</div>' },
-        }),
+        h('div', { className: 'vs-mock-frame' }, h('div', { className: 'vs-mock-host' }, ...renderMockTree(parsed.tree, pinIndex))),
         caption ? h('figcaption', { className: 'text-sm italic text-muted-foreground' }, plain(caption)) : null,
         parsed.pins.length
           ? h(
@@ -3978,7 +4128,7 @@ export const vsCatalogFactory = (React, css) => {
       name: 'Mock',
       body: 'markdown',
       purpose:
-        "Pin numbered markers onto a hand-built UI mock. One or more '- markup: <html…>' rows hold allowlisted HTML; '- #ref legend' rows place a marker on the element with that id or data-ref. A missing target errors. Use this when Figure's image pins are not enough because the mock is markup.",
+        "Pin numbered markers onto a hand-built UI mock. One or more '- markup: <html…>' rows are parsed into React through an allowlist (div/section/figure/span/button and a few text tags; no handlers, URLs, or foreign tags); '- #ref legend' rows place a marker on the element with that id or data-ref. Refs must be letter-led `[A-Za-z][\\w:-]{0,63}`. A missing or unsafe target errors. Use this when Figure's image pins are not enough because the mock is markup.",
       example:
         '<Mock caption="Composer footer">\n- markup: <div class="ui"><button type="button" id="send-later" data-ref="send-later">Send later ▾</button></div>\n- #send-later New button\n</Mock>',
       props: [

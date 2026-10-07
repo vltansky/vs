@@ -1,5 +1,6 @@
 import { pathToFileURL } from 'node:url';
 import * as path from 'node:path';
+import puppeteer from 'puppeteer-core';
 import { describe, expect, it } from 'vitest';
 
 const CATALOG_URL = pathToFileURL(
@@ -261,6 +262,85 @@ describe('Tree — call-tree path column and mark counts', () => {
   });
 });
 
+function escapeHtml(value: string): string {
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+function styleToCss(style: Record<string, string | number> | undefined): string {
+  if (!style) return '';
+  return Object.entries(style)
+    .map(([key, value]) => {
+      const prop = key.replace(/[A-Z]/g, (c) => '-' + c.toLowerCase());
+      return prop + ':' + String(value);
+    })
+    .join(';');
+}
+
+function reactTreeToHtml(node: unknown): string {
+  if (node == null || node === false || node === true) return '';
+  if (typeof node === 'string' || typeof node === 'number') return escapeHtml(String(node));
+  if (Array.isArray(node)) return node.map(reactTreeToHtml).join('');
+  const el = node as Node;
+  if (typeof el.type !== 'string') return '';
+  const props = el.props ?? {};
+  const attrs: string[] = [];
+  for (const [key, value] of Object.entries(props)) {
+    if (value == null || value === false) continue;
+    if (key === 'children') continue;
+    if (key === 'className') attrs.push('class="' + escapeHtml(String(value)) + '"');
+    else if (key === 'style' && typeof value === 'object') {
+      attrs.push('style="' + escapeHtml(styleToCss(value as Record<string, string | number>)) + '"');
+    } else if (key === 'tabIndex') attrs.push('tabindex="' + escapeHtml(String(value)) + '"');
+    else if (typeof value === 'boolean') {
+      if (value) attrs.push(key);
+    } else if (typeof value !== 'function' && typeof value !== 'object') {
+      attrs.push(key + '="' + escapeHtml(String(value)) + '"');
+    }
+  }
+  const open = '<' + el.type + (attrs.length ? ' ' + attrs.join(' ') : '') + '>';
+  const inner = (el.children ?? []).map(reactTreeToHtml).join('');
+  return open + inner + '</' + el.type + '>';
+}
+
+async function chromeDistance(html: string): Promise<number> {
+  const browser = await puppeteer.launch({
+    executablePath: process.env.CHROME_PATH || '/usr/bin/google-chrome-stable',
+    args: ['--no-sandbox', '--disable-gpu', '--disable-dev-shm-usage'],
+    headless: true,
+  });
+  try {
+    const page = await browser.newPage();
+    await page.setViewport({ width: 800, height: 600 });
+    await page.setContent(
+      '<!doctype html><style>' +
+        'body{margin:0;font:14px sans-serif}' +
+        '.vs-mock-marker{position:absolute;top:-4px;right:-4px;width:20px;height:20px;' +
+        'border-radius:50%;background:#000;color:#fff;font-size:11px;line-height:20px;text-align:center}' +
+        '</style>' +
+        html,
+      { waitUntil: 'load' },
+    );
+    return await page.evaluate(() => {
+      const marker = document.querySelector('.vs-mock-marker');
+      const target = document.querySelector('#send-later');
+      if (!marker || !target) throw new Error('marker or #send-later missing in DOM');
+      const m = marker.getBoundingClientRect();
+      const t = target.getBoundingClientRect();
+      const cx = m.left + m.width / 2;
+      const cy = m.top + m.height / 2;
+      const dx = Math.max(t.left - cx, 0, cx - t.right);
+      const dy = Math.max(t.top - cy, 0, cy - t.bottom);
+      return Math.hypot(dx, dy);
+    });
+  } finally {
+    await browser.close();
+  }
+}
+
 describe('Mock — pins on markup mocks', () => {
   const MOCK_BODY = [
     '- markup: <div class="ui" style="position:relative;width:240px;height:48px"><button type="button" id="send-later" data-ref="send-later" style="position:absolute;left:120px;top:12px;width:96px;height:28px">Send later</button></div>',
@@ -278,29 +358,26 @@ describe('Mock — pins on markup mocks', () => {
     const Mock = catalog.components.find((c: { name: string }) => c.name === 'Mock');
     const element = Mock.Component({ body: MOCK_BODY });
 
-    // Markers are injected into the mock markup so they ride the named element.
-    const frame = findAll(element, (n) => n.props?.dangerouslySetInnerHTML != null)[0];
-    expect(frame).toBeTruthy();
-    const html = String((frame.props.dangerouslySetInnerHTML as { __html: string }).__html);
-    expect(html).toMatch(/id=["']send-later["']/);
-    const markerMatch = html.match(
-      /<span class="vs-mock-marker"[^>]*data-pin-for="#send-later"[^>]*style="([^"]*)"[^>]*>\s*1\s*<\/span>/,
-    );
-    expect(markerMatch).toBeTruthy();
-    const style = markerMatch![1];
-    const offset = (prop: string) => {
-      const m = style.match(new RegExp(prop + ':\\s*(-?\\d+(?:\\.\\d+)?)px'));
-      return m ? Math.abs(Number(m[1])) : Infinity;
-    };
-    // Marker sits on the element's corner; reported offset must be ≤ 8px.
-    expect(Math.min(offset('top'), offset('right'), offset('left'), offset('bottom'))).toBeLessThanOrEqual(8);
-    // Marker appears inside the #send-later element, not as a free-floating overlay.
-    expect(html.indexOf('id="send-later"')).toBeLessThan(html.indexOf('vs-mock-marker'));
-    expect(html.indexOf('vs-mock-marker')).toBeLessThan(html.indexOf('</button>'));
+    // No raw HTML injection path — Mock builds React nodes through the allowlist.
+    expect(findAll(element, (n) => n.props?.dangerouslySetInnerHTML != null)).toHaveLength(0);
+    const marker = findAll(
+      element,
+      (n) => n.props?.className?.toString().includes('vs-mock-marker') && textOf(n).includes('1'),
+    )[0];
+    expect(marker).toBeTruthy();
+    expect(String(marker.props['data-pin-for'])).toBe('#send-later');
 
-    const legend = findAll(element, (n) => n.type === 'ol' || n.props?.className?.toString().includes('vs-mock-legend'))[0];
+    const host = findAll(element, (n) => n.props?.className?.toString().includes('vs-mock-frame'))[0];
+    expect(host).toBeTruthy();
+    const distance = await chromeDistance(reactTreeToHtml(host));
+    expect(distance).toBeLessThanOrEqual(8);
+
+    const legend = findAll(
+      element,
+      (n) => n.type === 'ol' || n.props?.className?.toString().includes('vs-mock-legend'),
+    )[0];
     expect(textOf(legend)).toMatch(/New button/);
-  });
+  }, 30_000);
 
   it('raises when a pin names a missing element', async () => {
     const { vsCatalogFactory, vsLayoutCss } = await import(CATALOG_URL);
@@ -313,5 +390,27 @@ describe('Mock — pins on markup mocks', () => {
     const element = Mock.Component({ body });
     expect(findAll(element, (n) => n.props?.role === 'alert').length).toBeGreaterThan(0);
     expect(textOf(element)).toMatch(/send-later|missing|no element/i);
+  });
+
+  it('rejects scripts, handlers, and unsafe pin refs', async () => {
+    const { vsCatalogFactory, vsLayoutCss } = await import(CATALOG_URL);
+    const catalog = vsCatalogFactory(stubReact, vsLayoutCss);
+    const Mock = catalog.components.find((c: { name: string }) => c.name === 'Mock');
+    const scripted = Mock.Component({
+      body: '- markup: <div id="x"><script>alert(1)</script></div>\n- #x note',
+    });
+    expect(findAll(scripted, (n) => n.props?.role === 'alert').length).toBeGreaterThan(0);
+    expect(textOf(scripted)).toMatch(/not allowlisted|script/i);
+
+    const handled = Mock.Component({
+      body: '- markup: <div id="x" onclick="alert(1)">hi</div>\n- #x note',
+    });
+    expect(findAll(handled, (n) => n.props?.role === 'alert').length).toBeGreaterThan(0);
+    expect(textOf(handled)).toMatch(/event-handler|onclick|not allowlisted/i);
+
+    const badRef = Mock.Component({
+      body: '- markup: <div id="ok">hi</div>\n- #1bad note',
+    });
+    expect(findAll(badRef, (n) => n.props?.role === 'alert').length).toBeGreaterThan(0);
   });
 });

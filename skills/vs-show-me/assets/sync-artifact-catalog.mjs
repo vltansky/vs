@@ -59,7 +59,9 @@ for (const template of ['artifact.html', 'proposal.html']) {
   }
   writeFileSync(
     templatePath,
-    shell.replace(pattern, block).replace(reviewPattern, `<script>\n${reviewBlock}\n    </script>`),
+    // Function replacers: a string replacer would expand $& / $` / $' inside
+    // the inlined factory (e.g. escapeRegExp's '$&') and corrupt the catalog.
+    shell.replace(pattern, () => block).replace(reviewPattern, () => `<script>\n${reviewBlock}\n    </script>`),
   );
   console.log(`${template} catalog and review blocks regenerated`);
 }
