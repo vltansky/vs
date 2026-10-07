@@ -78,6 +78,9 @@ describe('the vs catalog is one source the CLI and the browser both load', () =>
       'Brief',
       'Zones',
       'Crossing',
+      'Machine',
+      'Code',
+      'Mock',
       'Prediction',
     ]);
     for (const component of catalog.components) {
@@ -308,13 +311,24 @@ describe('the vs catalog is one source the CLI and the browser both load', () =>
     const element = tree.Component({
       body: '- plugins/\n  - + plugin/: installable\n  - project.json\n- − tests/',
     });
-    const treeRows = element.children[0].children;
-    const text = (row: { children: Array<{ props: { className: string }; children: string[] } | null> }) =>
-      row.children.filter(Boolean).map((child) => child!.children.join(''));
+    const treeChildren = element.children[0].children.filter(Boolean);
+    // First child is the +/−/~ stats header when any row is marked.
+    const treeRows = treeChildren.slice(1);
+    const text = (row: {
+      children: Array<{ props?: { className?: string }; children?: unknown[] } | string | null>;
+    }) => {
+      const main = row.children.filter(Boolean)[0] as {
+        children: Array<{ props?: { className?: string }; children?: unknown[] } | null>;
+      };
+      return main.children.filter(Boolean).map((child) => (child!.children ?? []).join(''));
+    };
     expect(text(treeRows[0])).toEqual(['plugins/']);
     expect(text(treeRows[1])).toEqual(['├─ ', '+ ', 'plugin/', '  — installable']);
     expect(text(treeRows[2])).toEqual(['└─ ', 'project.json']);
-    const removed = treeRows[3].children.filter(Boolean);
+    const removedMain = treeRows[3].children.filter(Boolean)[0] as {
+      children: Array<{ props: { className: string } } | null>;
+    };
+    const removed = removedMain.children.filter(Boolean);
     expect(removed[1].props.className).toContain('line-through');
   });
 

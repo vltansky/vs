@@ -379,7 +379,20 @@ when a section needs it:
   inherits Atkinson Hyperlegible Next, the report's own reading sans, so give it the
   product's face with `style="font-family: …"` or it reads as the report
   wearing a screenshot's layout. Promote a mock into `assets/definitions.mjs`
-  only when a second artifact needs it.
+  only when a second artifact needs it. When the mock needs numbered callouts
+  on named elements, wrap it in `<Mock>` with `- markup: …` and `- #ref note`
+  pin rows (see `npx -y @wix/htmdx@4 skill components`).
+- **State screens use `<Machine>`.** When each lifecycle state has a screen the
+  reader must see, prefer `<Machine>` (tap a state → that screen) over a mermaid
+  `stateDiagram`. Keep mermaid for topology-only machines. Pair with
+  `<Prediction>` when the reader should forecast the next state.
+- **Annotated code uses `<Code>`.** For a slice with real line numbers,
+  highlights, and a short note under a line, use `<Code start hl>` with
+  trailing `- @N note` rows. Ordinary fenced blocks stay fine for unlabeled
+  pseudocode.
+- **Call trees use `<Tree>` with `@ path:line`.** Put the path in a trailing
+  `@ file:line` so it lands in its own column; mark counts appear in the
+  header. Component names like `<SendLaterMenu/>` stay plain text.
 - **Generated images embed.** When a picture explains better than markup — an
   illustration, a produced chart, a captured screenshot — generate it and embed
   it with `![alt](...)` or `<img>`: a file saved next to the artifact (relative
