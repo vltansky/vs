@@ -8,8 +8,8 @@ import { describe, expect, it } from 'vitest';
 
 const SKILL = fs.readFileSync(path.resolve(__dirname, '..', 'SKILL.md'), 'utf8');
 
-function between(text: string, start: string | RegExp, end: RegExp): string {
-  const from = typeof start === 'string' ? text.indexOf(start) : text.search(start);
+function between(text: string, start: RegExp, end: RegExp): string {
+  const from = text.search(start);
   if (from === -1) return '';
   const rest = text.slice(from);
   const head = rest.indexOf('\n');
@@ -17,34 +17,42 @@ function between(text: string, start: string | RegExp, end: RegExp): string {
   return stop === -1 ? rest : rest.slice(0, head + 1 + stop);
 }
 
-const sentences = (text: string) =>
-  text
-    .replace(/<!--[\s\S]*?-->/g, ' ')
-    .replace(/\s+/g, ' ')
-    .split(/(?<=[.:])\s+(?=[A-Z`*-])/);
+const prose = (text: string) => text.replace(/<!--[\s\S]*?-->/g, ' ').replace(/\s+/g, ' ');
 
 function parse(skill: string) {
   const template = skill.match(/````markdown[\s\S]*?````/)?.[0] ?? '';
   const live = template.replace(/<!--[\s\S]*?-->/g, '');
   const tmplTests = between(template, /^## Tests$/m, /^## /m);
   const tmplFocus = between(template, /^## Review focus$/m, /^````/m);
-  const rule = between(skill, '### Tests block and no-test flag', /^### /m);
+  const rule = between(skill, /^### Tests block and no-test flag$/m, /^### /m);
   const testsBullet = rule.match(/^- \*\*Tests block\.\*\*[\s\S]*?(?=^- \*\*|^$)/m)?.[0] ?? '';
   const flagBullet = rule.match(/^- \*\*No-test flag\.\*\*[\s\S]*?(?=^- \*\*|^$)/m)?.[0] ?? '';
-  const step1 = between(skill, '### Step 1', /^### Step 2/m);
-  const handoff = between(skill, '## Handoff', /^### Closing link/m);
+  const step1 = between(skill, /^### Step 1\b/m, /^### Step 2/m);
+  const handoff = between(skill, /^## Handoff$/m, /^### Closing link/m);
   const handoffBlock = handoff.match(/```markdown[\s\S]*?```/)?.[0] ?? '';
-  const contract = between(skill, '## Verification contract', /^## /m);
+  const contract = between(skill, /^## Verification contract$/m, /^## /m);
   return { template, live, tmplTests, tmplFocus, rule, testsBullet, flagBullet, step1, handoffBlock, contract };
 }
 
-// A sentence that tells the agent to run something for the Tests block or flag.
-// Negated forms ("do not run", "never starts a test run") are not instructions.
-const RUN = /\b(?:run|rerun|re-run|execute|start)s?\b[^.]{0,40}?\b(?:tests?|suites?|vs-verify|vs-before-after|evals?)\b/i;
-const NEGATED_RUN = /\b(?:do not|don't|never|no|without|not)\b[^.]{0,60}\b(?:run|rerun|re-run|execute|start)/i;
-// A sentence that makes the flag stop, block, or ask. Negated forms are fine.
-const BLOCKING = /\b(?:block(?:s|ing)?|stop(?:s|ping)?|ask(?:s|ing)?|refuse[sd]?|fail(?:s|ing)?|require[sd]?)\b/i;
-const NEGATED_BLOCK = /\b(?:never|not|no|do not|don't)\b[^.]{0,30}\b(?:block|stop|ask|refuse|fail|require)/i;
+// Forbidden instruction shapes: a run verb aimed at tests (rule and flag), and a
+// block/stop/ask verb (flag). A hit counts unless a negator sits directly before the
+// verb in the same clause ("do not run", "it never blocks"). "Do not forget/fail/skip/
+// neglect/omit to <verb>" is a double negation: it orders the action, so it counts.
+// The lookbehind skips noun uses: "a test run", "add no runs".
+const RUN_SHAPE = /(?<!\b(?:a|an|the|no|test|eval|each|new)\s+)\b(?:run|rerun|re-run|execute|start)(?:s|ning|ing)?\b[^.,;:]{0,40}?\b(?:tests?|suites?|vs-verify|vs-before-after|evals?)\b/gi;
+const BLOCK_SHAPE = /\b(?:block|stop|ask|refuse|fail|require)(?:s|ed|ing|ping|d)?\b/gi;
+const DOUBLE_NEG = /\b(?:do not|don't|never|not|must not)\s+(?:forget|fail|skip|neglect|omit|hesitate)\s+(?:to\s+)?$/i;
+const DIRECT_NEG = /\b(?:do not|don't|does not|doesn't|must not|never|not|no|without|nor)\s+(?:[\w-]+\s+)?$/i;
+
+function affirmative(text: string, shape: RegExp): string[] {
+  const hits: string[] = [];
+  const flat = prose(text);
+  for (const m of flat.matchAll(shape)) {
+    const clause = flat.slice(0, m.index).split(/[,;:.]/).pop() ?? '';
+    if (DOUBLE_NEG.test(clause) || !DIRECT_NEG.test(clause)) hits.push(`${clause.trim()} ${m[0]}`.trim());
+  }
+  return hits;
+}
 
 const TEST_PATTERNS = ['`*.test.*`', '`*.spec.*`', '`*.eval.*`', '`__tests__/`', '`test/`', '`tests/`', '`evals/`'];
 const EXEMPT = ['docs-only', 'copy/styling-only', 'config/CI-only', 'test-only'];
@@ -83,9 +91,7 @@ function problems(skill: string): string[] {
   fail(!/come from the scoped diff only and add no runs/.test(p.rule), 'rule: does not say diff-only, no runs');
   fail(!/do not run the\s+suite, a focused test, `vs-verify`, or `vs-before-after`/.test(p.rule), 'rule: run ban does not name suite, focused test, vs-verify, vs-before-after');
   fail(!/handoff `Checks:` line; do not\s+repeat it here/.test(p.rule), 'rule: does not keep pass/fail in Checks');
-  for (const s of sentences(p.rule)) {
-    if (RUN.test(s) && !NEGATED_RUN.test(s)) out.push(`rule: instructs a run: "${s.trim().slice(0, 120)}"`);
-  }
+  for (const hit of affirmative(p.rule, RUN_SHAPE)) out.push(`rule: instructs a run: "${hit.slice(0, 120)}"`);
 
   // Test-file detection: generic patterns plus repo convention passed to the gate.
   for (const pattern of TEST_PATTERNS) fail(!p.rule.includes(pattern), `rule: test pattern ${pattern} missing`);
@@ -108,10 +114,8 @@ function problems(skill: string): string[] {
   fail(!/add one bullet under \*\*Review focus\*\*/.test(p.flagBullet), 'flag: not under Review focus');
   fail(!/never blocks PR creation, never asks the user/.test(p.flagBullet), 'flag: not warn-only');
   fail(!/never\s+starts a test run/.test(p.flagBullet), 'flag: may start a run');
-  for (const s of sentences(p.flagBullet)) {
-    if (BLOCKING.test(s) && !NEGATED_BLOCK.test(s)) out.push(`flag: blocks or asks: "${s.trim().slice(0, 120)}"`);
-    if (RUN.test(s) && !NEGATED_RUN.test(s)) out.push(`flag: instructs a run: "${s.trim().slice(0, 120)}"`);
-  }
+  for (const hit of affirmative(p.flagBullet, BLOCK_SHAPE)) out.push(`flag: blocks or asks: "${hit.slice(0, 120)}"`);
+  for (const hit of affirmative(p.flagBullet, RUN_SHAPE)) out.push(`flag: instructs a run: "${hit.slice(0, 120)}"`);
   for (const e of EXEMPT) fail(!p.flagBullet.includes(e), `flag: exemption ${e} missing`);
 
   // Gate wiring: fails on missing Tests block, warns (not fails) on the flag.
@@ -138,6 +142,25 @@ describe('ship-it Tests block and no-test flag: base skill', () => {
   });
 });
 
+describe('ship-it Tests block: forbidden-instruction checker', () => {
+  it('treats a negator directly before the verb as a ban', () => {
+    expect(affirmative('Do not run the suite to fill it.', RUN_SHAPE)).toEqual([]);
+    expect(affirmative('It never blocks PR creation, never asks the user.', BLOCK_SHAPE)).toEqual([]);
+  });
+
+  it('treats double negation and plain orders as instructions', () => {
+    expect(affirmative('Do not forget to run the full test suite.', RUN_SHAPE)).toHaveLength(1);
+    expect(affirmative("Don't fail to rerun the tests first.", RUN_SHAPE)).toHaveLength(1);
+    expect(affirmative('Never skip running the eval suite.', RUN_SHAPE)).toHaveLength(1);
+    expect(affirmative('Do not neglect to ask the user for tests.', BLOCK_SHAPE)).toHaveLength(1);
+    expect(affirmative('Run the tests first.', RUN_SHAPE)).toHaveLength(1);
+  });
+
+  it('scopes a negator to its own clause', () => {
+    expect(affirmative('Do not edit the body, run the suite instead.', RUN_SHAPE)).toHaveLength(1);
+  });
+});
+
 // Each mutant must change the text and must be caught.
 const MUTANTS: Array<[string, (s: string) => string]> = [
   ['M1 Tests heading dropped from the template', (s) => s.replace('\n## Tests\n\n- `<test file or case>`', '\n- `<test file or case>`')],
@@ -157,13 +180,15 @@ const MUTANTS: Array<[string, (s: string) => string]> = [
   ],
   ['M7 flag moved to Evidence', (s) => s.replace('add one bullet under **Review focus**:', 'add one bullet under **Evidence**:')],
   ['M8 docs-only exemption dropped', (s) => s.replace('Exempt docs-only, copy/styling-only,', 'Exempt copy/styling-only,')],
-  ['M9 __tests__/ pattern dropped', (s) => s.replace('any file under `__tests__/`, `test/`', 'any file under `test/`')],
+  ['M9 __tests__/ pattern dropped', (s) => s.replace(/any file under `__tests__\/`,\s+`test\/`/, 'any file under `test/`')],
   ['M10 handoff duplicates Checks with a Tests line', (s) => s.replace('- Checks: <fresh results reused', '- Tests: <tests run and passed>\n- Checks: <fresh results reused')],
   ['M11 Step 1 no-broad-suite rule removed', (s) => s.replace('do not introduce `vs-before-after`, `vs-verify`, broad test suites, or another', 'do not introduce another')],
   ['M12 deleted tests no longer listed', (s) => s.replace(/ List deleted tests too, with the behavior they no longer\s+guard\./, '')],
   ['M13 line cap removed', (s) => s.replace(/ Keep it to about 5 lines; group many tests into\s+one line per behavior\./, '')],
   ['M14 gate fails on the flag instead of warning', (s) => s.replace('It prints a non-blocking warning', 'It fails')],
   ['M15 flag starts a test run', (s) => s.replace(/never\s+starts a test run or new test writing/, 'starts a focused test run')],
+  ['M16 rule orders a run through double negation', (s) => s.replace('**Why.** A reviewer', 'Do not forget to run the full test suite before writing the Tests block.\n\n**Why.** A reviewer')],
+  ['M17 flag asks the user through double negation', (s) => s.replace('Exempt docs-only, copy/styling-only,', 'Do not forget to ask the user to add tests. Exempt docs-only, copy/styling-only,')],
 ];
 
 describe('ship-it Tests block and no-test flag: mutants are caught', () => {

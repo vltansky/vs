@@ -724,6 +724,39 @@ describe('pr-media-gate Tests block', () => {
     expect(onlyGap.stderr).toMatch(/one line per changed test/);
   });
 
+  it('fails an empty Not covered line in every label shape', () => {
+    const cwd = repoWithChanges(['src/server/auth.test.ts']);
+    for (const empty of [
+      '- **Not covered:**',
+      '- **Not covered**',
+      '- **Not covered:**   ',
+      '- **Not covered**:',
+      '- __Not covered:__',
+      '- Not covered:',
+      '- **Not covered:** **',
+      '- **Not covered:** —',
+    ]) {
+      const result = gate(cwd, `${BASE_BODY}\n## Tests\n\n- \`auth.test.ts\` — proves refresh\n${empty}\n`);
+      expect(result.status, JSON.stringify(empty)).toBe(1);
+      expect(result.json.tests.notCovered, JSON.stringify(empty)).toBe(false);
+      expect(result.json.tests.lines, JSON.stringify(empty)).toBe(1);
+      expect(result.stderr).toMatch(/`none` or a named behavior/);
+    }
+  });
+
+  it('passes a Not covered line that says none or names a behavior', () => {
+    const cwd = repoWithChanges(['src/server/auth.test.ts']);
+    for (const ok of [
+      '- **Not covered:** none',
+      '- **Not covered**: refresh after a network timeout',
+      '- Not covered: refresh after a network timeout',
+    ]) {
+      const result = gate(cwd, `${BASE_BODY}\n## Tests\n\n- \`auth.test.ts\` — proves refresh\n${ok}\n`);
+      expect(result.status, JSON.stringify(ok)).toBe(0);
+      expect(result.json.tests.notCovered, JSON.stringify(ok)).toBe(true);
+    }
+  });
+
   it('does not count a Tests block that lives only in an HTML comment', () => {
     const cwd = repoWithChanges(['src/server/auth.test.ts']);
     const result = gate(cwd, `${BASE_BODY}\n## Tests\n\n<!--\n- \`a\` — b\n- **Not covered:** none\n-->\n`);
@@ -779,6 +812,45 @@ describe('pr-media-gate Tests block', () => {
     expect(withConvention.status).toBe(1);
   });
 
+  it('counts spec files and spec/ dirs only when they hold code', () => {
+    const tests = ['src/a.spec.ts', 'spec/models/user_spec.rb', 'spec/support/helper.js'];
+    const notTests = ['api.spec.yaml', 'docs/spec/design.md', 'respec/a.ts', 'specs/plan.md', 'src/inspector.ts'];
+    const cwd = repoWithChanges([...tests, ...notTests]);
+    const result = gate(cwd, BASE_BODY);
+    expect(result.json.tests.files.sort()).toEqual([...tests].sort());
+  });
+
+  it('exits 2 with a clear message on an invalid --tests regex', () => {
+    const cwd = repoWithChanges(['src/server/auth.ts']);
+    const result = gate(cwd, BASE_BODY, '--tests', '(unclosed');
+    expect(result.status).toBe(2);
+    expect(result.stdout).toBe('');
+    expect(result.stderr).toMatch(/not checked\. --tests is not a valid regex \(\(unclosed\)/);
+  });
+
+  it('exits 2 when --tests has no value, instead of ignoring it', () => {
+    const cwd = repoWithChanges(['src/server/auth.ts']);
+    const atEnd = gate(cwd, BASE_BODY, '--tests');
+    expect(atEnd.status).toBe(2);
+    expect(atEnd.stderr).toMatch(/--tests needs a value/);
+
+    const beforeFlag = gate(cwd, BASE_BODY, '--tests', '--frontend', '^$');
+    expect(beforeFlag.status).toBe(2);
+    expect(beforeFlag.stderr).toMatch(/--tests needs a value/);
+  });
+
+  it('never reads a flag value as the body path', () => {
+    const cwd = repoWithChanges(['src/server/auth.ts', 'checks/auth.check.ts']);
+    const bodyPath = path.join(cwd, 'pr-body.md');
+    fs.writeFileSync(bodyPath, `${BASE_BODY}${TESTS_BLOCK}`);
+    const result = spawnSync(process.execPath, [GATE, '--tests', '^checks/', bodyPath, '--base', 'main'], {
+      cwd,
+      encoding: 'utf8',
+    });
+    expect(result.status).toBe(0);
+    expect(JSON.parse(result.stdout).tests.files).toEqual(['checks/auth.check.ts']);
+  });
+
   it('requires the block on a test-only PR, with no no-test warning', () => {
     const cwd = repoWithChanges(['src/server/auth.test.ts']);
     const result = gate(cwd, `${BASE_BODY}${TESTS_BLOCK}`);
@@ -823,6 +895,16 @@ describe('pr-media-gate no-test flag warns and never blocks', () => {
     const cwd = repoWithChanges(['skills/vs-ship-it/SKILL.md']);
     const result = gate(cwd, BASE_BODY);
     expect(result.json.tests.noTestFlag.needed).toBe(true);
+  });
+
+  it('treats skill references and CONTEXT.md as behavior, not docs', () => {
+    for (const file of ['skills/vs-ship-it/references/body.md', 'skills/vs-x/references/deep/ste.md', 'CONTEXT.md', 'docs/CONTEXT.md']) {
+      const cwd = repoWithChanges([file]);
+      const result = gate(cwd, BASE_BODY);
+      expect(result.json.tests.behaviorFiles, file).toEqual([file]);
+      expect(result.json.tests.noTestFlag.needed, file).toBe(true);
+      expect(result.stderr, file).toMatch(/warning \(does not block\)/);
+    }
   });
 
   for (const [kind, files] of [

@@ -43,11 +43,26 @@ const INFRA_PATH =
 const TEST_PATH = /\.(?:test|spec|stories)\.[cm]?[jt]sx?$|\/(?:__tests__|__snapshots__|test|tests|e2e)\//i;
 // Test/eval files for the ## Tests block and the no-test flag. Generic defaults; pass
 // --tests <regex> to add a repository convention the defaults miss.
-const TEST_FILE =
-  /\.(?:test|spec|eval)\.[^/]+$|(?:^|\/)(?:__tests__|__snapshots__|tests?|evals?|e2e|spec)\/|_test\.(?:go|py|rb|exs?)$|(?:^|\/)test_[^/]+\.py$|_spec\.rb$/i;
+// `*.spec.*`, `*.test.*`, `*.eval.*`, and a `spec/` directory count only for code files: an
+// `api.spec.yaml` (OpenAPI) or a `docs/spec/design.md` is a specification, not a test.
+const CODE_EXT = String.raw`\.(?:[cm]?[jt]sx?|py|rb|go|rs|java|kt|swift|php|cs|dart|exs?|vue|svelte)$`;
+const TEST_FILE = new RegExp(
+  [
+    String.raw`\.(?:test|spec|eval)${CODE_EXT}`,
+    String.raw`\.(?:test|spec|eval)\.[^/.]+${CODE_EXT}`,
+    String.raw`(?:^|\/)(?:__tests__|__snapshots__|tests?|evals?|e2e)\/`,
+    String.raw`(?:^|\/)spec\/(?:[^/]+\/)*[^/]+${CODE_EXT}`,
+    String.raw`_test\.(?:go|py|rb|exs?)$`,
+    String.raw`(?:^|\/)test_[^/]+\.py$`,
+    String.raw`_spec\.rb$`,
+  ].join('|'),
+  'i',
+);
 // Paths that cannot change runtime behavior on their own: docs, copy/styling, config, CI.
-// A skill contract (SKILL.md) is behavior even though it is Markdown.
-const SKILL_CONTRACT = /(?:^|\/)SKILL\.md$/i;
+// A skill contract is behavior even though it is Markdown: SKILL.md, the references a skill
+// loads and follows, and CONTEXT.md.
+const SKILL_CONTRACT =
+  /(?:^|\/)SKILL\.md$|(?:^|\/)skills\/(?:[^/]+\/)+references\/(?:[^/]+\/)*[^/]+\.md$|(?:^|\/)CONTEXT\.md$/i;
 const NON_BEHAVIOR =
   /\.(?:md|mdx|markdown|rst|txt|adoc)$|(?:^|\/)(?:docs?|adr)\/|(?:^|\/)(?:LICENSE|NOTICE|CHANGELOG|CODEOWNERS)[^/]*$|\.(?:css|scss|sass|less|styl|svg|png|jpe?g|gif|webp|ico)$|\.(?:json|ya?ml|toml|ini|cfg|lock)$|(?:^|\/)\.[^/]+$|(?:^|\/)[^/]+\.config\.[cm]?[jt]s$|(?:^|\/)\.github\/|(?:^|\/)(?:package-lock\.json|pnpm-lock\.yaml|yarn\.lock)$/i;
 const PRODUCT_SURFACES = ['UI', 'Endpoint', 'Schema', 'CLI', 'MCP'];
@@ -92,27 +107,41 @@ const ENDPOINT_MARKER = labelMarker('Endpoint');
 const SCHEMA_MARKER = labelMarker('Schema');
 const FENCE = /^[ \t]*(?:```|~~~)/m;
 
-const args = process.argv.slice(2);
-const bodyPath = args.find((arg) => !arg.startsWith('--'));
-const flag = (name, fallback) => {
-  const index = args.indexOf(name);
-  return index === -1 ? fallback : args[index + 1];
-};
-const baseRef = flag('--base', null);
-const frontendPattern = flag('--frontend', null);
-const frontendPath = frontendPattern ? new RegExp(frontendPattern, 'i') : FRONTEND_PATH;
-const apiPattern = flag('--api', null);
-const apiPath = apiPattern ? new RegExp(apiPattern, 'i') : API_PATH;
-const schemaPattern = flag('--schema', null);
-const schemaPath = schemaPattern ? new RegExp(schemaPattern, 'i') : SCHEMA_PATH;
-const testsPattern = flag('--tests', null);
-const testsExtra = testsPattern ? new RegExp(testsPattern, 'i') : null;
-const isTestFile = (file) => TEST_FILE.test(file) || (testsExtra !== null && testsExtra.test(file));
-
 const notChecked = (reason) => {
   process.stderr.write(`pr-media-gate: not checked. ${reason}\n`);
   process.exit(2);
 };
+
+const args = process.argv.slice(2);
+const VALUE_FLAGS = new Set(['--base', '--frontend', '--api', '--schema', '--tests']);
+// A flag's value is never the body path, and a flag with no value is an error, not a no-op.
+const flagValueAt = new Set();
+for (const [index, arg] of args.entries()) {
+  if (!VALUE_FLAGS.has(arg)) continue;
+  const value = args[index + 1];
+  if (value === undefined || value.startsWith('--')) notChecked(`${arg} needs a value.`);
+  flagValueAt.add(index + 1);
+}
+const bodyPath = args.find((arg, index) => !arg.startsWith('--') && !flagValueAt.has(index));
+const flag = (name, fallback) => {
+  const index = args.indexOf(name);
+  return index === -1 ? fallback : args[index + 1];
+};
+const regexFlag = (name, fallback) => {
+  const pattern = flag(name, null);
+  if (pattern === null) return fallback;
+  try {
+    return new RegExp(pattern, 'i');
+  } catch (error) {
+    return notChecked(`${name} is not a valid regex (${pattern}): ${error.message}`);
+  }
+};
+const baseRef = flag('--base', null);
+const frontendPath = regexFlag('--frontend', FRONTEND_PATH);
+const apiPath = regexFlag('--api', API_PATH);
+const schemaPath = regexFlag('--schema', SCHEMA_PATH);
+const testsExtra = regexFlag('--tests', null);
+const isTestFile = (file) => TEST_FILE.test(file) || (testsExtra !== null && testsExtra.test(file));
 
 if (!bodyPath || !fs.existsSync(bodyPath)) {
   notChecked('Pass the PR body file: node pr-media-gate.mjs "$BODY_FILE" [--base origin/main].');
@@ -311,10 +340,16 @@ const section = (heading) => {
   return nextHeading === -1 ? rest : rest.slice(0, nextHeading);
 };
 const testsSection = section('Tests');
-const NOT_COVERED = /^[ \t]*[-*][ \t]+(?:\*\*|__)?Not covered:?(?:\*\*|__)?:?[ \t]*\S/im;
-const testLines = (testsSection ?? '')
-  .split('\n')
-  .filter((line) => /^[ \t]*[-*][ \t]+\S/.test(line) && !NOT_COVERED.test(line));
+// The label closes explicitly (**Not covered:**, **Not covered**:, __…__, or plain Not covered:),
+// and what follows must carry a letter or digit: `none` or a named behavior, never only
+// whitespace, `*`, or punctuation.
+const NOT_COVERED_LABEL =
+  /^[ \t]*[-*][ \t]+(?:\*\*Not covered:?\*\*:?|__Not covered:?__:?|Not covered:)(.*)$/i;
+const sectionLines = (testsSection ?? '').split('\n');
+const notCoveredLines = sectionLines.filter((line) => NOT_COVERED_LABEL.test(line));
+const testLines = sectionLines.filter(
+  (line) => /^[ \t]*[-*][ \t]+\S/.test(line) && !NOT_COVERED_LABEL.test(line),
+);
 const reviewFocus = section('Review focus') ?? '';
 const NO_TEST_FLAG = /^[ \t]*[-*][ \t]+(?:\*\*|__)?No tests changed\b/im;
 const tests = {
@@ -322,7 +357,7 @@ const tests = {
   behaviorFiles,
   section: testsSection !== null,
   lines: testLines.length,
-  notCovered: NOT_COVERED.test(testsSection ?? ''),
+  notCovered: notCoveredLines.some((line) => /[\p{L}\p{N}]/u.test(line.match(NOT_COVERED_LABEL)[1])),
   noTestFlag: {
     needed: testFiles.length === 0 && behaviorFiles.length > 0,
     present: NO_TEST_FLAG.test(reviewFocus),
@@ -410,7 +445,9 @@ const next = [
         `pr-media-gate: ${testFiles.length} test/eval file(s) changed and the PR body has no complete ## Tests block.`,
         !tests.section ? '  Missing: the "## Tests" heading.' : null,
         tests.section && tests.lines === 0 ? '  Missing: one line per changed test naming the behavior it proves.' : null,
-        tests.section && !tests.notCovered ? '  Missing: the "- **Not covered:** <behavior | none>" line.' : null,
+        tests.section && !tests.notCovered
+          ? '  Missing: the "- **Not covered:** <behavior | none>" line, with `none` or a named behavior after the label.'
+          : null,
         '  Next: write it from the diff only. Do not run tests to fill it.',
         '    - `<test file or case>` — proves <behavior, not the test name restated>',
         '    - Deleted `<test>` — <behavior it no longer guards>',

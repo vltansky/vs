@@ -505,8 +505,9 @@ repeat it here.
 every test. One line per test, plus the gap, replaces that read.
 
 Test/eval files: `*.test.*`, `*.spec.*`, `*.eval.*` (such as `*.eval.ts`),
-`*_test.go`, `test_*.py`, and any file under `__tests__/`, `test/`, `tests/`,
-`evals/`, or `e2e/`. Also honor an obvious repository convention (a test
+`*_test.go`, `test_*.py`, code under `spec/`, and any file under `__tests__/`,
+`test/`, `tests/`, `evals/`, or `e2e/`. A `*.spec.*` or `spec/` file that is
+not code (an OpenAPI `api.spec.yaml`, a design doc) is not a test. Also honor an obvious repository convention (a test
 runner `include` glob, a `checks/` folder) and pass it to the gate as
 `--tests <regex>`.
 
@@ -518,7 +519,8 @@ runner `include` glob, a `checks/` folder) and pass it to the gate as
   test exercises, or `none`. Keep it to about 5 lines; group many tests into
   one line per behavior.
 - **No-test flag.** When the diff changes behavior (product or runtime code,
-  or a skill contract such as `SKILL.md`) and touches zero test/eval files,
+  or a skill contract: `SKILL.md`, a skill `references/*.md`, `CONTEXT.md`)
+  and touches zero test/eval files,
   add one bullet under **Review focus**:
   `**No tests changed:** <the behavior that changed with no test>`. It is a
   warning only: it never blocks PR creation, never asks the user, and never
@@ -526,7 +528,7 @@ runner `include` glob, a `checks/` folder) and pass it to the gate as
   config/CI-only, and test-only PRs.
 
 `pr-media-gate.mjs` fails a body that has changed test/eval files but no
-`## Tests` block with a `Not covered:` line. It prints a non-blocking warning
+`## Tests` block with a `Not covered:` line that names a behavior or `none`. It prints a non-blocking warning
 when behavior paths changed with no test/eval file and Review focus has no
 `No tests changed` bullet.
 
