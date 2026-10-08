@@ -60,9 +60,16 @@ describe('framework routing', () => {
   });
 
   it('gives every user-facing skill one compact route', () => {
+    const DEFAULT_ROUTE =
+      /## Workflow\s+Direct: emit \*\*Next\*\* only\. Composed: return to caller\.\s+\*\*Prev:\*\*/;
+    // An approved shape-it close continues into build-it; see its Approval table.
+    const ROUTE_EXCEPTIONS: Record<string, RegExp> = {
+      'vs-shape-it':
+        /## Workflow\s+Direct: on approval, continue into \*\*Next\*\*; otherwise emit \*\*Next\*\* only\. Composed: return the approved spec to the caller\.\s+\*\*Prev:\*\*/,
+    };
     for (const [name, skill] of SKILLS) {
       expect(skill, `${name} runtime route`).toMatch(
-        /## Workflow\s+Direct: emit \*\*Next\*\* only\. Composed: return to caller\.\s+\*\*Prev:\*\*/,
+        ROUTE_EXCEPTIONS[name] ?? DEFAULT_ROUTE,
       );
       expect(routeLine(skill, 'Prev'), `${name} Prev`).toHaveLength(1);
       expect(routeLine(skill, 'Next'), `${name} Next`).toHaveLength(1);
