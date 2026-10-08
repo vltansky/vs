@@ -62,7 +62,7 @@ describe('vs-ship-it publishing boundary', () => {
     expect(README).not.toContain('Review explicitly approved?');
     expect(README).toMatch(/Prepare PR description<br\/>feature_area: title/);
     expect(README).toMatch(/Problem scenario \(STE100\) \+ Endpoint\/Schema\/UI proof<br\/>What was done/);
-    expect(README).toMatch(/Merge risk \(Door \/ Blast\)<br\/>Surfaces<br\/>Problem scenario \(STE100\) \+ Endpoint\/Schema\/UI proof<br\/>What was done<br\/>User impact<br\/>Evidence \+ gaps<br\/>Review focus/);
+    expect(README).toMatch(/Merge risk \(Door \/ Blast\)<br\/>Surfaces<br\/>Problem scenario \(STE100\) \+ Endpoint\/Schema\/UI proof<br\/>What was done<br\/>User impact<br\/>Evidence \+ gaps<br\/>Tests<br\/>Review focus/);
     expect(README).toMatch(/Reuse or capture proof<br\/>matched Before\/After screenshots/);
     expect(README).toMatch(/short video for interactions/);
   });

@@ -108,6 +108,7 @@ with a concise conventional message, and push with `git push -u origin HEAD`.
 Run only checks required by repository instructions before push. Reuse current
 results; do not introduce `vs-before-after`, `vs-verify`, broad test suites, or another
 user question as shipping ceremony. Record existing checks honestly in the PR.
+The Tests block and no-test flag in Step 2 come from the diff and add no runs.
 
 If authentication fails, stop after the first failure, identify the credential
 used, and give the exact re-authentication step. Do not retry unchanged auth.
@@ -300,10 +301,24 @@ flowchart LR
 
 </details>
 
+## Tests
+
+- `<test file or case>` — proves <behavior, not the test name restated>
+- Deleted `<test file or case>` — <behavior it no longer guards>
+- **Not covered:** <changed behavior no test exercises | none>
+
+<!-- From the diff only; no new runs. Omit when no test/eval file changed.
+     About 5 lines max: group many tests into one line per behavior. -->
+
 ## Review focus
 
 <The first one or two paths to read and any human judgment still needed. Omit
 for a trivial change.>
+
+<!-- No-test flag: behavior changed and no test/eval file changed (see Tests
+     block and no-test flag). Warn only:
+- **No tests changed:** <the behavior that changed with no test>
+-->
 ````
 
 Drop any template row, block, or section the evidence does not fill; an empty
@@ -478,6 +493,43 @@ not match the defaults. A capture blocker is stated per kind:
 `**Still unverified:** endpoint response; <blocker>` or
 `**Still unverified:** schema diff; <blocker>`.
 
+### Tests block and no-test flag
+
+**Rule.** The PR body says what the changed tests prove and what nothing
+tests. Both come from the scoped diff only and add no runs: do not run the
+suite, a focused test, `vs-verify`, or `vs-before-after` to fill them. Pass or
+fail stays in Evidence `Automated:` and the handoff `Checks:` line; do not
+repeat it here.
+
+**Why.** A reviewer cannot see test intent in the Files tab without reading
+every test. One line per test, plus the gap, replaces that read.
+
+Test/eval files: `*.test.*`, `*.spec.*`, `*.eval.*` (such as `*.eval.ts`),
+`*_test.go`, `test_*.py`, and any file under `__tests__/`, `test/`, `tests/`,
+`evals/`, or `e2e/`. Also honor an obvious repository convention (a test
+runner `include` glob, a `checks/` folder) and pass it to the gate as
+`--tests <regex>`.
+
+- **Tests block.** When any test/eval file was added, changed, or deleted, add
+  `## Tests` right before Review focus. Write one line per test file or case:
+  `<path or case>` — the behavior it proves, in behavior words, not the test
+  name restated. List deleted tests too, with the behavior they no longer
+  guard. End with one `**Not covered:**` line that names changed behavior no
+  test exercises, or `none`. Keep it to about 5 lines; group many tests into
+  one line per behavior.
+- **No-test flag.** When the diff changes behavior (product or runtime code,
+  or a skill contract such as `SKILL.md`) and touches zero test/eval files,
+  add one bullet under **Review focus**:
+  `**No tests changed:** <the behavior that changed with no test>`. It is a
+  warning only: it never blocks PR creation, never asks the user, and never
+  starts a test run or new test writing. Exempt docs-only, copy/styling-only,
+  config/CI-only, and test-only PRs.
+
+`pr-media-gate.mjs` fails a body that has changed test/eval files but no
+`## Tests` block with a `Not covered:` line. It prints a non-blocking warning
+when behavior paths changed with no test/eval file and Review focus has no
+`No tests changed` bullet.
+
 ### Prototype links
 
 For an HTML prototype or interactive demo, give the reviewer a hosted link
@@ -597,7 +649,8 @@ Run it against the `origin/<base>` fetched in Step 1, never a stale local ref.
   states `No visual change: <why>` for a refactor with identical output, or no
   frontend path changed; and every endpoint or schema change carries its
   **Endpoint** or **Schema** block (or `No contract change` / `No schema
-  change` / a per-kind stated gap).
+  change` / a per-kind stated gap); and changed test/eval files carry a
+  `## Tests` block. A no-test warning on stderr does not change the exit code.
 - Exit 1: add the missing side of the comparison, add the missing merge-risk
   line, or capture with `record-flow.mjs` and upload, or write the exact gap in
   the body. Do not create the PR from a failing body. Local paths never count:
@@ -787,6 +840,10 @@ separate `vs-baby-sit` goal only when the user explicitly requested a Codex goal
       relevant, or an exact capture blocker; captions explain the difference.
 - [ ] Endpoint and schema changes show one request with both responses and a
       schema `diff`, or state why not.
+- [ ] Changed test/eval files have a `## Tests` block (behavior per test,
+      deleted tests included, one `Not covered:` line); a behavior change with
+      no test/eval change has a `No tests changed` Review focus bullet; both
+      came from the diff and added no runs.
 - [ ] `pr-media-gate.mjs` exited 0 on the final body file before `gh pr create`;
       captured images were not read into context.
 - [ ] Open non-draft PR state, branch, and head SHA were re-resolved

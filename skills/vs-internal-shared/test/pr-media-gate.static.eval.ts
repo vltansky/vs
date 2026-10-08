@@ -148,7 +148,8 @@ describe('pr-media-gate blocks a frontend PR body that shows nothing', () => {
     const cwd = repoWithBranch(['src/server/auth.ts', 'src/components/Toggle.test.tsx']);
     const result = gate(
       cwd,
-      `**Before** 401 on refresh\n\n**After** 200 on refresh\n\n${MERGE_DANGER}`,
+      `**Before** 401 on refresh\n\n**After** 200 on refresh\n\n${MERGE_DANGER}` +
+        '\n## Tests\n\n- `Toggle.test.tsx` — proves the toggle keeps its state\n- **Not covered:** none\n',
     );
 
     expect(result.status).toBe(0);
@@ -660,4 +661,169 @@ describe('pr-media-gate Surfaces claim↔path asserts', () => {
       claimed: ['Infra'],
     });
   });
+});
+
+// Tests block and no-test flag. The gate reads which test/eval files the diff touched
+// and the body text; it runs no tests. Missing Tests block fails; the no-test flag warns.
+function repoWithChanges(changed: string[], deleted: string[] = []) {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'vs-tests-gate-'));
+  git(dir, 'init', '-q', '-b', 'main');
+  git(dir, 'config', 'user.email', 'eval@example.com');
+  git(dir, 'config', 'user.name', 'eval');
+  fs.writeFileSync(path.join(dir, 'README.md'), 'base\n');
+  for (const file of deleted) {
+    fs.mkdirSync(path.dirname(path.join(dir, file)), { recursive: true });
+    fs.writeFileSync(path.join(dir, file), `${file}\n`);
+  }
+  git(dir, 'add', '.');
+  git(dir, 'commit', '-q', '-m', 'base');
+  git(dir, 'checkout', '-q', '-b', 'feature');
+  for (const file of deleted) fs.rmSync(path.join(dir, file));
+  for (const file of changed) {
+    fs.mkdirSync(path.dirname(path.join(dir, file)), { recursive: true });
+    fs.writeFileSync(path.join(dir, file), `${file}\n`);
+  }
+  git(dir, 'add', '-A');
+  git(dir, 'commit', '-q', '-m', 'change');
+  return dir;
+}
+
+const BASE_BODY = `**Before** 401 on refresh\n\n**After** 200 on refresh\n\n${MERGE_DANGER}`;
+const TESTS_BLOCK =
+  '\n## Tests\n\n- `auth.test.ts` — proves an expired token refreshes once\n- **Not covered:** none\n';
+const FLAG = '\n## Review focus\n\n- **No tests changed:** token refresh retry\n';
+
+describe('pr-media-gate Tests block', () => {
+  it('fails when a test file changed and the body has no ## Tests block', () => {
+    const cwd = repoWithChanges(['src/server/auth.ts', 'src/server/auth.test.ts']);
+    const result = gate(cwd, BASE_BODY);
+
+    expect(result.status).toBe(1);
+    expect(result.json.valid).toBe(false);
+    expect(result.json.tests).toMatchObject({ files: ['src/server/auth.test.ts'], section: false });
+    expect(result.stderr).toMatch(/## Tests/);
+    expect(result.stderr).toMatch(/Do not run tests to fill it/);
+  });
+
+  it('passes with one behavior line per test and a Not covered line', () => {
+    const cwd = repoWithChanges(['src/server/auth.ts', 'src/server/auth.test.ts']);
+    const result = gate(cwd, `${BASE_BODY}${TESTS_BLOCK}`);
+
+    expect(result.status).toBe(0);
+    expect(result.json.tests).toMatchObject({ section: true, lines: 1, notCovered: true });
+  });
+
+  it('fails a Tests block with no Not covered line, and one with only Not covered', () => {
+    const cwd = repoWithChanges(['src/server/auth.ts', 'src/server/auth.test.ts']);
+    const noGap = gate(cwd, `${BASE_BODY}\n## Tests\n\n- \`auth.test.ts\` — proves refresh\n`);
+    expect(noGap.status).toBe(1);
+    expect(noGap.stderr).toMatch(/Not covered/);
+
+    const onlyGap = gate(cwd, `${BASE_BODY}\n## Tests\n\n- **Not covered:** none\n`);
+    expect(onlyGap.status).toBe(1);
+    expect(onlyGap.stderr).toMatch(/one line per changed test/);
+  });
+
+  it('does not count a Tests block that lives only in an HTML comment', () => {
+    const cwd = repoWithChanges(['src/server/auth.test.ts']);
+    const result = gate(cwd, `${BASE_BODY}\n## Tests\n\n<!--\n- \`a\` — b\n- **Not covered:** none\n-->\n`);
+    expect(result.status).toBe(1);
+  });
+
+  it('requires the block for a deleted test too', () => {
+    const cwd = repoWithChanges(['src/server/auth.ts'], ['src/server/auth.test.ts']);
+    const result = gate(cwd, BASE_BODY);
+
+    expect(result.status).toBe(1);
+    expect(result.json.tests.files).toEqual(['src/server/auth.test.ts']);
+  });
+
+  it('recognizes common test and eval file shapes', () => {
+    const files = [
+      'src/a.test.ts',
+      'src/b.spec.jsx',
+      'src/__tests__/c.js',
+      'tests/d.py',
+      'test/e.rb',
+      'skills/x/test/f.static.eval.ts',
+      'evals/g.yaml',
+      'pkg/h_test.go',
+      'pkg/test_i.py',
+      'spec/j_spec.rb',
+    ];
+    const cwd = repoWithChanges(files);
+    const result = gate(cwd, BASE_BODY);
+    expect(result.json.tests.files.sort()).toEqual([...files].sort());
+    expect(result.json.tests.behaviorFiles).toEqual([]);
+  });
+
+  it('honors a repository convention passed as --tests <regex>', () => {
+    const cwd = repoWithChanges(['src/server/auth.ts', 'checks/auth.check.ts']);
+    const without = gate(cwd, BASE_BODY);
+    expect(without.json.tests.files).toEqual([]);
+
+    const withConvention = gate(cwd, BASE_BODY, '--tests', '^checks/');
+    expect(withConvention.json.tests.files).toEqual(['checks/auth.check.ts']);
+    expect(withConvention.status).toBe(1);
+  });
+
+  it('requires the block on a test-only PR, with no no-test warning', () => {
+    const cwd = repoWithChanges(['src/server/auth.test.ts']);
+    const result = gate(cwd, `${BASE_BODY}${TESTS_BLOCK}`);
+
+    expect(result.status).toBe(0);
+    expect(result.json.tests.noTestFlag.needed).toBe(false);
+    expect(result.stderr).not.toMatch(/warning/);
+  });
+});
+
+describe('pr-media-gate no-test flag warns and never blocks', () => {
+  it('warns on stderr, still exits 0, when behavior changed with no test and no flag', () => {
+    const cwd = repoWithChanges(['src/server/auth.ts']);
+    const result = gate(cwd, BASE_BODY);
+
+    expect(result.status).toBe(0);
+    expect(result.json.valid).toBe(true);
+    expect(result.json.tests.noTestFlag).toEqual({ needed: true, present: false });
+    expect(result.json.warnings).toBe(1);
+    expect(result.stderr).toMatch(/warning \(does not block\)/);
+    expect(result.stderr).toMatch(/No tests changed/);
+    expect(result.stderr).toMatch(/Do not run tests/);
+  });
+
+  it('stays quiet when Review focus carries the No tests changed bullet', () => {
+    const cwd = repoWithChanges(['src/server/auth.ts']);
+    const result = gate(cwd, `${BASE_BODY}${FLAG}`);
+
+    expect(result.status).toBe(0);
+    expect(result.json.tests.noTestFlag).toEqual({ needed: true, present: true });
+    expect(result.stderr).toBe('');
+  });
+
+  it('does not accept the flag outside Review focus', () => {
+    const cwd = repoWithChanges(['src/server/auth.ts']);
+    const result = gate(cwd, `${BASE_BODY}\n## Evidence\n\n- **No tests changed:** token refresh\n`);
+    expect(result.json.tests.noTestFlag.present).toBe(false);
+    expect(result.stderr).toMatch(/warning/);
+  });
+
+  it('treats a skill contract as behavior', () => {
+    const cwd = repoWithChanges(['skills/vs-ship-it/SKILL.md']);
+    const result = gate(cwd, BASE_BODY);
+    expect(result.json.tests.noTestFlag.needed).toBe(true);
+  });
+
+  for (const [kind, files] of [
+    ['docs-only', ['docs/guide.md', 'README.md', 'adr/x.md']],
+    ['copy/styling-only', ['src/theme.css', 'assets/logo.svg']],
+    ['config/CI-only', ['.github/workflows/ci.yml', 'tsconfig.json', 'vite.config.ts', '.eslintrc']],
+  ] as const) {
+    it(`exempts ${kind} PRs`, () => {
+      const cwd = repoWithChanges([...files]);
+      const result = gate(cwd, BASE_BODY, '--frontend', '^$');
+      expect(result.json.tests.behaviorFiles).toEqual([]);
+      expect(result.json.tests.noTestFlag.needed).toBe(false);
+      expect(result.stderr).not.toMatch(/warning/);
+    });
+  }
 });

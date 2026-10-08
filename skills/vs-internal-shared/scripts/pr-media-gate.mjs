@@ -1,9 +1,10 @@
 #!/usr/bin/env node
 // Refuses a PR body that shows the reviewer nothing: no Before/After comparison at all,
 // no merge-danger classification, frontend changes with no hosted media, endpoint and
-// schema changes with no contract proof, or Surfaces claim↔path mismatches.
+// schema changes with no contract proof, Surfaces claim↔path mismatches, or changed tests
+// with no ## Tests block.
 //
-//   node pr-media-gate.mjs <body-file> [--base <ref>] [--frontend <regex>] [--api <regex>] [--schema <regex>]
+//   node pr-media-gate.mjs <body-file> [--base <ref>] [--frontend <regex>] [--api <regex>] [--schema <regex>] [--tests <regex>]
 //
 // Reads git (which paths changed against the base) and the body text. It never opens the
 // media, so it costs the model no context. Exit codes match check-visual-evidence.mjs:
@@ -15,7 +16,10 @@
 //      stamps a forbidden surface name (backend/DB), stacks Infra with a product surface,
 //      stamps Infra without infra paths, stamps a product surface with no matching path
 //      class (including skill-only + Schema), migration-only≠UI, MCP-wrap-only≠Endpoint,
-//      or >3 product surfaces without matching path classes
+//      or >3 product surfaces without matching path classes, or test/eval files changed
+//      (added, edited, or deleted) and the body has no ## Tests block with a Not covered: line
+//      Warn only (never exit 1): behavior paths changed, no test/eval file changed, and
+//      ## Review focus has no "No tests changed" bullet — the warning goes to stderr.
 //   2  not checked: body missing or git cannot resolve the base
 //
 // Output is one JSON object on stdout so the caller can quote counts instead of re-reading.
@@ -37,6 +41,15 @@ const MCP_PATH =
 const INFRA_PATH =
   /(?:^|\/)\.github\/(?:workflows|actions)\/|(?:^|\/)(?:deploy|deployment|infra|infrastructure|terraform|helm|k8s|kubernetes|charts?)\/|(?:^|\/)Dockerfile|(?:^|\/)docker-compose[^/]*\.(?:ya?ml)$|\.(?:tf|tfvars)$|(?:^|\/)\.env|(?:^|\/)(?:flags?|feature-flags?)\/|(?:^|\/)(?:flags?|feature-flags?)\.[cm]?[jt]s$/i;
 const TEST_PATH = /\.(?:test|spec|stories)\.[cm]?[jt]sx?$|\/(?:__tests__|__snapshots__|test|tests|e2e)\//i;
+// Test/eval files for the ## Tests block and the no-test flag. Generic defaults; pass
+// --tests <regex> to add a repository convention the defaults miss.
+const TEST_FILE =
+  /\.(?:test|spec|eval)\.[^/]+$|(?:^|\/)(?:__tests__|__snapshots__|tests?|evals?|e2e|spec)\/|_test\.(?:go|py|rb|exs?)$|(?:^|\/)test_[^/]+\.py$|_spec\.rb$/i;
+// Paths that cannot change runtime behavior on their own: docs, copy/styling, config, CI.
+// A skill contract (SKILL.md) is behavior even though it is Markdown.
+const SKILL_CONTRACT = /(?:^|\/)SKILL\.md$/i;
+const NON_BEHAVIOR =
+  /\.(?:md|mdx|markdown|rst|txt|adoc)$|(?:^|\/)(?:docs?|adr)\/|(?:^|\/)(?:LICENSE|NOTICE|CHANGELOG|CODEOWNERS)[^/]*$|\.(?:css|scss|sass|less|styl|svg|png|jpe?g|gif|webp|ico)$|\.(?:json|ya?ml|toml|ini|cfg|lock)$|(?:^|\/)\.[^/]+$|(?:^|\/)[^/]+\.config\.[cm]?[jt]s$|(?:^|\/)\.github\/|(?:^|\/)(?:package-lock\.json|pnpm-lock\.yaml|yarn\.lock)$/i;
 const PRODUCT_SURFACES = ['UI', 'Endpoint', 'Schema', 'CLI', 'MCP'];
 const ALLOWED_SURFACES = new Set([...PRODUCT_SURFACES, 'Infra']);
 const FORBIDDEN_SURFACE = /^(?:backend|backends?|db|database|databases?)$/i;
@@ -92,6 +105,9 @@ const apiPattern = flag('--api', null);
 const apiPath = apiPattern ? new RegExp(apiPattern, 'i') : API_PATH;
 const schemaPattern = flag('--schema', null);
 const schemaPath = schemaPattern ? new RegExp(schemaPattern, 'i') : SCHEMA_PATH;
+const testsPattern = flag('--tests', null);
+const testsExtra = testsPattern ? new RegExp(testsPattern, 'i') : null;
+const isTestFile = (file) => TEST_FILE.test(file) || (testsExtra !== null && testsExtra.test(file));
 
 const notChecked = (reason) => {
   process.stderr.write(`pr-media-gate: not checked. ${reason}\n`);
@@ -135,6 +151,11 @@ const schemaFiles = changedFiles.filter((file) => schemaPath.test(file) && !TEST
 const cliFiles = changedFiles.filter((file) => CLI_PATH.test(file) && !TEST_PATH.test(file));
 const mcpFiles = changedFiles.filter((file) => MCP_PATH.test(file) && !TEST_PATH.test(file));
 const infraFiles = changedFiles.filter((file) => INFRA_PATH.test(file) && !TEST_PATH.test(file));
+// `git diff --name-only` lists deleted files too, so a deleted test still needs its line.
+const testFiles = changedFiles.filter(isTestFile);
+const behaviorFiles = changedFiles.filter(
+  (file) => !isTestFile(file) && (SKILL_CONTRACT.test(file) || !NON_BEHAVIOR.test(file)),
+);
 
 const body = fs.readFileSync(bodyPath, 'utf8');
 // The label must carry a code block after it: a request/response or schema shape, not a sentence.
@@ -274,12 +295,55 @@ const surfaces = {
   reasons: surfacesReasons,
 };
 const surfacesOk = surfaces.ok;
-const valid = mediaOk && beforeAfterOk && mergeDangerOk && contractOk && surfacesOk;
+
+// ## Tests block: required when any test/eval file changed. Diff-derived; the gate runs nothing.
+const section = (heading) => {
+  const at = body.search(new RegExp(String.raw`^##[ \t]+${heading}\b`, 'im'));
+  if (at === -1) return null;
+  const afterHeading = body.indexOf('\n', at);
+  if (afterHeading === -1) return '';
+  const rest = body.slice(afterHeading + 1).replace(/<!--[\s\S]*?-->/g, '');
+  const nextHeading = rest.search(/^##[ \t]+/m);
+  return nextHeading === -1 ? rest : rest.slice(0, nextHeading);
+};
+const testsSection = section('Tests');
+const NOT_COVERED = /^[ \t]*[-*][ \t]+(?:\*\*|__)?Not covered:?(?:\*\*|__)?:?[ \t]*\S/im;
+const testLines = (testsSection ?? '')
+  .split('\n')
+  .filter((line) => /^[ \t]*[-*][ \t]+\S/.test(line) && !NOT_COVERED.test(line));
+const reviewFocus = section('Review focus') ?? '';
+const NO_TEST_FLAG = /^[ \t]*[-*][ \t]+(?:\*\*|__)?No tests changed\b/im;
+const tests = {
+  files: testFiles,
+  behaviorFiles,
+  section: testsSection !== null,
+  lines: testLines.length,
+  notCovered: NOT_COVERED.test(testsSection ?? ''),
+  noTestFlag: {
+    needed: testFiles.length === 0 && behaviorFiles.length > 0,
+    present: NO_TEST_FLAG.test(reviewFocus),
+  },
+};
+const testsOk = testFiles.length === 0 || (tests.section && tests.lines > 0 && tests.notCovered);
+const warnings = [];
+if (tests.noTestFlag.needed && !tests.noTestFlag.present) {
+  warnings.push(
+    [
+      `pr-media-gate: warning (does not block): ${behaviorFiles.length} behavior file(s) changed and no test/eval file changed.`,
+      '  Next: add one bullet under ## Review focus: "- **No tests changed:** <the behavior that changed with no test>".',
+      '  Do not run tests or write new ones to clear this; it is a reviewer note.',
+      `  Changed: ${behaviorFiles.join(', ')}`,
+    ].join('\n'),
+  );
+}
+
+const valid = mediaOk && beforeAfterOk && mergeDangerOk && contractOk && surfacesOk && testsOk;
 
 process.stdout.write(
-  `${JSON.stringify({ valid, base, frontendFiles, apiFiles, schemaFiles, cliFiles, mcpFiles, infraFiles, images, videos, localRefs: localRefs.map((ref) => ref.url), gapStated, beforeAfter, mergeDanger, contract, surfaces }, null, 2)}\n`,
+  `${JSON.stringify({ valid, base, frontendFiles, apiFiles, schemaFiles, cliFiles, mcpFiles, infraFiles, images, videos, localRefs: localRefs.map((ref) => ref.url), gapStated, beforeAfter, mergeDanger, contract, surfaces, tests, warnings: warnings.length }, null, 2)}\n`,
 );
 
+if (warnings.length > 0) process.stderr.write(`${warnings.join('\n')}\n`);
 if (valid) process.exit(0);
 
 const missingSides = [!beforeAfter.before && 'Before', !beforeAfter.after && 'After'].filter(Boolean);
@@ -336,6 +400,21 @@ const next = [
         '  Every stamped surface needs a matching path class; omit Surfaces on skill-only / docs-only.',
         '  Endpoint not backend; Schema = wire + persistence (no separate DB).',
       ].join('\n')
+    : null,
+  !testsOk
+    ? [
+        `pr-media-gate: ${testFiles.length} test/eval file(s) changed and the PR body has no complete ## Tests block.`,
+        !tests.section ? '  Missing: the "## Tests" heading.' : null,
+        tests.section && tests.lines === 0 ? '  Missing: one line per changed test naming the behavior it proves.' : null,
+        tests.section && !tests.notCovered ? '  Missing: the "- **Not covered:** <behavior | none>" line.' : null,
+        '  Next: write it from the diff only. Do not run tests to fill it.',
+        '    - `<test file or case>` — proves <behavior, not the test name restated>',
+        '    - Deleted `<test>` — <behavior it no longer guards>',
+        '    - **Not covered:** <changed behavior no test exercises | none>',
+        `  Changed: ${testFiles.join(', ')}`,
+      ]
+        .filter(Boolean)
+        .join('\n')
     : null,
   !mediaOk
     ? [
