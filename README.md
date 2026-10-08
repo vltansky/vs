@@ -68,6 +68,7 @@ flowchart TD
     D -- Yes --> M{Explore mode?}
     M -- Yes --> K["Explain spec<br/>/vs-eli5"] --> O[Approval-ready design]
     M -- No --> O
+    K -. "approve" .-> B["/vs-build-it<br/>same run"]
     D -- No --> L[Living spec<br/>Open decisions and next decision]
     L -. Next session .-> S
 ```

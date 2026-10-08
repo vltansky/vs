@@ -203,6 +203,8 @@ Every user-facing skill ends with compact `Prev`, `Next`, and `Relevant` lines.
 On standalone completion, emit only the `Next` line. When composed by another
 workflow, return to the caller without emitting it. `Relevant` is lateral,
 reciprocal, and limited to two skills; it is map metadata, not runtime output.
+One exception: a `vs-shape-it` Build approval (a Build row of its Approval
+table) continues into its `Next` (`/vs-build-it`) instead of only naming it.
 
 ## Flow contracts
 

@@ -9,8 +9,11 @@ Turn loose ideas and rough plans into approved, buildable designs. Keep the
 conversation short and decision-focused; the human makes strategic calls.
 
 <HARD-GATE>
-Do NOT write code, scaffold projects, create GitHub issues, or start
-implementation workers. Planning-only research or critique subagents are
+Shape-it itself never writes code. Until the user approves a READY or READY_WITH_RISKS close,
+do NOT write code, scaffold projects, create GitHub issues, or start
+implementation workers. After that approval, shape-it still does not
+implement: it hands the approved spec to `/vs-build-it`, or stops or returns to
+its caller, per the Approval table below. Planning-only research or critique subagents are
 allowed for complex work. Output is questions, evidence, design, stress-test,
 a decision record when one is warranted, a goal-ready execution blueprint,
 and a closing `/vs-eli5` HTMDX of the spec. Writing an ADR is a decision record, not implementation, and is allowed. The eli5 is a short review of the spec so the user can confirm it, not a replacement for the spec and not implementation.
@@ -609,14 +612,21 @@ list every completed `/vs-*` subskill with its concrete contribution (including
 the `/vs-eli5` review path and `/vs-pushback` verdict here), and set `Output` to
 `Goal Contract + Execution Strategy ready` or `blocked`. The checkpoint is not
 a fifth close item. After approval, emit the 100% **Handoff** checkpoint, then
-start the approved execution flow in the same turn.
+follow the Approval table. On Build, write
+`Handoff: approved spec → /vs-build-it <spec path>`. That checkpoint is a
+bridge, not an end: build-it's first `[1/7]` line continues the same run. Do
+not re-greet, re-summarize the design, or restart the map.
 
 Chat is only this exclusive 4-item close, in this order:
 
 1. The first sentence is the TLDR returned by composed `/vs-eli5` (two to four short lines): the recommendation in plain English and why it is the best fit. Do not write a second TLDR.
 2. The eli5 file path (or “eli5 saved”).
 3. Verdict-honest Handoff. READY or READY_WITH_RISKS: `Handoff: Goal Contract ready | <N> open decisions` (or the missing field). NOT_READY: `Handoff: Goal Contract blocked — not ready, rework` (or the missing field). Never write `Goal Contract ready` on a NOT_READY close.
-4. One `Your action` line. READY or READY_WITH_RISKS: approval that says approving starts the build, for example: Reply `approve` to start `/vs-build-it` on this spec, or request changes. NOT_READY: rework only — do not offer approve or `/vs-build-it`.
+4. One `Your action` line. READY or READY_WITH_RISKS: approval. Required shape, by case:
+   - READY: Reply `approve` to start `/vs-build-it` on this spec, or request changes.
+   - READY_WITH_RISKS: Reply `approve` to accept <the main open risk, one clause> and start `/vs-build-it`, or request changes.
+   - Spec or design only (the user asked for no implementation): Reply `approve` to accept the spec, or `build` to start `/vs-build-it`.
+   - NOT_READY: rework only — do not offer approve or `/vs-build-it`.
 
 Do not paste the Goal Contract, ADR, pushback report, execution blueprint, or
 the `Execution:` block into chat. Those live in the linked files and the eli5.
@@ -641,14 +651,52 @@ Put the complete recommendation and all of the following in the linked files, no
 
 Approval exists only for READY or READY_WITH_RISKS. Keep one approval request
 in those cases. Ask for approval once, after the whole design, Goal Contract, any ADR, and any
-execution blueprint are visible in those files. Approval
-starts the build. When the user replies `approve` (or another clear acceptance), invoke `/vs-build-it` on the approved spec path in the same turn,
-with the Goal Contract as its contract. Do not stop at a TLDR that names `/vs-build-it` as the next step.
-A requested change returns to shaping: revise, then close again. If the
+execution blueprint are visible in those files. If the
 composed pushback verdict is NOT_READY, skip the approval gate: Your action
 is rework. If an unresolved strategic decision remains on a READY or
 READY_WITH_RISKS close and each option is already shaped, combine it with
-this gate. If their pick needs redesign, return a revised complete design.
+this gate: `approve` accepts the recommended option.
+
+#### Approval
+
+Approval can start an autonomous build, so the trigger is strict. Check the
+non-Build rows first: any non-Build row that matches wins over Build. Only
+when none matches, use a Build row.
+
+| Situation | Outcome |
+| --- | --- |
+| Direct Explore or Guided Explore run, READY, the user did not ask for spec or design only: the reply is `approve` (any case, punctuation ignored), or a bare acceptance such as `approved`, `yes`, or `lgtm`, with no edit, condition, question, or non-recommended pick | **Build:** emit the 100% Handoff, then load and follow `../vs-build-it/SKILL.md` on the approved spec path, with the Goal Contract as its contract |
+| Direct Explore or Guided Explore run, READY_WITH_RISKS, the user did not ask for spec or design only: the same strict acceptance, to an approve line that named the risk | **Build:** the risk is now accepted. Emit the 100% Handoff, then load and follow `../vs-build-it/SKILL.md` on the approved spec path |
+| The reply carries an edit, condition, or question, for example `approve but rename X` or `looks good, one question` | **Revise:** treat it as a requested change. Revise the design, then close again. Do not build |
+| The reply picks a non-recommended option on the combined decision gate | **Revise:** fold that pick into the design, then close again. Do not build |
+| Ambiguous reply (you cannot tell acceptance from a change) | **Ask:** ask once which it is. Do not build |
+| The user asked for a spec or design only, not implementation | **Finalize:** `approve` accepts the spec and stops. Do not build. A later `build` reply is a new `/vs-build-it` request |
+| Composed run: a caller workflow loaded shape-it and is still running, waiting for the spec | **Return:** hand the approved spec path back to that caller. The caller owns the build-it handoff, so build-it never runs twice |
+| NOT_READY close | **Rework:** no approve was offered. Revise, or offer interactive `/vs-pushback` |
+| Challenge route | **Return:** `/vs-pushback` owns that close. Shape-it does not start build-it |
+| The host cannot resolve `../vs-build-it/SKILL.md` | **Stop:** tell the user to type `/vs-build-it <spec path>` and stop |
+
+A caller that handed off and ended does not make the run composed. Examples:
+`/vs-architect` handing the user to shape-it, or `/vs-build-it` stopping to
+route a decision here (its architect step). That run is direct: a Build row
+applies, with a fresh build-it run on the approved spec.
+
+On Build, if shape-it owns a Codex planning goal, mark it complete before
+loading build-it, so build-it's `get_goal` finds no conflicting active goal
+([Codex Goal Integration](../vs-internal-shared/references/codex-goal.md)).
+
+On Build, the default session action is Continue. Apply
+[Phase Boundaries](../vs-internal-shared/references/phase-boundaries.md) only on
+its observable signals: if they choose Clear or Handoff (the spec is durable
+and the shaping context is now a burden), end with
+`Next: /vs-build-it <spec path>` and a one-clause reason. Never stop at a TLDR
+that names `/vs-build-it` without that reason.
+
+A Build approval authorizes `/vs-build-it` only. It does not authorize
+`/vs-to-issues`, Codex tasks/threads, or other workers proposed in the
+execution class below. Each needs its own explicit OK, and then build-it or
+`/vs-to-issues` creates them, never shape-it. Build-it's own rules still
+govern how it runs.
 
 On READY or READY_WITH_RISKS only, default to the approved spec, then `/vs-build-it`.
 On NOT_READY, skip that default. Extra coordination follows
@@ -686,7 +734,7 @@ continue. Do not silently choose between materially different outcomes.
 Before finishing, check:
 
 - before approval, no implementation, issues, tasks/threads, or implementation workers were created
-- `approve` on a READY or READY_WITH_RISKS close starts `/vs-build-it` on the approved spec in the same turn
+- the reply was matched to the Approval table, non-Build rows first; spec-only, composed, edited, ambiguous, and Challenge replies never reach build-it
 - named sources and enough nearby evidence were read before asking answerable questions
 - external research either ran with its finding cited, or was skipped with a stated reason
 - pushback ran in composed mode over the finished design and returned a verdict
@@ -732,7 +780,7 @@ to every user-facing message.
 
 ## Workflow
 
-Direct: emit **Next** only. Composed: return to caller.
+Direct: on a Build approval (Approval table), continue into **Next**; otherwise emit **Next** only. Composed: return the approved spec to the caller.
 
 **Prev:** idea, rough plan, or question
 **Next:** `/vs-build-it`
