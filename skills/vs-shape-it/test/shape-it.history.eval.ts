@@ -259,4 +259,100 @@ Score 0.0: It proposes arbitrary code execution, a new service without justifica
     expect(result.score).toBeGreaterThan(0.5);
     await agent.dispose();
   });
+
+  it('explore-mode: spec-only Approved. at the close finalizes the spec and does not build', async () => {
+    // The exclusive 4-item close has no `## ` heading, so match its
+    // `Your action` approve line instead, and stop one agent turn after the
+    // scripted `Approved.` so the reply to approval is what gets graded.
+    const CLOSE = /Your action[^\n]*approve/i;
+    const reactions = withAskUserSupport([
+      {
+        when: /arbitrary|sandbox|trusted|declarative|capabilit|security/i,
+        unless: CLOSE,
+        reply: 'Use a constrained declarative block set; authors cannot run arbitrary code.',
+        once: true,
+      },
+      {
+        when: /pipeline|publish|artifact|source|existing|boundary/i,
+        unless: CLOSE,
+        reply: 'Reuse the current build and publish path, with one explicit source-artifact contract.',
+        once: true,
+      },
+      { when: CLOSE, reply: 'Approved.', once: true },
+      { when: /\?/, unless: CLOSE, reply: 'Keep the smallest safe scope.' },
+    ]);
+
+    const agent = await createAgent({
+      agent: EVAL_AGENT,
+      timeout: 600,
+      skillDir: SKILL_DIR,
+      workspace: PUBLISHING_FIXTURE,
+      copyFromHome: COPY_FROM_HOME,
+      debug: true,
+    });
+    await agent.exec('git init -q');
+    await agent.exec('git config user.name "Pathgrade"');
+    await agent.exec('git config user.email "pathgrade@example.com"');
+    await agent.exec('git add .');
+    await agent.exec('git commit -qm "fixture: initial state"');
+    const startBranch = (await agent.exec('git rev-parse --abbrev-ref HEAD')).stdout.trim();
+
+    const approvedAt = (messages: { role: string; content: string }[]) =>
+      messages.findIndex((m) => m.role === 'user' && m.content.trim() === 'Approved.');
+
+    const conversation = await agent.runConversation({
+      firstMessage: PUBLISHING_PROMPT,
+      maxTurns: 10,
+      reactions,
+      ...CONVERSE_ASK_USER_DEFAULTS,
+      until: async ({ messages }) => {
+        const at = approvedAt(messages);
+        return at !== -1 && messages.slice(at + 1).some((m) => m.role === 'agent');
+      },
+    });
+
+    const at = approvedAt(agent.messages);
+    const afterApproval = at === -1
+      ? ''
+      : agent.messages.slice(at + 1).filter((m) => m.role === 'agent').map((m) => m.content).join('\n');
+    const commits = (await agent.exec('git rev-list --count HEAD')).stdout.trim();
+    const branch = (await agent.exec('git rev-parse --abbrev-ref HEAD')).stdout.trim();
+    const nonDocChanges = (
+      await agent.exec("git status --porcelain --untracked-files=all -- . ':(exclude)*.md' ':(exclude)*.html'")
+    ).stdout.trim();
+
+    const result = await evaluate(
+      agent,
+      [
+        check('reached-close-and-approved', () => conversation.completionReason === 'until' && at !== -1, {
+          weight: 2,
+        }),
+        check(
+          'no-build-handoff-after-approval',
+          () =>
+            afterApproval.length > 0 &&
+            !/Handoff: approved spec →|\[1\/7\]|vs-build-it\/SKILL\.md/.test(afterApproval),
+          { weight: 3 },
+        ),
+        check('no-commit-branch-or-code', () => at !== -1 && commits === '1' && branch === startBranch && nonDocChanges === '', {
+          weight: 3,
+        }),
+        judge('finalizes-spec-only', {
+          rubric: `The user asked for a specification, not implementation. At the close the user replied "Approved."
+
+Review the agent's reply after "Approved.":
+${afterApproval.slice(0, 4000)}
+
+Score 1.0: It accepts the spec as final and stops. It may offer a separate explicit build step, but it does not start one.
+Score 0.5: It accepts the spec but describes implementation as already under way or about to start automatically.
+Score 0.0: It starts implementation, loads build-it, creates a branch, or writes code.`,
+          weight: 3,
+        }),
+      ],
+      { failFast: false, onScorerError: 'skip' },
+    );
+
+    expect(result.score).toBeGreaterThan(0.7);
+    await agent.dispose();
+  });
 });

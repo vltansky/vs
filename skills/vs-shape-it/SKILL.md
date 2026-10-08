@@ -659,24 +659,31 @@ this gate: `approve` accepts the recommended option.
 
 #### Approval
 
-Approval starts an autonomous build, so the trigger is strict. Match the
-user's reply and the run to exactly one row:
+Approval can start an autonomous build, so the trigger is strict. Check the
+non-Build rows first: any non-Build row that matches wins over Build. Only
+when none matches, use a Build row.
 
 | Situation | Outcome |
 | --- | --- |
-| Direct run, READY: the reply is `approve` (any case, punctuation ignored), or a bare acceptance such as `approved`, `yes`, or `lgtm`, with no edit, condition, question, or non-recommended pick | **Build:** emit the 100% Handoff, then continue into `/vs-build-it` on the approved spec path, with the Goal Contract as its contract |
-| Direct run, READY_WITH_RISKS: the same strict `approve` to an approve line that named the risk | **Build:** the risk is now accepted. Emit the 100% Handoff, then continue into `/vs-build-it` on the approved spec path |
+| Direct Explore or Guided Explore run, READY, the user did not ask for spec or design only: the reply is `approve` (any case, punctuation ignored), or a bare acceptance such as `approved`, `yes`, or `lgtm`, with no edit, condition, question, or non-recommended pick | **Build:** emit the 100% Handoff, then load and follow `../vs-build-it/SKILL.md` on the approved spec path, with the Goal Contract as its contract |
+| Direct Explore or Guided Explore run, READY_WITH_RISKS, the user did not ask for spec or design only: the same strict acceptance, to an approve line that named the risk | **Build:** the risk is now accepted. Emit the 100% Handoff, then load and follow `../vs-build-it/SKILL.md` on the approved spec path |
 | The reply carries an edit, condition, or question, for example `approve but rename X` or `looks good, one question` | **Revise:** treat it as a requested change. Revise the design, then close again. Do not build |
 | The reply picks a non-recommended option on the combined decision gate | **Revise:** fold that pick into the design, then close again. Do not build |
 | Ambiguous reply (you cannot tell acceptance from a change) | **Ask:** ask once which it is. Do not build |
-| The user asked for a spec or design only, not implementation | **Finalize:** `approve` accepts the spec and stops. Only a separate `build` reply starts `/vs-build-it` |
-| Composed run: another workflow (for example `/vs-build-it` routing a decision here) invoked shape-it | **Return:** hand the approved spec path back to that caller. The caller owns the build-it handoff, so build-it never runs twice |
+| The user asked for a spec or design only, not implementation | **Finalize:** `approve` accepts the spec and stops. Do not build. A later `build` reply is a new `/vs-build-it` request |
+| Composed run: a caller workflow loaded shape-it and is still running, waiting for the spec | **Return:** hand the approved spec path back to that caller. The caller owns the build-it handoff, so build-it never runs twice |
 | NOT_READY close | **Rework:** no approve was offered. Revise, or offer interactive `/vs-pushback` |
 | Challenge route | **Return:** `/vs-pushback` owns that close. Shape-it does not start build-it |
-| The host cannot resolve `/vs-build-it` | **Stop:** tell the user to type `/vs-build-it <spec path>` and stop |
+| The host cannot resolve `../vs-build-it/SKILL.md` | **Stop:** tell the user to type `/vs-build-it <spec path>` and stop |
 
-A building block that hands the user to shape-it, such as `/vs-architect`,
-does not make the run composed.
+A caller that handed off and ended does not make the run composed. Examples:
+`/vs-architect` handing the user to shape-it, or `/vs-build-it` stopping to
+route a decision here (its architect step). That run is direct: a Build row
+applies, with a fresh build-it run on the approved spec.
+
+On Build, if shape-it owns a Codex planning goal, mark it complete before
+loading build-it, so build-it's `get_goal` finds no conflicting active goal
+([Codex Goal Integration](../vs-internal-shared/references/codex-goal.md)).
 
 On Build, the default session action is Continue. Apply
 [Phase Boundaries](../vs-internal-shared/references/phase-boundaries.md) only on
@@ -685,9 +692,11 @@ and the shaping context is now a burden), end with
 `Next: /vs-build-it <spec path>` and a one-clause reason. Never stop at a TLDR
 that names `/vs-build-it` without that reason.
 
-`approve` starts `/vs-build-it` only. It does not authorize `/vs-to-issues`,
-Codex tasks/threads, or other workers proposed in the execution class below;
-each needs its own explicit OK. Build-it's own rules still govern how it runs.
+A Build approval authorizes `/vs-build-it` only. It does not authorize
+`/vs-to-issues`, Codex tasks/threads, or other workers proposed in the
+execution class below. Each needs its own explicit OK, and then build-it or
+`/vs-to-issues` creates them, never shape-it. Build-it's own rules still
+govern how it runs.
 
 On READY or READY_WITH_RISKS only, default to the approved spec, then `/vs-build-it`.
 On NOT_READY, skip that default. Extra coordination follows
@@ -725,7 +734,7 @@ continue. Do not silently choose between materially different outcomes.
 Before finishing, check:
 
 - before approval, no implementation, issues, tasks/threads, or implementation workers were created
-- a strict `approve` on a direct READY or READY_WITH_RISKS close continues into `/vs-build-it` on the approved spec; edits, spec-only, composed, and Challenge runs do not build
+- the reply was matched to the Approval table, non-Build rows first; spec-only, composed, edited, ambiguous, and Challenge replies never reach build-it
 - named sources and enough nearby evidence were read before asking answerable questions
 - external research either ran with its finding cited, or was skipped with a stated reason
 - pushback ran in composed mode over the finished design and returned a verdict
@@ -771,7 +780,7 @@ to every user-facing message.
 
 ## Workflow
 
-Direct: on approval, continue into **Next**; otherwise emit **Next** only. Composed: return the approved spec to the caller.
+Direct: on a Build approval (Approval table), continue into **Next**; otherwise emit **Next** only. Composed: return the approved spec to the caller.
 
 **Prev:** idea, rough plan, or question
 **Next:** `/vs-build-it`

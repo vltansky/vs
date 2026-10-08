@@ -65,7 +65,7 @@ describe('framework routing', () => {
     // An approved shape-it close continues into build-it; see its Approval table.
     const ROUTE_EXCEPTIONS: Record<string, RegExp> = {
       'vs-shape-it':
-        /## Workflow\s+Direct: on approval, continue into \*\*Next\*\*; otherwise emit \*\*Next\*\* only\. Composed: return the approved spec to the caller\.\s+\*\*Prev:\*\*/,
+        /## Workflow\s+Direct: on a Build approval \(Approval table\), continue into \*\*Next\*\*; otherwise emit \*\*Next\*\* only\. Composed: return the approved spec to the caller\.\s+\*\*Prev:\*\*/,
     };
     for (const [name, skill] of SKILLS) {
       expect(skill, `${name} runtime route`).toMatch(
