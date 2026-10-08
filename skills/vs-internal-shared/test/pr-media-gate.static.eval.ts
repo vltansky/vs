@@ -730,6 +730,18 @@ describe('pr-media-gate Tests block', () => {
     expect(result.status).toBe(1);
   });
 
+  it('ignores a ## Tests heading inside a fenced example', () => {
+    const cwd = repoWithChanges(['src/server/auth.test.ts']);
+    const fenced = '\n```markdown\n## Tests\n- `a` — b\n- **Not covered:** none\n```\n';
+    const result = gate(cwd, `${BASE_BODY}${fenced}`);
+    expect(result.status).toBe(1);
+    expect(result.json.tests.section).toBe(false);
+
+    const both = gate(cwd, `${BASE_BODY}${fenced}${TESTS_BLOCK}`);
+    expect(both.status).toBe(0);
+    expect(both.json.tests.lines).toBe(1);
+  });
+
   it('requires the block for a deleted test too', () => {
     const cwd = repoWithChanges(['src/server/auth.ts'], ['src/server/auth.test.ts']);
     const result = gate(cwd, BASE_BODY);

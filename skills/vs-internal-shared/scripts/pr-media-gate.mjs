@@ -297,12 +297,16 @@ const surfaces = {
 const surfacesOk = surfaces.ok;
 
 // ## Tests block: required when any test/eval file changed. Diff-derived; the gate runs nothing.
+// Headings inside fenced examples and HTML comments are not sections.
+const proseBody = body
+  .replace(/^[ \t]*(```|~~~)[^\n]*\n[\s\S]*?^[ \t]*\1[ \t]*$/gm, '')
+  .replace(/<!--[\s\S]*?-->/g, '');
 const section = (heading) => {
-  const at = body.search(new RegExp(String.raw`^##[ \t]+${heading}\b`, 'im'));
+  const at = proseBody.search(new RegExp(String.raw`^##[ \t]+${heading}\b`, 'im'));
   if (at === -1) return null;
-  const afterHeading = body.indexOf('\n', at);
+  const afterHeading = proseBody.indexOf('\n', at);
   if (afterHeading === -1) return '';
-  const rest = body.slice(afterHeading + 1).replace(/<!--[\s\S]*?-->/g, '');
+  const rest = proseBody.slice(afterHeading + 1);
   const nextHeading = rest.search(/^##[ \t]+/m);
   return nextHeading === -1 ? rest : rest.slice(0, nextHeading);
 };
