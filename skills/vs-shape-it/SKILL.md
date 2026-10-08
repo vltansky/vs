@@ -608,15 +608,15 @@ checkpoint at 75%, then the close. Name the exact approval or rework decision,
 list every completed `/vs-*` subskill with its concrete contribution (including
 the `/vs-eli5` review path and `/vs-pushback` verdict here), and set `Output` to
 `Goal Contract + Execution Strategy ready` or `blocked`. The checkpoint is not
-a fifth close item. After approval, emit the 100% **Handoff** checkpoint before
-routing to the approved execution flow.
+a fifth close item. After approval, emit the 100% **Handoff** checkpoint, then
+start the approved execution flow in the same turn.
 
 Chat is only this exclusive 4-item close, in this order:
 
 1. The first sentence is the TLDR returned by composed `/vs-eli5` (two to four short lines): the recommendation in plain English and why it is the best fit. Do not write a second TLDR.
 2. The eli5 file path (or “eli5 saved”).
 3. Verdict-honest Handoff. READY or READY_WITH_RISKS: `Handoff: Goal Contract ready | <N> open decisions` (or the missing field). NOT_READY: `Handoff: Goal Contract blocked — not ready, rework` (or the missing field). Never write `Goal Contract ready` on a NOT_READY close.
-4. One `Your action` line. READY or READY_WITH_RISKS: approval, plus the shortest exact reply that accepts. NOT_READY: rework only — do not offer approve or `/vs-build-it`.
+4. One `Your action` line. READY or READY_WITH_RISKS: approval that says approving starts the build, for example: Reply `approve` to start `/vs-build-it` on this spec, or request changes. NOT_READY: rework only — do not offer approve or `/vs-build-it`.
 
 Do not paste the Goal Contract, ADR, pushback report, execution blueprint, or
 the `Execution:` block into chat. Those live in the linked files and the eli5.
@@ -642,7 +642,9 @@ Put the complete recommendation and all of the following in the linked files, no
 Approval exists only for READY or READY_WITH_RISKS. Keep one approval request
 in those cases. Ask for approval once, after the whole design, Goal Contract, any ADR, and any
 execution blueprint are visible in those files. Approval
-means ready for `/vs-build-it`; it does not start implementation. If the
+starts the build. When the user replies `approve` (or another clear acceptance), invoke `/vs-build-it` on the approved spec path in the same turn,
+with the Goal Contract as its contract. Do not stop at a TLDR that names `/vs-build-it` as the next step.
+A requested change returns to shaping: revise, then close again. If the
 composed pushback verdict is NOT_READY, skip the approval gate: Your action
 is rework. If an unresolved strategic decision remains on a READY or
 READY_WITH_RISKS close and each option is already shaped, combine it with
@@ -683,7 +685,8 @@ continue. Do not silently choose between materially different outcomes.
 
 Before finishing, check:
 
-- no implementation, issues, tasks/threads, or implementation workers were created
+- before approval, no implementation, issues, tasks/threads, or implementation workers were created
+- `approve` on a READY or READY_WITH_RISKS close starts `/vs-build-it` on the approved spec in the same turn
 - named sources and enough nearby evidence were read before asking answerable questions
 - external research either ran with its finding cited, or was skipped with a stated reason
 - pushback ran in composed mode over the finished design and returned a verdict
