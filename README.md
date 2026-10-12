@@ -39,7 +39,7 @@ flowchart LR
 
     S -. composes .-> SC["/vs-ponytail · /vs-architect? · /vs-octocode?<br/>/vs-pushback · /vs-eli5 · /vs-eval?"]
     B -. composes .-> BC["/vs-ponytail · /vs-pushback · /vs-decide-for-me<br/>/vs-tdd · /vs-debug-mode?<br/>/vs-roast-code? · /vs-deslop?<br/>/vs-qa? · /vs-verify · /vs-before-after? · /vs-eval?"]
-    P -. composes .-> PC["/vs-pr-walkthrough? · /vs-baby-sit"]
+    P -. composes .-> PC["/vs-baby-sit"]
 ```
 
 `?` means conditional. `/vs-ponytail` is both a public building block and an
@@ -104,11 +104,9 @@ Publishes the scoped work and reports its CI and review status.
 flowchart TD
     I[Permission to publish] --> D{PR or direct push?}
     D -- PR --> C["Check, commit, push<br/>/vs-eval for skill contracts"]
-    C --> B["Prepare PR description<br/>feature_area: title<br/>Merge risk (Door / Blast)<br/>Surfaces<br/>Problem scenario (STE100) + Endpoint/Schema/UI proof<br/>What was done<br/>User impact<br/>Evidence + gaps<br/>Tests<br/>Review focus"]
+    C --> B["Prepare PR description<br/>feature_area: title<br/>Merge risk (Door / Blast)<br/>Surfaces<br/>Problem scenario (STE100) + Endpoint/Schema/UI proof<br/>What was done<br/>User impact<br/>Evidence + gaps<br/>Tests<br/>Review focus<br/>collapsed Walkthrough (areas by risk, logic pseudocode diff)"]
     B --> M["Reuse or capture proof<br/>matched Before/After screenshots<br/>short video for interactions<br/>paired output, key diff hunk, optional mermaid"]
-    M --> O[Create and verify a regular PR] --> L{10+ changed files?}
-    L -- yes --> T["Start exact-head walkthrough asynchronously<br/>/vs-pr-walkthrough"] --> W["Follow CI and GitHub review<br/>repairs go draft until the new head is green<br/>/vs-baby-sit"]
-    L -- no --> W
+    M --> O[Create and verify a regular PR] --> W["Follow CI and GitHub review<br/>repairs go draft until the new head is green<br/>/vs-baby-sit"]
     D -- Direct push --> F[Check destination, commit, push] --> S[Verify remote SHA]
 ```
 
@@ -207,7 +205,6 @@ Architecture: /vs-architect -> /vs-shape-it -> /vs-build-it
 | `/vs-explain-video` | Make a short narrated explainer video of a topic, code path, or PR |
 | `/vs-eval` | Write PathGrade static pins and live evals with exclusive contracts, not slogan mentions |
 | `/vs-tune-skill` | Grade one named skill from local chats and propose a scratch diff |
-| `/vs-pr-walkthrough` | Turn a large GitHub PR into an interactive diff ordered as a logical story |
 | `/vs-perf` | Optimize performance against an explicit evaluator |
 | `/vs-to-issues` | Turn a plan, spec, or RFC into vertical-slice GitHub issues |
 | `/vs-steal` | Find ideas worth porting from another repository |

@@ -102,4 +102,4 @@ the host honors CSP metadata; proving iframe load is a later hardening step.
 - OpenAI sidebar / file / composer plugin entrypoints
 - Rewriting HTMDX into a React host app
 - Other plugin entrypoints beyond the artifact presentation tools
-- Changing pathgrade, ship-it presets, or PR walkthrough
+- Changing pathgrade or ship-it presets

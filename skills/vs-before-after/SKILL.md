@@ -124,4 +124,4 @@ Direct: emit **Next** only. Composed: return to caller.
 
 **Prev:** branch, PR, commit, or working-tree diff
 **Next:** done
-**Relevant:** `/vs-pr-walkthrough` for a large code-reading aid | `/vs-recap` for current status
+**Relevant:** `/vs-recap` for current status

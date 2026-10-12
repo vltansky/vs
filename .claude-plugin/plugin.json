@@ -1,6 +1,6 @@
 {
   "name": "vs",
-  "version": "1.19.3",
+  "version": "1.20.0",
   "description": "Plan-to-ship workflow skills for shaping ideas, building autonomously, reviewing code, and shipping PRs with agent discipline.",
   "author": {
     "name": "Vlad Tansky",
@@ -26,7 +26,6 @@
     "./skills/vs-explain-video",
     "./skills/vs-eval",
     "./skills/vs-tune-skill",
-    "./skills/vs-pr-walkthrough",
     "./skills/vs-fix-pr",
     "./skills/vs-octocode",
     "./skills/vs-show-me",

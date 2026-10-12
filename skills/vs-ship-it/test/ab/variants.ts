@@ -83,7 +83,7 @@ one fresh-context child and wait for it once:
 Give the child a compact brief instead of the transcript: repository, base and
 head branch, pushed head SHA, the user's request, the problem and fix in two or
 three sentences, Before/After behavior, validation commands with their results,
-and the explicit-opt-out state for walkthrough and watching. Tell it to load
+and the explicit-opt-out state for watching. Tell it to load
 \`vs-ship-it\` and follow Steps 2-5 and the Handoff exactly, then return the
 Handoff verbatim. Relay that Handoff to the user unchanged. Do not re-verify
 what the child verified. If the brief cannot state the change without the
@@ -118,7 +118,7 @@ node <skill-dir>/scripts/publish-pr.mjs --title "<title>" --body-file "$BODY_FIL
 \`\`\`
 
 It prints one JSON line. Exit 0 means the PR is open, non-draft, on this branch,
-at the pushed head; use its \`url\`, \`head\`, and \`walkthrough\` fields and skip
+at the pushed head; use its \`url\` and \`head\` fields and skip
 the manual gate, create, and verify commands. Exit 1 carries the gate report: fix
 the body and rerun. Exit 2 names the missing push or branch. Exit 3 is an
 association mismatch: report it and stop. Use the manual commands below only
@@ -160,18 +160,6 @@ body. Otherwise there is nothing to capture.
     end: '### Step 4: Create and verify the PR\n',
     ref: 'references/media.md',
     stub: '',
-  },
-  {
-    skill: 'vs-ship-it',
-    start: '- 10 or more changed files: load and follow\n',
-    end: 'When the composed babysitter reaches',
-    ref: 'references/large-pr-walkthrough.md',
-    stub: `- 10 or more changed files: load and follow
-  [\`references/large-pr-walkthrough.md\`](references/large-pr-walkthrough.md).
-
-Then hand the verified PR to \`vs-baby-sit\` immediately.
-
-`,
   },
 ];
 
@@ -231,7 +219,7 @@ export const VARIANTS: Variant[] = [
   },
   {
     id: 'v7-slim',
-    summary: 'Media capture/upload, endpoint/schema/prototype proof, and the large-PR walkthrough move to on-demand references.',
+    summary: 'Media capture/upload, and endpoint/schema/prototype proof move to on-demand references.',
     edits: [],
     moves: SLIM_MOVES,
   },

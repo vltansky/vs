@@ -81,7 +81,6 @@ describe('vs-show-me URL + first-screen shot', () => {
     for (const workflow of [
       'vs-eli5',
       'vs-ui',
-      'vs-pr-walkthrough',
     ]) {
       const skill = fs.readFileSync(
         path.join(ROOT, 'skills', workflow, 'SKILL.md'),
