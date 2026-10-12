@@ -56,7 +56,7 @@ const mismatches = [
 if (mismatches.length) done(3, { ok: false, error: `PR does not match the pushed branch: ${mismatches.join(', ')}`, pr });
 done(0, {
   ok: true, number: pr.number, url: pr.url, title: pr.title, head, branch, base,
-  changedFiles: pr.changedFiles, walkthrough: pr.changedFiles >= 10 ? 'start' : 'SKIPPED_SMALL_PR',
+  changedFiles: pr.changedFiles,
   // Without this the result reads as a terminal state and agents end the turn here.
   next: 'Not done: print the creation handoff, then load vs-baby-sit and watch this PR in the same turn.',
 });

@@ -4,7 +4,7 @@
 // schema changes with no contract proof, Surfaces claim↔path mismatches, or changed tests
 // with no ## Tests block.
 //
-//   node pr-media-gate.mjs <body-file> [--base <ref>] [--frontend <regex>] [--api <regex>] [--schema <regex>] [--tests <regex>]
+//   node pr-media-gate.mjs <body-file> [--base <ref>] [--frontend <regex>] [--api <regex>] [--schema <regex>] [--tests <regex>] [--head <ref>]
 //
 // Reads git (which paths changed against the base) and the body text. It never opens the
 // media, so it costs the model no context. Exit codes match check-visual-evidence.mjs:
@@ -20,6 +20,9 @@
 //      (added, edited, or deleted) and the body has no ## Tests block with a Not covered: line
 //      Warn only (never exit 1): behavior paths changed, no test/eval file changed, and
 //      ## Review focus has no "No tests changed" bullet — the warning goes to stderr.
+//      or >3 product surfaces without matching path classes, or has no collapsed
+//      last-section Walkthrough (≥1 area group ordered 🔴 → 🟡 → 🟢, each with a ```diff of
+//      logic pseudocode without diff/hunk headers, links pinned to the --head SHA)
 //   2  not checked: body missing or git cannot resolve the base
 //
 // Output is one JSON object on stdout so the caller can quote counts instead of re-reading.
@@ -188,9 +191,13 @@ const behaviorFiles = changedFiles.filter(
 
 const body = fs.readFileSync(bodyPath, 'utf8');
 // The label must carry a code block after it: a request/response or schema shape, not a sentence.
+// The Walkthrough's pseudocode fences are not proof, so the search stops where it starts.
+const WALKTHROUGH_OPEN = /<details\b[^>]*>\s*<summary\b[^>]*>\s*(?:<(?:b|strong)>\s*)?Walkthrough\b/i;
+const proofEnd = body.search(WALKTHROUGH_OPEN);
+const proofBody = proofEnd === -1 ? body : body.slice(0, proofEnd);
 const labelledBlock = (marker) => {
-  const at = body.search(marker);
-  return at !== -1 && FENCE.test(body.slice(at));
+  const at = proofBody.search(marker);
+  return at !== -1 && FENCE.test(proofBody.slice(at));
 };
 const refs = [];
 for (const match of body.matchAll(MARKDOWN_IMAGE)) refs.push({ url: match[1], kind: 'image' });
@@ -229,14 +236,18 @@ const contractOk = contract.endpoint && contract.schema;
 // Surfaces proof selectors: parse ## Surfaces until the next heading. Claims must
 // match path classes; forbidden names (backend/DB) always fail.
 // Capture until the next ATX heading or end of body. (JS has no \\Z.)
+// A ## section ends at the next heading of any level or at a <details> block, so a section
+// parser never swallows the Walkthrough or its "### " groups.
+const untilNextBlock = (rest) => {
+  const stop = rest.search(/^(?:#{1,6}[ \t]+|[ \t]*<details\b)/im);
+  return stop === -1 ? rest : rest.slice(0, stop);
+};
 const surfacesSection = (() => {
   const at = body.search(/^##[ \t]+Surfaces\b/im);
   if (at === -1) return '';
   const afterHeading = body.indexOf('\n', at);
   if (afterHeading === -1) return '';
-  const rest = body.slice(afterHeading + 1);
-  const nextHeading = rest.search(/^##[ \t]+/m);
-  return nextHeading === -1 ? rest : rest.slice(0, nextHeading);
+  return untilNextBlock(body.slice(afterHeading + 1));
 })();
 // Claims come from: (1) badge-surface-{kind}-{n}.svg chips, (2) optional (Kind)
 // tags on module bullets, (3) legacy vocabulary selector lines (UI · Endpoint …).
@@ -327,7 +338,8 @@ const surfacesOk = surfaces.ok;
 
 // ## Tests block: required when any test/eval file changed. Diff-derived; the gate runs nothing.
 // Headings inside fenced examples and HTML comments are not sections.
-const proseBody = body
+// The Walkthrough is not prose: its "### " groups and pseudocode are cut before parsing.
+const proseBody = proofBody
   .replace(/^[ \t]*(```|~~~)[^\n]*\n[\s\S]*?^[ \t]*\1[ \t]*$/gm, '')
   .replace(/<!--[\s\S]*?-->/g, '');
 const section = (heading) => {
@@ -335,9 +347,7 @@ const section = (heading) => {
   if (at === -1) return null;
   const afterHeading = proseBody.indexOf('\n', at);
   if (afterHeading === -1) return '';
-  const rest = proseBody.slice(afterHeading + 1);
-  const nextHeading = rest.search(/^##[ \t]+/m);
-  return nextHeading === -1 ? rest : rest.slice(0, nextHeading);
+  return untilNextBlock(proseBody.slice(afterHeading + 1));
 };
 const testsSection = section('Tests');
 // The label closes explicitly (**Not covered:**, **Not covered**:, __…__, or plain Not covered:),
@@ -376,10 +386,155 @@ if (tests.noTestFlag.needed && !tests.noTestFlag.present) {
   );
 }
 
-const valid = mediaOk && beforeAfterOk && mergeDangerOk && contractOk && surfacesOk && testsOk;
+// Walkthrough: the last block of the body is one <details> (open or closed) whose <summary>
+// starts "Walkthrough". Inside: ≥1 "### " area group, ordered 🔴 → 🟡 → 🟢, each with a
+// ```diff of logic pseudocode. Diff file headers and hunk headers fail hard. Code-shaped
+// lines only warn, and only with two strong signals on one line, because pseudocode
+// legitimately says "return 401", "export:", or "class = premium".
+// Every Walkthrough link must be /blob/<40-hex sha>/ with the sha equal to --head (default HEAD).
+const HARD_CODE_LINE = /^(?:@@ .* @@|diff --git |index [0-9a-f]+\.\.[0-9a-f]+|\+\+\+ [ab]\/|--- (?:a\/|\/dev\/null))/;
+const CODE_SIGNALS = [
+  ['assignment', /^\s*[\w.[\]&*]+\s*(?:[+\-*/%]=|:=|=(?!=))/],
+  ['call', /[A-Za-z_]\w*\([^)]*\)/],
+  ['member access', /\b[A-Za-z_]\w*\.[A-Za-z_]\w*\b(?!\.(?:md|mjs|ts|js|json|py|go)\b)/],
+  ['equality operator', /[=!]==?/],
+  ['SQL statement', /\b(?:SELECT\b[\s\S]*\bFROM|UPDATE\b[\s\S]*\bSET|INSERT INTO|DELETE FROM)\b/],
+  ['bind parameter or pointer', /\$\d+\b|&[A-Za-z_]\w*/],
+  ['quoted literal', /'[^']*'/],
+  ['trailing semicolon', /;\s*$/],
+  ['brace block', /\{\s*$|^\s*[})\]];?\s*$|=>\s*[{(]/],
+];
+const codeSignals = (line) => {
+  const text = line.replace(/^[+\- ]/, '');
+  return CODE_SIGNALS.filter(([, pattern]) => pattern.test(text)).map(([name]) => name);
+};
+const RISK_RANK = { '🔴': 0, '🟡': 1, '🟢': 2 };
+
+// Balanced <details> matching, so a nested <details> inside a group does not end the section.
+// Tags inside fenced code are text (pseudocode may mention <details>), so mask fences first;
+// masking keeps offsets so slices of the original text stay aligned.
+const maskFences = (text) => text.replace(/^[ \t]*(```|~~~)[^\n]*\n[\s\S]*?^[ \t]*\1[ \t]*$/gm, (block) => block.replace(/[^\n]/g, ' '));
+const findWalkthrough = (text) => {
+  const tags = [...maskFences(text).matchAll(/<details\b[^>]*>|<\/details\s*>/gi)];
+  for (let i = 0; i < tags.length; i += 1) {
+    const open = tags[i];
+    if (open[0].startsWith('</')) continue;
+    const after = text.slice(open.index + open[0].length);
+    const summary = after.match(/^\s*<summary\b[^>]*>\s*(?:<(?:b|strong)>\s*)?Walkthrough\b[\s\S]*?<\/summary>/i);
+    if (!summary) continue;
+    let depth = 0;
+    for (let j = i; j < tags.length; j += 1) {
+      depth += tags[j][0].startsWith('</') ? -1 : 1;
+      if (depth === 0) {
+        const innerStart = open.index + open[0].length + summary[0].length;
+        return {
+          inner: text.slice(innerStart, tags[j].index),
+          trailing: text.slice(tags[j].index + tags[j][0].length),
+        };
+      }
+    }
+    return { inner: text.slice(open.index + open[0].length + summary[0].length), trailing: '', unclosed: true };
+  }
+  return null;
+};
+
+const headFlag = flag('--head', null);
+const headResolved = git('rev-parse', '--verify', '--quiet', `${headFlag ?? 'HEAD'}^{commit}`);
+if (headResolved.status !== 0) {
+  notChecked(`git cannot resolve head "${headFlag ?? 'HEAD'}" to pin Walkthrough links. Pass --head <ref>.`);
+}
+const headSha = headResolved.stdout.trim();
+// This repo's owner/name from origin, so links into other repos are not pin-checked. Without
+// a GitHub origin, every github.com blob/tree link counts as a repo file link.
+const repoSlug = (() => {
+  const remote = git('remote', 'get-url', 'origin');
+  const match = remote.status === 0 && remote.stdout.trim().match(/github\.com[:/]([^/]+\/[^/]+?)(?:\.git)?$/i);
+  return match ? match[1].toLowerCase() : null;
+})();
+const GITHUB_FILE_LINK = /^https?:\/\/(?:www\.)?github\.com\/([^/]+\/[^/]+)\/(?:blob|tree)\//i;
+// Repo file link = blob/tree path in this repo, or a relative path. Issues, PRs, anchors, and
+// external URLs are allowed unpinned.
+const isRepoFileLink = (url) => {
+  const github = url.match(GITHUB_FILE_LINK);
+  if (github) return repoSlug === null || github[1].toLowerCase() === repoSlug;
+  return !/^(?:[a-z][a-z0-9+.-]*:|#|\/\/)/i.test(url);
+};
+const walkthroughLinks = (text) => {
+  const urls = [
+    ...[...text.matchAll(/\]\(\s*<?([^\s)>]+)>?(?:\s+"[^"]*")?\s*\)/g)].map((match) => match[1]),
+    ...[...text.matchAll(/<a\b[^>]*\bhref=["']([^"']+)["']/gi)].map((match) => match[1]),
+    ...[...text.matchAll(/(?<![("'=])\bhttps?:\/\/(?:www\.)?github\.com\/[^\s)<>"'\]]+/gi)].map((match) => match[0]),
+  ];
+  return [...new Set(urls)];
+};
+const walkthroughReasons = [];
+const walkthroughWarnings = [];
+const walkthroughGroups = [];
+const walkthroughBlock = findWalkthrough(body);
+if (!walkthroughBlock) {
+  walkthroughReasons.push('no <details><summary>Walkthrough: N areas, M files</summary> section');
+} else {
+  if (walkthroughBlock.unclosed) walkthroughReasons.push('Walkthrough <details> is never closed');
+  const trailing = walkthroughBlock.trailing.replace(/<!--[\s\S]*?-->/g, '').trim();
+  if (trailing) walkthroughReasons.push('Walkthrough is not the last section of the body');
+  const parts = walkthroughBlock.inner.split(/^###[ \t]+/m).slice(1);
+  if (parts.length === 0) walkthroughReasons.push('Walkthrough has no "### " area group');
+  let lastRank = -1;
+  for (const part of parts) {
+    const heading = part.split('\n')[0].trim();
+    const marker = Object.keys(RISK_RANK).find((emoji) => heading.startsWith(emoji));
+    const fence = part.match(/^```diff[ \t]*\n([\s\S]*?)^```[ \t]*$/m);
+    const group = { heading, risk: marker ?? null, diff: Boolean(fence), realCode: [], codeLike: [] };
+    if (!marker) walkthroughReasons.push(`group "${heading}" has no 🔴/🟡/🟢 risk marker`);
+    else if (RISK_RANK[marker] < lastRank) {
+      walkthroughReasons.push(`group "${heading}" is out of risk order — order groups 🔴 → 🟡 → 🟢`);
+    } else lastRank = RISK_RANK[marker];
+    if (!fence) walkthroughReasons.push(`group "${heading}" has no \`\`\`diff pseudocode fence`);
+    else {
+      for (const line of fence[1].split('\n')) {
+        if (HARD_CODE_LINE.test(line)) group.realCode.push(line);
+        else {
+          const signals = codeSignals(line);
+          if (signals.length >= 2) group.codeLike.push({ line, signals });
+        }
+      }
+      if (group.realCode.length > 0) {
+        walkthroughReasons.push(
+          `group "${heading}" diff contains real diff/hunk headers, not logic pseudocode: ${group.realCode.slice(0, 2).join(' | ')}`,
+        );
+      }
+      for (const { line, signals } of group.codeLike) {
+        walkthroughWarnings.push(
+          `pr-media-gate: warning — Walkthrough group "${heading}" line looks like real code (${signals.join(', ')}): ${line.trim()}`,
+        );
+      }
+    }
+    walkthroughGroups.push(group);
+  }
+  const links = walkthroughLinks(maskFences(walkthroughBlock.inner)).filter(isRepoFileLink);
+  if (links.length === 0) walkthroughReasons.push('Walkthrough has no file links pinned to the head SHA');
+  for (const url of links) {
+    const pinned = url.match(/\/(?:blob|tree)\/([0-9a-f]{40})(?:\/|$)/);
+    if (!pinned) walkthroughReasons.push(`link is not pinned to a 40-hex head SHA (/blob/<sha>/): ${url}`);
+    else if (pinned[1] !== headSha) {
+      walkthroughReasons.push(`link pins ${pinned[1].slice(0, 7)}, not the current head ${headSha.slice(0, 7)}: ${url}`);
+    }
+  }
+}
+const walkthrough = {
+  ok: walkthroughReasons.length === 0,
+  head: headSha,
+  repo: repoSlug,
+  groups: walkthroughGroups,
+  reasons: walkthroughReasons,
+  warnings: walkthroughWarnings.length,
+};
+const walkthroughOk = walkthrough.ok;
+warnings.push(...walkthroughWarnings);
+const valid = mediaOk && beforeAfterOk && mergeDangerOk && contractOk && surfacesOk && testsOk && walkthroughOk;
 
 process.stdout.write(
-  `${JSON.stringify({ valid, base, frontendFiles, apiFiles, schemaFiles, cliFiles, mcpFiles, infraFiles, images, videos, localRefs: localRefs.map((ref) => ref.url), gapStated, beforeAfter, mergeDanger, contract, surfaces, tests, warnings: warnings.length }, null, 2)}\n`,
+  `${JSON.stringify({ valid, base, frontendFiles, apiFiles, schemaFiles, cliFiles, mcpFiles, infraFiles, images, videos, localRefs: localRefs.map((ref) => ref.url), gapStated, beforeAfter, mergeDanger, contract, surfaces, tests, walkthrough, warnings: warnings.length }, null, 2)}\n`,
 );
 
 if (warnings.length > 0) process.stderr.write(`${warnings.join('\n')}\n`);
@@ -456,6 +611,15 @@ const next = [
       ]
         .filter(Boolean)
         .join('\n')
+    : null,
+  !walkthroughOk
+    ? [
+        'pr-media-gate: Walkthrough failed.',
+        ...walkthroughReasons.map((reason) => `  - ${reason}`),
+        '  Next: end the body with <details><summary>Walkthrough: N areas, M files</summary>, one',
+        '  "### 🔴|🟡|🟢 <Area> · <risk>" group per area (riskiest first), each with a ```diff of',
+        '  language-agnostic logic pseudocode (- old, + new) and head-pinned file links. No real code.',
+      ].join('\n')
     : null,
   !mediaOk
     ? [

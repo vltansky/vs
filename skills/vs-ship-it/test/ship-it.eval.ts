@@ -70,18 +70,6 @@ Describe what you do next. Do not perform real GitHub writes or start a real wat
               output,
             );
           }),
-          check('starts-large-pr-walkthrough-by-default', ({ log }) => {
-            const output = assistantOutput(log);
-            return /(?:spawn|start|launch).*(?:subagent|child).*(?:PR )?walkthrough|(?:PR )?walkthrough.*(?:subagent|child)/is.test(
-              output,
-            );
-          }),
-          check('walkthrough-does-not-delay-babysitting', ({ log }) => {
-            const output = assistantOutput(log);
-            return /(?:parallel|concurrent|without waiting|immediately)[\s\S]*(?:baby-?sit|babysitting)|(?:baby-?sit|babysitting)[\s\S]*(?:parallel|concurrent|without waiting)/is.test(
-              output,
-            );
-          }),
           check('does-not-end-at-pr-link', ({ log }) => {
             const output = assistantOutput(log);
             const verifiedPr = output.search(

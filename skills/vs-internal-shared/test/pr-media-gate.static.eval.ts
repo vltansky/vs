@@ -28,6 +28,11 @@ const HOSTED_VIDEO =
   'https://github.com/user-attachments/assets/1a2b3c4d-2222-4c3b-9d8e-abcdefabcdef';
 // Every body the gate should pass carries both sides and its merge danger; media is the
 // third, narrower duty.
+// Every ship-it body ends with a collapsed Walkthrough of logic pseudocode.
+const WALKTHROUGH =
+  '\n<details><summary>Walkthrough: 1 area, 1 file</summary>\n\n' +
+  '### 🟢 Toggle · low risk\n```diff\n- toggle shows light theme\n+ toggle shows dark theme\n```\n' +
+  '[toggle](https://github.com/o/r/blob/__HEAD__/toggle)\n\n</details>\n';
 const MERGE_DANGER =
   '## Merge risk\n\n**Door:** two-way — a revert restores the old styling.\n' +
   '**Blast radius:** the toggle only; no API or schema change.\n';
@@ -58,9 +63,16 @@ function repoWithBranch(files: string[]) {
   return dir;
 }
 
+// Bodies written for other duties get the Walkthrough appended as their last section, the
+// way ship-it writes it; the Walkthrough cases below call rawGate to control it exactly.
 function gate(cwd: string, body: string, ...flags: string[]) {
+  return rawGate(cwd, /Walkthrough/.test(body) ? body : body + WALKTHROUGH, ...flags);
+}
+
+function rawGate(cwd: string, body: string, ...flags: string[]) {
   const bodyPath = path.join(cwd, 'pr-body.md');
-  fs.writeFileSync(bodyPath, body);
+  // Walkthrough links pin the exact head; fixtures write __HEAD__ and get the repo's real SHA.
+  fs.writeFileSync(bodyPath, body.replaceAll('__HEAD__', git(cwd, 'rev-parse', 'HEAD')));
   const result = spawnSync(
     process.execPath,
     [GATE, bodyPath, '--base', 'main', ...flags],
@@ -283,7 +295,7 @@ describe('pr-media-gate requires a merge-risk classification', () => {
     const cwd = repoWithBranch(['src/server/auth.ts']);
     const result = gate(
       cwd,
-      '**Before** 401\n\n**After** 200\n\n### Door\n\nTwo-way.\n\n### Blast radius\n\nOne route.\n',
+      '**Before** 401\n\n**After** 200\n\n### Door\n\nTwo-way.\n\n### Blast radius\n\nOne route.\n' + WALKTHROUGH,
     );
 
     expect(result.status).toBe(0);
@@ -296,7 +308,7 @@ describe('pr-media-gate requires a merge-risk classification', () => {
       `<img alt="${file}" src="https://raw.githubusercontent.com/vltansky/vs/master/skills/vs-ship-it/assets/${file}">`;
     const result = gate(
       cwd,
-      `**Before** 401\n\n**After** 200\n\n## Merge risk\n\n${badge('badge-one-way-door.svg')}\n\nThe token table is migrated.\n\n${badge('badge-narrow-blast.svg')}\n\nOne route.\n`,
+      `**Before** 401\n\n**After** 200\n\n## Merge risk\n\n${badge('badge-one-way-door.svg')}\n\nThe token table is migrated.\n\n${badge('badge-narrow-blast.svg')}\n\nOne route.\n${WALKTHROUGH}`,
     );
 
     expect(result.status).toBe(0);
@@ -842,7 +854,7 @@ describe('pr-media-gate Tests block', () => {
   it('never reads a flag value as the body path', () => {
     const cwd = repoWithChanges(['src/server/auth.ts', 'checks/auth.check.ts']);
     const bodyPath = path.join(cwd, 'pr-body.md');
-    fs.writeFileSync(bodyPath, `${BASE_BODY}${TESTS_BLOCK}`);
+    fs.writeFileSync(bodyPath, `${BASE_BODY}${TESTS_BLOCK}${WALKTHROUGH}`.replaceAll('__HEAD__', git(cwd, 'rev-parse', 'HEAD')));
     const result = spawnSync(process.execPath, [GATE, '--tests', '^checks/', bodyPath, '--base', 'main'], {
       cwd,
       encoding: 'utf8',
@@ -920,4 +932,184 @@ describe('pr-media-gate no-test flag warns and never blocks', () => {
       expect(result.stderr).not.toMatch(/warning/);
     });
   }
+});
+
+describe('pr-media-gate requires a last-section logic Walkthrough', () => {
+  const link = '[g](https://github.com/o/r/blob/__HEAD__/g.mjs)';
+  const wt = (groups: string, open = '<details><summary>Walkthrough: 2 areas, 3 files</summary>') =>
+    `\n${open}\n\n${groups}\n</details>\n`;
+  const base = '**Before** a\n\n**After** b\n\n## Merge risk\n\n**Door:** two-way.\n**Blast radius:** one skill.\n';
+  const group = (heading: string, line: string) => `### ${heading}\n\`\`\`diff\n${line}\n\`\`\`\n${link}\n\n`;
+  const good =
+    group('🔴 Gate · high risk', '- if "Not covered" appears → pass\n+ if test files changed:\n+   require ## Tests with ≥1 line') +
+    group('🟢 Version · low risk', '  1.19.2 → 1.20.0');
+  const run = (body: string, ...flags: string[]) => rawGate(repoWithBranch(['skills/a/SKILL.md']), body, ...flags);
+  const oneLine = (line: string) => run(base + wt(group('🔴 Gate · high risk', line)));
+
+  it('passes a grouped pseudocode walkthrough, even on a one-file PR', () => {
+    const result = run(base + wt(good));
+    expect(result.status).toBe(0);
+    expect(result.json.walkthrough.groups).toHaveLength(2);
+    expect(result.json.walkthrough.warnings).toBe(0);
+  });
+
+  it('fails when the walkthrough is missing or not in <details>', () => {
+    expect(run(base).status).toBe(1);
+    expect(run(base + '## Walkthrough\n\n' + good).status).toBe(1);
+  });
+
+  it('accepts <details open> and a bold <summary>', () => {
+    expect(run(base + wt(good, '<details open><summary>Walkthrough: 2 areas, 3 files</summary>')).status).toBe(0);
+    expect(run(base + wt(good, '<details><summary><b>Walkthrough: 2 areas, 3 files</b></summary>')).status).toBe(0);
+  });
+
+  it('keeps a nested <details> inside a group within the walkthrough', () => {
+    const nested = good.replace(link, `${link}\n\n<details><summary>more</summary>\n\nnote\n\n</details>\n`);
+    const result = run(base + wt(nested));
+    expect(result.status).toBe(0);
+    expect(result.json.walkthrough.groups).toHaveLength(2);
+  });
+
+  it('ignores <details> and </details> written inside a pseudocode fence', () => {
+    const result = run(base + wt(group('🔴 Gate · high risk', '+ require last section = <details> Walkthrough\n+ stop at </details>')));
+    expect(result.status).toBe(0);
+  });
+
+  it('fails when the walkthrough is not the last section', () => {
+    const result = run(base + wt(good) + '\n## Review focus\n\nRead the gate.\n');
+    expect(result.status).toBe(1);
+    expect(result.stderr).toMatch(/not the last section/);
+  });
+
+  it('fails groups out of risk order or without a marker', () => {
+    const outOfOrder = group('🟢 Version · low risk', '  1.0 → 1.1') + group('🔴 Gate · high risk', '+ require tests');
+    expect(run(base + wt(outOfOrder)).stderr).toMatch(/out of risk order/);
+    expect(run(base + wt(group('Gate · high risk', '+ require tests'))).stderr).toMatch(/no 🔴\/🟡\/🟢 risk marker/);
+  });
+
+  it('fails a walkthrough with no area group or a group without a diff fence', () => {
+    expect(run(base + wt('Nothing here.\n' + link)).stderr).toMatch(/no "### " area group/);
+    expect(run(base + wt(`### 🟡 Skill · medium\nprose only\n${link}\n`)).stderr).toMatch(/no ```diff/);
+  });
+
+  it.each([
+    ['hunk header', '@@ -1,3 +1,4 @@'],
+    ['diff file header', 'diff --git a/x.ts b/x.ts'],
+    ['index line', 'index 3f2a1b0..9c8d7e6 100644'],
+  ])('fails hard on a real %s inside a group diff', (_name, line) => {
+    const result = oneLine(line);
+    expect(result.status).toBe(1);
+    expect(result.stderr).toMatch(/real diff\/hunk headers/);
+  });
+
+  it.each([
+    '+ self.retries += 1',
+    '+ if resp.status_code == 401: raise AuthError(resp)',
+    "+ UPDATE users SET plan = 'pro' WHERE id = $1",
+    '+ user.plan = computePlan(invoice)',
+    '+ err := db.Save(&row)',
+  ])('warns, without blocking, on code-shaped line %s', (line) => {
+    const result = oneLine(line);
+    expect(result.status).toBe(0);
+    expect(result.json.walkthrough.warnings).toBe(1);
+    expect(result.stderr).toMatch(/warning — Walkthrough group .* looks like real code/);
+  });
+
+  it.each([
+    '+ return 401 when token missing: no retry',
+    '+ export: write CSV to S3 (daily)',
+    '+ import rows (CSV) into staging',
+    '+ class = premium when spend > 100',
+    '+ async: queue the webhook (no wait)',
+    '+ if token missing → reject;',
+  ])('passes pseudocode line %s', (line) => {
+    const result = oneLine(line);
+    expect(result.status).toBe(0);
+    expect(result.json.walkthrough.warnings).toBe(0);
+  });
+
+  it('fails branch-name links, short SHAs, and a SHA that is not the head', () => {
+    const swap = (url: string) => run(base + wt(good.replaceAll('https://github.com/o/r/blob/__HEAD__/g.mjs', url)));
+    expect(swap('https://github.com/o/r/blob/master/g.mjs').stderr).toMatch(/not pinned to a 40-hex head SHA/);
+    expect(swap('https://github.com/o/r/blob/abc1234/g.mjs').stderr).toMatch(/not pinned to a 40-hex head SHA/);
+    const stale = swap(`https://github.com/o/r/blob/${'a'.repeat(40)}/g.mjs`);
+    expect(stale.status).toBe(1);
+    expect(stale.stderr).toMatch(/not the current head/);
+  });
+
+  it('checks pins against --head when given', () => {
+    const cwd = repoWithBranch(['skills/a/SKILL.md']);
+    const result = rawGate(cwd, base + wt(good), '--head', 'main');
+    expect(result.status).toBe(1);
+    expect(result.stderr).toMatch(/not the current head/);
+  });
+
+  it('exits 2 (not checked) when --head cannot be resolved, even with a stale pin', () => {
+    const cwd = repoWithBranch(['skills/a/SKILL.md']);
+    const baseSha = git(cwd, 'rev-parse', 'main');
+    const result = rawGate(cwd, base + wt(good.replaceAll('__HEAD__', baseSha)), '--head', 'nope');
+    expect(result.status).toBe(2);
+    expect(result.stderr).toMatch(/not checked[\s\S]*cannot resolve head "nope"/);
+  });
+
+  it('pin-checks <a href> and bare github blob/tree URLs', () => {
+    const stale = `https://github.com/o/r/blob/${'a'.repeat(40)}/g.mjs`;
+    const swapLinks = (links: string) =>
+      run(base + wt(group('🔴 Gate · high risk', '+ require tests').replace(link, links)));
+    expect(swapLinks(`<a href="${stale}">g</a>`).stderr).toMatch(/not the current head/);
+    expect(swapLinks(`${link} · ${stale}`).stderr).toMatch(/not the current head/);
+    expect(swapLinks(`${link} · https://github.com/o/r/tree/master/skills`).stderr).toMatch(/not pinned/);
+    expect(swapLinks('<a href="https://github.com/o/r/blob/__HEAD__/g.mjs">g</a>').status).toBe(0);
+  });
+
+  it('fails relative file links and allows issue, PR, external, and other-repo links unpinned', () => {
+    const swapLinks = (links: string) =>
+      run(base + wt(group('🔴 Gate · high risk', '+ require tests').replace(link, links)));
+    expect(swapLinks(`${link} · [g](skills/g.mjs)`).stderr).toMatch(/not pinned/);
+    const cwd = repoWithBranch(['skills/a/SKILL.md']);
+    git(cwd, 'remote', 'add', 'origin', 'https://github.com/o/r.git');
+    const allowed =
+      `${link} · [#88](https://github.com/o/r/pull/88) · [issue](https://github.com/o/r/issues/7) · ` +
+      '[docs](https://vitest.dev/guide/) · [upstream](https://github.com/other/lib/blob/main/x.ts)';
+    const result = rawGate(cwd, base + wt(group('🔴 Gate · high risk', '+ require tests').replace(link, allowed)));
+    expect(result.status).toBe(0);
+    expect(result.json.walkthrough.repo).toBe('o/r');
+    const onlyExternal = rawGate(cwd, base + wt(group('🔴 Gate · high risk', '+ require tests').replace(link, '[docs](https://vitest.dev/)')));
+    expect(onlyExternal.stderr).toMatch(/no file links pinned/);
+  });
+
+  it('accepts a www.github.com repo link and pin-checks it', () => {
+    const cwd = repoWithBranch(['skills/a/SKILL.md']);
+    git(cwd, 'remote', 'add', 'origin', 'https://github.com/o/r.git');
+    const swap = (url: string) => rawGate(cwd, base + wt(group('🔴 Gate · high risk', '+ require tests').replace(link, `[g](${url})`)));
+    expect(swap('https://www.github.com/o/r/blob/__HEAD__/g.mjs').status).toBe(0);
+    expect(swap('https://www.github.com/o/r/blob/master/g.mjs').stderr).toMatch(/not pinned/);
+    expect(swap(`https://www.github.com/o/r/blob/${'a'.repeat(40)}/g.mjs`).stderr).toMatch(/not the current head/);
+  });
+
+  it('parses Tests, Review focus, and Walkthrough in one body without crossing sections', () => {
+    const cwd = repoWithChanges(['src/server/auth.ts']);
+    const groups =
+      group('🔴 Auth · high risk', '+ refresh expired token once') +
+      '### 🟢 Notes · low risk\n```diff\n+ - **No tests changed:** fake flag in a group\n```\n' + link + '\n';
+    const body = `${BASE_BODY}${TESTS_BLOCK}\n## Review focus\n\nRead auth.ts first.\n${wt(groups)}`;
+    const result = rawGate(cwd, body);
+    expect(result.status).toBe(0);
+    expect(result.json.tests).toMatchObject({ section: true, lines: 1, notCovered: true });
+    // The flag text lives only inside the Walkthrough, so Review focus must not see it.
+    expect(result.json.tests.noTestFlag).toEqual({ needed: true, present: false });
+    expect(result.json.walkthrough.groups).toHaveLength(2);
+    expect(result.json.warnings).toBe(1);
+    expect(result.stderr).toMatch(/warning \(does not block\)/);
+
+    const withFlag = rawGate(cwd, body.replace('Read auth.ts first.', '- **No tests changed:** token refresh'));
+    expect(withFlag.json.tests.noTestFlag.present).toBe(true);
+    expect(withFlag.json.warnings).toBe(0);
+  });
+
+  it('stops the ## Surfaces parser at <details> and at headings inside it', () => {
+    const body = `${base}## Surfaces\n\n- **gate** — checks bodies\n${wt('### 🔴 UI · high risk\n```diff\n+ x\n```\n' + link)}`;
+    const result = run(body);
+    expect(result.json.surfaces.claimed).toEqual([]);
+  });
 });

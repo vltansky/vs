@@ -67,13 +67,13 @@ ask only when the intended destination remains ambiguous.
 5. Push exactly the requested branch and verify local and remote SHAs match.
 
 Do not create a feature branch or PR in direct-push mode. Direct-push mode does
-not start `vs-pr-walkthrough` or `vs-baby-sit`.
+not start `vs-baby-sit`.
 
 ## PR workflow
 
 The default PR path has five outcomes: prepare the PR description, prepare
-available media, create plus verify a regular PR, start an exact-head walkthrough
-for a large PR, and hand it to `vs-baby-sit`.
+available media, create plus verify a regular PR, pin the collapsed Walkthrough links to
+the exact head, and hand it to `vs-baby-sit`.
 
 Code review is outside this workflow. Do not add brief generation, broad
 verification, reviewer discovery, or broad QA unless the user explicitly
@@ -319,6 +319,24 @@ for a trivial change.>
      block and no-test flag). Warn only:
 - **No tests changed:** <the behavior that changed with no test>
 -->
+
+<details><summary>Walkthrough: <N> areas, <M> files</summary>
+
+### 🔴 <Area> (<module or skill>) · high risk
+```diff
+- <old behavior, one logic step>
++ <new behavior, one logic step>
++   <nested condition or rule>
+```
+[<file>](https://github.com/<owner>/<repo>/blob/<HEAD_SHA>/<path>) · [<file>](https://github.com/<owner>/<repo>/blob/<HEAD_SHA>/<path>)
+
+### 🟢 <Area> · low risk
+```diff
+  <one-line trivial change, e.g. 1.19.2 → 1.20.0>
+```
+[<file>](https://github.com/<owner>/<repo>/blob/<HEAD_SHA>/<path>)
+
+</details>
 ````
 
 Drop any template row, block, or section the evidence does not fill; an empty
@@ -389,7 +407,6 @@ badge only when blast is wide, and the narrow-blast badge otherwise. Door and
 Blast badges classify risk and are not visual proof: `pr-media-gate.mjs` does not
 count them (Surfaces chips are also excluded from media counts). Do not invent
 other badges or hand-edit the SVGs; change the generator and rerun it.
-Walkthrough HTML is out of scope here — leave `/vs-pr-walkthrough` alone.
 
 ### Surfaces
 
@@ -550,6 +567,42 @@ include AI-session narration, or add a file-by-file changelog.
 Write Markdown to a temporary body file and use `--body-file`; never pass
 backtick-heavy Markdown through inline `--body` or `gh pr edit --body`.
 
+### Walkthrough
+
+Every PR body ends with one collapsed Walkthrough section, always, including
+a one-file PR. There is no size gate and no child agent: ship-it writes it
+from the scoped diff while it writes the rest of the body, with no extra runs.
+
+- **Collapsed:** `<details><summary>Walkthrough: N areas, M files</summary>`
+  … `</details>`, the last block of the body, after Review focus (order:
+  Tests, if present, then Review focus, then Walkthrough). Nothing follows it.
+  N counts groups; M counts changed files.
+- **Grouped by area, not by file:** one group per deployable module, skill,
+  package, or subsystem. Several files of one area share a group.
+- **Riskiest first:** each group heading is `### <marker> <Area> · <risk>`
+  with 🔴 high risk, 🟡 medium, or 🟢 low. Judge risk with the Merge risk
+  vocabulary: blast radius (who breaks and how widely) and reversibility
+  (one-way or two-way door). Order 🔴 groups, then 🟡, then 🟢.
+- **Logic pseudocode diff:** under each heading, one fenced `diff` block of
+  language-agnostic logic pseudocode: `-` lines for old behavior, `+` lines
+  for new behavior, about 2–8 lines. Pure additions are `+` only; a trivial
+  group (version bump, docs) is one line. No real code, no hunks, no file
+  contents: GitHub's Files tab already shows those. Describe only logic the
+  diff really changes; never invent a step.
+- **Head-pinned links:** after the fence, one line of file links pinned to the
+  exact head, `https://github.com/<owner>/<repo>/blob/<HEAD_SHA>/<path>`,
+  separated by ` · `. Branch-name links drift; never use them.
+
+The branch is pushed before `gh pr create`, so write the links with the pushed
+head SHA (`git rev-parse HEAD` after the push). `pr-media-gate.mjs` fails a
+Walkthrough link to a file in this repository (a `blob`/`tree` path or a
+relative path, in Markdown, `<a href>`, or a bare URL) that is not
+`/blob/<40-hex sha>/` or whose SHA is not the current head. Issue, PR, and
+external links (including other repositories) are allowed unpinned. An
+unresolvable head exits 2 (not checked); pass `--head <ref>`. Refresh the links at every handoff where the head moved: rewrite
+them to the new head SHA, rerun `pr-media-gate.mjs` on the body, then update the
+PR body. A body whose links pin an old head is a stale body.
+
 ### Step 3: Prepare screenshots and video
 
 Before creating the PR, inspect the current session and known build/QA artifacts
@@ -701,7 +754,6 @@ echo "$PR_JSON" | jq -e \
 PR_NUM=$(echo "$PR_JSON" | jq -r '.number')
 PR_URL=$(echo "$PR_JSON" | jq -r '.url')
 HEAD_SHA=$(echo "$PR_JSON" | jq -r '.headRefOid')
-CHANGED_FILES=$(echo "$PR_JSON" | jq -r '.changedFiles')
 printf '%s\n' "$PR_URL"
 ```
 
@@ -715,43 +767,13 @@ broken embed with `gh pr edit --body-file`; do not claim the proof is attached.
 Apply only explicitly requested PR modifiers. Do not suggest reviewers or run broad QA by default. Preview startup is
 limited to the focused evidence capture in Step 3.
 
-### Step 5: Start the walkthrough and babysitting
+### Step 5: Start babysitting
 
-Use `changedFiles` from the verified PR instead of spawning a child merely to
-rediscover the size gate:
-
-- Fewer than 10 changed files: do not start a walkthrough child. Record
-  `SKIPPED_SMALL_PR`; GitHub's native diff is the clearer review surface.
-- 10 or more changed files: load and follow
-  [`../vs-pr-walkthrough/SKILL.md`](../vs-pr-walkthrough/SKILL.md). Spawn one
-  fresh-context child with the repository, `PR_URL`, exact `HEAD_SHA`, and that
-  building block's return contract. The child owns only the walkthrough
-  artifact; it must not mutate the PR or watch CI.
-
-Confirm the walkthrough child is live. Hand the verified PR to `vs-baby-sit`
-immediately without waiting for the artifact. The walkthrough and babysitter
-are independent lanes, so this large-PR path may use the shared deep
-allowance for exactly those two active children. Babysit still owns its single
+Hand the verified PR to `vs-baby-sit` immediately. Babysit owns its single
 watcher and the draft-around-repair transition back to ready for review;
-ship-it does not duplicate that skill's CI or automated-review loop.
-If the user explicitly says not to watch, collect the walkthrough once after
-the creation handoff instead.
-
-Collect a completed walkthrough at the next babysitting phase gate. Before
-showing its `Saved` link, re-resolve the PR and require its current `headRefOid`
-to equal the walkthrough's `Explains` SHA:
-
-- Same head: surface the walkthrough in the handoff.
-- Changed head: do not surface the stale artifact and do not regenerate after
-  each repair push. At `reason: ready-for-review`, refresh it once on that exact
-  head while the resumed watcher continues, then apply the same head check.
-- Failed, incomplete, or stale again: continue babysitting and report the exact
-  walkthrough gap. A review aid never blocks publishing, repair, or the
-  `review-approval` stop.
-
-The automatic path is bounded to one initial walkthrough and at most one final
-refresh. Never prepare a walkthrough before the PR exists; its URL, exact head,
-and authoritative GitHub diff are required inputs.
+ship-it does not duplicate that skill's CI or automated-review loop. At
+every handoff where a repair push moved the head, refresh the Walkthrough links
+to that head and rerun `pr-media-gate.mjs` before updating the body.
 
 When the composed babysitter reaches `reason: review-approval`, return its
 concise `Review needed: @<user-or-team>` handoff and end the workflow turn. Do
@@ -776,8 +798,6 @@ PR created and verified: [#<N> — <title>](<PR_URL>)
   review only when the new head is green.
 - Merge risk: <two-way | one-way> door, <blast radius in a few words>
 - Media: <N screenshots, N videos attached | none available | exact upload gap>
-- Walkthrough: <[open walkthrough](<URL>) — exact <short SHA> | generating for
-  exact head | skipped — small PR | exact gap>
 - Checks: <fresh results reused or repository-required checks run>
 ```
 
@@ -850,10 +870,10 @@ separate `vs-baby-sit` goal only when the user explicitly requested a Codex goal
       captured images were not read into context.
 - [ ] Open non-draft PR state, branch, and head SHA were re-resolved
       successfully.
-- [ ] A 10+ file PR started one exact-head walkthrough child without delaying
-      babysitting; a smaller PR spawned none.
-- [ ] Any surfaced walkthrough matches the current PR head; repair pushes caused
-      at most one final refresh.
+- [ ] The body ends with a collapsed Walkthrough: area groups ordered riskiest
+      first, a logic pseudocode `diff` per group, links pinned to the head SHA.
+- [ ] Walkthrough links pin the current head at every handoff; each refresh
+      reran `pr-media-gate.mjs`.
 - [ ] No brief, broad verify, reviewer lookup, or broad QA ran without an
       explicit request or repository requirement.
 - [ ] `vs-baby-sit` started after PR verification unless the user explicitly opted out.

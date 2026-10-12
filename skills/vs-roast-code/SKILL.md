@@ -657,4 +657,4 @@ Direct: emit **Next** only. Composed: return to caller.
 
 **Prev:** `/vs-build-it` | `/vs-tdd` | `/vs-qa`
 **Next:** `/vs-ship-it`
-**Relevant:** `/vs-pushback` | `/vs-pr-walkthrough`
+**Relevant:** `/vs-pushback`

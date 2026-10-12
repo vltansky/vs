@@ -38,7 +38,7 @@ describe('vs-ship-it routing', () => {
     expect(SKILL).toContain('### Direct-push path');
     expect(SKILL).toMatch(/verify local and remote SHAs match/i);
     expect(SKILL).toContain('Do not create a feature branch or PR in direct-push mode.');
-    expect(SKILL).toMatch(/Direct-push mode does\s+not start `vs-pr-walkthrough` or `vs-baby-sit`/i);
+    expect(SKILL).toMatch(/Direct-push mode does\s+not start `vs-baby-sit`/i);
   });
 
   it('routes bare ship-it to the single PR workflow', () => {
@@ -210,30 +210,13 @@ describe('vs-ship-it PR association and stopping point', () => {
     expect(PR_WORKFLOW).toContain('.headRefName == $branch');
     expect(PR_WORKFLOW).toContain('.headRefOid == $head');
     expect(PR_WORKFLOW).toContain("HEAD_SHA=$(echo \"$PR_JSON\" | jq -r '.headRefOid')");
-    expect(PR_WORKFLOW).toContain("CHANGED_FILES=$(echo \"$PR_JSON\" | jq -r '.changedFiles')");
     expect(PR_WORKFLOW).toMatch(/Do not switch branches before this succeeds/i);
   });
 
-  it('starts one bounded large-PR walkthrough without delaying babysitting', () => {
-    expect(PR_WORKFLOW).toMatch(/Fewer than 10 changed files[\s\S]*do not start a walkthrough child/i);
-    expect(PR_WORKFLOW).toMatch(/10 or more changed files[\s\S]*vs-pr-walkthrough\/SKILL\.md/i);
-    expect(PR_WORKFLOW).toMatch(/fresh-context child/i);
-    expect(PR_WORKFLOW).toMatch(/hand the verified PR to\s+`vs-baby-sit`\s+immediately without waiting/i);
-    expect(PR_WORKFLOW).toMatch(/exactly those two active children/i);
-  });
-
-  it('never surfaces a stale walkthrough or refreshes after every repair', () => {
-    expect(PR_WORKFLOW).toMatch(/current `headRefOid`[\s\S]*walkthrough's `Explains` SHA/i);
-    expect(PR_WORKFLOW).toMatch(/do not surface the stale artifact/i);
-    expect(PR_WORKFLOW).toMatch(/do not regenerate after\s+each repair push/i);
-    expect(PR_WORKFLOW).toMatch(/At `reason: ready-for-review`, refresh it once/i);
-    expect(PR_WORKFLOW).toMatch(/one initial walkthrough and at most one final\s+refresh/i);
-    expect(PR_WORKFLOW).toMatch(/Never prepare a walkthrough before the PR exists/i);
-  });
-
-  it('keeps walkthrough generation non-blocking', () => {
-    expect(PR_WORKFLOW).toMatch(/A review aid never blocks publishing, repair, or the\s+`review-approval` stop/i);
-    expect(SKILL).toMatch(/Walkthrough: <\[open walkthrough\][\s\S]*exact <short SHA>[\s\S]*generating for\s+exact head[\s\S]*skipped — small PR[\s\S]*exact gap>/i);
+  it('hands off to babysitting and refreshes Walkthrough links at every moved-head handoff', () => {
+    expect(PR_WORKFLOW).toMatch(/Hand the verified PR to `vs-baby-sit` immediately/);
+    expect(PR_WORKFLOW).toMatch(/every\s+handoff where a repair push moved the head, refresh the Walkthrough links/i);
+    expect(PR_WORKFLOW).not.toMatch(/walkthrough child|SKIPPED_SMALL_PR|vs-pr-walkthrough/i);
   });
 
   it('starts babysitting after PR verification unless declined', () => {
@@ -309,7 +292,6 @@ describe('vs-ship-it door, blast radius, and What Problem scenario', () => {
     expect(PR_WORKFLOW).toMatch(/after the assets land on\s+`master`/i);
     expect(PR_WORKFLOW).toMatch(/Never map one-way to "safe to merge"/i);
     expect(PR_WORKFLOW).toMatch(/Blast radius\s+is a separate axis from the door/i);
-    expect(PR_WORKFLOW).toMatch(/Walkthrough HTML is out of scope/i);
     expect(PR_WORKFLOW).toMatch(/embed the wide-blast\s+badge only when blast is wide/i);
     expect(PR_WORKFLOW).toMatch(/Badges\s+classify risk and are not visual proof/i);
     // The old full-width illustrations are gone; badges are single-file, theme-neutral.

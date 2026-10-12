@@ -2,19 +2,6 @@
 
 This plugin includes or adapts material from the following third-party projects.
 
-## Oren Roth's PR Walkthrough skill
-
-- Author: Oren Roth
-- Used in: `skills/vs-pr-walkthrough`
-
-The `vs-pr-walkthrough` skill is based on Oren Roth's original idea, workflow,
-renderer feature set, and GitHub-native review UI for turning an alphabetical
-PR file dump into a logical, step-by-step story. VS preserves the original CLI,
-optional diff fetching, rich narrative allowlist, per-file notes, configurable
-folding, path shortening, labels, syntax highlighting, and viewed interactions.
-Its adaptations are exact-head state, fail-closed file mapping, exact-path note
-matching, disk-backed evidence, and a dependency-free Node implementation.
-
 ## OpenAI GitHub Actions CI Fix skill
 
 - Project: https://github.com/openai/plugins

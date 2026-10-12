@@ -1,6 +1,0 @@
-interface:
-  display_name: "vs-pr-walkthrough"
-  short_description: "Turn a large PR into a logical interactive walkthrough."
-
-policy:
-  allow_implicit_invocation: true
