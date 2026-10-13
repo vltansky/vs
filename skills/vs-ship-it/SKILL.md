@@ -126,8 +126,8 @@ names, not whole jobs:
 Get the baseline from the base branch's latest completed CI run for the same
 workflow whose conclusion is `success` or `failure` (skip cancelled and other
 conclusions): `gh run list --branch <base> --workflow <wf> --status completed
--L 20 --json databaseId,conclusion,headSha,url`, then `gh run view <id> --json
-jobs`. Use it only when `git merge-base --is-ancestor <mergeBase> <headSha>`
+-L 20 --json conclusion,headSha,url`, then `gh run view <run id from url>
+--json jobs`. Use it only when `git merge-base --is-ancestor <mergeBase> <headSha>`
 holds. Otherwise run only the failing test(s) at the merge-base in a temporary
 worktree and record the OS and browsers present as evidence. Never run the full
 suite to get a baseline. `skills/vs-baby-sit/scripts/classify-failures.mjs`
