@@ -120,6 +120,38 @@ evidence, and existing test results. Do not ask the user to write or approve PR
 copy. If motivation cannot be established honestly, describe the observable
 problem without inventing business impact; omit inapplicable optional detail.
 
+**Repo PR template first.** Before you write the body, look for the target
+repo's PR template in this order, case-insensitive:
+`.github/pull_request_template.md`, `.github/PULL_REQUEST_TEMPLATE.md`,
+`PULL_REQUEST_TEMPLATE.md`, `docs/pull_request_template.md`, then
+`.github/PULL_REQUEST_TEMPLATE/*.md`.
+
+- **Exactly one template:** keep all of its headings and checklists, in its
+  order, and fill them. A section is any `#`–`######` heading or a bold-label
+  line (`**Notes:**`). Put a vs section into a template heading only when they
+  clearly match; append the other vs sections after the template content
+  (Walkthrough stays last). Never delete a template section: write `N/A` under
+  one that does not apply. Keep template checkboxes unchecked unless the diff or
+  evidence proves them. Do not ask about a single template.
+- **Several templates (a directory), none clearly fits:** ask once with the
+  template names as options. This is the only question ship-it may ask.
+- **No template:** use the vs body below as is.
+
+Pass the template you used to the gate (`--template <path>`) so a dropped or
+reordered template section, or a dropped checklist item, fails it. A template
+with no sections exits 2 (could not check). The locked vs sections stay required either way.
+
+**Linked issue and spec.** Under **What Problem This Solves**, after the STE
+scenario, add one separate line (never part of the scenario prose) only when
+something is found: `Closes #N` and a link to the shape-it spec, ADR, or plan
+this PR implements. Take `#N` from the branch name (`fix/123-x`), commit
+messages, or the shape-it/build-it handoff. Never invent an issue; if nothing
+is found, skip the line. Default to `Refs #N`. Use `Closes` only when this PR
+meets every acceptance criterion in the issue: read it with
+`gh issue view <N>` first. Pin the spec link to the head SHA like the
+Walkthrough links (`blob/<HEAD_SHA>/<path>`) and refresh it with them;
+`pr-media-gate.mjs` fails an unpinned repo file link under this section.
+
 Under **What Problem This Solves**, write a short ASD-STE100 scenario
 flow: **actor → attempt → block**. One perspective per PR — **user/admin** or
 **system**; either is OK (do not lock the skill to one forever). Keep it to one
@@ -238,6 +270,12 @@ body file starts at the first heading)
 <Short STE100 scenario: actor → attempt → block. User/admin OR system
 perspective (one per PR). This is the Why (scenario flow only). No How — do
 not name the fix here; mechanism stays in Endpoint / Schema / UI.>
+
+Refs #<N> · [Spec](https://github.com/<owner>/<repo>/blob/<HEAD_SHA>/<spec path>)
+
+<!-- Separate line, only when found: Closes #<N> only when every acceptance
+     criterion is met; no issue → no
+     Closes/Refs; no spec → no link; nothing found → drop the line. -->
 
 **Before** <same-state setup and what to notice>
 
@@ -693,7 +731,7 @@ Then run the proof gate on the body file. It reads git and the body, never the
 media, and refuses a PR that shows nothing:
 
 ```bash
-node <vs-internal-shared>/scripts/pr-media-gate.mjs "$BODY_FILE" --base origin/<base>
+node <vs-internal-shared>/scripts/pr-media-gate.mjs "$BODY_FILE" --base origin/<base> [--template <repo PR template>]
 ```
 
 Run it against the `origin/<base>` fetched in Step 1, never a stale local ref.
@@ -868,6 +906,11 @@ separate `vs-baby-sit` goal only when the user explicitly requested a Codex goal
       came from the diff and added no runs.
 - [ ] `pr-media-gate.mjs` exited 0 on the final body file before `gh pr create`;
       captured images were not read into context.
+- [ ] A found repo PR template kept every heading and checklist in order
+      (`N/A` where it does not apply) and was passed as `--template`; no
+      template → vs body as is.
+- [ ] A `Closes #N` / `Refs #N` and head-pinned spec line appears only when
+      found, on its own line under the STE scenario.
 - [ ] Open non-draft PR state, branch, and head SHA were re-resolved
       successfully.
 - [ ] The body ends with a collapsed Walkthrough: area groups ordered riskiest

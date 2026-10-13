@@ -4,7 +4,7 @@
 // schema changes with no contract proof, Surfaces claim↔path mismatches, or changed tests
 // with no ## Tests block.
 //
-//   node pr-media-gate.mjs <body-file> [--base <ref>] [--frontend <regex>] [--api <regex>] [--schema <regex>] [--tests <regex>] [--head <ref>]
+//   node pr-media-gate.mjs <body-file> [--base <ref>] [--frontend <regex>] [--api <regex>] [--schema <regex>] [--tests <regex>] [--head <ref>] [--template <path>]
 //
 // Reads git (which paths changed against the base) and the body text. It never opens the
 // media, so it costs the model no context. Exit codes match check-visual-evidence.mjs:
@@ -23,7 +23,10 @@
 //      or >3 product surfaces without matching path classes, or has no collapsed
 //      last-section Walkthrough (≥1 area group ordered 🔴 → 🟡 → 🟢, each with a ```diff of
 //      logic pseudocode without diff/hunk headers, links pinned to the --head SHA)
-//   2  not checked: body missing or git cannot resolve the base
+//      or --template <path> was passed and a template section (# … ###### heading or bold-label
+//      line) or checklist item is missing from the body, or a section is out of template order,
+//      or a repo file link under What Problem This Solves is not pinned to the --head SHA
+//   2  not checked: body missing, git cannot resolve the base, or --template is unreadable or has no sections
 //
 // Output is one JSON object on stdout so the caller can quote counts instead of re-reading.
 import { spawnSync } from 'node:child_process';
@@ -115,8 +118,13 @@ const notChecked = (reason) => {
   process.exit(2);
 };
 
-const args = process.argv.slice(2);
-const VALUE_FLAGS = new Set(['--base', '--frontend', '--api', '--schema', '--tests']);
+const VALUE_FLAGS = new Set(['--base', '--frontend', '--api', '--schema', '--tests', '--head', '--template']);
+// `--flag=value` is the same as `--flag value`; an empty `--flag=` is a missing value.
+const args = process.argv.slice(2).flatMap((arg) => {
+  const eq = arg.match(/^(--[\w-]+)=(.*)$/s);
+  if (!eq || !VALUE_FLAGS.has(eq[1])) return [arg];
+  return eq[2] === '' ? [eq[1]] : [eq[1], eq[2]];
+});
 // A flag's value is never the body path, and a flag with no value is an error, not a no-op.
 const flagValueAt = new Set();
 for (const [index, arg] of args.entries()) {
@@ -467,6 +475,15 @@ const walkthroughLinks = (text) => {
   ];
   return [...new Set(urls)];
 };
+function pinReasons(links) {
+  const out = [];
+  for (const url of links) {
+    const pinned = url.match(/\/(?:blob|tree)\/([0-9a-f]{40})(?:\/|$)/);
+    if (!pinned) out.push(`link is not pinned to a 40-hex head SHA (/blob/<sha>/): ${url}`);
+    else if (pinned[1] !== headSha) out.push(`link pins ${pinned[1].slice(0, 7)}, not the current head ${headSha.slice(0, 7)}: ${url}`);
+  }
+  return out;
+}
 const walkthroughReasons = [];
 const walkthroughWarnings = [];
 const walkthroughGroups = [];
@@ -513,14 +530,15 @@ if (!walkthroughBlock) {
   }
   const links = walkthroughLinks(maskFences(walkthroughBlock.inner)).filter(isRepoFileLink);
   if (links.length === 0) walkthroughReasons.push('Walkthrough has no file links pinned to the head SHA');
-  for (const url of links) {
-    const pinned = url.match(/\/(?:blob|tree)\/([0-9a-f]{40})(?:\/|$)/);
-    if (!pinned) walkthroughReasons.push(`link is not pinned to a 40-hex head SHA (/blob/<sha>/): ${url}`);
-    else if (pinned[1] !== headSha) {
-      walkthroughReasons.push(`link pins ${pinned[1].slice(0, 7)}, not the current head ${headSha.slice(0, 7)}: ${url}`);
-    }
-  }
+  walkthroughReasons.push(...pinReasons(links));
 }
+// What Problem This Solves: the Closes/Refs spec link (any repo file link there) pins the head too.
+const problemSection = (() => {
+  const match = maskFences(body).match(/^##[ \t]+What Problem This Solves[ \t]*$([\s\S]*?)(?=^##[ \t]|<details\b|$(?![\s\S]))/im);
+  return match ? match[1].replace(/<!--[\s\S]*?-->/g, '') : '';
+})();
+const problemLinkReasons = pinReasons(walkthroughLinks(problemSection).filter(isRepoFileLink));
+const problemLinks = { ok: problemLinkReasons.length === 0, reasons: problemLinkReasons };
 const walkthrough = {
   ok: walkthroughReasons.length === 0,
   head: headSha,
@@ -530,11 +548,52 @@ const walkthrough = {
   warnings: walkthroughWarnings.length,
 };
 const walkthroughOk = walkthrough.ok;
+
+// --template <path>: the repo's own PR template. Every "## " heading it has must survive in the
+// body, in the template's order. Extra headings (the vs sections) may sit between or after.
+const templatePath = flag('--template', null);
+// A template section is a `#`–`######` heading or a line that is only a bold label (`**Notes:**`).
+// Matching ignores a leading emoji/symbol, case, spacing, and a trailing colon.
+const normHeading = (text) =>
+  text.replace(/<!--[\s\S]*?-->/g, '').replace(/^[^\p{L}\p{N}]+/u, '').trim().replace(/\s+/g, ' ').replace(/[:#*\s]+$/, '').toLowerCase();
+const stripNoise = (text) => text.replace(/<!--[\s\S]*?-->/g, '').replace(/^(```|~~~)[\s\S]*?^\1/gm, '');
+const HEADING_LINE = /^(?:#{1,6}[ \t]+(.+?)|\*\*([^*\n]+?)\*\*[ \t]*:?[ \t]*)$/gm;
+const BODY_HEADING_LINE = /^(?:#{1,6}[ \t]+(.+?)|\*\*([^*\n]+?)\*\*[ \t]*:?.*)$/gm;
+const headingsOf = (text, re) => [...stripNoise(text).matchAll(re)].map((m) => normHeading(m[1] ?? m[2])).filter(Boolean);
+const CHECK_ITEM = /^[ \t]*[-*+][ \t]+\[[ xX]\][ \t]+(.+?)[ \t]*$/gm;
+const checklistOf = (text) => [...stripNoise(text).matchAll(CHECK_ITEM)].map((m) => m[1].replace(/\s+/g, ' ').toLowerCase());
+let template = null;
+if (templatePath !== null) {
+  if (!fs.existsSync(templatePath)) notChecked(`--template file not found: ${templatePath}`);
+  const templateText = fs.readFileSync(templatePath, 'utf8');
+  const wanted = headingsOf(templateText, HEADING_LINE);
+  if (wanted.length === 0) notChecked(`could not check --template ${templatePath}: it has no heading or bold-label section.`);
+  const have = headingsOf(body, BODY_HEADING_LINE);
+  const missing = [];
+  let cursor = 0;
+  for (const heading of wanted) {
+    const at = have.indexOf(heading, cursor);
+    if (at === -1) missing.push(have.includes(heading) ? `${heading} (out of template order)` : heading);
+    else cursor = at + 1;
+  }
+  const bodyChecks = new Set(checklistOf(body));
+  const checks = checklistOf(templateText);
+  const missingChecks = checks.filter((item) => !bodyChecks.has(item));
+  template = {
+    path: templatePath,
+    headings: wanted.length,
+    checklist: checks.length,
+    missing,
+    missingChecks,
+    ok: missing.length === 0 && missingChecks.length === 0,
+  };
+}
+const templateOk = template === null || template.ok;
 warnings.push(...walkthroughWarnings);
-const valid = mediaOk && beforeAfterOk && mergeDangerOk && contractOk && surfacesOk && testsOk && walkthroughOk;
+const valid = mediaOk && beforeAfterOk && mergeDangerOk && contractOk && surfacesOk && testsOk && walkthroughOk && templateOk && problemLinks.ok;
 
 process.stdout.write(
-  `${JSON.stringify({ valid, base, frontendFiles, apiFiles, schemaFiles, cliFiles, mcpFiles, infraFiles, images, videos, localRefs: localRefs.map((ref) => ref.url), gapStated, beforeAfter, mergeDanger, contract, surfaces, tests, walkthrough, warnings: warnings.length }, null, 2)}\n`,
+  `${JSON.stringify({ valid, base, frontendFiles, apiFiles, schemaFiles, cliFiles, mcpFiles, infraFiles, images, videos, localRefs: localRefs.map((ref) => ref.url), gapStated, beforeAfter, mergeDanger, contract, surfaces, tests, walkthrough, template, problemLinks, warnings: warnings.length }, null, 2)}\n`,
 );
 
 if (warnings.length > 0) process.stderr.write(`${warnings.join('\n')}\n`);
@@ -619,6 +678,22 @@ const next = [
         '  Next: end the body with <details><summary>Walkthrough: N areas, M files</summary>, one',
         '  "### 🔴|🟡|🟢 <Area> · <risk>" group per area (riskiest first), each with a ```diff of',
         '  language-agnostic logic pseudocode (- old, + new) and head-pinned file links. No real code.',
+      ].join('\n')
+    : null,
+  !templateOk
+    ? [
+        `pr-media-gate: the repo PR template (${template.path}) lost ${template.missing.length} section(s) and ${template.missingChecks.length} checklist item(s).`,
+        ...template.missing.map((heading) => `  - missing section: ${heading}`),
+        ...template.missingChecks.map((item) => `  - missing checklist item: - [ ] ${item}`),
+        '  Next: keep every template heading in its order; write N/A under one that does not apply.',
+        '  Never delete a template section. Put the vs sections in matching headings or after the template.',
+      ].join('\n')
+    : null,
+  !problemLinks.ok
+    ? [
+        'pr-media-gate: a repo file link under What Problem This Solves (the spec link) is not pinned to the head.',
+        ...problemLinks.reasons.map((reason) => `  - ${reason}`),
+        '  Next: link the spec as https://github.com/<owner>/<repo>/blob/<HEAD_SHA>/<path>, like the Walkthrough links.',
       ].join('\n')
     : null,
   !mediaOk
