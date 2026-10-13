@@ -4,7 +4,7 @@
 // schema changes with no contract proof, Surfaces claim↔path mismatches, or changed tests
 // with no ## Tests block.
 //
-//   node pr-media-gate.mjs <body-file> [--base <ref>] [--frontend <regex>] [--api <regex>] [--schema <regex>] [--tests <regex>] [--head <ref>]
+//   node pr-media-gate.mjs <body-file> [--base <ref>] [--frontend <regex>] [--api <regex>] [--schema <regex>] [--tests <regex>] [--head <ref>] [--template <path>]
 //
 // Reads git (which paths changed against the base) and the body text. It never opens the
 // media, so it costs the model no context. Exit codes match check-visual-evidence.mjs:
@@ -23,7 +23,9 @@
 //      or >3 product surfaces without matching path classes, or has no collapsed
 //      last-section Walkthrough (≥1 area group ordered 🔴 → 🟡 → 🟢, each with a ```diff of
 //      logic pseudocode without diff/hunk headers, links pinned to the --head SHA)
-//   2  not checked: body missing or git cannot resolve the base
+//      or --template <path> was passed and a template "## " heading is missing from the body or
+//      out of the template's order (extra vs headings between them are fine)
+//   2  not checked: body missing, git cannot resolve the base, or --template is unreadable
 //
 // Output is one JSON object on stdout so the caller can quote counts instead of re-reading.
 import { spawnSync } from 'node:child_process';
@@ -116,7 +118,7 @@ const notChecked = (reason) => {
 };
 
 const args = process.argv.slice(2);
-const VALUE_FLAGS = new Set(['--base', '--frontend', '--api', '--schema', '--tests']);
+const VALUE_FLAGS = new Set(['--base', '--frontend', '--api', '--schema', '--tests', '--head', '--template']);
 // A flag's value is never the body path, and a flag with no value is an error, not a no-op.
 const flagValueAt = new Set();
 for (const [index, arg] of args.entries()) {
@@ -530,11 +532,33 @@ const walkthrough = {
   warnings: walkthroughWarnings.length,
 };
 const walkthroughOk = walkthrough.ok;
+
+// --template <path>: the repo's own PR template. Every "## " heading it has must survive in the
+// body, in the template's order. Extra headings (the vs sections) may sit between or after.
+const templatePath = flag('--template', null);
+const normHeading = (text) => text.replace(/<!--[\s\S]*?-->/g, '').trim().replace(/\s+/g, ' ').replace(/[:#\s]+$/, '').toLowerCase();
+const headingsOf = (text, re) =>
+  [...text.replace(/<!--[\s\S]*?-->/g, '').replace(/^(```|~~~)[\s\S]*?^\1/gm, '').matchAll(re)].map((m) => normHeading(m[1])).filter(Boolean);
+let template = null;
+if (templatePath !== null) {
+  if (!fs.existsSync(templatePath)) notChecked(`--template file not found: ${templatePath}`);
+  const wanted = headingsOf(fs.readFileSync(templatePath, 'utf8'), /^##[ \t]+(.+)$/gm);
+  const have = headingsOf(body, /^#{2,6}[ \t]+(.+)$/gm);
+  const missing = [];
+  let cursor = 0;
+  for (const heading of wanted) {
+    const at = have.indexOf(heading, cursor);
+    if (at === -1) missing.push(have.includes(heading) ? `${heading} (out of template order)` : heading);
+    else cursor = at + 1;
+  }
+  template = { path: templatePath, headings: wanted.length, missing, ok: missing.length === 0 };
+}
+const templateOk = template === null || template.ok;
 warnings.push(...walkthroughWarnings);
-const valid = mediaOk && beforeAfterOk && mergeDangerOk && contractOk && surfacesOk && testsOk && walkthroughOk;
+const valid = mediaOk && beforeAfterOk && mergeDangerOk && contractOk && surfacesOk && testsOk && walkthroughOk && templateOk;
 
 process.stdout.write(
-  `${JSON.stringify({ valid, base, frontendFiles, apiFiles, schemaFiles, cliFiles, mcpFiles, infraFiles, images, videos, localRefs: localRefs.map((ref) => ref.url), gapStated, beforeAfter, mergeDanger, contract, surfaces, tests, walkthrough, warnings: warnings.length }, null, 2)}\n`,
+  `${JSON.stringify({ valid, base, frontendFiles, apiFiles, schemaFiles, cliFiles, mcpFiles, infraFiles, images, videos, localRefs: localRefs.map((ref) => ref.url), gapStated, beforeAfter, mergeDanger, contract, surfaces, tests, walkthrough, template, warnings: warnings.length }, null, 2)}\n`,
 );
 
 if (warnings.length > 0) process.stderr.write(`${warnings.join('\n')}\n`);
@@ -619,6 +643,14 @@ const next = [
         '  Next: end the body with <details><summary>Walkthrough: N areas, M files</summary>, one',
         '  "### 🔴|🟡|🟢 <Area> · <risk>" group per area (riskiest first), each with a ```diff of',
         '  language-agnostic logic pseudocode (- old, + new) and head-pinned file links. No real code.',
+      ].join('\n')
+    : null,
+  !templateOk
+    ? [
+        `pr-media-gate: the repo PR template (${template.path}) lost ${template.missing.length} heading(s).`,
+        ...template.missing.map((heading) => `  - missing: ## ${heading}`),
+        '  Next: keep every template heading in its order; write N/A under one that does not apply.',
+        '  Never delete a template section. Put the vs sections in matching headings or after the template.',
       ].join('\n')
     : null,
   !mediaOk

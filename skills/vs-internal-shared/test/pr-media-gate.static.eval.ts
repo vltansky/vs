@@ -1113,3 +1113,61 @@ describe('pr-media-gate requires a last-section logic Walkthrough', () => {
     expect(result.json.surfaces.claimed).toEqual([]);
   });
 });
+
+describe('pr-media-gate --template keeps the repo PR template headings', () => {
+  const TEMPLATE = '## Description\n\n<!-- what and why -->\n\n## Type of change\n\n- [ ] Bug fix\n\n## Checklist\n\n- [ ] Docs updated\n';
+  function withTemplate(cwd: string) {
+    const file = path.join(cwd, 'tpl.md');
+    fs.writeFileSync(file, TEMPLATE);
+    return file;
+  }
+  const FILLED =
+    '## Description\n\nToggle colors.\n\n## Type of change\n\n- [ ] Bug fix\n\n## Checklist\n\n- [ ] Docs updated\n\n';
+
+  it('passes when every template heading survives, with vs sections appended', () => {
+    const cwd = repoWithBranch(['docs/notes.md']);
+    const result = gate(cwd, `${FILLED}${BEFORE_AFTER}`, '--template', withTemplate(cwd));
+    expect(result.status).toBe(0);
+    expect(result.json.template).toMatchObject({ headings: 3, missing: [], ok: true });
+  });
+
+  it('accepts a vs section between template headings and N/A under one', () => {
+    const cwd = repoWithBranch(['docs/notes.md']);
+    const body = `## Description\n\n${BEFORE_AFTER}\n## Type of change\n\nN/A\n\n## Checklist\n\n- [ ] Docs updated\n`;
+    expect(gate(cwd, body, '--template', withTemplate(cwd)).status).toBe(0);
+  });
+
+  it('fails when a template section is deleted', () => {
+    const cwd = repoWithBranch(['docs/notes.md']);
+    const result = gate(cwd, `${FILLED.replace('## Checklist\n\n- [ ] Docs updated\n\n', '')}${BEFORE_AFTER}`, '--template', withTemplate(cwd));
+    expect(result.status).toBe(1);
+    expect(result.json.template.missing).toEqual(['checklist']);
+    expect(result.stderr).toMatch(/Never delete a template section/);
+  });
+
+  it('fails when template headings are reordered', () => {
+    const cwd = repoWithBranch(['docs/notes.md']);
+    const body = `## Checklist\n\n- [ ] Docs updated\n\n## Description\n\nx\n\n## Type of change\n\nN/A\n\n${BEFORE_AFTER}`;
+    const result = gate(cwd, body, '--template', withTemplate(cwd));
+    expect(result.status).toBe(1);
+    expect(result.json.template.missing).toEqual(['checklist (out of template order)']);
+  });
+
+  it('ignores headings inside template comments and fences', () => {
+    const cwd = repoWithBranch(['docs/notes.md']);
+    const file = path.join(cwd, 'tpl.md');
+    fs.writeFileSync(file, '## Summary\n\n<!--\n## Hidden\n-->\n```md\n## Example\n```\n');
+    expect(gate(cwd, `## Summary\n\nx\n\n${BEFORE_AFTER}`, '--template', file).status).toBe(0);
+  });
+
+  it('without --template, extra template headings never fail the gate', () => {
+    const cwd = repoWithBranch(['docs/notes.md']);
+    expect(gate(cwd, `${FILLED}${BEFORE_AFTER}`).status).toBe(0);
+  });
+
+  it('exits 2 on a missing --template file or value', () => {
+    const cwd = repoWithBranch(['docs/notes.md']);
+    expect(gate(cwd, BEFORE_AFTER, '--template', path.join(cwd, 'nope.md')).status).toBe(2);
+    expect(gate(cwd, BEFORE_AFTER, '--template').status).toBe(2);
+  });
+});
