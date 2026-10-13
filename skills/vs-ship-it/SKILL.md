@@ -110,6 +110,22 @@ results; do not introduce `vs-before-after`, `vs-verify`, broad test suites, or 
 user question as shipping ceremony. Record existing checks honestly in the PR.
 The Tests block and no-test flag in Step 2 come from the diff and add no runs.
 
+**Failure baseline.** When a required check or test is red, classify each
+failing one as exactly one class before writing the PR:
+- **New** — passes on the base, so this PR caused it.
+- **Already failing on base** — the same check fails on the base branch's latest
+  completed CI run, or at the merge-base locally.
+- **Environment** — flaky (passes on a rerun of the same head) or an env reason
+  with evidence (missing browser, no network).
+- **Unknown** — no baseline exists; state the reason. Do not guess a class.
+
+Get the baseline from the base branch's latest completed CI run for the same
+workflow and job (`gh run list --branch <base> --workflow <wf> --status completed -L 1`,
+then `gh run view <id> --json jobs,url,conclusion`). Fall back to running only the
+failing test(s) at the merge-base in a temporary worktree. Never run the full
+suite to get a baseline. `skills/vs-baby-sit/scripts/classify-failures.mjs`
+turns this evidence into classes.
+
 If authentication fails, stop after the first failure, identify the credential
 used, and give the exact re-authentication step. Do not retry unchanged auth.
 
@@ -331,6 +347,11 @@ flowchart LR
 - **Before:** <observed or measured failure> (observed | tested | source-derived)
 - **After:** <matched result> (observed | tested | source-derived)
 - **Automated:** `<focused or required command>` — <result>
+- **Red checks** (only when one is red, one line each, grouped by class):
+  - New: `<check>` — <one line> ([base run](<base run URL>))
+  - Already failing on base: `<check>` — <one line> ([base run](<base run URL>))
+  - Environment: `<check>` — <env evidence>
+  - Unknown: `<check>` — <why no baseline>
 - **Still unverified:** <exact gap, only when one remains>
 
 <details><summary>Full output and wider diff</summary>

@@ -359,6 +359,21 @@ gate. If the evidence does not identify a code defect, report the exact gate
 and request only the authority needed to unblock it. Do not force it through a
 regression-and-code-fix path.
 
+**Failure baseline.** Classify every failing check before any edit, with
+`scripts/classify-failures.mjs` fed the failing checks and the base branch's
+latest completed run for the same workflow (`gh run list --branch <base>
+--workflow <wf> --status completed -L 1`, `gh run view <id> --json jobs,url,conclusion`).
+No completed base run: run only that failing test at the merge-base in a
+temporary worktree; never the full suite. No baseline at all is **Unknown**, never a guess.
+- **New** — fix and retry it in this PR (the path below).
+- **Already failing on base** — report it with the base run link; do not fix it
+  in this PR and do not rerun it. Suggest a separate follow-up.
+- **Environment** — report it with the evidence; do not fix it in this PR.
+- **Unknown** — rerun it exactly once; if still red, report it as Unknown.
+Base and Environment failures do not count against the done-predicate as
+PR-owned work: when only those remain, report them and stop the repair loop
+instead of watching for them to turn green.
+
 Prove from the provider evidence that the failure belongs to the PR and current
 head before editing. Do not change code for an unrelated failure, infrastructure
 outage, or unconfirmed flake. For an actionable PR-owned failure, add or update
