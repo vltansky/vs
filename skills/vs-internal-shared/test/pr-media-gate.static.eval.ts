@@ -762,7 +762,7 @@ describe('pr-media-gate Tests block', () => {
       '- **Not covered:** none',
       '- Not covered: none',
       '- **Not covered:**\n  - [ ] Log in, wait 15 minutes offline, reconnect: the session refreshes',
-      '- **Not covered:**\n  - [ ] Open /settings on Safari\n  - [x] Revoke a token in the admin panel',
+      '- **Not covered:**\n  - [ ] Open /settings on Safari\n  - [ ] Revoke a token in the admin panel',
     ]) {
       const result = gate(cwd, `${BASE_BODY}\n## Tests\n\n- \`auth.test.ts\` — proves refresh\n${ok}\n`);
       expect(result.status, JSON.stringify(ok)).toBe(0);
@@ -786,23 +786,82 @@ describe('pr-media-gate Tests block', () => {
     }
   });
 
-  it('--bugfix requires a Root cause line under What Problem This Solves', () => {
+  const problem = (extra: string) => `## What Problem This Solves\n\nUser refreshes → token expired → 401.\n${extra}\n${BASE_BODY}`;
+  const ROOT = '\nRoot cause: the refresh timer used wall-clock time, so sleep skipped it.\n';
+
+  it('--bugfix requires a real Root cause line under What Problem This Solves', () => {
     const cwd = repoWithChanges(['src/server/auth.ts']);
-    const problem = (extra: string) => `## What Problem This Solves\n\nUser refreshes → token expired → 401.\n${extra}\n${BASE_BODY}`;
     const body = problem('');
-    const withRoot = problem('\nRoot cause: the refresh timer used wall-clock time, so sleep skipped it.\n');
     expect(gate(cwd, body).status).toBe(0);
     expect(gate(cwd, body, '--bugfix=false').status).toBe(0);
-    for (const f of ['--bugfix', '--bugfix=true', '--bugfix=1']) {
-      const r = gate(cwd, body, f);
-      expect(r.status, f).toBe(1);
-      expect(r.json.rootCause).toEqual({ bugfix: true, present: false });
+    for (const f of [['--bugfix'], ['--bugfix=true'], ['--bugfix=1'], ['--bugfix', 'true']]) {
+      const r = gate(cwd, body, ...f);
+      expect(r.status, f.join(' ')).toBe(1);
+      expect(r.json.rootCause).toMatchObject({ bugfix: true, source: 'flag', present: false, problem: 'missing' });
       expect(r.stderr).toMatch(/Root cause: <mechanism/);
-      expect(gate(cwd, withRoot, f).status, f).toBe(0);
+      expect(gate(cwd, problem(ROOT), ...f).status, f.join(' ')).toBe(0);
     }
-    expect(gate(cwd, problem('\n**Root cause:**\n'), '--bugfix').status).toBe(1);
-    expect(gate(cwd, body + '\n## Notes\n\nRoot cause: elsewhere\n', '--bugfix').status).toBe(1);
+    expect(gate(cwd, body + '\n## Notes\n\nRoot cause: the timer used wall-clock time\n', '--bugfix').status).toBe(1);
     expect(gate(cwd, body, '--bugfix=maybe').status).toBe(2);
+  });
+
+  it('rejects placeholder, TBD/TODO/unknown/N/A, and short Root cause lines', () => {
+    const cwd = repoWithChanges(['src/server/auth.ts']);
+    for (const [line, why] of [
+      ['**Root cause:**', 'fewer than 4 words'],
+      ['Root cause: <mechanism that made the bug happen>', 'a <placeholder>'],
+      ['Root cause: TBD after the timer investigation', 'TBD/TODO/unknown/N/A'],
+      ['Root cause: TODO find the real cause here', 'TBD/TODO/unknown/N/A'],
+      ['Root cause: unknown, still under investigation now', 'TBD/TODO/unknown/N/A'],
+      ['Root cause: N/A', 'TBD/TODO/unknown/N/A'],
+      ['Root cause: timer bug', 'fewer than 4 words'],
+    ]) {
+      const r = gate(cwd, problem(`\n${line}\n`), '--bugfix');
+      expect(r.status, line).toBe(1);
+      expect(r.json.rootCause.problem, line).toBe(why);
+    }
+  });
+
+  it('auto-detects a bugfix from a fix/ branch or a fix: commit; --bugfix=false opts out', () => {
+    const branchRepo = repoWithChanges(['src/server/auth.ts']);
+    git(branchRepo, 'branch', '-m', 'fix/refresh-timer');
+    const r = gate(branchRepo, problem(''));
+    expect(r.status).toBe(1);
+    expect(r.json.rootCause).toMatchObject({ bugfix: true, source: 'branch fix/refresh-timer' });
+    expect(gate(branchRepo, problem(ROOT)).status).toBe(0);
+    expect(gate(branchRepo, problem(''), '--bugfix=false').status).toBe(0);
+    expect(gate(branchRepo, problem(''), '--bugfix', 'false').status).toBe(0);
+
+    for (const subject of ['fix: refresh after sleep', 'fix(auth): refresh after sleep', 'fix!: drop stale token']) {
+      const commitRepo = repoWithChanges(['src/server/auth.ts']);
+      fs.writeFileSync(path.join(commitRepo, 'src/server/auth.ts'), 'v2\n');
+      git(commitRepo, 'commit', '-qam', subject);
+      const c = gate(commitRepo, problem(''));
+      expect(c.status, subject).toBe(1);
+      expect(c.json.rootCause.source, subject).toBe(`commit "${subject}"`);
+    }
+    const plain = repoWithChanges(['src/server/auth.ts']);
+    expect(gate(plain, problem('')).json.rootCause).toMatchObject({ bugfix: false, source: null });
+    const prefix = repoWithChanges(['src/server/auth.ts']);
+    git(prefix, 'branch', '-m', 'prefix-fixes');
+    expect(gate(prefix, problem('')).json.rootCause.bugfix).toBe(false);
+  });
+
+  it('--bugfix <bool> after a space never eats the body path', () => {
+    const cwd = repoWithChanges(['src/server/auth.ts']);
+    const bodyPath = path.join(cwd, 'pr-body.md');
+    fs.writeFileSync(bodyPath, (problem('') + WALKTHROUGH).replaceAll('__HEAD__', git(cwd, 'rev-parse', 'HEAD')));
+    const run = (...a: string[]) => spawnSync(process.execPath, [GATE, ...a], { cwd, encoding: 'utf8' }).status;
+    expect(run('--bugfix', bodyPath, '--base', 'main')).toBe(1);
+    expect(run('--bugfix', 'false', bodyPath, '--base', 'main')).toBe(0);
+    expect(run('--base', 'main', '--bugfix', 'true', bodyPath)).toBe(1);
+  });
+
+  it('fails a ticked Not covered box: the reviewer ticks it', () => {
+    const cwd = repoWithChanges(['src/server/auth.test.ts']);
+    const r = gate(cwd, `${BASE_BODY}\n## Tests\n\n- \`auth.test.ts\` — proves refresh\n- **Not covered:**\n  - [ ] Open /settings\n  - [x] Revoke a token in the admin panel\n`);
+    expect(r.status).toBe(1);
+    expect(r.stderr).toMatch(/ticked/);
   });
 
   it('does not count a Tests block that lives only in an HTML comment', () => {

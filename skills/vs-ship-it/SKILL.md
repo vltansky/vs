@@ -189,13 +189,22 @@ Door/Blast bullets. **What Was Done** names the fix and cause in short bullets
 but does not substitute for those proofs.
 
 **Root cause (bugfix PRs only).** A PR is a bugfix when the branch starts
-with `fix/` (or `<user>/fix-`), the commit or PR title has the `fix:` /
-`fix(<scope>):` conventional prefix, or the linked issue is labeled `bug`.
-For a bugfix, add one line after the STE scenario (and after the Refs/spec
-line): `Root cause: <mechanism>` — what in the code made the bug happen. This
-is the only place in **What Problem This Solves** where mechanism is allowed;
-the scenario itself still has no How. Non-bug PRs skip the line. Pass
-`--bugfix` to `pr-media-gate.mjs` for a bugfix so a missing Root cause fails it.
+with `fix/` (or `<user>/fix-`), a commit subject on the branch has the `fix:` /
+`fix(<scope>):` conventional prefix, the linked issue is labeled `bug`, or
+ship-it was entered from a `/vs-bugfix` handoff. For a bugfix, add one line
+after the STE scenario (and after the Refs/spec line): `Root cause: <mechanism>`
+— what in the code made the bug happen, at least 4 words, never a `<…>`
+placeholder or TBD/TODO/unknown/N/A. From a `/vs-bugfix` handoff, reuse its
+`**Root cause:**` sentence as is. This is the only place in **What Problem This
+Solves** where mechanism is allowed; the scenario itself still has no How.
+Non-bug PRs skip the line. `pr-media-gate.mjs` auto-detects a bugfix from the
+head branch and commit subjects; pass `--bugfix` for a bug-label or vs-bugfix
+handoff, and `--bugfix=false` only when a `fix` name is not a bug fix.
+A repo `--template` with no **What Problem This Solves** section: put the
+`Root cause:` line in the template's description section (the gate still needs
+it under What Problem, so add that heading after the template), or, when the
+template forbids extra sections, pass `--bugfix=false` and say so in a
+`Note: Root cause skipped: <template constraint>` line.
 
 Examples (either perspective; pick one for the PR):
 
@@ -688,7 +697,9 @@ relative path, in Markdown, `<a href>`, or a bare URL) that is not
 external links (including other repositories) are allowed unpinned. An
 unresolvable head exits 2 (not checked); pass `--head <ref>`. Refresh the links at every handoff where the head moved: rewrite
 them to the new head SHA, rerun `pr-media-gate.mjs` on the body, then update the
-PR body. A body whose links pin an old head is a stale body.
+PR body. When that rerun fails on an older body's inline `Not covered: <text>`
+(breaking since 1.23.0), convert the text to `- [ ]` reviewer checkboxes, or to
+`none`, before updating. A body whose links pin an old head is a stale body.
 
 ### Step 3: Prepare screenshots and video
 

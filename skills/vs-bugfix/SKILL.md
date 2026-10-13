@@ -466,7 +466,7 @@ List every auto-resolved decision here.
 
 ### Suggested next step
 [Based on results:]
-- All green → `/vs-ship-it`
+- All green → `/vs-ship-it` as a bugfix: it reuses the **Root cause:** sentence above as the PR's `Root cause:` line and runs the gate with `--bugfix`
 - Guardrail failures → list what's broken, recommend fixing
 - Deferred issues → note for future work
 ```
@@ -503,5 +503,5 @@ to every user-facing message.
 Direct: emit **Next** only. Composed: return to caller.
 
 **Prev:** bug report | issue | test failure | `/vs-debug-mode`
-**Next:** `/vs-ship-it`
+**Next:** `/vs-ship-it` (bugfix handoff: carry the **Root cause:** sentence; ship-it passes `--bugfix`)
 **Relevant:** `/vs-build-it` | `/vs-qa`

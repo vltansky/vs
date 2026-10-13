@@ -27,7 +27,9 @@
 //      line) or checklist item is missing from the body, or a section is out of template order,
 //      or a repo file link under What Problem This Solves is not pinned to the --head SHA
 //      or the Tests block's Not covered line is neither `none` nor followed by `- [ ]` reviewer
-//      checkboxes, or --bugfix was passed and What Problem This Solves has no `Root cause:` line
+//      checkboxes (or has a ticked box), or the PR is a bugfix (--bugfix, a fix/ branch, or a fix: commit;
+//      --bugfix=false opts out) and What Problem This Solves has no real `Root cause:` line
+//      (no <placeholder>, TBD/TODO/unknown/N/A, at least 4 words)
 //   2  not checked: body missing, git cannot resolve the base, or --template is unreadable or has no sections
 //
 // Output is one JSON object on stdout so the caller can quote counts instead of re-reading.
@@ -135,16 +137,25 @@ for (const [index, arg] of args.entries()) {
   if (value === undefined || value.startsWith('--')) notChecked(`${arg} needs a value.`);
   flagValueAt.add(index + 1);
 }
-// --bugfix is a boolean flag: bare, or --bugfix=true|false|1|0|yes|no.
-let bugfix = false;
+// --bugfix: bare, --bugfix=<bool>, or --bugfix <bool> (true|false|1|0|yes|no). Only a
+// boolean word after a space is its value, so the body path is never eaten. Without the
+// flag the gate auto-detects a bugfix from the head branch and commit subjects.
+const BOOL_TRUE = /^(?:true|1|yes)$/i;
+const BOOL_FALSE = /^(?:false|0|no)$/i;
+let bugfixFlag = null;
 for (const [index, arg] of args.entries()) {
   const m = arg.match(/^--bugfix(?:=(.*))?$/s);
   if (!m) continue;
-  if (m[1] === undefined) bugfix = true;
-  else if (/^(?:true|1|yes)$/i.test(m[1])) bugfix = true;
-  else if (/^(?:false|0|no)$/i.test(m[1])) bugfix = false;
-  else notChecked(`--bugfix takes true or false, not "${m[1]}".`);
   flagValueAt.add(index);
+  let value = m[1];
+  const next = args[index + 1];
+  if (value === undefined && next !== undefined && (BOOL_TRUE.test(next) || BOOL_FALSE.test(next))) {
+    value = next;
+    flagValueAt.add(index + 1);
+  }
+  if (value === undefined || BOOL_TRUE.test(value)) bugfixFlag = true;
+  else if (BOOL_FALSE.test(value)) bugfixFlag = false;
+  else notChecked(`--bugfix takes true or false, not "${value}".`);
 }
 const bodyPath = args.find((arg, index) => !arg.startsWith('--') && !flagValueAt.has(index));
 const flag = (name, fallback) => {
@@ -381,6 +392,7 @@ const notCoveredLines = sectionLines.filter((line) => NOT_COVERED_LABEL.test(lin
 // Reviewer checklist: Not covered is `none`, or an empty label followed by `- [ ] <check>`
 // boxes the human runs. Inline prose after the label, or boxes after `none`, fail.
 const CHECKBOX = /^[ \t]*[-*][ \t]+\[[ xX]\][ \t]+(.*)$/;
+const TICKED = /^[ \t]*[-*][ \t]+\[[xX]\]/;
 const testLines = sectionLines.filter(
   (line) => /^[ \t]*[-*][ \t]+\S/.test(line) && !NOT_COVERED_LABEL.test(line) && !CHECKBOX.test(line),
 );
@@ -398,6 +410,8 @@ const checklist = (() => {
   if (/^none\.?$/i.test(rest))
     return after.length ? { ok: false, none: true, boxes, reason: '`none` with checkboxes' } : { ok: true, none: true, boxes: 0, reason: null };
   if (rest) return { ok: false, none: false, boxes, reason: 'Not covered items must be `- [ ]` checkboxes, not inline text' };
+  const ticked = sectionLines.slice(at + 1, at + 1 + after.length).filter((line) => TICKED.test(line)).length;
+  if (ticked) return { ok: false, none: false, boxes, reason: `${ticked} Not covered box(es) ticked; the reviewer ticks them, not the PR author` };
   if (!boxes || boxes !== after.length) return { ok: false, none: false, boxes, reason: 'Not covered has no `- [ ] <check>` items' };
   return { ok: true, none: false, boxes, reason: null };
 })();
@@ -628,9 +642,32 @@ warnings.push(...walkthroughWarnings);
 const ROOT_CAUSE = /^[ \t]*(?:\*\*Root cause:?\*\*:?|__Root cause:?__:?|Root cause:)[ \t]*(.*)$/im;
 const problemText = section('What Problem This Solves') ?? '';
 const rootCauseMatch = problemText.match(ROOT_CAUSE);
+const FIX_BRANCH = /(?:^|\/)fix[\/-]/i;
+const FIX_SUBJECT = /^fix(?:\([^)]*\))?!?:/i;
+const detectBugfix = () => {
+  const branch = git('rev-parse', '--abbrev-ref', headFlag ?? 'HEAD').stdout.trim();
+  if (branch && branch !== 'HEAD' && FIX_BRANCH.test(branch)) return `branch ${branch}`;
+  const log = git('log', '--format=%s', `${base}..${headSha}`);
+  const subject = log.status === 0 ? log.stdout.split('\n').find((line) => FIX_SUBJECT.test(line)) : undefined;
+  return subject ? `commit "${subject}"` : null;
+};
+const detected = bugfixFlag === null ? detectBugfix() : null;
+const bugfix = bugfixFlag ?? Boolean(detected);
+const rootText = rootCauseMatch ? rootCauseMatch[1].replace(/[*_`]/g, ' ').trim() : '';
+const rootProblem = !rootCauseMatch
+  ? 'missing'
+  : /<[^>]*>/.test(rootText)
+    ? 'a <placeholder>'
+    : /\b(?:TBD|TODO|unknown)\b|^N\/?A\.?$/i.test(rootText)
+      ? 'TBD/TODO/unknown/N/A'
+      : (rootText.match(/[\p{L}\p{N}]+/gu) ?? []).length < 4
+        ? 'fewer than 4 words'
+        : null;
 const rootCause = {
   bugfix,
-  present: Boolean(rootCauseMatch && /[\p{L}\p{N}]/u.test(rootCauseMatch[1])),
+  source: bugfixFlag !== null ? 'flag' : detected,
+  present: rootProblem === null,
+  problem: bugfix ? rootProblem : null,
 };
 const rootCauseOk = !bugfix || rootCause.present;
 const valid = rootCauseOk && mediaOk && beforeAfterOk && mergeDangerOk && contractOk && surfacesOk && testsOk && walkthroughOk && templateOk && problemLinks.ok;
@@ -725,7 +762,8 @@ const next = [
     : null,
   !rootCauseOk
     ? [
-        'pr-media-gate: --bugfix was passed and What Problem This Solves has no Root cause line.',
+        `pr-media-gate: bugfix PR (${rootCause.source}) and the What Problem This Solves Root cause line is ${rootCause.problem}.`,
+        '  Not a bugfix? pass --bugfix=false.',
         '  Next: after the STE scenario, add one line "Root cause: <mechanism that caused the bug>".',
       ].join('\n')
     : null,
