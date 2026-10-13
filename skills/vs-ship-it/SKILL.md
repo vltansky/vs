@@ -127,7 +127,8 @@ repo's PR template in this order, case-insensitive:
 `.github/PULL_REQUEST_TEMPLATE/*.md`.
 
 - **Exactly one template:** keep all of its headings and checklists, in its
-  order, and fill them. Put a vs section into a template heading only when they
+  order, and fill them. A section is any `#`–`######` heading or a bold-label
+  line (`**Notes:**`). Put a vs section into a template heading only when they
   clearly match; append the other vs sections after the template content
   (Walkthrough stays last). Never delete a template section: write `N/A` under
   one that does not apply. Keep template checkboxes unchecked unless the diff or
@@ -136,17 +137,20 @@ repo's PR template in this order, case-insensitive:
   template names as options. This is the only question ship-it may ask.
 - **No template:** use the vs body below as is.
 
-Pass the template you used to the gate (`--template <path>`) so a dropped
-template heading fails it. The locked vs sections stay required either way.
+Pass the template you used to the gate (`--template <path>`) so a dropped or
+reordered template section, or a dropped checklist item, fails it. A template
+with no sections exits 2 (could not check). The locked vs sections stay required either way.
 
 **Linked issue and spec.** Under **What Problem This Solves**, after the STE
 scenario, add one separate line (never part of the scenario prose) only when
 something is found: `Closes #N` and a link to the shape-it spec, ADR, or plan
 this PR implements. Take `#N` from the branch name (`fix/123-x`), commit
 messages, or the shape-it/build-it handoff. Never invent an issue; if nothing
-is found, skip the line. Use `Closes` only when this PR fully resolves the
-issue, otherwise `Refs #N`. Pin the spec link to the head SHA like the
-Walkthrough links (`blob/<HEAD_SHA>/<path>`) and refresh it with them.
+is found, skip the line. Default to `Refs #N`. Use `Closes` only when this PR
+meets every acceptance criterion in the issue: read it with
+`gh issue view <N>` first. Pin the spec link to the head SHA like the
+Walkthrough links (`blob/<HEAD_SHA>/<path>`) and refresh it with them;
+`pr-media-gate.mjs` fails an unpinned repo file link under this section.
 
 Under **What Problem This Solves**, write a short ASD-STE100 scenario
 flow: **actor → attempt → block**. One perspective per PR — **user/admin** or
@@ -267,9 +271,10 @@ body file starts at the first heading)
 perspective (one per PR). This is the Why (scenario flow only). No How — do
 not name the fix here; mechanism stays in Endpoint / Schema / UI.>
 
-Closes #<N> · [Spec](https://github.com/<owner>/<repo>/blob/<HEAD_SHA>/<spec path>)
+Refs #<N> · [Spec](https://github.com/<owner>/<repo>/blob/<HEAD_SHA>/<spec path>)
 
-<!-- Separate line, only when found: Refs #<N> when partial; no issue → no
+<!-- Separate line, only when found: Closes #<N> only when every acceptance
+     criterion is met; no issue → no
      Closes/Refs; no spec → no link; nothing found → drop the line. -->
 
 **Before** <same-state setup and what to notice>

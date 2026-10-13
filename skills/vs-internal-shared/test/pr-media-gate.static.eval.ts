@@ -1133,7 +1133,7 @@ describe('pr-media-gate --template keeps the repo PR template headings', () => {
 
   it('accepts a vs section between template headings and N/A under one', () => {
     const cwd = repoWithBranch(['docs/notes.md']);
-    const body = `## Description\n\n${BEFORE_AFTER}\n## Type of change\n\nN/A\n\n## Checklist\n\n- [ ] Docs updated\n`;
+    const body = `## Description\n\n${BEFORE_AFTER}\n## Type of change\n\nN/A\n\n- [ ] Bug fix\n\n## Checklist\n\n- [ ] Docs updated\n`;
     expect(gate(cwd, body, '--template', withTemplate(cwd)).status).toBe(0);
   });
 
@@ -1169,5 +1169,93 @@ describe('pr-media-gate --template keeps the repo PR template headings', () => {
     const cwd = repoWithBranch(['docs/notes.md']);
     expect(gate(cwd, BEFORE_AFTER, '--template', path.join(cwd, 'nope.md')).status).toBe(2);
     expect(gate(cwd, BEFORE_AFTER, '--template').status).toBe(2);
+  });
+});
+
+describe('pr-media-gate --template: any heading level, bold labels, checklists', () => {
+  const run = (tpl: string, body: string, ...extra: string[]) => {
+    const cwd = repoWithBranch(['docs/notes.md']);
+    const file = path.join(cwd, 'tpl.md');
+    fs.writeFileSync(file, tpl);
+    return gate(cwd, `${body}${BEFORE_AFTER}`, '--template', file, ...extra);
+  };
+
+  it.each([
+    ['###', '### Summary\n\n### Risk\n'],
+    ['#', '# Summary\n\n# Risk\n'],
+    ['bold label', '**Summary:**\n\n**Risk:**\n'],
+  ])('checks %s template sections', (_kind, tpl) => {
+    expect(run(tpl, '## Summary\n\nx\n\n## Risk\n\nN/A\n\n').status).toBe(0);
+    const dropped = run(tpl, '## Summary\n\nx\n\n');
+    expect(dropped.status).toBe(1);
+    expect(dropped.json.template.missing).toEqual(['risk']);
+  });
+
+  it('a body bold label with content counts for a template section', () => {
+    expect(run('## Summary\n\n## Risk\n', '**Summary:** x\n\n**Risk:** N/A\n\n').status).toBe(0);
+  });
+
+  it('exits 2 (could not check) on a template with no sections', () => {
+    const result = run('Please describe your change.\n\n- [ ] tested\n', '');
+    expect(result.status).toBe(2);
+    expect(result.stderr).toMatch(/could not check --template/);
+  });
+
+  it('ignores a leading emoji or symbol on headings', () => {
+    expect(run('## 📝 Summary\n\n## ✅ Risk\n', '## Summary\n\nx\n\n## ⚠️ Risk\n\nN/A\n\n').status).toBe(0);
+  });
+
+  it('fails when a template checklist item is dropped; a ticked one still counts', () => {
+    const tpl = '## Checklist\n\n- [ ] Docs updated\n- [ ] Tests added\n';
+    expect(run(tpl, '## Checklist\n\n- [x] Docs updated\n- [ ] Tests added\n\n').status).toBe(0);
+    const dropped = run(tpl, '## Checklist\n\n- [ ] Docs updated\n\n');
+    expect(dropped.status).toBe(1);
+    expect(dropped.json.template.missingChecks).toEqual(['tests added']);
+  });
+
+  it('accepts --template=path and rejects an empty --template=', () => {
+    const cwd = repoWithBranch(['docs/notes.md']);
+    const file = path.join(cwd, 'tpl.md');
+    fs.writeFileSync(file, '## Summary\n');
+    expect(gate(cwd, `## Summary\n\nx\n\n${BEFORE_AFTER}`, `--template=${file}`).json.template.ok).toBe(true);
+    expect(gate(cwd, `${BEFORE_AFTER}`, `--template=${file}`).status).toBe(1);
+    expect(gate(cwd, BEFORE_AFTER, '--template=').status).toBe(2);
+  });
+});
+
+describe('pr-media-gate --flag=value form for every value flag', () => {
+  it.each(['--base', '--frontend', '--api', '--schema', '--tests', '--head', '--template'])('%s=value parses and %s= exits 2', (name) => {
+    const cwd = repoWithBranch(['docs/notes.md']);
+    expect(gate(cwd, BEFORE_AFTER, `${name}=`).status).toBe(2);
+    if (name === '--template') return;
+    const value = name === '--base' ? 'main' : name === '--head' ? 'HEAD' : '^nomatch$';
+    expect(gate(cwd, BEFORE_AFTER, `${name}=${value}`).status).toBe(0);
+  });
+  it('--head=nope exits 2', () => {
+    const cwd = repoWithBranch(['docs/notes.md']);
+    expect(gate(cwd, BEFORE_AFTER, '--head=nope').status).toBe(2);
+  });
+});
+
+describe('pr-media-gate pins the spec link under What Problem This Solves', () => {
+  const body = (ref: string) =>
+    `## What Problem This Solves\n\nAgent → x → blocked.\n\nRefs #12 · [Spec](https://github.com/o/r/blob/${ref}/docs/spec.md)\n\n${BEFORE_AFTER}`;
+  it('fails a main-branch spec link', () => {
+    const cwd = repoWithBranch(['docs/notes.md']);
+    const result = gate(cwd, body('main'));
+    expect(result.status).toBe(1);
+    expect(result.json.problemLinks.ok).toBe(false);
+    expect(result.stderr).toMatch(/spec link\) is not pinned/);
+  });
+  it('fails a spec link pinned to an old SHA', () => {
+    const cwd = repoWithBranch(['docs/notes.md']);
+    const base = git(cwd, 'rev-parse', 'main');
+    expect(gate(cwd, body(base)).status).toBe(1);
+  });
+  it('passes a spec link pinned to the head; issue links stay unpinned', () => {
+    const cwd = repoWithBranch(['docs/notes.md']);
+    const result = gate(cwd, body('__HEAD__').replace('Refs #12', 'Refs [#12](https://github.com/o/r/issues/12)'));
+    expect(result.status).toBe(0);
+    expect(result.json.problemLinks).toEqual({ ok: true, reasons: [] });
   });
 });

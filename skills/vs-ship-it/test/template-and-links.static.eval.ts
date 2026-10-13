@@ -43,9 +43,13 @@ function problems(skill: string): string[] {
 
   if (!/Never invent an issue; if nothing\s+is found, skip the line/.test(link) || /(?:open|create|file) (?:a |an )?(?:new )?issue/i.test(link))
     out.push('issue may be invented');
-  if (!/Use `Closes` only when this PR fully resolves the\s+issue, otherwise `Refs #N`/.test(link)) out.push('Closes used for partial');
+  if (!/Default to `Refs #N`\. Use `Closes` only when this PR\s+meets every acceptance criterion in the issue/.test(link)) out.push('Closes used for partial');
+  if (!/`gh issue view <N>`/.test(link)) out.push('issue not read before Closes');
+  if (!/fails an unpinned repo file link under this section/.test(link)) out.push('gate does not pin the spec link');
+  if (!/bold-label\s+line/.test(tpl) || !/`#`–`######` heading/.test(tpl)) out.push('template sections limited to ## headings');
+  if (!/dropped checklist item, fails it/.test(tpl)) out.push('template checklist not gated');
   if (!/Pin the spec link to the head SHA/.test(link) || !/blob\/<HEAD_SHA>\/<spec path>/.test(problem)) out.push('spec link not pinned');
-  if (!/one separate line \(never part of the scenario prose\)/.test(link) || !/\n\nCloses #<N> · \[Spec\]/.test(problem))
+  if (!/one separate line \(never part of the scenario prose\)/.test(link) || !/\n\nRefs #<N> · \[Spec\]/.test(problem))
     out.push('link line merged into the STE prose');
   if (!/branch name \(`fix\/123-x`\), commit\s+messages, or the shape-it\/build-it handoff/.test(link)) out.push('issue sources missing');
   return out;
@@ -61,13 +65,17 @@ const mutants: Record<string, (s: string) => string> = {
   'issue invented': (s) =>
     s.replace('Never invent an issue; if nothing\nis found, skip the line.', 'If nothing is found, create a new issue and link it.'),
   'Closes used for partial': (s) =>
-    s.replace('Use `Closes` only when this PR fully resolves the\nissue, otherwise `Refs #N`.', 'Always use `Closes`.'),
+    s.replace('Default to `Refs #N`. Use `Closes` only when this PR\nmeets every acceptance criterion in the issue', 'Use `Closes` whenever the PR touches the issue'),
+  'Closes without reading the issue': (s) => s.replace('`gh issue view <N>`', 'the branch name'),
+  'gate skips spec pin': (s) => s.replace('`pr-media-gate.mjs` fails an unpinned repo file link under this section.', ''),
+  'only ## headings': (s) => s.replace(' A section is any `#`–`######` heading or a bold-label\n  line (`**Notes:**`).', ''),
+  'checklist not gated': (s) => s.replace(', or a dropped checklist item,', ''),
   'spec link not pinned': (s) =>
     s.replace('Pin the spec link to the head SHA', 'Link the spec on the branch').replace('blob/<HEAD_SHA>/<spec path>', 'blob/<branch>/<spec path>'),
   'link line merged into STE prose': (s) =>
     s
       .replace('one separate line (never part of the scenario prose)', 'a clause at the end of the scenario sentence')
-      .replace('mechanism stays in Endpoint / Schema / UI.>\n\nCloses #<N>', 'mechanism stays in Endpoint / Schema / UI. Closes #<N>>'),
+      .replace('mechanism stays in Endpoint / Schema / UI.>\n\nRefs #<N>', 'mechanism stays in Endpoint / Schema / UI. Refs #<N>>'),
   'checkboxes ticked': (s) => s.replace('Keep template checkboxes unchecked unless the diff or\n  evidence proves them.', 'Tick every template checkbox.'),
   'gate skips template': (s) => s.replace(' [--template <repo PR template>]', ''),
   'lookup order shuffled': (s) => s.replace('`PULL_REQUEST_TEMPLATE.md`, `docs/pull_request_template.md`', '`docs/pull_request_template.md`, `PULL_REQUEST_TEMPLATE.md`'),
