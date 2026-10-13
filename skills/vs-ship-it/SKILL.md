@@ -755,10 +755,12 @@ for local media that directly proves the changed behavior.
   The script draws the caption and pointer into every still and video frame,
   writes `captions.vtt`, and prints a manifest (paths, captions, bytes,
   sha256). Write the PR body from that manifest. Do not Read the captured
-  images or video: the manifest already states what each one shows, and a
-  1280x720 PNG costs more context than the whole PR body. Open a still only
-  when the user asks or when a capture step failed and the failure text points
-  at the frame.
+  images or video beyond one check frame: the manifest already states what
+  each one shows, and a 1280x720 PNG costs more context than the whole PR
+  body. The check frame is the decisive result still of each revision: open it
+  once to confirm the caption, pointer, and changed state are visible before
+  the body calls the media proof. Open more only when the user asks or when a
+  capture step failed and the failure text points at the frame.
   [`../vs-internal-shared/references/recording.md`](../vs-internal-shared/references/recording.md)
   covers hand-rolled recordings, visible pointer/clicks, and transcoding.
   This capture needs no extra permission question within the authorized task;

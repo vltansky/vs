@@ -20,7 +20,8 @@ function envOf(env) {
 }
 
 function compare(tests, baseFailing) {
-  if (!Array.isArray(tests) || !tests.length || !Array.isArray(baseFailing)) return null;
+  // An empty base list on a failed job (setup crash) is no test-level baseline, not "nothing failed".
+  if (!Array.isArray(tests) || !tests.length || !Array.isArray(baseFailing) || !baseFailing.length) return null;
   const extra = tests.filter((t) => !baseFailing.includes(t));
   return extra.length ? { cls: 'new', why: `fails only on this PR: ${extra.join(', ')}` } : { cls: 'base', why: 'same tests fail on base' };
 }
