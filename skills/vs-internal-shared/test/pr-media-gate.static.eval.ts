@@ -1432,6 +1432,13 @@ describe('pr-media-gate reads sections past a fenced Walkthrough mention', () =>
     expect(result.json.tests.section).toBe(true);
     expect(result.status).toBe(0);
   });
+  it('still finds ## Tests and the real Walkthrough after an inline-code quote of the summary', () => {
+    const cwd = repoWithChanges(['src/server/auth.test.ts']);
+    const quoted = '\n- A `<details><summary>Walkthrough` quote in prose is not the section.\n';
+    const result = rawGate(cwd, `${BASE_BODY}${quoted}${TESTS_BLOCK}${WALKTHROUGH}`);
+    expect(result.json.tests.section).toBe(true);
+    expect(result.status).toBe(0);
+  });
 });
 
 describe('pr-media-gate keeps embedded media out of the spec-link check', () => {

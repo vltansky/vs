@@ -226,9 +226,11 @@ const body = fs.readFileSync(bodyPath, 'utf8');
 // The label must carry a code block after it: a request/response or schema shape, not a sentence.
 // The Walkthrough's pseudocode fences are not proof, so the search stops where it starts.
 const WALKTHROUGH_OPEN = /<details\b[^>]*>\s*<summary\b[^>]*>\s*(?:<(?:b|strong)>\s*)?Walkthrough\b/i;
-// Blanks fenced blocks but keeps offsets, so a code block that quotes the Walkthrough
-// summary does not cut the proof scan short.
-const maskFences = (text) => text.replace(/^[ \t]*(```|~~~)[^\n]*\n[\s\S]*?^[ \t]*\1[ \t]*$/gm, (block) => block.replace(/[^\n]/g, ' '));
+// Blanks fenced blocks and inline code spans but keeps offsets, so prose or a code block
+// that quotes the Walkthrough summary does not cut the proof scan short.
+const blank = (block) => block.replace(/[^\n]/g, ' ');
+const maskFences = (text) =>
+  text.replace(/^[ \t]*(```|~~~)[^\n]*\n[\s\S]*?^[ \t]*\1[ \t]*$/gm, blank).replace(/`[^`\n]+`/g, blank);
 const proofEnd = maskFences(body).search(WALKTHROUGH_OPEN);
 const proofBody = proofEnd === -1 ? body : body.slice(0, proofEnd);
 const labelledBlock = (marker) => {
