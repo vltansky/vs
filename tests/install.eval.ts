@@ -1,5 +1,13 @@
 import { execFileSync, spawnSync } from 'node:child_process';
-import { mkdtempSync, mkdirSync, readFileSync, symlinkSync, writeFileSync } from 'node:fs';
+import {
+  existsSync,
+  mkdtempSync,
+  mkdirSync,
+  readFileSync,
+  readlinkSync,
+  symlinkSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -216,6 +224,46 @@ exit 0
     expect(readFileSync(join(codexHome, 'mcp', 'vs-artifact', 'view.html'), 'utf8')).toContain('vs-artifact-frame');
     expect(readFileSync(join(codexHome, 'mcp', 'vs-artifact', 'server.mjs'), 'utf8')).toContain('vs-artifact');
     expect(readFileSync(callsFile, 'utf8').trim()).toBe(`codex mcp add vs-artifact -- node ${join(codexHome, 'mcp', 'vs-artifact', 'server.mjs')}`);
+  });
+
+  it('links flat skills for Claude Code and Codex, and undoes it', () => {
+    const home = mkdtempSync(join(tmpdir(), 'vs-install-flat-'));
+    const bin = join(home, 'bin');
+    const callsFile = join(home, 'calls.log');
+    mkdirSync(bin);
+    const cliStub = `#!/bin/sh\nprintf '%s %s\\n' "$(basename "$0")" "$*" >> "$CALLS_FILE"\n`;
+    for (const cli of ['claude', 'codex']) writeFileSync(join(bin, cli), cliStub, { mode: 0o755 });
+    symlinkSync(process.execPath, join(bin, 'node'));
+    const env: NodeJS.ProcessEnv = { ...process.env, CALLS_FILE: callsFile, HOME: home, PATH: `${bin}:/usr/bin:/bin`, PWD: process.cwd() };
+    delete env.CLAUDE_CONFIG_DIR;
+    delete env.CODEX_HOME;
+
+    execFileSync('/bin/bash', ['install-flat.sh'], { cwd: process.cwd(), env, stdio: 'pipe' });
+
+    for (const dest of [join(home, '.claude', 'skills'), join(home, '.agents', 'skills')]) {
+      expect(readlinkSync(join(dest, 'vs-show-me'))).toBe(join(process.cwd(), 'skills', 'vs-show-me'));
+      expect(existsSync(join(dest, 'vs-internal-shared', 'SKILL.md'))).toBe(true);
+    }
+    expect(readFileSync(callsFile, 'utf8').trim().split('\n')).toEqual([
+      'claude plugin disable vs@vs',
+      'codex plugin remove vs@vs',
+      `codex mcp add vs-artifact -- node ${join(process.cwd(), 'mcp', 'dist', 'server.mjs')}`,
+    ]);
+    expect(readFileSync(join(home, '.codex', 'hooks.json'), 'utf8')).toContain(
+      join(process.cwd(), 'hooks', 'ponytail.mjs'),
+    );
+
+    writeFileSync(callsFile, '');
+    execFileSync('/bin/bash', ['install-flat.sh', '--undo'], { cwd: process.cwd(), env, stdio: 'pipe' });
+
+    for (const dest of [join(home, '.claude', 'skills'), join(home, '.agents', 'skills')]) {
+      expect(existsSync(join(dest, 'vs-show-me'))).toBe(false);
+    }
+    expect(readFileSync(callsFile, 'utf8').trim().split('\n')).toEqual([
+      'claude plugin enable vs@vs',
+      'codex mcp remove vs-artifact',
+      'codex plugin add vs@vs',
+    ]);
   });
 
   it.skipIf(!pwsh)('drives the same CLI sequence from the PowerShell installer', () => {

@@ -244,6 +244,16 @@ Re-run the installer to update every detected agent. It refreshes existing
 marketplaces and plugins first, falling back to first-time installation when
 they are not present.
 
+### Flat skills from a clone
+
+`npm run install-flat` (`./install-flat.sh`) replaces the plugin with skills
+symlinked to the clone, so edits are live in every agent. Use it for hosts that
+only read filesystem skills, such as T3 Code. It links into `~/.claude/skills`
+and disables the Claude plugin, links into `~/.agents/skills` and removes the
+Codex plugin, and points Codex's `vs-artifact` MCP and Ponytail hook at the
+clone. Cursor already reads `~/.claude/skills`. `./install-flat.sh --undo`
+restores the plugins.
+
 ### Native marketplace installation
 
 Use these platform-specific commands if you prefer startup-time automatic
