@@ -110,6 +110,29 @@ results; do not introduce `vs-before-after`, `vs-verify`, broad test suites, or 
 user question as shipping ceremony. Record existing checks honestly in the PR.
 The Tests block and no-test flag in Step 2 come from the diff and add no runs.
 
+**Failure baseline.** When a required check or test is red, classify each
+failing one as exactly one class before writing the PR. Compare failing test
+names, not whole jobs:
+- **New** — passes on the base, or fails a test the base does not fail. A
+  timeout, OOM, or rerun-pass with the base green is New.
+- **Already failing on base** — every failing test also fails in the same job
+  on the base run, or at the merge-base locally.
+- **Environment** — only a fixed reason (`browser-not-installed`,
+  `network-unreachable`, `runner-out-of-disk`, `missing-secret-on-fork`) plus
+  the log line that shows it. A free-text reason is not Environment.
+- **Unknown** — no baseline or no test-level data; state the reason. Do not
+  guess a class. Renamed or matrix-reshaped jobs have no match and are Unknown.
+
+Get the baseline from the base branch's latest completed CI run for the same
+workflow whose conclusion is `success` or `failure` (skip cancelled and other
+conclusions): `gh run list --branch <base> --workflow <wf> --status completed
+-L 20 --json conclusion,headSha,url`, then `gh run view <run id from url>
+--json jobs`. Use it only when `git merge-base --is-ancestor <mergeBase> <headSha>`
+holds. Otherwise run only the failing test(s) at the merge-base in a temporary
+worktree and record the OS and browsers present as evidence. Never run the full
+suite to get a baseline. `skills/vs-baby-sit/scripts/classify-failures.mjs`
+turns this evidence into classes (exit 1 New, 3 Unknown, 0 base/env only).
+
 If authentication fails, stop after the first failure, identify the credential
 used, and give the exact re-authentication step. Do not retry unchanged auth.
 
@@ -331,6 +354,11 @@ flowchart LR
 - **Before:** <observed or measured failure> (observed | tested | source-derived)
 - **After:** <matched result> (observed | tested | source-derived)
 - **Automated:** `<focused or required command>` — <result>
+- **Red checks** (only when one is red, one line each, grouped by class):
+  - New: `<check>` — <one line> ([base run](<base run URL>))
+  - Already failing on base: `<check>` — <one line> ([base run](<base run URL>))
+  - Environment: `<check>` — <env evidence>
+  - Unknown: `<check>` — <why no baseline>
 - **Still unverified:** <exact gap, only when one remains>
 
 <details><summary>Full output and wider diff</summary>
