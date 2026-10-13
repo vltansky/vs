@@ -141,7 +141,7 @@ describe('vs-ship-it visual PR description', () => {
     expect(PR_WORKFLOW).toMatch(/one familiar analogy mapped to the real parts/);
     expect(PR_WORKFLOW).toContain('gh api repos/{owner}/{repo} --jq .id');
     expect(PR_WORKFLOW).not.toContain('databaseId');
-    expect(PR_WORKFLOW).toMatch(/this line is the `--title`, and the\s+body file starts at the first heading/);
+    expect(PR_WORKFLOW).toMatch(/this line is the `--title`, and the\s+body file starts at the TL;DR/);
   });
 });
 

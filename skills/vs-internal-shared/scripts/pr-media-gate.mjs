@@ -30,6 +30,7 @@
 //      checkboxes (or has a ticked box), or the PR is a bugfix (--bugfix, a fix/ fix- hotfix/ branch, a fix: --title, or a fix: FIRST commit;
 //      --bugfix=false opts out) and What Problem This Solves has no real `Root cause:` line
 //      (no <placeholder>, TBD/TODO/unknown/N/A, at least 4 words)
+//      or the body does not start with a two-line plain TL;DR (no links, code, badges; not the title)
 //   2  not checked: body missing, git cannot resolve the base, or --template is unreadable or has no sections
 //
 // Output is one JSON object on stdout so the caller can quote counts instead of re-reading.
@@ -681,10 +682,41 @@ const rootCause = {
   problem: bugfix ? rootProblem : null,
 };
 const rootCauseOk = !bugfix || rootCause.present;
-const valid = rootCauseOk && mediaOk && beforeAfterOk && mergeDangerOk && contractOk && surfacesOk && testsOk && walkthroughOk && templateOk && problemLinks.ok;
+// TL;DR: the first non-empty content of the body is exactly two short plain lines
+// (optionally under a lone **TL;DR** label): what changes and for whom, then the effect.
+// No heading, list, link, code, badge, or HTML, and line 1 must not echo --title.
+const tldr = (() => {
+  const lines = body.replace(/^\uFEFF/, '').split('\n');
+  let i = 0;
+  while (i < lines.length && !lines[i].trim()) i += 1;
+  const block = [];
+  for (; i < lines.length && lines[i].trim(); i += 1) block.push(lines[i].trim());
+  const labeled = block.length > 0 && /^\*\*TL;DR\*\*:?$/i.test(block[0]);
+  const content = labeled ? block.slice(1) : block;
+  const reasons = [];
+  if (!content.length || /^(?:#{1,6}[ \t]|<(?!\/?[a-z]*>)|<img|<details|<!--)/i.test(content[0]))
+    return { ok: false, labeled, lines: 0, reasons: ['missing: the body must start with a two-line TL;DR, before Merge risk and any repo template'] };
+  if (content.length !== 2) reasons.push(`has ${content.length} line(s); write exactly 2`);
+  content.forEach((line, n) => {
+    const at = `line ${n + 1}`;
+    if (/^(?:#{1,6}[ \t]|[-*+>|][ \t]|\d+[.)][ \t])/.test(line)) reasons.push(`${at} is a heading, list, quote, or table row; write plain text`);
+    if (/\]\(|https?:\/\/|<a\b/i.test(line)) reasons.push(`${at} has a link`);
+    if (/`/.test(line)) reasons.push(`${at} has code`);
+    if (/<img\b|!\[/i.test(line)) reasons.push(`${at} has a badge or image`);
+    if (/<[a-z][^>]*>/i.test(line) && !/<img\b|<a\b/i.test(line)) reasons.push(`${at} has HTML`);
+    const words = (line.match(/[\p{L}\p{N}]+/gu) ?? []).length;
+    if (words > 20) reasons.push(`${at} has ${words} words; keep it under 21`);
+  });
+  const norm = (t) => String(t).toLowerCase().replace(/^[a-z]+(?:\([^)]*\))?!?:\s*/, '').replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
+  const title = flag('--title', null);
+  if (title && content[0] && norm(content[0]) === norm(title)) reasons.push('line 1 echoes the PR title; say what changes and for whom');
+  return { ok: reasons.length === 0, labeled, lines: content.length, reasons };
+})();
+const tldrOk = tldr.ok;
+const valid = rootCauseOk && tldrOk && mediaOk && beforeAfterOk && mergeDangerOk && contractOk && surfacesOk && testsOk && walkthroughOk && templateOk && problemLinks.ok;
 
 process.stdout.write(
-  `${JSON.stringify({ valid, base, frontendFiles, apiFiles, schemaFiles, cliFiles, mcpFiles, infraFiles, images, videos, localRefs: localRefs.map((ref) => ref.url), gapStated, beforeAfter, mergeDanger, contract, surfaces, tests, walkthrough, template, problemLinks, rootCause, warnings: warnings.length }, null, 2)}\n`,
+  `${JSON.stringify({ valid, base, frontendFiles, apiFiles, schemaFiles, cliFiles, mcpFiles, infraFiles, images, videos, localRefs: localRefs.map((ref) => ref.url), gapStated, beforeAfter, mergeDanger, contract, surfaces, tests, walkthrough, template, problemLinks, rootCause, tldr, warnings: warnings.length }, null, 2)}\n`,
 );
 
 if (warnings.length > 0) process.stderr.write(`${warnings.join('\n')}\n`);
@@ -769,6 +801,16 @@ const next = [
         '  Next: end the body with <details><summary>Walkthrough: N areas, M files</summary>, one',
         '  "### 🔴|🟡|🟢 <Area> · <risk>" group per area (riskiest first), each with a ```diff of',
         '  language-agnostic logic pseudocode (- old, + new) and head-pinned file links. No real code.',
+      ].join('\n')
+    : null,
+  !tldrOk
+    ? [
+        'pr-media-gate: TL;DR failed.',
+        ...tldr.reasons.map((reason) => `  - ${reason}`),
+        '  Next: start the body (before Merge risk and any repo template) with exactly two plain lines:',
+        '    <what changes, for whom>',
+        '    <the effect or result>',
+        '  Optional lone **TL;DR** label above them. No heading, link, code, or badge.',
       ].join('\n')
     : null,
   !rootCauseOk

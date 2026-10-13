@@ -143,6 +143,15 @@ evidence, and existing test results. Do not ask the user to write or approve PR
 copy. If motivation cannot be established honestly, describe the observable
 problem without inventing business impact; omit inapplicable optional detail.
 
+**TL;DR first.** The first thing in every PR body is a two-line TL;DR, above
+Merge risk. Line 1 says what changes and for whom; line 2 says the effect or
+result. Write exactly 2 short plain lines (20 words or fewer each) in STE
+style, with no heading or only a lone `**TL;DR**` label above them. No links,
+no code, no badges, no HTML, no list markers. Do not echo the PR title: say
+what it means for the reader. With a repo template, the TL;DR still goes
+first, before the template content. `pr-media-gate.mjs` fails a body whose
+first non-empty content is not this block.
+
 **Repo PR template first.** Before you write the body, look for the target
 repo's PR template in this order, case-insensitive:
 `.github/pull_request_template.md`, `.github/PULL_REQUEST_TEMPLATE.md`,
@@ -264,7 +273,11 @@ changed. Use this structure:
 
 ````markdown
 <feature_area>: <Title> (80 chars max; this line is the `--title`, and the
-body file starts at the first heading)
+body file starts at the TL;DR)
+
+**TL;DR**
+<what changes, for whom — one short plain line>
+<the effect or result — one short plain line>
 
 ## Merge risk
 

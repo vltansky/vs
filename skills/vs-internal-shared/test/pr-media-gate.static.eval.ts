@@ -78,7 +78,15 @@ function gate(cwd: string, body: string, ...flags: string[]) {
   return rawGate(cwd, /Walkthrough/.test(body) ? body : body + WALKTHROUGH, ...flags);
 }
 
+// Bodies written for other duties get the two-line TL;DR prepended, the way they get the
+// Walkthrough appended. bareGate runs a body exactly as written (TL;DR tests).
+const TLDR = '**TL;DR**\nReviewers of an auth PR get a clear before and after.\nThe gate passes when the proof is present.\n\n';
+const withTldr = (body: string) => (/^\s*\*\*TL;DR\*\*/.test(body) ? body : TLDR + body);
 function rawGate(cwd: string, body: string, ...flags: string[]) {
+  return bareGate(cwd, withTldr(body), ...flags);
+}
+
+function bareGate(cwd: string, body: string, ...flags: string[]) {
   const bodyPath = path.join(cwd, 'pr-body.md');
   // Walkthrough links pin the exact head; fixtures write __HEAD__ and get the repo's real SHA.
   fs.writeFileSync(bodyPath, body.replaceAll('__HEAD__', git(cwd, 'rev-parse', 'HEAD')));
@@ -886,7 +894,7 @@ describe('pr-media-gate Tests block', () => {
   it('--bugfix <bool> after a space never eats the body path', () => {
     const cwd = repoWithChanges(['src/server/auth.ts']);
     const bodyPath = path.join(cwd, 'pr-body.md');
-    fs.writeFileSync(bodyPath, (problem('') + WALKTHROUGH).replaceAll('__HEAD__', git(cwd, 'rev-parse', 'HEAD')));
+    fs.writeFileSync(bodyPath, withTldr(problem('') + WALKTHROUGH).replaceAll('__HEAD__', git(cwd, 'rev-parse', 'HEAD')));
     const run = (...a: string[]) => spawnSync(process.execPath, [GATE, ...a], { cwd, encoding: 'utf8' }).status;
     expect(run('--bugfix', bodyPath, '--base', 'main')).toBe(1);
     expect(run('--bugfix', 'false', bodyPath, '--base', 'main')).toBe(0);
@@ -985,7 +993,7 @@ describe('pr-media-gate Tests block', () => {
   it('never reads a flag value as the body path', () => {
     const cwd = repoWithChanges(['src/server/auth.ts', 'checks/auth.check.ts']);
     const bodyPath = path.join(cwd, 'pr-body.md');
-    fs.writeFileSync(bodyPath, `${BASE_BODY}${TESTS_BLOCK}${WALKTHROUGH}`.replaceAll('__HEAD__', git(cwd, 'rev-parse', 'HEAD')));
+    fs.writeFileSync(bodyPath, withTldr(`${BASE_BODY}${TESTS_BLOCK}${WALKTHROUGH}`).replaceAll('__HEAD__', git(cwd, 'rev-parse', 'HEAD')));
     const result = spawnSync(process.execPath, [GATE, '--tests', '^checks/', bodyPath, '--base', 'main'], {
       cwd,
       encoding: 'utf8',
@@ -1388,5 +1396,66 @@ describe('pr-media-gate pins the spec link under What Problem This Solves', () =
     const result = gate(cwd, body('__HEAD__').replace('Refs #12', 'Refs [#12](https://github.com/o/r/issues/12)'));
     expect(result.status).toBe(0);
     expect(result.json.problemLinks).toEqual({ ok: true, reasons: [] });
+  });
+});
+
+describe('pr-media-gate requires a two-line TL;DR first', () => {
+  const REST = `${BASE_BODY}${WALKTHROUGH}`;
+  const L1 = 'Ship-it users get a short summary at the top of each PR.';
+  const L2 = 'Reviewers see what the PR does before they read the details.';
+  const run = (top: string, ...flags: string[]) => bareGate(repoWithChanges(['src/server/auth.ts']), `${top}${REST}`, ...flags);
+
+  it('passes two plain lines first, with or without a lone **TL;DR** label', () => {
+    for (const top of [`**TL;DR**\n${L1}\n${L2}\n\n`, `${L1}\n${L2}\n\n`, `\n\n**TL;DR**\n${L1}\n${L2}\n\n`]) {
+      const r = run(top);
+      expect(r.status, top).toBe(0);
+      expect(r.json.tldr).toMatchObject({ ok: true, lines: 2 });
+    }
+  });
+
+  it('fails a missing TL;DR or one that is not first', () => {
+    for (const body of [REST, `## Merge risk\n\nx\n\n${L1}\n${L2}\n\n${REST}`, `## Summary\n\n${L1}\n${L2}\n\n${REST}`]) {
+      const r = bareGate(repoWithChanges(['src/server/auth.ts']), body);
+      expect(r.status).toBe(1);
+      expect(r.stderr).toMatch(/TL;DR failed/);
+      expect(r.json.tldr.ok).toBe(false);
+    }
+  });
+
+  it('fails a TL;DR placed after the repo template heading', () => {
+    const cwd = repoWithChanges(['src/server/auth.ts']);
+    const tpl = path.join(cwd, 'tpl.md');
+    fs.writeFileSync(tpl, '## Description\n');
+    expect(bareGate(cwd, `## Description\n\n${L1}\n${L2}\n\n${REST}`, '--template', tpl).stderr).toMatch(/TL;DR failed[\s\S]*missing/);
+    expect(bareGate(cwd, `${L1}\n${L2}\n\n## Description\n\nx\n\n${REST}`, '--template', tpl).status).toBe(0);
+  });
+
+  it('fails 1 line and 3+ lines', () => {
+    for (const top of [`**TL;DR**\n${L1}\n\n`, `${L1}\n${L2}\nA third line.\n\n`, `**TL;DR**\n${L1}\n${L2}\nA third.\nA fourth.\n\n`]) {
+      const r = run(top);
+      expect(r.status, top).toBe(1);
+      expect(r.stderr).toMatch(/write exactly 2/);
+    }
+  });
+
+  it('fails links, code, badges, HTML, lists, and long lines', () => {
+    for (const [line2, why] of [
+      ['See [the spec](https://x.y/spec) for details.', /has a link/],
+      ['Runs https://example.com on merge.', /has a link/],
+      ['Adds a `--tldr` flag to the gate.', /has code/],
+      ['<img alt="Two-way door" src="https://x/badge.svg">', /badge|link/],
+      ['Status is <b>green</b> now.', /has HTML/],
+      ['- Reviewers see the effect.', /list/],
+      ['One two three four five six seven eight nine ten eleven twelve thirteen fourteen fifteen sixteen seventeen eighteen nineteen twenty twentyone.', /words/],
+    ] as const) {
+      const r = run(`${L1}\n${line2}\n\n`);
+      expect(r.status, line2).toBe(1);
+      expect(r.stderr, line2).toMatch(why);
+    }
+  });
+
+  it('fails a line 1 that only echoes the --title', () => {
+    expect(run(`Add a two-line TLDR to ship-it\n${L2}\n\n`, '--title', 'feat(ship-it): add a two-line TLDR to ship-it').stderr).toMatch(/echoes the PR title/);
+    expect(run(`${L1}\n${L2}\n\n`, '--title', 'feat(ship-it): add a two-line TLDR to ship-it').status).toBe(0);
   });
 });
