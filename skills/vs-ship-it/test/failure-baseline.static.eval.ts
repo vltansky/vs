@@ -99,6 +99,10 @@ describe('classify-failures.mjs', () => {
     const b = base([{ name: 'e2e', conclusion: 'failure' }]);
     expect(one({ failing: [{ name: 'e2e', tests: ['a'] }], base: b }).class).toBe('unknown');
   });
+  it('failed base job with an empty failing-test list is unknown, not new', () => {
+    const b = base([{ name: 'e2e', conclusion: 'failure', failingTests: [] }]);
+    expect(one({ failing: [{ name: 'e2e', tests: ['a'] }], base: b }).class).toBe('unknown');
+  });
   it('cancelled base run is skipped, not a baseline', () => {
     const r = one({ failing: [{ name: 'e2e', tests: ['a'] }], base: base([{ name: 'e2e', conclusion: 'failure', failingTests: ['a'] }], 'cancelled') });
     expect(r.class).toBe('unknown');

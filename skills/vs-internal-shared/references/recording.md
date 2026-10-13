@@ -136,8 +136,10 @@ like "the injection failed" and send the run down the wrong diagnosis:
 ## Verify before claiming
 
 An invisible cursor is silent: the script runs, the events fire, and the video
-is simply wrong. Open a frame — screenshot mid-press and look at it — before
-reporting that the recording proves anything.
+is simply wrong. Open one check frame per revision — the decisive result still,
+or a screenshot mid-press when you drive the pointer yourself — before reporting
+that the recording proves anything. One frame is enough; the manifest covers the
+rest.
 
 When the element seems absent, check whether it is *painting underneath*
 something rather than missing: temporarily size it large and give it a loud

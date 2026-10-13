@@ -500,6 +500,9 @@ describe('vs-ship-it runs the gate and never reads the pixels', () => {
     expect(STEP_3).toMatch(/manifest/i);
     expect(STEP_3).toMatch(/Do not (?:Read|read|open|view)\s+(?:the\s+)?(?:captured\s+)?(?:image|screenshot|frame|pixel)/i);
     expect(RECORDING).toMatch(/record-flow\.mjs/);
+    // SKILL.md and recording.md agree: one check frame per revision, never every frame.
+    expect(STEP_3).toMatch(/beyond\s+one\s+check\s+frame/);
+    expect(RECORDING).toMatch(/one\s+check\s+frame\s+per\s+revision/i);
   });
 
   it('states the Before/After requirement as unconditional and checks it in the contract', () => {
@@ -589,6 +592,28 @@ describe('pr-media-gate Surfaces claim↔path asserts', () => {
     const db = gate(cwd, `${BODY_WITH('DB · Endpoint')}\n${ENDPOINT_PROOF}`);
     expect(db.status).toBe(1);
     expect(db.stderr).toMatch(/backend|DB/i);
+  });
+
+  it('fails a forbidden or unknown kind tag on a module bullet', () => {
+    const cwd = repoWithBranch(['src/api/tokens.ts']);
+    for (const tag of ['Backend', 'DB', 'Frontend']) {
+      const result = gate(cwd, `${BODY_WITH(`- **tokens-api** (${tag}) — new route`)}\n${ENDPOINT_PROOF}`);
+      expect(result.status, tag).toBe(1);
+      expect(result.json.surfaces?.ok, tag).toBe(false);
+      expect(result.stderr, tag).toMatch(new RegExp(tag));
+    }
+  });
+
+  it('does not count an eval-only file under an api path as an Endpoint', () => {
+    const cwd = repoWithBranch(['src/api/evals/tokens.ts']);
+    const result = gate(cwd, BODY_WITH(''));
+    expect(result.json.surfaces?.pathClasses.Endpoint).toBe(false);
+  });
+
+  it('counts plain scripts under web/ or client/ as frontend', () => {
+    const cwd = repoWithBranch(['web/cart.js', 'client/checkout.ts']);
+    const result = gate(cwd, BEFORE_AFTER);
+    expect(result.json.frontendFiles).toEqual(['client/checkout.ts', 'web/cart.js']);
   });
 
   it('fails >3 product surfaces without matching path classes', () => {
@@ -1396,6 +1421,33 @@ describe('pr-media-gate pins the spec link under What Problem This Solves', () =
     const result = gate(cwd, body('__HEAD__').replace('Refs #12', 'Refs [#12](https://github.com/o/r/issues/12)'));
     expect(result.status).toBe(0);
     expect(result.json.problemLinks).toEqual({ ok: true, reasons: [] });
+  });
+});
+
+describe('pr-media-gate reads sections past a fenced Walkthrough mention', () => {
+  it('still finds ## Tests after a code block that quotes the Walkthrough summary', () => {
+    const cwd = repoWithChanges(['src/server/auth.test.ts']);
+    const quoted = '\n```\n<details><summary>Walkthrough: 1 area, 1 file</summary>\n```\n';
+    const result = rawGate(cwd, `${BASE_BODY}${quoted}${TESTS_BLOCK}${WALKTHROUGH}`);
+    expect(result.json.tests.section).toBe(true);
+    expect(result.status).toBe(0);
+  });
+  it('still finds ## Tests and the real Walkthrough after an inline-code quote of the summary', () => {
+    const cwd = repoWithChanges(['src/server/auth.test.ts']);
+    const quoted = '\n- A `<details><summary>Walkthrough` quote in prose is not the section.\n';
+    const result = rawGate(cwd, `${BASE_BODY}${quoted}${TESTS_BLOCK}${WALKTHROUGH}`);
+    expect(result.json.tests.section).toBe(true);
+    expect(result.status).toBe(0);
+  });
+});
+
+describe('pr-media-gate keeps embedded media out of the spec-link check', () => {
+  it('does not call a local image under What Problem an unpinned spec link', () => {
+    const cwd = repoWithBranch(['docs/notes.md']);
+    const body = `## What Problem This Solves\n\nShopper → changes qty → coupon drops.\n\n![Before](media/before.png)\n<img alt="After" src="media/after.png">\n\n${BEFORE_AFTER}`;
+    const result = gate(cwd, body);
+    expect(result.json.problemLinks).toEqual({ ok: true, reasons: [] });
+    expect(result.stderr).not.toMatch(/spec link/);
   });
 });
 

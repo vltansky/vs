@@ -38,7 +38,7 @@ import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 
 const FRONTEND_PATH =
-  /\.(?:tsx|jsx|vue|svelte|astro|css|scss|sass|less|styl|html|mdx)$|\/(?:components?|pages|views|layouts|routes|app|ui|styles?|screens?)\//i;
+  /\.(?:tsx|jsx|vue|svelte|astro|css|scss|sass|less|styl|html|mdx)$|\/(?:components?|pages|views|layouts|routes|app|ui|styles?|screens?)\/|(?:^|\/)(?:web|client|frontend)\/[^.]*\.[cm]?[jt]s$/i;
 // Handler code only: UI files under an api/ folder are frontend, and plain server code has no
 // contract to show. Contract definitions (proto, OpenAPI) are schema, not endpoints.
 const API_PATH =
@@ -207,15 +207,15 @@ const diff = git('diff', '--name-only', `${mergeBase.stdout.trim()}...HEAD`);
 if (diff.status !== 0) notChecked(`git diff failed: ${diff.stderr.trim()}`);
 
 const changedFiles = diff.stdout.split('\n').filter(Boolean);
-const frontendFiles = changedFiles.filter(
-  (file) => frontendPath.test(file) && !TEST_PATH.test(file),
-);
-
-const apiFiles = changedFiles.filter((file) => apiPath.test(file) && !TEST_PATH.test(file));
-const schemaFiles = changedFiles.filter((file) => schemaPath.test(file) && !TEST_PATH.test(file));
-const cliFiles = changedFiles.filter((file) => CLI_PATH.test(file) && !TEST_PATH.test(file));
-const mcpFiles = changedFiles.filter((file) => MCP_PATH.test(file) && !TEST_PATH.test(file));
-const infraFiles = changedFiles.filter((file) => INFRA_PATH.test(file) && !TEST_PATH.test(file));
+// Surface classes use the same test predicate as the Tests block (evals/, *.eval.*), plus
+// stories, so a test-only file under src/api/ never proves an Endpoint.
+const productFile = (file) => !isTestFile(file) && !TEST_PATH.test(file);
+const frontendFiles = changedFiles.filter((file) => frontendPath.test(file) && productFile(file));
+const apiFiles = changedFiles.filter((file) => apiPath.test(file) && productFile(file));
+const schemaFiles = changedFiles.filter((file) => schemaPath.test(file) && productFile(file));
+const cliFiles = changedFiles.filter((file) => CLI_PATH.test(file) && productFile(file));
+const mcpFiles = changedFiles.filter((file) => MCP_PATH.test(file) && productFile(file));
+const infraFiles = changedFiles.filter((file) => INFRA_PATH.test(file) && productFile(file));
 // `git diff --name-only` lists deleted files too, so a deleted test still needs its line.
 const testFiles = changedFiles.filter(isTestFile);
 const behaviorFiles = changedFiles.filter(
@@ -226,7 +226,12 @@ const body = fs.readFileSync(bodyPath, 'utf8');
 // The label must carry a code block after it: a request/response or schema shape, not a sentence.
 // The Walkthrough's pseudocode fences are not proof, so the search stops where it starts.
 const WALKTHROUGH_OPEN = /<details\b[^>]*>\s*<summary\b[^>]*>\s*(?:<(?:b|strong)>\s*)?Walkthrough\b/i;
-const proofEnd = body.search(WALKTHROUGH_OPEN);
+// Blanks fenced blocks and inline code spans but keeps offsets, so prose or a code block
+// that quotes the Walkthrough summary does not cut the proof scan short.
+const blank = (block) => block.replace(/[^\n]/g, ' ');
+const maskFences = (text) =>
+  text.replace(/^[ \t]*(```|~~~)[^\n]*\n[\s\S]*?^[ \t]*\1[ \t]*$/gm, blank).replace(/`[^`\n]+`/g, blank);
+const proofEnd = maskFences(body).search(WALKTHROUGH_OPEN);
 const proofBody = proofEnd === -1 ? body : body.slice(0, proofEnd);
 const labelledBlock = (marker) => {
   const at = proofBody.search(marker);
@@ -316,7 +321,13 @@ const fromLegacy = selectorLines.flatMap((line) =>
     .map((token) => token.trim())
     .filter(Boolean),
 );
-const claimedRaw = [...fromChips, ...fromParen, ...fromLegacy];
+// The (Kind) tag right after a module bullet's bold name must be in the locked vocabulary:
+// (Backend) or (DB) is forbidden, any other unknown tag is rejected too.
+const bulletTags = [...surfacesSection.matchAll(/^[ \t]*[-*][ \t]+\*\*[^*\n]+\*\*[ \t]*\(([^)\n]+)\)/gm)].map(
+  (match) => match[1].trim(),
+);
+const unknownTags = bulletTags.filter((tag) => !ALLOWED_SURFACES.has(tag) && !FORBIDDEN_SURFACE.test(tag));
+const claimedRaw = [...fromChips, ...fromParen, ...bulletTags.filter((tag) => FORBIDDEN_SURFACE.test(tag)), ...fromLegacy];
 const claimedForbidden = claimedRaw.filter((token) => FORBIDDEN_SURFACE.test(token));
 const claimed = [...new Set(claimedRaw.filter((token) => ALLOWED_SURFACES.has(token)))];
 const pathClasses = {
@@ -333,6 +344,11 @@ const surfacesReasons = [];
 if (claimedForbidden.length > 0) {
   surfacesReasons.push(
     `stamped forbidden surface name(s) ${claimedForbidden.join(', ')} — never invent backend/DB surface names`,
+  );
+}
+if (unknownTags.length > 0) {
+  surfacesReasons.push(
+    `unknown module kind tag(s) ${unknownTags.join(', ')} — use (Endpoint), (Schema), (UI), (CLI), (MCP), or (Infra)`,
   );
 }
 if (claimed.includes('Infra') && productClaimed.length > 0) {
@@ -470,7 +486,6 @@ const RISK_RANK = { '🔴': 0, '🟡': 1, '🟢': 2 };
 // Balanced <details> matching, so a nested <details> inside a group does not end the section.
 // Tags inside fenced code are text (pseudocode may mention <details>), so mask fences first;
 // masking keeps offsets so slices of the original text stay aligned.
-const maskFences = (text) => text.replace(/^[ \t]*(```|~~~)[^\n]*\n[\s\S]*?^[ \t]*\1[ \t]*$/gm, (block) => block.replace(/[^\n]/g, ' '));
 const findWalkthrough = (text) => {
   const tags = [...maskFences(text).matchAll(/<details\b[^>]*>|<\/details\s*>/gi)];
   for (let i = 0; i < tags.length; i += 1) {
@@ -586,7 +601,9 @@ const problemSection = (() => {
   const match = maskFences(body).match(/^##[ \t]+What Problem This Solves[ \t]*$([\s\S]*?)(?=^##[ \t]|<details\b|$(?![\s\S]))/im);
   return match ? match[1].replace(/<!--[\s\S]*?-->/g, '') : '';
 })();
-const problemLinkReasons = pinReasons(walkthroughLinks(problemSection).filter(isRepoFileLink));
+// Embedded images and video are Before/After proof, checked by the media rule; only links count.
+const problemProse = problemSection.replace(/!\[[^\]\n]*\]\([^)\n]*\)/g, '').replace(/<(?:img|video|source|track)\b[^>]*>/gi, '');
+const problemLinkReasons = pinReasons(walkthroughLinks(problemProse).filter(isRepoFileLink));
 const problemLinks = { ok: problemLinkReasons.length === 0, reasons: problemLinkReasons };
 const walkthrough = {
   ok: walkthroughReasons.length === 0,
