@@ -360,16 +360,21 @@ and request only the authority needed to unblock it. Do not force it through a
 regression-and-code-fix path.
 
 **Failure baseline.** Classify every failing check before any edit, with
-`scripts/classify-failures.mjs` fed the failing checks and the base branch's
-latest completed run for the same workflow (`gh run list --branch <base>
---workflow <wf> --status completed -L 1`, `gh run view <id> --json jobs,url,conclusion`).
-No completed base run: run only that failing test at the merge-base in a
-temporary worktree; never the full suite. No baseline at all is **Unknown**, never a guess.
-- **New** — fix and retry it in this PR (the path below).
+`scripts/classify-failures.mjs` fed the failing test names per job and the base
+branch's latest completed run for the same workflow whose conclusion is
+`success` or `failure` (`gh run list --branch <base> --workflow <wf> --status
+completed -L 20 --json databaseId,conclusion,headSha,url`, `gh run view <id>
+--json jobs`). Use that run only when `git merge-base --is-ancestor <mergeBase>
+<headSha>` holds. Otherwise run only that failing test at the merge-base in a
+temporary worktree, recording the OS and browsers present; never the full suite.
+No baseline at all is **Unknown**, never a guess. Renamed or matrix-reshaped
+jobs are Unknown. Environment needs an allowlisted reason plus its log line.
+- **New** (exit 1) — fix and retry it in this PR (the path below).
 - **Already failing on base** — report it with the base run link; do not fix it
   in this PR and do not rerun it. Suggest a separate follow-up.
 - **Environment** — report it with the evidence; do not fix it in this PR.
-- **Unknown** — rerun it exactly once; if still red, report it as Unknown.
+- **Unknown** (exit 3) — rerun it exactly once; if still red, report it as
+  Unknown and stop. Unknown blocks done: never report merge-ready over it.
 Base and Environment failures do not count against the done-predicate as
 PR-owned work: when only those remain, report them and stop the repair loop
 instead of watching for them to turn green.
