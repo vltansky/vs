@@ -63,6 +63,15 @@ function repoWithBranch(files: string[]) {
   return dir;
 }
 
+// Like repoWithChanges, but the first commit after the merge-base has `subject`.
+function repoWithBranchFirst(subject: string) {
+  const dir = repoWithChanges(['src/server/auth.ts']);
+  git(dir, 'commit', '-q', '--amend', '-m', subject);
+  fs.appendFileSync(path.join(dir, 'src/server/auth.ts'), 'more\n');
+  git(dir, 'commit', '-qam', 'feat: follow-up');
+  return dir;
+}
+
 // Bodies written for other duties get the Walkthrough appended as their last section, the
 // way ship-it writes it; the Walkthrough cases below call rawGate to control it exactly.
 function gate(cwd: string, body: string, ...flags: string[]) {
@@ -812,7 +821,9 @@ describe('pr-media-gate Tests block', () => {
       ['Root cause: <mechanism that made the bug happen>', 'a <placeholder>'],
       ['Root cause: TBD after the timer investigation', 'TBD/TODO/unknown/N/A'],
       ['Root cause: TODO find the real cause here', 'TBD/TODO/unknown/N/A'],
-      ['Root cause: unknown, still under investigation now', 'TBD/TODO/unknown/N/A'],
+      ['Root cause: unknown', 'TBD/TODO/unknown/N/A'],
+      ['Root cause: root cause unknown', 'TBD/TODO/unknown/N/A'],
+      ['Root cause: Unknown root cause.', 'TBD/TODO/unknown/N/A'],
       ['Root cause: N/A', 'TBD/TODO/unknown/N/A'],
       ['Root cause: timer bug', 'fewer than 4 words'],
     ]) {
@@ -832,19 +843,44 @@ describe('pr-media-gate Tests block', () => {
     expect(gate(branchRepo, problem(''), '--bugfix=false').status).toBe(0);
     expect(gate(branchRepo, problem(''), '--bugfix', 'false').status).toBe(0);
 
+    for (const b of ['hotfix/token-expiry', 'vlad/fix-refresh', 'fix-refresh']) {
+      const hot = repoWithChanges(['src/server/auth.ts']);
+      git(hot, 'branch', '-m', b);
+      expect(gate(hot, problem('')).json.rootCause, b).toMatchObject({ bugfix: true, source: `branch ${b}` });
+    }
     for (const subject of ['fix: refresh after sleep', 'fix(auth): refresh after sleep', 'fix!: drop stale token']) {
-      const commitRepo = repoWithChanges(['src/server/auth.ts']);
-      fs.writeFileSync(path.join(commitRepo, 'src/server/auth.ts'), 'v2\n');
-      git(commitRepo, 'commit', '-qam', subject);
+      const commitRepo = repoWithBranchFirst(subject);
       const c = gate(commitRepo, problem(''));
       expect(c.status, subject).toBe(1);
-      expect(c.json.rootCause.source, subject).toBe(`commit "${subject}"`);
+      expect(c.json.rootCause.source, subject).toBe(`first commit "${subject}"`);
     }
+    for (const title of ['fix: refresh after sleep', 'fix(auth): stale token']) {
+      const t = gate(repoWithChanges(['src/server/auth.ts']), problem(''), '--title', title);
+      expect(t.json.rootCause, title).toMatchObject({ bugfix: true, source: `title "${title}"` });
+    }
+    expect(gate(repoWithChanges(['src/server/auth.ts']), problem(''), '--title=feat: new export').json.rootCause.bugfix).toBe(false);
     const plain = repoWithChanges(['src/server/auth.ts']);
     expect(gate(plain, problem('')).json.rootCause).toMatchObject({ bugfix: false, source: null });
     const prefix = repoWithChanges(['src/server/auth.ts']);
     git(prefix, 'branch', '-m', 'prefix-fixes');
     expect(gate(prefix, problem('')).json.rootCause.bugfix).toBe(false);
+  });
+
+  it('a feature PR with later fix: commits (CI repair, lint) is not a bugfix', () => {
+    const cwd = repoWithChanges(['src/server/auth.ts']);
+    for (const subject of ['fix: resolve CI failure in Validate', 'fix: lint after review']) {
+      fs.appendFileSync(path.join(cwd, 'src/server/auth.ts'), `${subject}\n`);
+      git(cwd, 'commit', '-qam', subject);
+    }
+    const r = gate(cwd, problem(''));
+    expect(r.status).toBe(0);
+    expect(r.json.rootCause).toMatchObject({ bugfix: false, source: null });
+  });
+
+  it('a real mechanism that mentions "unknown" passes', () => {
+    const r = gate(repoWithChanges(['src/server/auth.ts']), problem('\nRoot cause: parser maps unknown locale to en silently\n'), '--bugfix');
+    expect(r.status).toBe(0);
+    expect(r.json.rootCause.present).toBe(true);
   });
 
   it('--bugfix <bool> after a space never eats the body path', () => {

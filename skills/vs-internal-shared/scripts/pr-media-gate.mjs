@@ -4,7 +4,7 @@
 // schema changes with no contract proof, Surfaces claim↔path mismatches, or changed tests
 // with no ## Tests block.
 //
-//   node pr-media-gate.mjs <body-file> [--base <ref>] [--frontend <regex>] [--api <regex>] [--schema <regex>] [--tests <regex>] [--head <ref>] [--template <path>] [--bugfix[=true|false]]
+//   node pr-media-gate.mjs <body-file> [--base <ref>] [--frontend <regex>] [--api <regex>] [--schema <regex>] [--tests <regex>] [--head <ref>] [--template <path>] [--title <PR title>] [--bugfix[=true|false]]
 //
 // Reads git (which paths changed against the base) and the body text. It never opens the
 // media, so it costs the model no context. Exit codes match check-visual-evidence.mjs:
@@ -27,7 +27,7 @@
 //      line) or checklist item is missing from the body, or a section is out of template order,
 //      or a repo file link under What Problem This Solves is not pinned to the --head SHA
 //      or the Tests block's Not covered line is neither `none` nor followed by `- [ ]` reviewer
-//      checkboxes (or has a ticked box), or the PR is a bugfix (--bugfix, a fix/ branch, or a fix: commit;
+//      checkboxes (or has a ticked box), or the PR is a bugfix (--bugfix, a fix/ fix- hotfix/ branch, a fix: --title, or a fix: FIRST commit;
 //      --bugfix=false opts out) and What Problem This Solves has no real `Root cause:` line
 //      (no <placeholder>, TBD/TODO/unknown/N/A, at least 4 words)
 //   2  not checked: body missing, git cannot resolve the base, or --template is unreadable or has no sections
@@ -122,7 +122,7 @@ const notChecked = (reason) => {
   process.exit(2);
 };
 
-const VALUE_FLAGS = new Set(['--base', '--frontend', '--api', '--schema', '--tests', '--head', '--template']);
+const VALUE_FLAGS = new Set(['--base', '--frontend', '--api', '--schema', '--tests', '--head', '--template', '--title']);
 // `--flag=value` is the same as `--flag value`; an empty `--flag=` is a missing value.
 const args = process.argv.slice(2).flatMap((arg) => {
   const eq = arg.match(/^(--[\w-]+)=(.*)$/s);
@@ -642,14 +642,25 @@ warnings.push(...walkthroughWarnings);
 const ROOT_CAUSE = /^[ \t]*(?:\*\*Root cause:?\*\*:?|__Root cause:?__:?|Root cause:)[ \t]*(.*)$/im;
 const problemText = section('What Problem This Solves') ?? '';
 const rootCauseMatch = problemText.match(ROOT_CAUSE);
-const FIX_BRANCH = /(?:^|\/)fix[\/-]/i;
+// Bugfix detection: the branch name, the PR title (--title, else `gh pr view` when it
+// answers), or the FIRST commit subject after the merge-base. Later `fix:` commits
+// (CI repairs, review fixes) on a feature branch never make it a bugfix.
+const FIX_BRANCH = /(?:^|\/)(?:hot)?fix[\/-]/i;
 const FIX_SUBJECT = /^fix(?:\([^)]*\))?!?:/i;
+const prTitle = () => {
+  const given = flag('--title', null);
+  if (given !== null) return given;
+  const gh = spawnSync('gh', ['pr', 'view', '--json', 'title', '--jq', '.title'], { encoding: 'utf8', timeout: 5000 });
+  return gh.status === 0 ? gh.stdout.trim() || null : null;
+};
 const detectBugfix = () => {
   const branch = git('rev-parse', '--abbrev-ref', headFlag ?? 'HEAD').stdout.trim();
   if (branch && branch !== 'HEAD' && FIX_BRANCH.test(branch)) return `branch ${branch}`;
-  const log = git('log', '--format=%s', `${base}..${headSha}`);
-  const subject = log.status === 0 ? log.stdout.split('\n').find((line) => FIX_SUBJECT.test(line)) : undefined;
-  return subject ? `commit "${subject}"` : null;
+  const title = prTitle();
+  if (title && FIX_SUBJECT.test(title)) return `title "${title}"`;
+  const log = git('log', '--reverse', '--format=%s', `${base}..${headSha}`);
+  const first = log.status === 0 ? log.stdout.split('\n')[0] : '';
+  return first && FIX_SUBJECT.test(first) ? `first commit "${first}"` : null;
 };
 const detected = bugfixFlag === null ? detectBugfix() : null;
 const bugfix = bugfixFlag ?? Boolean(detected);
@@ -658,7 +669,7 @@ const rootProblem = !rootCauseMatch
   ? 'missing'
   : /<[^>]*>/.test(rootText)
     ? 'a <placeholder>'
-    : /\b(?:TBD|TODO|unknown)\b|^N\/?A\.?$/i.test(rootText)
+    : /\b(?:TBD|TODO)\b/i.test(rootText) || /^(?:unknown|root cause unknown|unknown root cause|cause unknown|N\/?A)\.?$/i.test(rootText)
       ? 'TBD/TODO/unknown/N/A'
       : (rootText.match(/[\p{L}\p{N}]+/gu) ?? []).length < 4
         ? 'fewer than 4 words'

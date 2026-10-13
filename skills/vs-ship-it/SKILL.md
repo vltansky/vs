@@ -189,8 +189,9 @@ Door/Blast bullets. **What Was Done** names the fix and cause in short bullets
 but does not substitute for those proofs.
 
 **Root cause (bugfix PRs only).** A PR is a bugfix when the branch starts
-with `fix/` (or `<user>/fix-`), a commit subject on the branch has the `fix:` /
-`fix(<scope>):` conventional prefix, the linked issue is labeled `bug`, or
+with `fix/`, `fix-`, or `hotfix/` (also after `<user>/`), the PR title or the
+FIRST commit subject after the merge-base has the `fix:` / `fix(<scope>):`
+conventional prefix, the linked issue is labeled `bug`, or
 ship-it was entered from a `/vs-bugfix` handoff. For a bugfix, add one line
 after the STE scenario (and after the Refs/spec line): `Root cause: <mechanism>`
 — what in the code made the bug happen, at least 4 words, never a `<…>`
@@ -198,7 +199,8 @@ placeholder or TBD/TODO/unknown/N/A. From a `/vs-bugfix` handoff, reuse its
 `**Root cause:**` sentence as is. This is the only place in **What Problem This
 Solves** where mechanism is allowed; the scenario itself still has no How.
 Non-bug PRs skip the line. `pr-media-gate.mjs` auto-detects a bugfix from the
-head branch and commit subjects; pass `--bugfix` for a bug-label or vs-bugfix
+head branch, `--title "<PR title>"` (ship-it always passes it), or the first
+commit subject; later `fix:` commits (CI repairs, review fixes) never count; pass `--bugfix` for a bug-label or vs-bugfix
 handoff, and `--bugfix=false` only when a `fix` name is not a bug fix.
 A repo `--template` with no **What Problem This Solves** section: put the
 `Root cause:` line in the template's description section (the gate still needs
@@ -791,7 +793,7 @@ Then run the proof gate on the body file. It reads git and the body, never the
 media, and refuses a PR that shows nothing:
 
 ```bash
-node <vs-internal-shared>/scripts/pr-media-gate.mjs "$BODY_FILE" --base origin/<base> [--template <repo PR template>] [--bugfix]
+node <vs-internal-shared>/scripts/pr-media-gate.mjs "$BODY_FILE" --base origin/<base> --title "<PR title>" [--template <repo PR template>] [--bugfix]
 ```
 
 Run it against the `origin/<base>` fetched in Step 1, never a stale local ref.

@@ -31,7 +31,7 @@ function problems(skill: string, gate: string, bugfix = BUGFIX): string[] {
   if (!/write `\*\*Not covered:\*\* none` with\s+no boxes/.test(box)) out.push('none path has boxes or is missing');
   if (!/Never tick a box yourself/.test(box)) out.push('agent may tick boxes');
   if (!/- \*\*Not covered:\*\*\n  - \[ \] </.test(tests)) out.push('template Not covered is not a checklist');
-  if (!/branch starts\s+with `fix\/`/.test(root) || !/`fix:` \/\s+`fix\(<scope>\):` conventional prefix/.test(root) || !/labeled `bug`/.test(root))
+  if (!/branch starts\s+with `fix\/`, `fix-`, or `hotfix\/`/.test(root) || !/`fix:` \/ `fix\(<scope>\):`\s+conventional prefix/.test(root) || !/labeled `bug`/.test(root))
     out.push('bugfix detection incomplete');
   if (!/after the STE scenario/.test(root) || !/`Root cause: <mechanism>`/.test(root)) out.push('root cause line not after scenario');
   if (!/only place in \*\*What Problem This\s+Solves\*\* where mechanism is allowed;\s+the scenario itself still has no How/.test(root))
@@ -42,7 +42,10 @@ function problems(skill: string, gate: string, bugfix = BUGFIX): string[] {
   if (!/ship-it was entered from a `\/vs-bugfix` handoff/.test(root) || !/reuse its\s+`\*\*Root cause:\*\*` sentence as is/.test(root))
     out.push('vs-bugfix handoff not a bugfix');
   if (!/at least 4 words, never a `<…>`\s+placeholder or TBD\/TODO\/unknown\/N\/A/.test(root)) out.push('placeholder root cause allowed');
-  if (!/auto-detects a bugfix from the\s+head branch and commit subjects/.test(root) || !/`--bugfix=false` only when/.test(root)) out.push('no auto-detect or opt-out');
+  if (!/FIRST commit subject after the merge-base/.test(root) || !/later `fix:` commits \(CI repairs, review fixes\) never count/.test(root))
+    out.push('any fix: commit makes a bugfix');
+  if (!/--title "<PR title>" \[--template/.test(skill)) out.push('ship-it does not pass the PR title');
+  if (!/auto-detects a bugfix from the\s+head branch, `--title "<PR title>"`/.test(root) || !/`--bugfix=false` only when/.test(root)) out.push('no auto-detect or opt-out');
   if (!/`--template` with no \*\*What Problem This Solves\*\* section/.test(root) || !/Note: Root cause skipped: <template constraint>/.test(root))
     out.push('template without What Problem not handled');
   if (!/convert the text to `- \[ \]` reviewer checkboxes, or to\s+`none`, before updating/.test(skill)) out.push('refresh does not convert old Not covered');
@@ -55,8 +58,12 @@ function problems(skill: string, gate: string, bugfix = BUGFIX): string[] {
   if (!/\^--bugfix\(\?:=\(\.\*\)\)\?\$/.test(gate)) out.push('gate rejects --bugfix=value');
   if (!/value = next;\n\s+flagValueAt\.add\(index \+ 1\)/.test(gate) || !/BOOL_TRUE\.test\(next\) \|\| BOOL_FALSE\.test\(next\)/.test(gate))
     out.push('gate rejects --bugfix <value> or eats the body');
+  if (!/'--reverse', '--format=%s'/.test(gate) || !/log\.stdout\.split\('\\n'\)\[0\]/.test(gate)) out.push('gate scans every commit');
+  if (!/\(\?:hot\)\?fix/.test(gate)) out.push('gate misses hotfix/');
+  if (!/flag\('--title', null\)/.test(gate) || !/'--title'\]\);/.test(gate)) out.push('gate has no --title');
+  if (/\\b\(\?:TBD\|TODO\|unknown\)\\b/.test(gate)) out.push('gate rejects any mention of unknown');
   if (!/const bugfix = bugfixFlag \?\? Boolean\(detected\)/.test(gate) || !/FIX_BRANCH = /.test(gate) || !/FIX_SUBJECT = /.test(gate)) out.push('gate does not auto-detect');
-  if (!/<\[\^>\]\*>\/\.test\(rootText\)/.test(gate) || !/TBD\|TODO\|unknown/.test(gate) || !/\.length < 4/.test(gate)) out.push('gate accepts placeholder root cause');
+  if (!/<\[\^>\]\*>\/\.test\(rootText\)/.test(gate) || !/TBD\|TODO\)/.test(gate) || !/\^\(\?:unknown\|root cause unknown\|unknown root cause/.test(gate) || !/\.length < 4/.test(gate)) out.push('gate accepts placeholder root cause');
   if (!/if \(ticked\) return \{ ok: false/.test(gate)) out.push('gate accepts ticked boxes');
   return out;
 }
@@ -73,7 +80,14 @@ const mutants: Record<string, (p: P) => P> = {
   'vs-bugfix handoff not a bugfix': ([s, g]) => [s.replace(', or\nship-it was entered from a `/vs-bugfix` handoff', ''), g],
   'handoff root cause rewritten': ([s, g]) => [s.replace('reuse its\n`**Root cause:**` sentence as is', 'write a new root cause'), g],
   'placeholder root cause allowed': ([s, g]) => [s.replace('at least 4 words, never a `<…>`\nplaceholder or TBD/TODO/unknown/N/A', 'any text'), g],
-  'no auto-detect in skill': ([s, g]) => [s.replace('auto-detects a bugfix from the\nhead branch and commit subjects', 'needs the flag'), g],
+  'no auto-detect in skill': ([s, g]) => [s.replace('auto-detects a bugfix from the\nhead branch', 'needs the flag'), g],
+  'any fix: commit is a bugfix (skill)': ([s, g]) => [s.replace('the PR title or the\nFIRST commit subject after the merge-base', 'any commit subject').replace('; later `fix:` commits (CI repairs, review fixes) never count', ''), g],
+  'skill drops hotfix': ([s, g]) => [s.replace(', or `hotfix/`', ''), g],
+  'ship-it omits --title': ([s, g]) => [s.replace(' --title "<PR title>" [--template', ' [--template'), g],
+  'gate scans every commit': ([s, g]) => [s, g.replace("log.stdout.split('\\n')[0]", "log.stdout.split('\\n').find((l) => FIX_SUBJECT.test(l))")],
+  'gate misses hotfix': ([s, g]) => [s, g.replace('(?:hot)?fix[', 'fix[')],
+  'gate drops --title': ([s, g]) => [s, g.replace(", '--template', '--title']);", ", '--template']);")],
+  'gate rejects any unknown mention': ([s, g]) => [s, g.replace('/\\b(?:TBD|TODO)\\b/i', '/\\b(?:TBD|TODO|unknown)\\b/i')],
   'template without What Problem ignored': ([s, g]) => [s.replace(/A repo `--template` with no[\s\S]*?<template constraint>` line\.\n/, ''), g],
   'refresh keeps old Not covered': ([s, g]) => [s.replace(/ When that rerun fails on an older body[\s\S]*?before updating\./, ''), g],
   'vs-bugfix drops root cause': ([s, g]) => [s, g, BUGFIX.replace(/ as a bugfix: it reuses[^\n]*/, '')],
