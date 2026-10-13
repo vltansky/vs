@@ -145,9 +145,9 @@ problem without inventing business impact; omit inapplicable optional detail.
 
 **TL;DR first.** The first thing in every PR body is a two-line TL;DR, above
 Merge risk. Line 1 says what changes and for whom; line 2 says the effect or
-result. Write exactly 2 short plain lines (20 words or fewer each) in STE
-style, with no heading or only a lone `**TL;DR**` label above them. No links,
-no code, no badges, no HTML, no list markers. Do not echo the PR title: say
+result. Write exactly 2 short plain lines (3 to 20 words each) in STE
+style, with no heading or only a lone `**TL;DR**` label above them. No links (not even a bare `github.com/…`),
+no code, no badges, no HTML, no list markers, no bold or italic inside the lines. Do not echo the PR title: say
 what it means for the reader. With a repo template, the TL;DR still goes
 first, before the template content. `pr-media-gate.mjs` fails a body whose
 first non-empty content is not this block.
@@ -714,7 +714,10 @@ unresolvable head exits 2 (not checked); pass `--head <ref>`. Refresh the links 
 them to the new head SHA, rerun `pr-media-gate.mjs` on the body, then update the
 PR body. When that rerun fails on an older body's inline `Not covered: <text>`
 (breaking since 1.23.0), convert the text to `- [ ]` reviewer checkboxes, or to
-`none`, before updating. A body whose links pin an old head is a stale body.
+`none`, before updating. When that rerun reports the TL;DR missing or invalid
+(breaking since 1.24.0), write two TL;DR lines from the existing body — line 1
+from **What Problem This Solves**, line 2 from **What Was Done** — prepend them
+above everything else, rerun the gate, and update only when it passes. A body whose links pin an old head is a stale body.
 
 ### Step 3: Prepare screenshots and video
 

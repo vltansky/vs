@@ -694,17 +694,22 @@ const tldr = (() => {
   const labeled = block.length > 0 && /^\*\*TL;DR\*\*:?$/i.test(block[0]);
   const content = labeled ? block.slice(1) : block;
   const reasons = [];
-  if (!content.length || /^(?:#{1,6}[ \t]|<(?!\/?[a-z]*>)|<img|<details|<!--)/i.test(content[0]))
+  // Not a TL;DR candidate: a heading, HTML, a list/quote/table row, or a bold/italic-led
+  // line (`**Before** …`, `**Door:**`). Those bodies have no TL;DR at all: report missing.
+  const NOT_CANDIDATE = /^(?:#{1,6}[ \t]|<|[-*+>|][ \t]|\d+[.)][ \t]|\*\*|__|[*_](?=\S))/;
+  if (!content.length || NOT_CANDIDATE.test(content[0]))
     return { ok: false, labeled, lines: 0, reasons: ['missing: the body must start with a two-line TL;DR, before Merge risk and any repo template'] };
   if (content.length !== 2) reasons.push(`has ${content.length} line(s); write exactly 2`);
   content.forEach((line, n) => {
     const at = `line ${n + 1}`;
     if (/^(?:#{1,6}[ \t]|[-*+>|][ \t]|\d+[.)][ \t])/.test(line)) reasons.push(`${at} is a heading, list, quote, or table row; write plain text`);
-    if (/\]\(|https?:\/\/|<a\b/i.test(line)) reasons.push(`${at} has a link`);
+    if (/\]\(|https?:\/\/|<a\b|\b[\w-]+(?:\.[\w-]+)+\/\S*/i.test(line)) reasons.push(`${at} has a link`);
+    if (/\*\*|__|(?:^|[\s(])[*_](?=\S)[^*_\n]*\S[*_](?=$|[\s.,;:!?)])/.test(line)) reasons.push(`${at} has bold or italic markup; write plain text`);
     if (/`/.test(line)) reasons.push(`${at} has code`);
     if (/<img\b|!\[/i.test(line)) reasons.push(`${at} has a badge or image`);
     if (/<[a-z][^>]*>/i.test(line) && !/<img\b|<a\b/i.test(line)) reasons.push(`${at} has HTML`);
     const words = (line.match(/[\p{L}\p{N}]+/gu) ?? []).length;
+    if (words < 3) reasons.push(`${at} has ${words} word(s); write at least 3`);
     if (words > 20) reasons.push(`${at} has ${words} words; keep it under 21`);
   });
   const norm = (t) => String(t).toLowerCase().replace(/^[a-z]+(?:\([^)]*\))?!?:\s*/, '').replace(/[^\p{L}\p{N}]+/gu, ' ').trim();

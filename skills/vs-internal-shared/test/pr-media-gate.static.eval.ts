@@ -1446,12 +1446,34 @@ describe('pr-media-gate requires a two-line TL;DR first', () => {
       ['<img alt="Two-way door" src="https://x/badge.svg">', /badge|link/],
       ['Status is <b>green</b> now.', /has HTML/],
       ['- Reviewers see the effect.', /list/],
+      ['Docs live at github.com/vltansky/vs/blob/main/x.md now.', /has a link/],
+      ['See docs.example.io/tldr for the rule.', /has a link/],
+      ['Reviewers see **what** changed first.', /bold or italic/],
+      ['Reviewers see _what_ changed first.', /bold or italic/],
+      ['Reviewers see *what* changed first.', /bold or italic/],
+      ['🚀 ✅', /0 word\(s\); write at least 3/],
+      ['Faster reviews.', /2 word\(s\); write at least 3/],
       ['One two three four five six seven eight nine ten eleven twelve thirteen fourteen fifteen sixteen seventeen eighteen nineteen twenty twentyone.', /words/],
     ] as const) {
       const r = run(`${L1}\n${line2}\n\n`);
       expect(r.status, line2).toBe(1);
       expect(r.stderr, line2).toMatch(why);
     }
+  });
+
+  it('reports missing, not a line count, when the first block is not a TL;DR candidate', () => {
+    for (const first of ['**Before** 401 on refresh', '**Door:** two-way', '## Merge risk', '- a list item', '<img alt="x" src="https://x/b.svg">', '_Note_ about the PR']) {
+      const r = bareGate(repoWithChanges(['src/server/auth.ts']), `${first}\n\n${REST}`);
+      expect(r.status, first).toBe(1);
+      expect(r.json.tldr, first).toMatchObject({ ok: false, lines: 0 });
+      expect(r.stderr, first).toMatch(/missing: the body must start/);
+      expect(r.stderr, first).not.toMatch(/write exactly 2/);
+    }
+  });
+
+  it('allows the lone **TL;DR** label and a plain version number', () => {
+    expect(run(`**TL;DR**\n${L1}\n${L2}\n\n`).status).toBe(0);
+    expect(run(`${L1}\nVersion 1.24.0 ships the rule to everyone.\n\n`).status).toBe(0);
   });
 
   it('fails a line 1 that only echoes the --title', () => {
