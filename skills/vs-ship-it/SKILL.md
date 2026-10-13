@@ -188,6 +188,26 @@ Before→After — those fenced proofs stay primary alongside Surfaces chips and
 Door/Blast bullets. **What Was Done** names the fix and cause in short bullets
 but does not substitute for those proofs.
 
+**Root cause (bugfix PRs only).** A PR is a bugfix when the branch starts
+with `fix/`, `fix-`, or `hotfix/` (also after `<user>/`), the PR title or the
+FIRST commit subject after the merge-base has the `fix:` / `fix(<scope>):`
+conventional prefix, the linked issue is labeled `bug`, or
+ship-it was entered from a `/vs-bugfix` handoff. For a bugfix, add one line
+after the STE scenario (and after the Refs/spec line): `Root cause: <mechanism>`
+— what in the code made the bug happen, at least 4 words, never a `<…>`
+placeholder or TBD/TODO/unknown/N/A. From a `/vs-bugfix` handoff, reuse its
+`**Root cause:**` sentence as is. This is the only place in **What Problem This
+Solves** where mechanism is allowed; the scenario itself still has no How.
+Non-bug PRs skip the line. `pr-media-gate.mjs` auto-detects a bugfix from the
+head branch, `--title "<PR title>"` (ship-it always passes it), or the first
+commit subject; later `fix:` commits (CI repairs, review fixes) never count; pass `--bugfix` for a bug-label or vs-bugfix
+handoff, and `--bugfix=false` only when a `fix` name is not a bug fix.
+A repo `--template` with no **What Problem This Solves** section: put the
+`Root cause:` line in the template's description section (the gate still needs
+it under What Problem, so add that heading after the template), or, when the
+template forbids extra sections, pass `--bugfix=false` and say so in a
+`Note: Root cause skipped: <template constraint>` line.
+
 Examples (either perspective; pick one for the PR):
 
 - System: Agent sends `POST /api/assistant/preview` → request fails → only a browser Firebase Auth session works.
@@ -300,6 +320,11 @@ Refs #<N> · [Spec](https://github.com/<owner>/<repo>/blob/<HEAD_SHA>/<spec path
      criterion is met; no issue → no
      Closes/Refs; no spec → no link; nothing found → drop the line. -->
 
+Root cause: <mechanism that made the bug happen>
+
+<!-- Bugfix PRs only (fix/ branch, fix: prefix, or a bug issue). The only
+     line in this section that may name mechanism. Non-bug PRs drop it. -->
+
 **Before** <same-state setup and what to notice>
 
 <Hosted screenshot Markdown, a hosted video URL on its own bare line, or a
@@ -371,7 +396,8 @@ flowchart LR
 
 - `<test file or case>` — proves <behavior, not the test name restated>
 - Deleted `<test file or case>` — <behavior it no longer guards>
-- **Not covered:** <changed behavior no test exercises | none>
+- **Not covered:**
+  - [ ] <action the reviewer runs> — <expected result>
 
 <!-- From the diff only; no new runs. Omit when no test/eval file changed.
      About 5 lines max: group many tests into one line per behavior. -->
@@ -598,9 +624,14 @@ runner `include` glob, a `checks/` folder) and pass it to the gate as
   `## Tests` right before Review focus. Write one line per test file or case:
   `<path or case>` — the behavior it proves, in behavior words, not the test
   name restated. List deleted tests too, with the behavior they no longer
-  guard. End with one `**Not covered:**` line that names changed behavior no
-  test exercises, or `none`. Keep it to about 5 lines; group many tests into
-  one line per behavior.
+  guard. Keep it to about 5 lines; group many tests into one line per behavior.
+- **Reviewer checklist.** End the block with `**Not covered:**`. When changed
+  behavior has no test, leave the label alone and list it under it as `- [ ]`
+  checkboxes the reviewer must verify before merge. Each box is one concrete
+  check the human runs: the action and the expected result (`- [ ] Open
+  /settings on Safari: the save button stays enabled`), never a vague area
+  ("test auth"). When nothing needs a human, write `**Not covered:** none` with
+  no boxes. Never tick a box yourself.
 - **No-test flag.** When the diff changes behavior (product or runtime code,
   or a skill contract: `SKILL.md`, a skill `references/*.md`, `CONTEXT.md`)
   and touches zero test/eval files,
@@ -611,7 +642,8 @@ runner `include` glob, a `checks/` folder) and pass it to the gate as
   config/CI-only, and test-only PRs.
 
 `pr-media-gate.mjs` fails a body that has changed test/eval files but no
-`## Tests` block with a `Not covered:` line that names a behavior or `none`. It prints a non-blocking warning
+`## Tests` block whose `Not covered:` is `none` or the label followed by
+`- [ ]` reviewer checkboxes (inline prose after the label fails). It prints a non-blocking warning
 when behavior paths changed with no test/eval file and Review focus has no
 `No tests changed` bullet.
 
@@ -667,7 +699,9 @@ relative path, in Markdown, `<a href>`, or a bare URL) that is not
 external links (including other repositories) are allowed unpinned. An
 unresolvable head exits 2 (not checked); pass `--head <ref>`. Refresh the links at every handoff where the head moved: rewrite
 them to the new head SHA, rerun `pr-media-gate.mjs` on the body, then update the
-PR body. A body whose links pin an old head is a stale body.
+PR body. When that rerun fails on an older body's inline `Not covered: <text>`
+(breaking since 1.23.0), convert the text to `- [ ]` reviewer checkboxes, or to
+`none`, before updating. A body whose links pin an old head is a stale body.
 
 ### Step 3: Prepare screenshots and video
 
@@ -759,7 +793,7 @@ Then run the proof gate on the body file. It reads git and the body, never the
 media, and refuses a PR that shows nothing:
 
 ```bash
-node <vs-internal-shared>/scripts/pr-media-gate.mjs "$BODY_FILE" --base origin/<base> [--template <repo PR template>]
+node <vs-internal-shared>/scripts/pr-media-gate.mjs "$BODY_FILE" --base origin/<base> --title "<PR title>" [--template <repo PR template>] [--bugfix]
 ```
 
 Run it against the `origin/<base>` fetched in Step 1, never a stale local ref.

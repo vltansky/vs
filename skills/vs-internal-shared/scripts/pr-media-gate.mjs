@@ -4,7 +4,7 @@
 // schema changes with no contract proof, Surfaces claim↔path mismatches, or changed tests
 // with no ## Tests block.
 //
-//   node pr-media-gate.mjs <body-file> [--base <ref>] [--frontend <regex>] [--api <regex>] [--schema <regex>] [--tests <regex>] [--head <ref>] [--template <path>]
+//   node pr-media-gate.mjs <body-file> [--base <ref>] [--frontend <regex>] [--api <regex>] [--schema <regex>] [--tests <regex>] [--head <ref>] [--template <path>] [--title <PR title>] [--bugfix[=true|false]]
 //
 // Reads git (which paths changed against the base) and the body text. It never opens the
 // media, so it costs the model no context. Exit codes match check-visual-evidence.mjs:
@@ -26,6 +26,10 @@
 //      or --template <path> was passed and a template section (# … ###### heading or bold-label
 //      line) or checklist item is missing from the body, or a section is out of template order,
 //      or a repo file link under What Problem This Solves is not pinned to the --head SHA
+//      or the Tests block's Not covered line is neither `none` nor followed by `- [ ]` reviewer
+//      checkboxes (or has a ticked box), or the PR is a bugfix (--bugfix, a fix/ fix- hotfix/ branch, a fix: --title, or a fix: FIRST commit;
+//      --bugfix=false opts out) and What Problem This Solves has no real `Root cause:` line
+//      (no <placeholder>, TBD/TODO/unknown/N/A, at least 4 words)
 //   2  not checked: body missing, git cannot resolve the base, or --template is unreadable or has no sections
 //
 // Output is one JSON object on stdout so the caller can quote counts instead of re-reading.
@@ -118,7 +122,7 @@ const notChecked = (reason) => {
   process.exit(2);
 };
 
-const VALUE_FLAGS = new Set(['--base', '--frontend', '--api', '--schema', '--tests', '--head', '--template']);
+const VALUE_FLAGS = new Set(['--base', '--frontend', '--api', '--schema', '--tests', '--head', '--template', '--title']);
 // `--flag=value` is the same as `--flag value`; an empty `--flag=` is a missing value.
 const args = process.argv.slice(2).flatMap((arg) => {
   const eq = arg.match(/^(--[\w-]+)=(.*)$/s);
@@ -132,6 +136,26 @@ for (const [index, arg] of args.entries()) {
   const value = args[index + 1];
   if (value === undefined || value.startsWith('--')) notChecked(`${arg} needs a value.`);
   flagValueAt.add(index + 1);
+}
+// --bugfix: bare, --bugfix=<bool>, or --bugfix <bool> (true|false|1|0|yes|no). Only a
+// boolean word after a space is its value, so the body path is never eaten. Without the
+// flag the gate auto-detects a bugfix from the head branch and commit subjects.
+const BOOL_TRUE = /^(?:true|1|yes)$/i;
+const BOOL_FALSE = /^(?:false|0|no)$/i;
+let bugfixFlag = null;
+for (const [index, arg] of args.entries()) {
+  const m = arg.match(/^--bugfix(?:=(.*))?$/s);
+  if (!m) continue;
+  flagValueAt.add(index);
+  let value = m[1];
+  const next = args[index + 1];
+  if (value === undefined && next !== undefined && (BOOL_TRUE.test(next) || BOOL_FALSE.test(next))) {
+    value = next;
+    flagValueAt.add(index + 1);
+  }
+  if (value === undefined || BOOL_TRUE.test(value)) bugfixFlag = true;
+  else if (BOOL_FALSE.test(value)) bugfixFlag = false;
+  else notChecked(`--bugfix takes true or false, not "${value}".`);
 }
 const bodyPath = args.find((arg, index) => !arg.startsWith('--') && !flagValueAt.has(index));
 const flag = (name, fallback) => {
@@ -365,9 +389,32 @@ const NOT_COVERED_LABEL =
   /^[ \t]*[-*][ \t]+(?:\*\*Not covered:?\*\*:?|__Not covered:?__:?|Not covered:)(.*)$/i;
 const sectionLines = (testsSection ?? '').split('\n');
 const notCoveredLines = sectionLines.filter((line) => NOT_COVERED_LABEL.test(line));
+// Reviewer checklist: Not covered is `none`, or an empty label followed by `- [ ] <check>`
+// boxes the human runs. Inline prose after the label, or boxes after `none`, fail.
+const CHECKBOX = /^[ \t]*[-*][ \t]+\[[ xX]\][ \t]+(.*)$/;
+const TICKED = /^[ \t]*[-*][ \t]+\[[xX]\]/;
 const testLines = sectionLines.filter(
-  (line) => /^[ \t]*[-*][ \t]+\S/.test(line) && !NOT_COVERED_LABEL.test(line),
+  (line) => /^[ \t]*[-*][ \t]+\S/.test(line) && !NOT_COVERED_LABEL.test(line) && !CHECKBOX.test(line),
 );
+const checklist = (() => {
+  const at = sectionLines.findIndex((line) => NOT_COVERED_LABEL.test(line));
+  if (at === -1) return { ok: false, none: false, boxes: 0, reason: 'no Not covered line' };
+  const rest = sectionLines[at].match(NOT_COVERED_LABEL)[1].trim();
+  const after = [];
+  for (const line of sectionLines.slice(at + 1)) {
+    if (!line.trim()) { if (after.length) break; continue; }
+    if (!CHECKBOX.test(line)) break;
+    after.push(line.match(CHECKBOX)[1]);
+  }
+  const boxes = after.filter((text) => /[\p{L}\p{N}]/u.test(text)).length;
+  if (/^none\.?$/i.test(rest))
+    return after.length ? { ok: false, none: true, boxes, reason: '`none` with checkboxes' } : { ok: true, none: true, boxes: 0, reason: null };
+  if (rest) return { ok: false, none: false, boxes, reason: 'Not covered items must be `- [ ]` checkboxes, not inline text' };
+  const ticked = sectionLines.slice(at + 1, at + 1 + after.length).filter((line) => TICKED.test(line)).length;
+  if (ticked) return { ok: false, none: false, boxes, reason: `${ticked} Not covered box(es) ticked; the reviewer ticks them, not the PR author` };
+  if (!boxes || boxes !== after.length) return { ok: false, none: false, boxes, reason: 'Not covered has no `- [ ] <check>` items' };
+  return { ok: true, none: false, boxes, reason: null };
+})();
 const reviewFocus = section('Review focus') ?? '';
 const NO_TEST_FLAG = /^[ \t]*[-*][ \t]+(?:\*\*|__)?No tests changed\b/im;
 const tests = {
@@ -375,7 +422,8 @@ const tests = {
   behaviorFiles,
   section: testsSection !== null,
   lines: testLines.length,
-  notCovered: notCoveredLines.some((line) => /[\p{L}\p{N}]/u.test(line.match(NOT_COVERED_LABEL)[1])),
+  notCovered: notCoveredLines.length > 0 && checklist.ok,
+  checklist,
   noTestFlag: {
     needed: testFiles.length === 0 && behaviorFiles.length > 0,
     present: NO_TEST_FLAG.test(reviewFocus),
@@ -590,10 +638,53 @@ if (templatePath !== null) {
 }
 const templateOk = template === null || template.ok;
 warnings.push(...walkthroughWarnings);
-const valid = mediaOk && beforeAfterOk && mergeDangerOk && contractOk && surfacesOk && testsOk && walkthroughOk && templateOk && problemLinks.ok;
+// Root cause: a bugfix PR (--bugfix) has one `Root cause: <mechanism>` line under What Problem.
+const ROOT_CAUSE = /^[ \t]*(?:\*\*Root cause:?\*\*:?|__Root cause:?__:?|Root cause:)[ \t]*(.*)$/im;
+const problemText = section('What Problem This Solves') ?? '';
+const rootCauseMatch = problemText.match(ROOT_CAUSE);
+// Bugfix detection: the branch name, the PR title (--title, else `gh pr view` when it
+// answers), or the FIRST commit subject after the merge-base. Later `fix:` commits
+// (CI repairs, review fixes) on a feature branch never make it a bugfix.
+const FIX_BRANCH = /(?:^|\/)(?:hot)?fix[\/-]/i;
+const FIX_SUBJECT = /^fix(?:\([^)]*\))?!?:/i;
+const prTitle = () => {
+  const given = flag('--title', null);
+  if (given !== null) return given;
+  const gh = spawnSync('gh', ['pr', 'view', '--json', 'title', '--jq', '.title'], { encoding: 'utf8', timeout: 5000 });
+  return gh.status === 0 ? gh.stdout.trim() || null : null;
+};
+const detectBugfix = () => {
+  const branch = git('rev-parse', '--abbrev-ref', headFlag ?? 'HEAD').stdout.trim();
+  if (branch && branch !== 'HEAD' && FIX_BRANCH.test(branch)) return `branch ${branch}`;
+  const title = prTitle();
+  if (title && FIX_SUBJECT.test(title)) return `title "${title}"`;
+  const log = git('log', '--reverse', '--format=%s', `${base}..${headSha}`);
+  const first = log.status === 0 ? log.stdout.split('\n')[0] : '';
+  return first && FIX_SUBJECT.test(first) ? `first commit "${first}"` : null;
+};
+const detected = bugfixFlag === null ? detectBugfix() : null;
+const bugfix = bugfixFlag ?? Boolean(detected);
+const rootText = rootCauseMatch ? rootCauseMatch[1].replace(/[*_`]/g, ' ').trim() : '';
+const rootProblem = !rootCauseMatch
+  ? 'missing'
+  : /<[^>]*>/.test(rootText)
+    ? 'a <placeholder>'
+    : /\b(?:TBD|TODO)\b/i.test(rootText) || /^(?:unknown|root cause unknown|unknown root cause|cause unknown|N\/?A)\.?$/i.test(rootText)
+      ? 'TBD/TODO/unknown/N/A'
+      : (rootText.match(/[\p{L}\p{N}]+/gu) ?? []).length < 4
+        ? 'fewer than 4 words'
+        : null;
+const rootCause = {
+  bugfix,
+  source: bugfixFlag !== null ? 'flag' : detected,
+  present: rootProblem === null,
+  problem: bugfix ? rootProblem : null,
+};
+const rootCauseOk = !bugfix || rootCause.present;
+const valid = rootCauseOk && mediaOk && beforeAfterOk && mergeDangerOk && contractOk && surfacesOk && testsOk && walkthroughOk && templateOk && problemLinks.ok;
 
 process.stdout.write(
-  `${JSON.stringify({ valid, base, frontendFiles, apiFiles, schemaFiles, cliFiles, mcpFiles, infraFiles, images, videos, localRefs: localRefs.map((ref) => ref.url), gapStated, beforeAfter, mergeDanger, contract, surfaces, tests, walkthrough, template, problemLinks, warnings: warnings.length }, null, 2)}\n`,
+  `${JSON.stringify({ valid, base, frontendFiles, apiFiles, schemaFiles, cliFiles, mcpFiles, infraFiles, images, videos, localRefs: localRefs.map((ref) => ref.url), gapStated, beforeAfter, mergeDanger, contract, surfaces, tests, walkthrough, template, problemLinks, rootCause, warnings: warnings.length }, null, 2)}\n`,
 );
 
 if (warnings.length > 0) process.stderr.write(`${warnings.join('\n')}\n`);
@@ -660,12 +751,12 @@ const next = [
         !tests.section ? '  Missing: the "## Tests" heading.' : null,
         tests.section && tests.lines === 0 ? '  Missing: one line per changed test naming the behavior it proves.' : null,
         tests.section && !tests.notCovered
-          ? '  Missing: the "- **Not covered:** <behavior | none>" line, with `none` or a named behavior after the label.'
+          ? `  Not covered: ${tests.checklist.reason}. Write "- **Not covered:** none", or the label alone followed by "  - [ ] <concrete check the reviewer runs>" lines.`
           : null,
         '  Next: write it from the diff only. Do not run tests to fill it.',
         '    - `<test file or case>` — proves <behavior, not the test name restated>',
         '    - Deleted `<test>` — <behavior it no longer guards>',
-        '    - **Not covered:** <changed behavior no test exercises | none>',
+        '    - **Not covered:** none   (or the label alone, then "  - [ ] <check the reviewer runs>")',
         `  Changed: ${testFiles.join(', ')}`,
       ]
         .filter(Boolean)
@@ -678,6 +769,13 @@ const next = [
         '  Next: end the body with <details><summary>Walkthrough: N areas, M files</summary>, one',
         '  "### 🔴|🟡|🟢 <Area> · <risk>" group per area (riskiest first), each with a ```diff of',
         '  language-agnostic logic pseudocode (- old, + new) and head-pinned file links. No real code.',
+      ].join('\n')
+    : null,
+  !rootCauseOk
+    ? [
+        `pr-media-gate: bugfix PR (${rootCause.source}) and the What Problem This Solves Root cause line is ${rootCause.problem}.`,
+        '  Not a bugfix? pass --bugfix=false.',
+        '  Next: after the STE scenario, add one line "Root cause: <mechanism that caused the bug>".',
       ].join('\n')
     : null,
   !templateOk
