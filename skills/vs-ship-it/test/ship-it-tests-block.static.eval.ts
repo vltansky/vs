@@ -76,7 +76,7 @@ function problems(skill: string): string[] {
   const bullets = liveTests.split('\n').filter((l) => /^- /.test(l));
   fail(!bullets.some((l) => /^- `<test file or case>` — proves <behavior/.test(l)), 'template: no per-test behavior line');
   fail(!bullets.some((l) => /^- Deleted `/.test(l)), 'template: no deleted-test line');
-  fail(!bullets.some((l) => /^- \*\*Not covered:\*\* <[^>]*\| none>/.test(l)), 'template: no Not covered line with a none option');
+  fail(!/^- \*\*Not covered:\*\*\n  - \[ \] </m.test(skill), 'template: no Not covered checklist');
   fail(bullets.length > 5, `template: Tests block has ${bullets.length} lines, over the cap`);
   fail(!/From the diff only; no new runs/.test(p.tmplTests), 'template: Tests comment does not say diff-only, no runs');
   fail(!/About 5 lines max/.test(p.tmplTests), 'template: no line cap');
@@ -104,7 +104,7 @@ function problems(skill: string): string[] {
   fail(!/right before Review focus/.test(p.testsBullet), 'Tests block: placement not stated');
   fail(!/the behavior it proves, in behavior words, not the test\s+name restated/.test(p.testsBullet), 'Tests block: no behavior-not-name rule');
   fail(!/List deleted tests too/.test(p.testsBullet), 'Tests block: deleted tests not listed');
-  fail(!/one `\*\*Not covered:\*\*` line[\s\S]*?or `none`/.test(p.testsBullet), 'Tests block: no Not covered line with none');
+  fail(!/write `\*\*Not covered:\*\* none` with\s+no boxes/.test(skill), 'Tests block: no Not covered line with none');
   fail(!/about 5 lines; group many tests/.test(p.testsBullet), 'Tests block: no cap or grouping');
 
   // No-test flag bullet: Review focus, warn only, exemptions.
@@ -171,7 +171,7 @@ const MUTANTS: Array<[string, (s: string) => string]> = [
       return s.replace(block, '').replace(/(## Review focus\n[\s\S]*?)(\n````)/, `$1\n\n${block.trim()}$2`);
     },
   ],
-  ['M3 Not covered line dropped', (s) => s.replace(/^- \*\*Not covered:\*\* <changed behavior no test exercises \| none>\n/m, '')],
+  ['M3 Not covered line dropped', (s) => s.replace(/^- \*\*Not covered:\*\*\n  - \[ \] [^\n]*\n/m, '')],
   ['M4 behavior rule replaced by test-name restating', (s) => s.replace(/the behavior it proves, in behavior words, not the test\s+name restated/, 'the test name as written')],
   ['M5 rule tells the agent to run the suite', (s) => s.replace('**Why.** A reviewer', 'Run the full test suite first so the Tests block is accurate.\n\n**Why.** A reviewer')],
   [

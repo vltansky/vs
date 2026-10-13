@@ -752,21 +752,57 @@ describe('pr-media-gate Tests block', () => {
       expect(result.status, JSON.stringify(empty)).toBe(1);
       expect(result.json.tests.notCovered, JSON.stringify(empty)).toBe(false);
       expect(result.json.tests.lines, JSON.stringify(empty)).toBe(1);
-      expect(result.stderr).toMatch(/`none` or a named behavior/);
+      expect(result.stderr).toMatch(/Not covered: .*`- \[ \] <check>`|checkboxes, not inline text/);
     }
   });
 
-  it('passes a Not covered line that says none or names a behavior', () => {
+  it('passes Not covered: none, or the label followed by reviewer checkboxes', () => {
     const cwd = repoWithChanges(['src/server/auth.test.ts']);
     for (const ok of [
       '- **Not covered:** none',
-      '- **Not covered**: refresh after a network timeout',
-      '- Not covered: refresh after a network timeout',
+      '- Not covered: none',
+      '- **Not covered:**\n  - [ ] Log in, wait 15 minutes offline, reconnect: the session refreshes',
+      '- **Not covered:**\n  - [ ] Open /settings on Safari\n  - [x] Revoke a token in the admin panel',
     ]) {
       const result = gate(cwd, `${BASE_BODY}\n## Tests\n\n- \`auth.test.ts\` — proves refresh\n${ok}\n`);
       expect(result.status, JSON.stringify(ok)).toBe(0);
       expect(result.json.tests.notCovered, JSON.stringify(ok)).toBe(true);
+      expect(result.json.tests.lines, JSON.stringify(ok)).toBe(1);
     }
+  });
+
+  it('fails inline Not covered prose, none with boxes, and empty boxes', () => {
+    const cwd = repoWithChanges(['src/server/auth.test.ts']);
+    for (const [bad, why] of [
+      ['- **Not covered**: refresh after a network timeout', /checkboxes, not inline text/],
+      ['- Not covered: refresh after a network timeout', /checkboxes, not inline text/],
+      ['- **Not covered:** none\n  - [ ] Open /settings', /`none` with checkboxes/],
+      ['- **Not covered:**\n  - [ ] ', /no `- \[ \] <check>` items/],
+      ['- **Not covered:**\n  - Open /settings', /no `- \[ \] <check>` items/],
+    ] as const) {
+      const result = gate(cwd, `${BASE_BODY}\n## Tests\n\n- \`auth.test.ts\` — proves refresh\n${bad}\n`);
+      expect(result.status, JSON.stringify(bad)).toBe(1);
+      expect(result.stderr, JSON.stringify(bad)).toMatch(why);
+    }
+  });
+
+  it('--bugfix requires a Root cause line under What Problem This Solves', () => {
+    const cwd = repoWithChanges(['src/server/auth.ts']);
+    const problem = (extra: string) => `## What Problem This Solves\n\nUser refreshes → token expired → 401.\n${extra}\n${BASE_BODY}`;
+    const body = problem('');
+    const withRoot = problem('\nRoot cause: the refresh timer used wall-clock time, so sleep skipped it.\n');
+    expect(gate(cwd, body).status).toBe(0);
+    expect(gate(cwd, body, '--bugfix=false').status).toBe(0);
+    for (const f of ['--bugfix', '--bugfix=true', '--bugfix=1']) {
+      const r = gate(cwd, body, f);
+      expect(r.status, f).toBe(1);
+      expect(r.json.rootCause).toEqual({ bugfix: true, present: false });
+      expect(r.stderr).toMatch(/Root cause: <mechanism/);
+      expect(gate(cwd, withRoot, f).status, f).toBe(0);
+    }
+    expect(gate(cwd, problem('\n**Root cause:**\n'), '--bugfix').status).toBe(1);
+    expect(gate(cwd, body + '\n## Notes\n\nRoot cause: elsewhere\n', '--bugfix').status).toBe(1);
+    expect(gate(cwd, body, '--bugfix=maybe').status).toBe(2);
   });
 
   it('does not count a Tests block that lives only in an HTML comment', () => {
