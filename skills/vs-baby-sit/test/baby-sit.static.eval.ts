@@ -133,16 +133,8 @@ describe('vs-baby-sit remote-first validation', () => {
     expect(SKILL).toMatch(/resume the same\s+watcher after the approved writes/i);
   });
 
-  it('reflects babysitting state in the host thread title when supported', () => {
-    expect(SKILL).toContain('set_thread_title');
-    expect(SKILL).toContain('[babysit]');
-    expect(SKILL).toContain('[ready]');
-    expect(SKILL).toMatch(/replace the existing workflow\s+prefix/);
-    expect(SKILL).toMatch(/preserve the rest of the current title verbatim/i);
-    expect(SKILL).toMatch(/Never rename a thread to the prefix alone/);
-    expect(SKILL).toMatch(/If the current title\s+cannot\s+be read.*skip renaming/s);
-    expect(SKILL).toMatch(/Re-read the live title immediately before every rename/);
-    expect(SKILL).not.toMatch(/`PR #<N> — <PR title>`/);
+  it('never renames the host thread', () => {
+    expect(SKILL).not.toMatch(/set_thread_title|\[babysit\]|\[ready\]|thread title/i);
   });
 
   it('sends a newly available PR preview deployment', () => {
