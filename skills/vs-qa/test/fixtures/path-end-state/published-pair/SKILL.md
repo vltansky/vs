@@ -753,7 +753,8 @@ file) instead of guessing launch. QA still explores user-visible behavior; it
 uses the map for launch, doctor, and drive. When the map is missing, generate
 once per
 [`../vs-internal-shared/references/verify-map.md`](../vs-internal-shared/references/verify-map.md)
-into the project. Do not grow a factory here.
+into the project. If a mapped step no longer matches the app, run the maintain
+pass in that contract. Do not grow a factory here.
 
 ## Rules
 

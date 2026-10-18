@@ -78,7 +78,8 @@ When `.vs/verify-map/` exists, read Launch and Doctor (and the relevant feature
 file) before claiming PASS — do not guess launch. When it is missing, generate
 once per
 [`../vs-internal-shared/references/verify-map.md`](../vs-internal-shared/references/verify-map.md)
-into the project. Keep this skill a cheapest-sufficient claim checker; the
+into the project. If a mapped step no longer matches the app, run the maintain
+pass in that contract. Keep this skill a cheapest-sufficient claim checker; the
 factory lives in that shared contract, not here.
 
 ## Rules
