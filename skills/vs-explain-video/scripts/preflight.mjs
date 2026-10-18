@@ -4,8 +4,9 @@
 //
 //   node preflight.mjs [<work-dir>]
 //
-// Pass the work dir to also find Playwright installed there with
-// `npm i --prefix <work-dir> playwright-core`, the same place render.mjs looks.
+// Pass the work dir to also find Playwright installed there. When nothing
+// resolves, it installs the pinned playwright-core into the skill's tool cache
+// (~/.vs/tooling), the same place render.mjs looks.
 //
 // The ElevenLabs key is reported as a boolean only. Its value is never read
 // into the report, printed, or logged.
@@ -16,17 +17,17 @@ import { existsSync } from 'node:fs';
 import { homedir } from 'node:os';
 import path from 'node:path';
 
-import { resolvePlaywright, run, which } from './media.mjs';
+import { ensurePlaywright, run, which } from './media.mjs';
 
 const pythonHas = (module) =>
   which('python3') !== null && run('python3', ['-c', `import ${module}`]).status === 0;
 
 const workDir = process.argv[2];
-const playwrightEntry = resolvePlaywright(workDir ? [path.resolve(workDir)] : []);
+const playwright = ensurePlaywright(workDir ? [path.resolve(workDir)] : []);
 const tools = {
   ffmpeg: which('ffmpeg'),
   ffprobe: which('ffprobe'),
-  playwright: playwrightEntry,
+  playwright: playwright.entry,
 };
 const kokoroDir = process.env.KOKORO_DIR ?? path.join(homedir(), '.cache', 'kokoro');
 // narrate.mjs loads both files; one without the other fails at speak time.
@@ -54,8 +55,7 @@ const ttsEngine = tts.elevenlabs.keyPresent
 const INSTALL = {
   ffmpeg: 'brew install ffmpeg  (Linux: sudo apt-get install -y ffmpeg)',
   ffprobe: 'ships with ffmpeg: brew install ffmpeg',
-  playwright:
-    'after init.mjs: npm i --prefix <work-dir> playwright-core (uses installed Chrome; keeps the project untouched) and rerun preflight.mjs <work-dir>, or set PLAYWRIGHT_MODULE=/abs/path/node_modules/playwright',
+  playwright: `auto-install did not finish (${playwright.error}). Fix that and rerun preflight.mjs, or set PLAYWRIGHT_MODULE=/abs/path/node_modules/playwright-core`,
   tts:
     'export ELEVENLABS_API_KEY in your shell (never paste it into chat), or get the free local kokoro voice: mkdir -p ~/.cache/kokoro && curl -L -o ~/.cache/kokoro/kokoro-v1.0.onnx https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files-v1.0/kokoro-v1.0.onnx && curl -L -o ~/.cache/kokoro/voices-v1.0.bin https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files-v1.0/voices-v1.0.bin  (needs uv)',
 };

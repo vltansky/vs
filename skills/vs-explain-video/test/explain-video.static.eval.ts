@@ -115,6 +115,7 @@ describe('vs-explain-video preflight', () => {
     const result = node([script('preflight.mjs')], {
       ...process.env,
       ELEVENLABS_API_KEY: 'sk-canary-should-never-print',
+      VS_EXPLAIN_VIDEO_NO_INSTALL: '1',
     });
     expect([0, 2]).toContain(result.status);
     expect(result.stdout + result.stderr).not.toContain('sk-canary-should-never-print');
@@ -155,6 +156,45 @@ describe('vs-explain-video preflight', () => {
       env: { PATH: '/nonexistent', HOME: tmpdir() },
     });
     expect(fs.realpathSync(JSON.parse(result.stdout).tools.playwright)).toBe(fs.realpathSync(path.join(pkg, 'index.js')));
+  });
+
+  it('installs the pinned playwright-core into its tool cache when nothing resolves', () => {
+    const bin = mkdtempSync(path.join(tmpdir(), 'vs-explain-video-npm-'));
+    const tooling = mkdtempSync(path.join(tmpdir(), 'vs-explain-video-tooling-'));
+    const log = path.join(bin, 'npm-args.json');
+    // Fake npm: records its args and lays down playwright-core under --prefix.
+    // A sh wrapper, because a shebang cannot hold a node path with spaces.
+    writeFileSync(path.join(bin, 'npm'), `#!/bin/sh\nexec "${process.execPath}" "$0.cjs" "$@"\n`, { mode: 0o755 });
+    writeFileSync(path.join(bin, 'npm.cjs'), `const fs = require('node:fs'); const path = require('node:path');
+const args = process.argv.slice(2);
+fs.writeFileSync(${JSON.stringify(log)}, JSON.stringify(args));
+if (args[0] !== 'install') process.exit(1);
+const pkg = path.join(args[args.indexOf('--prefix') + 1], 'node_modules', 'playwright-core');
+fs.mkdirSync(pkg, { recursive: true });
+fs.writeFileSync(path.join(pkg, 'package.json'), JSON.stringify({ name: 'playwright-core', main: 'index.js' }));
+fs.writeFileSync(path.join(pkg, 'index.js'), '');
+`);
+    const result = spawnSync(process.execPath, [script('preflight.mjs')], {
+      encoding: 'utf8',
+      cwd: tmpdir(),
+      env: { PATH: bin, HOME: tmpdir(), VS_TOOLING_DIR: tooling },
+    });
+    const report = JSON.parse(result.stdout);
+    expect(fs.realpathSync(report.tools.playwright)).toBe(
+      fs.realpathSync(path.join(tooling, 'node_modules', 'playwright-core', 'index.js')),
+    );
+    expect(report.missing.map((item: { tool: string }) => item.tool)).not.toContain('playwright');
+    expect(JSON.parse(fs.readFileSync(log, 'utf8'))).toContain('playwright-core@1.63.0');
+  });
+
+  it('names why Playwright is missing when auto-install is off', () => {
+    const result = spawnSync(process.execPath, [script('preflight.mjs')], {
+      encoding: 'utf8',
+      cwd: tmpdir(),
+      env: { PATH: '/nonexistent', HOME: tmpdir(), VS_EXPLAIN_VIDEO_NO_INSTALL: '1' },
+    });
+    const missing = JSON.parse(result.stdout).missing.find((item: { tool: string }) => item.tool === 'playwright');
+    expect(missing.install).toMatch(/VS_EXPLAIN_VIDEO_NO_INSTALL=1/);
   });
 
   it('does not count kokoro-onnx as ready without the voices file narrate needs', () => {

@@ -38,11 +38,14 @@ You write only `script.json` and `scenes.js`.
 
 ## 1. Check the tools
 
-Run `node <skill-dir>/scripts/preflight.mjs [<work-dir>]` (pass the work dir
-once it exists, so Playwright installed there counts). It prints JSON: `ttsEngine`,
-found tools, and an install hint for each missing one. Exit 2 means blocked:
-show the `next` text, offer the storyboard as a `/vs-show-me` page meanwhile,
-and stop. Do not install tools without the user's consent.
+Run `node <skill-dir>/scripts/preflight.mjs [<work-dir>]`. The skill owns its
+browser driver: when no Playwright resolves, preflight installs the pinned
+`playwright-core` into `~/.vs/tooling/` once, outside any project, and drives
+the installed Chrome. Do not ask before that install. It prints JSON:
+`ttsEngine`, found tools, and an install hint for each missing one. Exit 2
+means blocked: show the `next` text, offer the storyboard as a `/vs-show-me`
+page meanwhile, and stop. Do not install system tools (ffmpeg, voices)
+without the user's consent.
 
 ## 2. State the question and audience
 

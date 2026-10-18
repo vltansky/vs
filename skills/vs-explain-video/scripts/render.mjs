@@ -22,7 +22,7 @@ import { existsSync, mkdirSync } from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 
-import { fail, probeDuration, resolvePlaywright, which } from './media.mjs';
+import { ensurePlaywright, fail, probeDuration, which } from './media.mjs';
 
 const args = process.argv.slice(2);
 const opt = (name) => (args.includes(name) ? args[args.indexOf(name) + 1] : null);
@@ -41,8 +41,8 @@ for (const file of ['index.html', 'timeline.js', 'scenes.js', 'motion.js']) {
   }
 }
 if (!which('ffmpeg') || !which('ffprobe')) fail('ffmpeg/ffprobe missing. Run: brew install ffmpeg. Then rerun render.mjs.');
-const entry = resolvePlaywright([work]);
-if (!entry) fail(`Playwright is not resolvable. Run: npm i --prefix ${work} playwright-core (uses installed Chrome; keeps the project untouched), then rerun render.mjs.`);
+const { entry, error: playwrightError } = ensurePlaywright([work]);
+if (!entry) fail(`Playwright is not available: ${playwrightError}. Fix that and rerun render.mjs, or set PLAYWRIGHT_MODULE=/abs/path/node_modules/playwright-core.`);
 const playwright = await import(pathToFileURL(entry).href);
 const chromium = playwright.chromium ?? playwright.default?.chromium;
 
