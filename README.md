@@ -215,6 +215,7 @@ Architecture: /vs-architect -> /vs-shape-it -> /vs-build-it
 | `/vs-search-threads` | Find and diagnose Codex, Claude Code, or Cursor conversations from transcript evidence |
 | `/vs-recap` | Explain the current situation or recent changes from zero prior context, with next actions |
 | `/vs-retro` | Extract session learnings and route them to durable destinations |
+| `/vs-disk-cleanup` | Free disk space from stale agent worktrees, old `~/.vs` artifacts, and dev leftovers |
 | `/vs-try-skill` | Blind-test a skill and compare its behavior with expectations |
 
 ## Other installation options
