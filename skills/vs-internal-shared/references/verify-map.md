@@ -11,9 +11,9 @@ Ask the user only what the checkout cannot answer.
 ## When to generate
 
 If `.vs/verify-map/` is missing, generate it once from this file. If a map
-exists, consume it. A stale map gets a scratch diff in the same spirit as
-`/vs-tune-skill`: do not silently overwrite, and do not grow a factory inside
-`vs-verify` or `vs-qa`.
+exists, consume it. If a map is stale, run the [maintain pass](#maintain-pass).
+Do not silently overwrite the map. Do not grow a factory inside `vs-verify` or
+`vs-qa`.
 
 ## Interview the repo
 
@@ -67,6 +67,62 @@ driven, evidenced, and cleaned up, and the evidence still exists after cleanup.
 That live-drive-before-count rule is the handover gate. Record it in
 `.vs/verify-map/LIVE_DRIVE.md`: the feature name and the surviving evidence
 path. A map that was never live-driven does not count.
+
+## Maintain pass
+
+Use this pass to repair a stale map from evidence. Run it when one of these
+conditions is true:
+
+- A mapped step fails during `/vs-verify` or `/vs-qa`.
+- The user asks to refresh the map.
+- The diff changes a route, ARIA name, data attribute, prompt string, or
+  command that a feature file names.
+
+### 1. Read the source
+
+Start one source reader for each feature file. Run the readers in parallel.
+Each reader compares "how to get there" and "how to drive it" with the current
+code: routes, ARIA names, data attributes, prompt strings, and commands. Each
+reader reports one of two results:
+
+- **no drift:** each step agrees with the code.
+- **drift:** the file name, the stale step, the current value in the code, and
+  the source path that proves it.
+
+Also compare Launch, Doctor, and Cleanup in `README.md` with the current
+scripts. The readers do not edit files.
+
+### 2. Drive the changed features
+
+If no reader reports drift, skip this step. Otherwise, do one live pass.
+Launch, doctor, drive, evidence, and clean up each feature that has drift. Use
+the current code values, not the old map values. Keep the evidence after
+cleanup, as the [live-drive gate](#live-drive-gate) requires. Write the feature
+name and the surviving evidence path into `LIVE_DRIVE.md`.
+
+### 3. Decide what drift is
+
+The code is not always correct. Drift can be a stale map or a broken app.
+
+- If the app does what the code intends, the map is stale. Edit the map.
+- If the app does not do what the code or the user intends, the app has a
+  product regression. Report it as a product regression with the evidence.
+  Do not rewrite the map to match broken behavior. Keep the old step in the
+  map.
+
+### 4. End in one outcome
+
+The pass ends in exactly one of these three outcomes:
+
+- **clean:** no reader reported drift. Make no edits.
+- **changed:** you edited files only inside `.vs/verify-map/`. List each edited
+  file, the old step, the new step, and the evidence path from step 2.
+- **blocked:** the pass cannot finish. Name the blocker: the app does not
+  launch, Doctor fails, auth is missing, a product regression stops the drive,
+  or the evidence did not survive cleanup. Make no partial edits.
+
+A product regression is not map drift. Report it next to the outcome, not as a
+map edit. If the regression stops the live pass, the outcome is blocked.
 
 ## Output tree
 
