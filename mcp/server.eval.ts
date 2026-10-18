@@ -153,4 +153,27 @@ describe('VS MCP App', () => {
       await server.close();
     }
   });
+
+  it('passes source-backed findings and constraints through either presentation tool', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'vs-mcp-review-'));
+    const artifact = join(root, 'review.html');
+    await writeFile(artifact, '<script type="text/htmdx"># Review</script>');
+    const { client, server } = await connectedClient(root);
+    const findings = [{ id: 'validation', title: 'Repeated checks', summary: 'Broad checks repeated after a small repair.', request: 'Draft a scoped validation policy.', evidence: [{ source: 'Workflow review, turn 3', quote: 'Keep required CI unchanged.' }] }];
+    try {
+      for (const name of ['vs.show-me', 'vs.eli5']) {
+        const result = await client.callTool({ name, arguments: { path: artifact, findings, constraints: 'Draft only.' } });
+        expect(result.isError).not.toBe(true);
+        expect(result.structuredContent).toMatchObject({ findings, constraints: 'Draft only.' });
+        expect(result.content).toEqual(expect.arrayContaining([expect.objectContaining({ text: expect.stringContaining('Repeated checks') })]));
+      }
+      for (const invalid of [[...findings, ...findings], [{ ...findings[0], evidence: [] }]]) {
+        const denied = await client.callTool({ name: 'vs.show-me', arguments: { path: artifact, findings: invalid } });
+        expect(denied.isError).toBe(true);
+      }
+    } finally {
+      await client.close();
+      await server.close();
+    }
+  });
 });

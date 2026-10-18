@@ -274,6 +274,34 @@ for tools, storage, event support, and host verification limits.
 The plugin includes the bundled `vs-artifact` MCP server for `/vs-show-me` and
 `/vs-eli5`.
 
+Both presentation tools accept optional `findings` and `constraints` alongside
+the saved HTMDX `path`. Include findings when the report has concrete next
+actions for the reader to review:
+
+```json
+{
+  "path": "/absolute/path/under/.vs/workflow-review.html",
+  "reviewQuestion": "Which findings should the agent work on?",
+  "findings": [{
+    "id": "validation",
+    "title": "Small repairs repeat broad checks",
+    "summary": "The workflow reruns a broad suite after bounded repairs.",
+    "request": "Draft a scoped validation command matrix.",
+    "evidence": [{ "source": "Workflow review, turn 3", "quote": "Keep required CI unchanged." }]
+  }],
+  "constraints": "Keep required CI unchanged. Draft only."
+}
+```
+
+Use unique IDs and at least one source per finding (up to 12 findings). The App
+lets the reader select draft, investigate, disagree, or defer; add directions
+and shared constraints; then preview and explicitly confirm the request before
+sending it to the current chat. It uses the standard MCP Apps `ui/message`
+handoff, and reports host rejection or uncertain delivery. Hosts without text
+messaging get a copy/manual-paste fallback. Selecting findings does not send a
+message or authorize implementation. The Artifact tab keeps the portable HTML
+available; calls without findings retain the original display.
+
 For a flat Codex install from a local checkout, run `./install.sh --codex-flat`
 or `./install.ps1 --codex-flat` on Windows. This copies the VS skills and the
 bundled server into `CODEX_HOME` and registers `vs-artifact` with `codex mcp`.

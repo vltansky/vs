@@ -36,6 +36,7 @@
     #vs-artifact-frame { width: 100%; height: 640px; border: 0; display: block; background: white; }
     @media (max-width: 500px) { header, #filters { padding: 16px; } #catalog { padding: 0 16px 16px; } #filters { flex-direction: column; } .artifact { gap: 10px; } h1 { font-size: 19px; } }
     @media (prefers-color-scheme: dark) { :root { --paper: #192321; --ink: #e6e9e1; --line: #42524c; --accent: #8bd3bf; } .mark { color: #192321; } }
+    /* REVIEW_STYLES */
   </style>
 </head>
 <body>
@@ -44,6 +45,8 @@
   <form id="filters" role="search" hidden><input id="search" type="search" aria-label="Search artifacts" placeholder="Search artifacts"><select id="project" aria-label="Project"><option value="">All projects</option></select></form>
   <main id="catalog" aria-label="Saved artifacts" hidden></main>
   <button id="more" hidden>Load more</button>
+  <nav id="view-tabs" aria-label="Artifact views" hidden><button id="findings-tab" type="button" aria-pressed="true">Findings</button><button id="artifact-tab" type="button" aria-pressed="false">Artifact</button></nav>
+  <section id="vs-findings-review" hidden></section>
   <iframe id="vs-artifact-frame" title="VS artifact" sandbox="allow-scripts" hidden></iframe>
   <!-- APP_SCRIPT -->
 </body>

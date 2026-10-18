@@ -27,6 +27,26 @@ comments, which are not automatically imported into MCP storage.
 | `vs.resolve-comment` | Resolve or reopen existing feedback |
 | `vs.show-me`, `vs.eli5` | Existing path-based presentation |
 
+## Findings review
+
+Pass `findings` and optional `constraints` to `vs.show-me` or `vs.eli5` to show
+an actionable review beside the saved artifact. Each finding needs a unique
+`id`, `title`, `summary`, proposed `request`, and an `evidence` array containing
+at least one `{ source, quote? }` record. Up to 12 findings are accepted.
+
+Readers can choose draft, investigate, disagree or defer, add per-finding
+directions, edit shared constraints, and inspect the exact request. Review and
+send opens an explicit confirmation before the App calls `ui/message` with
+`role: user`. Host rejection and uncertain delivery remain visible. A host
+without text messaging gets a copy/manual-paste fallback. Selection alone never
+sends a message or authorizes implementation.
+
+Findings and unsent choices belong to that presentation, not the comment store.
+Reopening through the library restores durable comments; to review findings,
+present the artifact again with its findings. Artifact navigation cancels any
+pending confirmation. The Artifact tab retains the sandboxed HTML and its
+existing comment flow.
+
 ## Comment events
 
 In a host supporting MCP Events, ask: “Watch this VS artifact for new comments
@@ -66,6 +86,7 @@ npm run build:mcp
 npm run typecheck
 npm run eval:static
 npm run eval -- mcp/server.eval.ts mcp/events.eval.ts mcp/events-cancellation.eval.ts mcp/webhook.eval.ts mcp/browser.eval.ts
+npm run eval -- mcp/view.eval.ts mcp/findings.eval.ts
 ```
 
 Browser evals use `CHROME_PATH` when set, otherwise the usual Chrome path on

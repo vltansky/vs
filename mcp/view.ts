@@ -2,6 +2,8 @@ import { App } from '@modelcontextprotocol/ext-apps';
 import { artifactToolRegistryFactory, resolveQuoteStart, reviewOverlayCss, reviewOverlayFactory, reviewStorageKey, reviewToolFactory } from '../skills/vs-show-me/assets/review-overlay.mjs';
 import { installReviewBridge } from './review-bridge.ts';
 import { z } from 'zod';
+import { reviewPayloadSchema } from './findings.ts';
+import { mountReview } from './review-view.ts';
 import { commentsSchema, librarySchema, savedArtifactSchema, savedCommentSchema, presentationSchema, reviewMessageSchema, type Library, type SavedArtifact, type ToolArguments, type ReviewReply } from './contracts.ts';
 
 const element = <T extends HTMLElement,>(selector: string) => {
@@ -18,15 +20,32 @@ const project = element<HTMLSelectElement>('#project');
 const more = element<HTMLButtonElement>('#more');
 const back = element<HTMLButtonElement>('#back');
 const refresh = element<HTMLButtonElement>('#refresh');
-const app = new App({ name: 'VS artifacts', version: '1.0.0' });
+const findingsReview = element('#vs-findings-review');
+const viewTabs = element('#view-tabs');
+const findingsTab = element<HTMLButtonElement>('#findings-tab');
+const artifactTab = element<HTMLButtonElement>('#artifact-tab');
+const app = new App({ name: 'VS artifacts', version: '1.0.0' }, {}, { autoResize: true });
 const controller = new AbortController();
 const { signal } = controller;
+let disposeFindings: (() => void) | undefined;
 let selected: SavedArtifact | undefined;
 let frameSession: string;
 let nextOffset: number | null = null;
 let generation = 0;
 let debounce: ReturnType<typeof setTimeout>;
 const showStatus = (message: string) => { status.textContent = message; status.hidden = !message; };
+
+function clearFindings() {
+  // Each presentation owns its choices and pending send; navigation retires that lifetime.
+  disposeFindings?.(); disposeFindings = undefined;
+  findingsReview.replaceChildren(); findingsReview.hidden = viewTabs.hidden = true;
+}
+
+function selectView(findings: boolean) {
+  findingsReview.hidden = !findings; frame.hidden = findings;
+  findingsTab.setAttribute('aria-pressed', String(findings));
+  artifactTab.setAttribute('aria-pressed', String(!findings));
+}
 
 async function call<T>(name: string, args: ToolArguments, schema: z.ZodType<T>) {
   const result = await app.callServerTool({ name, arguments: args });
@@ -35,6 +54,7 @@ async function call<T>(name: string, args: ToolArguments, schema: z.ZodType<T>) 
 }
 
 function showLibrary(data: Library, append = false) {
+  clearFindings();
   selected = undefined;
   frame.hidden = true;
   frame.removeAttribute('srcdoc');
@@ -75,6 +95,7 @@ function showLibrary(data: Library, append = false) {
 }
 
 async function loadLibrary(append = false) {
+  clearFindings();
   const request = ++generation;
   more.disabled = true;
   showStatus('Loading artifacts…');
@@ -102,7 +123,8 @@ function reviewHtml(html: string, session: string) {
   return `${html}\n${script}`;
 }
 
-function showArtifact(data: SavedArtifact) {
+function showArtifact(data: SavedArtifact, reviewData?: unknown) {
+  clearFindings();
   ++generation;
   selected = data;
   frameSession = crypto.randomUUID();
@@ -112,9 +134,20 @@ function showArtifact(data: SavedArtifact) {
   element('#subtitle').textContent = 'Feedback saved in VS · new comments reach subscribed chats';
   showStatus('');
   frame.srcdoc = reviewHtml(data.html, frameSession);
+  if (reviewData && typeof reviewData === 'object' && 'findings' in reviewData && reviewData.findings !== undefined) {
+    const review = reviewPayloadSchema.safeParse(reviewData);
+    if (!review.success) { showStatus('The findings could not be loaded. Review the artifact instead.'); return; }
+    if (review.data.findings.length) {
+      disposeFindings = mountReview(findingsReview, review.data, app);
+      element('#title').textContent = review.data.reviewQuestion || 'Findings review';
+      element('#subtitle').textContent = 'Select findings, add constraints, then review and confirm your request';
+      viewTabs.hidden = false; selectView(true);
+    }
+  }
 }
 
 async function openArtifact(artifactId: string) {
+  clearFindings();
   const request = ++generation;
   showStatus('Opening artifact…');
   try {
@@ -126,9 +159,12 @@ async function openArtifact(artifactId: string) {
 app.ontoolresult = result => {
   const parsed = presentationSchema.safeParse(result.structuredContent);
   const data = parsed.success ? parsed.data : undefined;
-  if (data?.kind === 'library') { ++generation; showLibrary(data); }
-  else if (data?.kind === 'artifact') showArtifact(data);
-  else if (!selected) showStatus('The artifact was not available.');
+  if (!result.isError && data?.kind === 'library') { ++generation; showLibrary(data); }
+  else if (!result.isError && data?.kind === 'artifact') showArtifact(data, result.structuredContent);
+  else {
+    ++generation; clearFindings(); selected = undefined; frame.hidden = true; frame.removeAttribute('srcdoc');
+    showStatus('The artifact was not available.');
+  }
 };
 
 window.addEventListener('message', async event => {
@@ -154,10 +190,12 @@ window.addEventListener('message', async event => {
 }, { signal });
 
 filters.addEventListener('submit', event => { event.preventDefault(); clearTimeout(debounce); void loadLibrary(); }, { signal });
+findingsTab.addEventListener('click', () => selectView(true), { signal });
+artifactTab.addEventListener('click', () => selectView(false), { signal });
 search.addEventListener('input', () => { clearTimeout(debounce); debounce = setTimeout(() => void loadLibrary(), 180); }, { signal });
 project.addEventListener('change', () => { void loadLibrary(); }, { signal });
 back.addEventListener('click', () => { selected = undefined; void loadLibrary(); }, { signal });
 refresh.addEventListener('click', () => { void loadLibrary(); }, { signal });
 more.addEventListener('click', () => { void loadLibrary(true); }, { signal });
-window.addEventListener('pagehide', () => { controller.abort(); clearTimeout(debounce); }, { once: true });
+window.addEventListener('pagehide', () => { controller.abort(); clearFindings(); clearTimeout(debounce); }, { once: true });
 void app.connect().catch(() => { showStatus('Unable to connect to the MCP App host. Reopen the VS library to retry.'); });

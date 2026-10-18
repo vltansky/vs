@@ -6,6 +6,7 @@ import { registerAppResource, registerAppTool, RESOURCE_MIME_TYPE } from '@model
 import { z } from 'zod';
 import { ArtifactStore } from './artifacts.ts';
 import { commentSchema, libraryQuerySchema } from './contracts.ts';
+import { findingsSchema } from './findings.ts';
 import { createEventService, EventSubscribeSchema, EventUnsubscribeSchema, type EventOptions } from './events.ts';
 
 const views = [
@@ -97,21 +98,23 @@ export function createVsServer(root = join(homedir(), '.vs'), eventOptions?: Eve
 
   for (const view of views) {
     registerAppTool(server, view.tool, {
-      description: `Present a saved ${view.skill} HTMDX artifact as an MCP App.`,
+      description: `Present a saved ${view.skill} HTMDX artifact as an MCP App. For an actionable review, include source-backed findings (unique id, title, summary, proposed request, evidence) and optional constraints. The user can select findings, add directions, preview and confirm a request back to the agent. Omit findings for display only.`,
       inputSchema: z.object({
         path: z.string().min(1),
         reviewQuestion: z.string().optional(),
         url: z.string().optional(),
         shotPath: z.string().optional(),
+        findings: findingsSchema.optional(),
+        constraints: z.string().max(4000).optional(),
       }),
       annotations: readOnly,
       _meta: { ui: { resourceUri: view.uri } },
-    }, async ({ path, reviewQuestion, url, shotPath }) => {
+    }, async ({ path, reviewQuestion, url, shotPath, findings, constraints }) => {
       try {
         const artifact = await store.read(path);
         return {
-          content: [{ type: 'text' as const, text: `${reviewQuestion ? `Review question: ${reviewQuestion}\n` : ''}${view.skill} artifact ready: ${path}${url ? `\nURL: ${url}` : ''}` }],
-          structuredContent: { kind: 'artifact', ...artifact, skill: view.skill, artifactPath: path, reviewQuestion, url, shotPath, comments: await store.comments(artifact.id) },
+          content: [{ type: 'text' as const, text: `${reviewQuestion ? `Review question: ${reviewQuestion}\n` : ''}${view.skill} artifact ready: ${path}${url ? `\nURL: ${url}` : ''}${findings?.length ? `\nFindings:\n${findings.map(finding => `- ${finding.title}: ${finding.summary}\n${finding.evidence.map(evidence => `  Source: ${evidence.source}`).join('\n')}`).join('\n')}${constraints ? `\nConstraints: ${constraints}` : ''}` : ''}` }],
+          structuredContent: { kind: 'artifact', ...artifact, skill: view.skill, artifactPath: path, reviewQuestion, url, shotPath, comments: await store.comments(artifact.id), findings, constraints },
         };
       } catch (error) {
         return { isError: true, content: [{ type: 'text' as const, text: error instanceof Error ? error.message : 'Unable to read artifact.' }] };
