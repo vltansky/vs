@@ -30,6 +30,15 @@ Ask only when both branches remain plausible after reading the relevant docs and
 code. If the user is unavailable, choose from the surrounding code and state the
 assumption.
 
+## Optional inline preview
+
+For a small UI mockup to explore in the conversation, check
+[inline preview](../vs-internal-shared/references/inline-preview.md) before
+choosing a file or app seam. If eligible, use that route and return after its
+inline handoff. The standalone scaffold, URL switcher, run-command checklist,
+and file handoff below apply to the existing file/app paths. Keep the design
+question and review boundary; inspect relevant product context when available.
+
 ## Choose the easiest seam
 
 Apply [`vs-ponytail`](../vs-ponytail/SKILL.md) in composed mode after

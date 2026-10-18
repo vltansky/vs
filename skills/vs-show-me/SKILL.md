@@ -12,6 +12,15 @@ This is a **building block**, not a research workflow. Preserve the supplied
 facts and conclusions. If the content is still unknown, gather it with the
 appropriate workflow first.
 
+## Optional inline preview
+
+For a small interactive explainer or UI sketch to explore in the conversation,
+check [inline preview](../vs-internal-shared/references/inline-preview.md)
+before loading HTMDX. If eligible, use that route and return after its inline
+handoff. The HTMDX authoring, validation, URL + first-screen shot, and MCP Apps
+sections below apply to portable artifacts. Explicit HTMDX/file requests and
+complex reports or proposals retain that existing path.
+
 ## Boundary
 
 Use this skill when the user explicitly requests HTMDX, when HTMDX is the

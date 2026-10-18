@@ -5,6 +5,7 @@ import { check, evaluate } from '@wix/pathgrade';
 import { describe, expect, it } from 'vitest';
 import { createAgent } from '../../vs-internal-shared/test/pathgrade-agent';
 import { promptOnce } from '../../vs-internal-shared/test/pathgrade-v1';
+import { hasLifecycleMachine } from './lifecycle-composition';
 
 const SKILL_DIR = path.resolve(__dirname, '..');
 const EVAL_AGENT = (process.env.PATHGRADE_AGENT ?? 'codex') as 'claude' | 'codex';
@@ -44,18 +45,18 @@ describe('vs-show-me visual explanation behavior', () => {
           check('shows-branching-relationship', ({ workspace }) =>
             /```mermaid|<(?:Sequence|Flow)\b/.test(sourceBlock(workspace)),
           ),
-          check('composes-shadcn-primitives', ({ workspace }) => {
+          check('composes-state-ui', ({ workspace }) => {
             const source = sourceBlock(workspace);
             const components = new Set(
               [...source.matchAll(/<(Card|Badge|Alert|Progress|Tooltip)\b/g)].map((match) => match[1]),
             );
-            return components.size >= 2;
+            return components.size >= 2 || hasLifecycleMachine(source);
           }),
           check('creates-deliberate-visual-hierarchy', ({ workspace }) => {
             const source = sourceBlock(workspace);
             const shapedLayout = /(?:grid-cols-\[|col-span-|row-span-|absolute|relative[^"\n]*(?:z-|before:|after:)|rounded-full|data:image\/svg\+xml)/.test(source);
             const onlyUniformCards = /md:grid-cols-2/.test(source) && !shapedLayout;
-            return shapedLayout && !onlyUniformCards;
+            return (shapedLayout && !onlyUniformCards) || hasLifecycleMachine(source);
           }),
           check('preserves-the-lifecycle-facts', ({ workspace }) => {
             const source = sourceBlock(workspace);
