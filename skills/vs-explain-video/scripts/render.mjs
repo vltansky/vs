@@ -2,7 +2,7 @@
 // Renders the work directory's index.html by seeking it frame by frame.
 //
 //   node render.mjs <work-dir> --stills [--scene <id>] [--at 12.5,30]
-//   node render.mjs <work-dir> --out <video.mp4> [--scene <id>]
+//   node render.mjs <work-dir> --out <video.mp4> [--scene <id>] [--workers N]
 //
 // --stills: screenshots each beat when it finishes speaking (every build for
 // that beat is on screen) plus each scene's last frame, and runs the stage's
@@ -14,23 +14,34 @@
 // ffprobe duration against the timeline. --scene renders one scene only, for
 // a quick preview. Subtitles are already drawn into the frames; no subtitle
 // stream is added, because players would show every line twice.
+// --workers N splits the frames into N contiguous pieces, each drawn by its
+// own page into its own segment, then joins the segments without re-encoding
+// (default: half the cores, at most 3; 1 renders serially). Every frame is a
+// pure function of t, so the pieces join seamlessly. It counts the frames in
+// each segment and in the joined video, and exits 1 when they differ from the
+// plan.
 //
-// Exit codes: 0 done; 1 audit issues (--stills) or duration mismatch (--out);
+// Exit codes: 0 done; 1 audit issues (--stills), duration or frame-count
+// mismatch (--out);
 // 2 blocked (missing input, no Playwright/ffmpeg, page error).
 import { spawn } from 'node:child_process';
-import { existsSync, mkdirSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { cpus, tmpdir } from 'node:os';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 
-import { ensurePlaywright, fail, probeDuration, which } from './media.mjs';
+import { ensurePlaywright, fail, probeDuration, run, which } from './media.mjs';
+import { defaultWorkers, frameParity, planPieces } from './pieces.mjs';
 
 const args = process.argv.slice(2);
 const opt = (name) => (args.includes(name) ? args[args.indexOf(name) + 1] : null);
-const workArg = args.find((arg, i) => !arg.startsWith('--') && !args[i - 1]?.startsWith('--'));
+const workArg = args.find((arg, i) => !arg.startsWith('--') && !['--out', '--scene', '--at', '--workers'].includes(args[i - 1]));
 const stillsMode = args.includes('--stills');
 const outArg = opt('--out');
 const only = opt('--scene');
 const at = opt('--at')?.split(',').map(Number);
+const workersArg = opt('--workers');
+if (workersArg !== null && !(Number(workersArg) >= 1)) fail('--workers takes a whole number, 1 or more.');
 if (!workArg || (!stillsMode && !outArg)) {
   fail('Usage: node render.mjs <work-dir> --stills [--scene <id>] [--at 1,2]  |  node render.mjs <work-dir> --out <video.mp4> [--scene <id>]');
 }
@@ -65,22 +76,27 @@ const browser = await launch();
 const pageErrors = [];
 let exitCode = 0;
 try {
-  const page = await browser.newPage({ viewport: { width: 1920, height: 1080 }, deviceScaleFactor: 1 });
-  page.on('pageerror', (error) => pageErrors.push(error.message));
-  page.on('console', (message) => {
-    if (message.type() === 'error' && !/favicon/.test(message.text())) pageErrors.push(message.text());
-  });
-  await page.goto(pathToFileURL(path.join(work, 'index.html')).href);
-  try {
-    await page.waitForFunction('window.READY === true', null, { timeout: 15000 });
-  } catch {
-    fail(`The stage never became ready. Page errors: ${pageErrors.join(' | ') || 'none'}. Fix scenes.js and rerun.`);
-  }
-  if (pageErrors.length) fail(`Page errors: ${pageErrors.join(' | ')}. Fix scenes.js and rerun.`);
+  const openPage = async () => {
+    const page = await browser.newPage({ viewport: { width: 1920, height: 1080 }, deviceScaleFactor: 1 });
+    page.on('pageerror', (error) => pageErrors.push(error.message));
+    page.on('console', (message) => {
+      if (message.type() === 'error' && !/favicon/.test(message.text())) pageErrors.push(message.text());
+    });
+    await page.goto(pathToFileURL(path.join(work, 'index.html')).href);
+    try {
+      await page.waitForFunction('window.READY === true', null, { timeout: 15000 });
+    } catch {
+      fail(`The stage never became ready. Page errors: ${pageErrors.join(' | ') || 'none'}. Fix scenes.js and rerun.`);
+    }
+    if (pageErrors.length) fail(`Page errors: ${pageErrors.join(' | ')}. Fix scenes.js and rerun.`);
+    return page;
+  };
+  const page = await openPage();
   const TL = await page.evaluate('window.TL');
   const scenes = only ? TL.scenes.filter((scene) => scene.id === only) : TL.scenes;
   if (only && scenes.length === 0) fail(`No scene "${only}" in timeline.js. Scenes: ${TL.scenes.map((s) => s.id).join(', ')}.`);
-  const seek = (t) => page.evaluate((time) => window.seek(time), t);
+  const seekOn = (p, t) => p.evaluate((time) => window.seek(time), t);
+  const seek = (t) => seekOn(page, t);
 
   if (stillsMode) {
     const stillsDir = path.join(work, 'stills');
@@ -118,44 +134,81 @@ try {
     const frames = Math.ceil(seconds * fps);
     const out = path.resolve(outArg);
     mkdirSync(path.dirname(out), { recursive: true });
-    const ffmpeg = spawn('ffmpeg', [
-      '-y', '-loglevel', 'error',
-      '-f', 'image2pipe', '-framerate', String(fps), '-c:v', 'mjpeg', '-i', '-',
-      '-ss', String(from), '-t', String(seconds), '-i', path.join(work, 'narration.wav'),
-      '-map', '0:v', '-map', '1:a',
-      '-c:v', 'libx264', '-preset', 'medium', '-crf', '18', '-pix_fmt', 'yuv420p', '-r', String(fps),
-      '-c:a', 'aac', '-b:a', '192k', '-shortest', '-movflags', '+faststart', out,
-    ], { stdio: ['pipe', 'ignore', 'inherit'] });
-    const done = new Promise((resolve, reject) => {
-      ffmpeg.on('error', reject);
-      ffmpeg.on('close', (code) => (code === 0 ? resolve() : reject(new Error(`ffmpeg exited ${code}`))));
-    });
+    const pieces = planPieces(frames, workersArg ? Number(workersArg) : defaultWorkers(cpus().length));
+    const scratch = mkdtempSync(path.join(tmpdir(), 'vs-render-'));
+    const encode = (args, input) => {
+      const ffmpeg = spawn('ffmpeg', ['-y', '-loglevel', 'error', ...args], { stdio: [input ? 'pipe' : 'ignore', 'ignore', 'inherit'] });
+      const done = new Promise((resolve, reject) => {
+        ffmpeg.on('error', reject);
+        ffmpeg.on('close', (code) => (code === 0 ? resolve() : reject(new Error(`ffmpeg exited ${code}`))));
+      });
+      return { ffmpeg, done };
+    };
     const started = Date.now();
-    for (let frame = 0; frame < frames; frame += 1) {
-      await seek(from + frame / fps);
-      const jpeg = await page.screenshot({ type: 'jpeg', quality: 92 });
-      if (!ffmpeg.stdin.write(jpeg)) await new Promise((resolve) => ffmpeg.stdin.once('drain', resolve));
-      if (frame % 900 === 0) process.stderr.write(`frame ${frame}/${frames} after ${Math.round((Date.now() - started) / 1000)}s\n`);
-    }
-    ffmpeg.stdin.end();
-    try {
+    let drawn = 0;
+    // One page per piece; each pipes its frames into its own segment.
+    const renderPiece = async (piece) => {
+      const p = piece.index === 0 ? page : await openPage();
+      const file = path.join(scratch, `piece-${piece.index}.mp4`);
+      const { ffmpeg, done } = encode([
+        '-f', 'image2pipe', '-framerate', String(fps), '-c:v', 'mjpeg', '-i', '-',
+        '-c:v', 'libx264', '-preset', 'medium', '-crf', '18', '-pix_fmt', 'yuv420p', '-r', String(fps), file,
+      ], true);
+      for (let frame = piece.first; frame < piece.first + piece.count; frame += 1) {
+        await seekOn(p, from + frame / fps);
+        const jpeg = await p.screenshot({ type: 'jpeg', quality: 92 });
+        if (!ffmpeg.stdin.write(jpeg)) await new Promise((resolve) => ffmpeg.stdin.once('drain', resolve));
+        drawn += 1;
+        if (drawn % 900 === 0) process.stderr.write(`frame ${drawn}/${frames} after ${Math.round((Date.now() - started) / 1000)}s\n`);
+      }
+      ffmpeg.stdin.end();
       await done;
+      return file;
+    };
+    let files;
+    try {
+      files = await Promise.all(pieces.map(renderPiece));
     } catch (error) {
       fail(`${error.message} while encoding ${out}.`);
     }
+    const countFrames = (file) => Number.parseInt(run('ffprobe', [
+      '-v', 'error', '-count_packets', '-select_streams', 'v:0', '-show_entries', 'stream=nb_read_packets', '-of', 'csv=p=0', file,
+    ]).stdout, 10);
+    const list = path.join(scratch, 'pieces.txt');
+    writeFileSync(list, files.map((file) => `file '${file}'`).join('\n'));
+    const joined = path.join(scratch, 'joined.mp4');
+    const join = encode(['-f', 'concat', '-safe', '0', '-i', list, '-c', 'copy', joined]);
+    const mux = () => encode([
+      '-i', joined, '-ss', String(from), '-t', String(seconds), '-i', path.join(work, 'narration.wav'),
+      '-map', '0:v', '-map', '1:a', '-c:v', 'copy', '-c:a', 'aac', '-b:a', '192k', '-shortest', '-movflags', '+faststart', out,
+    ]);
+    try {
+      await join.done;
+      await mux().done;
+    } catch (error) {
+      fail(`${error.message} while joining ${out}.`);
+    }
+    const parity = frameParity(pieces, files.map(countFrames), countFrames(joined));
+    rmSync(scratch, { recursive: true, force: true });
     if (pageErrors.length) fail(`Page errors while rendering: ${pageErrors.join(' | ')}.`);
     const durationSeconds = probeDuration(out);
     const durationMatches = durationSeconds !== null && Math.abs(durationSeconds - seconds) <= 0.25;
-    exitCode = durationMatches ? 0 : 1;
+    exitCode = durationMatches && parity.ok ? 0 : 1;
     process.stdout.write(`${JSON.stringify({
       output: out,
       durationSeconds,
       expectedSeconds: Number(seconds.toFixed(3)),
       frames,
+      workers: pieces.length,
+      seconds: Math.round((Date.now() - started) / 1000),
+      framesMatch: parity.ok,
+      frameProblems: parity.problems,
       durationMatches,
-      next: durationMatches
-        ? 'Give the user the mp4 as a file:// link. Say the audio was not listen-checked.'
-        : 'Duration differs from the timeline. Rerun narrate.mjs, then render again.',
+      next: !parity.ok
+        ? 'Frame counts differ from the plan. Rerun with --workers 1 and report the problems if it repeats.'
+        : durationMatches
+          ? 'Give the user the mp4 as a file:// link. Say the audio was not listen-checked.'
+          : 'Duration differs from the timeline. Rerun narrate.mjs, then render again.',
     }, null, 2)}\n`);
   }
 } finally {

@@ -14,6 +14,8 @@ const H = 1080;
 // ---------- time and easing
 const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
 const lerp = (a, b, k) => a + (b - a) * k;
+// Nothing that moves (position, scale, opacity) eases linearly: it reads as a
+// slide deck. `linear` is for stepped progress only (typing, a progress bar).
 const ease = {
   linear: (x) => x,
   out: (x) => 1 - Math.pow(1 - x, 3),
@@ -22,6 +24,51 @@ const ease = {
 };
 // Eased progress 0..1 of a motion that starts at s and lasts d seconds.
 const P = (t, s, d = 0.6, e = ease.out) => e(clamp((t - s) / d));
+// ---------- springs: closed form, so the value at t comes straight from t and
+// frames still draw in any order. Mass 1, k = stiffness, c = damping.
+// Idea from take-one (github.com/talsiach/take-one, MIT); this code is our own.
+const SPRINGS = {
+  snappy: { k: 320, c: 30 }, // chips, badges, checkmarks: settles in ~0.25 s, a hair of overshoot
+  camera: { k: 170, c: 26 }, // cards, panels, arrows: ~0.5 s, no bounce
+  heavy: { k: 120, c: 24 }, // titles, big numbers: ~0.75 s, weight, no overshoot
+  playful: { k: 180, c: 12 }, // a pop with personality: ~0.65 s, ~20% overshoot
+};
+// 0 -> 1 step response of a spring released at s (0 before s).
+function spring(t, s, preset = 'camera') {
+  const { k, c } = typeof preset === 'string' ? SPRINGS[preset] : preset;
+  const x = t - s;
+  if (x <= 0) return 0;
+  const w = Math.sqrt(k);
+  const z = c / (2 * w);
+  if (z < 1) {
+    const wd = w * Math.sqrt(1 - z * z);
+    return 1 - Math.exp(-z * w * x) * (Math.cos(wd * x) + ((z * w) / wd) * Math.sin(wd * x));
+  }
+  if (z === 1) return 1 - Math.exp(-w * x) * (1 + w * x);
+  const r = w * Math.sqrt(z * z - 1);
+  const r1 = -z * w + r;
+  const r2 = -z * w - r;
+  return 1 - (r2 * Math.exp(r1 * x) - r1 * Math.exp(r2 * x)) / (r2 - r1);
+}
+// A value that springs through keys [[t0, v0], [t1, v1], ...]: one spring per
+// change of target, summed, so a retarget mid-move keeps its momentum.
+function springTo(t, keys, preset = 'camera') {
+  let v = keys[0][1];
+  for (let i = 1; i < keys.length; i += 1) v += (keys[i][1] - keys[i - 1][1]) * spring(t, keys[i][0], preset);
+  return v;
+}
+// Seconds until a preset stays within 1% of its target.
+function settle(preset = 'camera') {
+  for (let x = 0; x < 5; x += 0.01) {
+    let held = true;
+    for (let y = x; y < x + 1 && held; y += 0.01) held = Math.abs(1 - spring(y, 0, preset)) <= 0.01;
+    if (held) return Number(x.toFixed(2));
+  }
+  return 5;
+}
+// Seconds a viewer needs to read on-screen text: 0.4 s + 0.2 s a word. Hold a
+// build for settle(preset) + readTime(text) before the next one lands.
+const readTime = (text) => 0.4 + 0.2 * String(text).split(/\s+/).filter(Boolean).length;
 // Index of the beat playing at t (-1 before the first beat).
 const beatAt = (t, B) => B.reduce((found, start, i) => (t >= start ? i : found), -1);
 
@@ -47,16 +94,18 @@ function tf(e, { o = 1, x = 0, y = 0, s = 1, r = 0 } = {}) {
 }
 
 // ---------- entrances and emphasis (all return eased progress)
-// Fade in while sliding dy/dx pixels into place.
-function rise(e, t, s, { d = 0.6, dy = 26, dx = 0, from = 1, ease: ez = ease.out } = {}) {
-  const k = ez(clamp((t - s) / d));
+// Fade in while sliding dy/dx pixels into place, on a spring. `d` picks the
+// preset (0.75 s or more: heavy; 0.45 s or less: snappy; else camera), or
+// name one with `spring`. Pass `ease` to use a fixed-length eased move.
+function rise(e, t, s, { d = 0.6, dy = 26, dx = 0, from = 1, ease: ez, spring: sp } = {}) {
+  const k = ez ? ez(clamp((t - s) / d)) : spring(t, s, sp ?? (d >= 0.75 ? 'heavy' : d <= 0.45 ? 'snappy' : 'camera'));
   tf(e, { o: clamp(k * 1.4), y: dy * (1 - k), x: dx * (1 - k), s: from + (1 - from) * k });
   return k;
 }
-// Scale in with a small overshoot: chips, badges, a new state.
-function pop(e, t, s, d = 0.55) {
-  const k = P(t, s, d, ease.back);
-  tf(e, { o: clamp((t - s) / (d * 0.5)), s: 0.6 + 0.4 * k });
+// Scale in with an overshoot: chips, badges, a new state.
+function pop(e, t, s, preset = 'playful') {
+  const k = spring(t, s, typeof preset === 'string' ? preset : 'playful');
+  tf(e, { o: ease.out(clamp((t - s) / 0.25)), s: 0.6 + 0.4 * k });
   return k;
 }
 // Fade to `to` opacity: keep old state visible but quiet instead of removing it.
@@ -67,14 +116,14 @@ function dim(e, t, s, to = 0.35, d = 0.4) {
   return k;
 }
 function hide(e, t, s, d = 0.35) {
-  const k = P(t, s, d, ease.linear);
+  const k = P(t, s, d, ease.inOut);
   e.style.opacity = (e._o ?? 1) * (1 - k);
   return k;
 }
 // Accent glow that fades out: "this just changed".
 function flash(e, t, s, d = 1.2) {
-  const k = clamp((t - s) / d);
-  const on = k > 0 && k < 1;
+  const k = P(t, s, d, ease.inOut);
+  const on = t > s && t < s + d;
   e.style.borderColor = on ? `rgba(255,181,71,${1 - k})` : '';
   e.style.boxShadow = on ? `0 0 ${40 * (1 - k)}px rgba(255,181,71,${0.35 * (1 - k)})` : '';
 }
@@ -222,7 +271,7 @@ const VS = {
       if (!visible) continue;
       // Crossfade: each scene fades in over 0.45 s and out over its last 0.4 s.
       const fadeIn = s.i === 0 ? 1 : P(t, 0, 0.45);
-      const fadeOut = s.i === this.scenes.length - 1 ? 1 : 1 - P(t, s.dur - 0.4, 0.4, ease.linear);
+      const fadeOut = s.i === this.scenes.length - 1 ? 1 : 1 - P(t, s.dur - 0.4, 0.4, ease.inOut);
       s.root.style.opacity = Math.min(fadeIn, fadeOut);
       s.update(t, s.B, s.dur);
       chap.innerHTML = `${String(s.i + 1).padStart(2, '0')} / ${String(this.scenes.length).padStart(2, '0')} &nbsp;<b>${esc(s.title ?? s.id)}</b>`;
