@@ -3,18 +3,48 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>VS artifact</title>
+  <title>VS artifacts</title>
   <style>
+    :root { color-scheme: light dark; --paper: #f8f7f3; --ink: #202b2a; --line: #d5d9d1; --accent: #14665c; }
+    * { box-sizing: border-box; }
     html, body { margin: 0; min-height: 100%; }
-    body { font: 14px system-ui, sans-serif; }
-    #status { padding: 16px; }
-    /* Keep inline artifacts compact; their own content scrolls within the host-sized frame. */
-    #vs-artifact-frame { display: none; width: 100%; height: 480px; border: 0; }
+    body { background: var(--paper); color: var(--ink); font: 15px 'Avenir Next', 'Segoe UI', sans-serif; }
+    button, input, select { font: inherit; color: inherit; }
+    button, select { cursor: pointer; }
+    button { background: transparent; border: 1px solid var(--line); border-radius: 5px; padding: 9px 14px; }
+    button:hover, button:focus-visible { border-color: var(--accent); }
+    :focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+    [hidden] { display: none !important; }
+    header { display: flex; align-items: center; gap: 16px; padding: 20px 24px; border-bottom: 1px solid var(--line); }
+    .mark { background: var(--accent); color: white; width: 40px; height: 40px; display: grid; place-items: center; font-weight: 700; border-radius: 6px; }
+    .heading { flex: 1; min-width: 0; }
+    h1 { margin: 0; font-size: 22px; font-weight: 600; }
+    #subtitle { margin: 4px 0 0; font-size: 12px; }
+    #status { margin: 0; padding: 18px 24px; border-bottom: 1px solid var(--line); }
+    #filters { display: flex; gap: 12px; padding: 20px 24px; }
+    #search { flex: 1; min-width: 100px; }
+    input, select { background: transparent; border: 1px solid var(--line); border-radius: 5px; padding: 11px; }
+    #catalog { padding: 0 24px 20px; }
+    .artifact { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 20px; width: 100%; text-align: left; padding: 19px 0; border: 0; border-top: 1px solid var(--line); border-radius: 0; }
+    .artifact:hover { background: color-mix(in srgb, var(--accent) 5%, transparent); }
+    .artifact strong { display: block; font-size: 17px; font-weight: 600; margin-bottom: 6px; }
+    .artifact small { display: block; font-size: 12px; overflow-wrap: anywhere; }
+    .feedback { align-self: center; color: var(--accent); white-space: nowrap; font-size: 12px; }
+    #empty { padding: 24px 0; }
+    #more { margin: 0 24px 20px; }
+    /* The sandbox owns artifact scrolling; the library toolbar remains outside authored HTML. */
+    #vs-artifact-frame { width: 100%; height: 640px; border: 0; display: block; background: white; }
+    @media (max-width: 500px) { header, #filters { padding: 16px; } #catalog { padding: 0 16px 16px; } #filters { flex-direction: column; } .artifact { gap: 10px; } h1 { font-size: 19px; } }
+    @media (prefers-color-scheme: dark) { :root { --paper: #192321; --ink: #e6e9e1; --line: #42524c; --accent: #8bd3bf; } .mark { color: #192321; } }
   </style>
 </head>
 <body>
-  <div id="status" role="status">Loading artifact…</div>
-  <iframe id="vs-artifact-frame" title="VS artifact" sandbox="allow-scripts"></iframe>
+  <header><span class="mark" aria-hidden="true">VS</span><div class="heading"><h1 id="title">Artifact library</h1><p id="subtitle">Your saved work, across projects</p></div><button id="back" hidden>Library</button><button id="refresh" hidden>Refresh</button></header>
+  <p id="status" role="status">Connecting to VS…</p>
+  <form id="filters" role="search" hidden><input id="search" type="search" aria-label="Search artifacts" placeholder="Search artifacts"><select id="project" aria-label="Project"><option value="">All projects</option></select></form>
+  <main id="catalog" aria-label="Saved artifacts" hidden></main>
+  <button id="more" hidden>Load more</button>
+  <iframe id="vs-artifact-frame" title="VS artifact" sandbox="allow-scripts" hidden></iframe>
   <!-- APP_SCRIPT -->
 </body>
 </html>

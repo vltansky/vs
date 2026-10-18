@@ -2,11 +2,13 @@
   "name": "vs",
   "displayName": "vs",
   "description": "Plan-to-ship workflow skills for shaping ideas, building autonomously, reviewing code, and shipping PRs with agent discipline.",
-  "version": "1.25.0",
+  "version": "1.26.0",
   "hooks": "./hooks/hooks.json",
   "interface": {
     "displayName": "vs",
-    "shortDescription": "Plan-to-ship workflow skills with agent discipline."
+    "shortDescription": "Plan-to-ship workflow skills with agent discipline.",
+    "composerIcon": "./assets/vs-icon.svg",
+    "logo": "./assets/vs-icon.svg"
   },
   "skills": "./skills/",
   "mcpServers": "./.mcp.json"

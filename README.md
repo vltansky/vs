@@ -267,6 +267,10 @@ codex plugin add vs@vs
 ```
 
 Codex refreshes Git marketplaces and installed plugins automatically at startup.
+The plugin includes a searchable VS artifact library and durable review comments,
+with `comment.created` MCP Events for subscribed hosts. See the [MCP guide](mcp/README.md)
+for tools, storage, event support, and host verification limits.
+
 The plugin includes the bundled `vs-artifact` MCP server for `/vs-show-me` and
 `/vs-eli5`.
 

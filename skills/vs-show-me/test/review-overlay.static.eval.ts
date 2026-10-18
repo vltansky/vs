@@ -78,7 +78,8 @@ describe('the local review overlay is one portable generated shell feature', () 
   });
 
   it('keeps action state and refresh work honest', () => {
-    expect(REVIEW_SOURCE).toContain('data-primary="true" type="submit" disabled');
+    expect(REVIEW_SOURCE).toContain('data-primary="true" type="button" disabled');
+    expect(REVIEW_SOURCE).toContain("composer.dispatchEvent(new Event('submit', { cancelable: true }))");
     expect(REVIEW_SOURCE).toContain("listen(textarea, 'input'");
     expect(REVIEW_SOURCE).toContain("submitButton.disabled = textarea.value.trim() === ''");
     expect(REVIEW_SOURCE).toContain("count.textContent = openCount === 0 ? '' : String(openCount)");

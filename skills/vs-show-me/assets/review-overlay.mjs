@@ -192,8 +192,10 @@ export function reviewOverlayFactory(css, resolveQuoteStartFn, reviewToolFactory
   const { signal } = controller;
   const artifactId = document.querySelector('meta[name="vs-artifact-id"]')?.content ?? '';
   const storageKey = reviewStorageKeyFn(artifactId, location.href);
+  const bridge = window.vsMcpReview;
+  let reviewReady = bridge === undefined;
   const state = {
-    comments: loadComments(), panelOpen: false, commenting: false,
+    comments: bridge ? [] : loadComments(), panelOpen: false, commenting: false,
     draft: null, selection: null, focusedId: null, refreshFrame: null,
   };
   const artifactTools = artifactToolRegistryFactoryFn(document.modelContext, signal);
@@ -235,7 +237,7 @@ export function reviewOverlayFactory(css, resolveQuoteStartFn, reviewToolFactory
       <div class="vs-review-composer-note">After adding, send the agent a message to read comments. Comments are not checked automatically.</div>
       <div class="vs-review-composer-actions">
         <button class="vs-review-text-button" data-cancel type="button">Cancel</button>
-        <button class="vs-review-text-button" data-primary="true" type="submit" disabled>Add</button>
+        <button class="vs-review-text-button" data-primary="true" type="button" disabled>Add</button>
       </div>
     </form>`;
   shadow.append(style, surface);
@@ -247,11 +249,26 @@ export function reviewOverlayFactory(css, resolveQuoteStartFn, reviewToolFactory
   const action = surface.querySelector('.vs-review-selection-action');
   const composer = surface.querySelector('.vs-review-composer');
   const textarea = composer.querySelector('textarea');
-  const submitButton = composer.querySelector('[type="submit"]');
+  const submitButton = composer.querySelector('[data-primary]');
   const markerLayer = surface.querySelector('.vs-review-marker-layer');
   const highlightLayer = surface.querySelector('.vs-review-highlight-layer');
   const removalLayer = surface.querySelector('.vs-review-removal-layer');
   const questionLayer = surface.querySelector('.vs-review-question-layer');
+  const note = surface.querySelector('.vs-review-note');
+  if (bridge) {
+    const retry = document.createElement('button');
+    retry.type = 'button'; retry.textContent = 'Retry'; retry.className = 'vs-review-text-button';
+    surface.querySelector('.vs-review-header-actions').prepend(retry);
+    bridge.onStatus = message => { note.textContent = message; };
+    surface.querySelector('.vs-review-composer-note').textContent = 'New comments are delivered to subscribed chats after VS saves them.';
+    const load = async () => {
+      note.textContent = 'Loading feedback from VS…'; addButton.disabled = true;
+      try { state.comments = (await bridge.load()).filter(validComment); reviewReady = true; addButton.disabled = false; note.textContent = 'Saved in VS. Subscribed chats receive new comments.'; render(); }
+      catch (error) { note.textContent = `Feedback unavailable: ${error.message} Use Retry.`; }
+    };
+    retry.addEventListener('click', () => { if (reviewReady) bridge.retry(); else void load(); }, { signal });
+    void load();
+  }
 
   const listen = (target, type, handler, options = {}) => target.addEventListener(type, handler, { ...options, signal });
   listen(surface.querySelector('.vs-review-fab'), 'click', () => setPanel(true));
@@ -259,6 +276,9 @@ export function reviewOverlayFactory(css, resolveQuoteStartFn, reviewToolFactory
   listen(addButton, 'click', () => setCommenting(!state.commenting));
   listen(surface.querySelector('[data-cancel]'), 'click', closeComposer);
   listen(textarea, 'input', () => { submitButton.disabled = textarea.value.trim() === ''; });
+  // A sandboxed artifact cannot submit native forms. Dispatch our local handler
+  // without granting allow-forms or navigating away from unsaved feedback.
+  listen(submitButton, 'click', () => composer.dispatchEvent(new Event('submit', { cancelable: true })));
   listen(action, 'pointerdown', (event) => event.preventDefault());
   listen(action.querySelector('[data-comment]'), 'click', () => {
     if (state.selection !== null) openComposer(state.selection.anchor, state.selection.x, state.selection.y);
@@ -277,7 +297,7 @@ export function reviewOverlayFactory(css, resolveQuoteStartFn, reviewToolFactory
   });
   listen(composer, 'keydown', (event) => {
     if (event.key === 'Escape') closeComposer();
-    if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') composer.requestSubmit();
+    if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') { event.preventDefault(); composer.dispatchEvent(new Event('submit', { cancelable: true })); }
   });
   listen(document, 'mouseup', () => requestAnimationFrame(captureSelection), { capture: true });
   listen(document, 'pointerover', previewCommentTarget, { capture: true });
@@ -318,6 +338,7 @@ export function reviewOverlayFactory(css, resolveQuoteStartFn, reviewToolFactory
   }
 
   function setCommenting(active) {
+    if (!reviewReady) return;
     state.commenting = active;
     addButton.dataset.active = String(active);
     document.documentElement.style.cursor = active ? 'crosshair' : '';
@@ -326,6 +347,7 @@ export function reviewOverlayFactory(css, resolveQuoteStartFn, reviewToolFactory
   }
 
   function captureSelection() {
+    if (!reviewReady) return;
     if (state.commenting || !composer.hidden) return;
     const selection = window.getSelection();
     if (selection === null || selection.isCollapsed || selection.rangeCount !== 1) return hideSelectionAction();
@@ -404,13 +426,14 @@ export function reviewOverlayFactory(css, resolveQuoteStartFn, reviewToolFactory
   }
 
   function appendComment(anchor, comment, intent = 'comment') {
+    if (!reviewReady) throw new Error('Wait for VS feedback to load, or use Retry.');
     const created = {
       id: globalThis.crypto?.randomUUID?.() ?? `comment_${Date.now()}_${Math.random().toString(36).slice(2)}`,
       anchor, comment, intent, createdAt: new Date().toISOString(), status: 'open',
     };
     state.comments.push(created);
     if (state.comments.length > 100) state.comments.splice(0, state.comments.length - 100);
-    saveReviewState();
+    saveReviewState(created);
     return created;
   }
 
@@ -454,7 +477,7 @@ export function reviewOverlayFactory(css, resolveQuoteStartFn, reviewToolFactory
     const comment = state.comments.find(({ id }) => id === input.id);
     if (comment === undefined) throw new Error(`Unknown review comment: ${input.id}`);
     comment.status = input.resolved ? 'resolved' : 'open';
-    saveReviewState();
+    saveReviewState(comment);
     render();
     return publicComment(comment);
   }
@@ -466,6 +489,7 @@ export function reviewOverlayFactory(css, resolveQuoteStartFn, reviewToolFactory
       intent: comment.intent ?? 'comment',
       status: comment.status,
       createdAt: comment.createdAt,
+      revision: comment.revision,
       anchor: {
         selector: comment.anchor.selector,
         textHint: comment.anchor.textHint,
@@ -501,6 +525,7 @@ export function reviewOverlayFactory(css, resolveQuoteStartFn, reviewToolFactory
     const meta = document.createElement('span');
     const intent = comment.intent === 'remove' ? 'Remove' : comment.intent === 'simplify' ? 'Simplify' : 'Comment';
     meta.textContent = `${index + 1} · ${intent} · You · ${new Date(comment.createdAt).toLocaleString()}`;
+    if (bridge && comment.revision && comment.revision !== bridge.revision) meta.textContent += ' · Older revision';
     const toggle = document.createElement('button');
     toggle.className = 'vs-review-icon-button';
     toggle.type = 'button';
@@ -510,7 +535,7 @@ export function reviewOverlayFactory(css, resolveQuoteStartFn, reviewToolFactory
     listen(toggle, 'click', (event) => {
       event.stopPropagation();
       comment.status = comment.status === 'resolved' ? 'open' : 'resolved';
-      saveReviewState();
+      saveReviewState(comment);
       render();
     });
     const body = document.createElement('p');
@@ -740,7 +765,8 @@ export function reviewOverlayFactory(css, resolveQuoteStartFn, reviewToolFactory
     } catch { return []; }
   }
 
-  function saveReviewState() {
+  function saveReviewState(comment) {
+    if (bridge) { bridge.save(comment); return; }
     try { localStorage.setItem(storageKey, JSON.stringify({ schemaVersion: 2, comments: state.comments })); } catch { /* Session state remains visible. */ }
   }
 
