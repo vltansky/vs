@@ -10,6 +10,7 @@ scene('intro', (R) => {
     '<span class="chip">840 ms</span> <span class="chip">every time</span>');
   return (t, B) => {
     rise(title, t, 0.15, { dy: 60, d: 0.8 });
+    dim(title, t, B[1] + 0.6);
     pop(example, t, B[1]);
   };
 });
@@ -17,13 +18,14 @@ scene('intro', (R) => {
 scene('miss', (R) => {
   const svg = svgLayer(R);
   const term = terminal(R, 120, 170, 860, 240, 'browser');
-  const cdn = box(R, 1160, 170, 640, 420, 'card');
+  const cdn = box(R, 1160, 170, 640, 470, 'card');
   cdn.innerHTML = '<div class="head-row"><div class="glyph">C</div>CDN<span class="meta">cache</span></div><div class="pad"></div>';
   const keys = cdn.querySelector('.pad');
+  const key = el(keys, 'row mono acc', 'key = path + full query', { fontSize: '24px', marginBottom: '14px' });
   const rows = ['?q=nile&t=1001', '?q=nile&t=1002', '?q=nile&t=1003'].map((k) => el(keys, 'row mono', k, { fontSize: '24px', marginBottom: '14px' }));
   const wire = path(svg, curve(980, 300, 1160, 300), 'ln acc arrow');
   const packet = dot(svg, 9);
-  const miss = box(R, 1160, 640, 0, 0, 'chip bad', 'MISS  x3');
+  const miss = box(R, 1160, 680, 0, 0, 'chip bad', 'MISS  x3');
   miss.style.fontSize = '30px';
   return (t, B) => {
     rise(term.el, t, 0);
@@ -34,6 +36,8 @@ scene('miss', (R) => {
     ], t, B[0]);
     draw(wire, P(t, B[1], 0.7));
     along(packet, wire, P(t, B[1] + 0.3, 0.9, ease.inOut));
+    rise(key, t, B[1] + 1.2, { dx: -20, dy: 0, d: 0.5 });
+    focus(cdn, t, B, 1);
     rows.forEach((r, i) => {
       rise(r, t, B[2] + i * 0.45, { dx: -20, dy: 0, d: 0.4 });
       flash(r, t, B[2] + i * 0.45);

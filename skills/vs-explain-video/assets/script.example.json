@@ -1,5 +1,7 @@
 {
   "title": "Why does search miss the cache?",
+  "question": "Why does the same search miss the CDN cache every time, and what fixes it?",
+  "audience": "Engineers who review the search PR",
   "brand": "acme/search · PR #42",
   "voice": "af_heart",
   "speed": 1.05,

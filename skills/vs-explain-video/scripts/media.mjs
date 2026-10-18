@@ -32,20 +32,28 @@ export const PLAYWRIGHT_CORE_VERSION = '1.63.0';
 export const toolingDir = () =>
   process.env.VS_TOOLING_DIR ?? path.join(homedir(), '.vs', 'tooling', `playwright-core-${PLAYWRIGHT_CORE_VERSION}`);
 
-// Resolve an explicit PLAYWRIGHT_MODULE, then the project's, the work dir's,
-// the skill's tool cache, or a global install.
-export const resolvePlaywright = (extraRoots = []) => {
-  const roots = [process.cwd(), ...extraRoots, toolingDir()];
+// Resolve Playwright in a fixed order: an explicit PLAYWRIGHT_MODULE, then the
+// work dir, then the skill's pinned tool cache, then the current directory,
+// then the global npm root. Each root counts only through its own
+// node_modules: Node's normal lookup also walks every parent directory, so a
+// stray /node_modules or ~/node_modules would win over the work dir and the
+// pinned version.
+export const playwrightRoots = (extraRoots = []) => {
+  const roots = [...extraRoots, toolingDir(), process.cwd()].map((root) => path.join(root, 'node_modules'));
   const globalRoot = run('npm', ['root', '-g']).stdout?.trim();
   if (globalRoot) roots.push(globalRoot);
+  return roots;
+};
+export const resolvePlaywright = (extraRoots = []) => {
   const explicit = process.env.PLAYWRIGHT_MODULE;
   if (explicit) {
     const entry = existsSync(explicit) ? tryResolve(explicit, process.cwd()) : null;
     if (entry) return entry;
   }
-  for (const root of roots) {
+  for (const modules of playwrightRoots(extraRoots)) {
     for (const name of ['playwright', 'playwright-core']) {
-      const entry = tryResolve(name, root);
+      const dir = path.join(modules, name);
+      const entry = existsSync(path.join(dir, 'package.json')) ? tryResolve(dir, modules) : null;
       if (entry) return entry;
     }
   }
@@ -68,7 +76,7 @@ export const ensurePlaywright = (extraRoots = []) => {
     'install', '--prefix', dir, '--no-audit', '--no-fund', '--loglevel=error',
     `playwright-core@${PLAYWRIGHT_CORE_VERSION}`,
   ]);
-  const entry = tryResolve('playwright-core', dir);
+  const entry = tryResolve(path.join(dir, 'node_modules', 'playwright-core'), dir);
   if (entry) return { entry, error: null };
   const reason = (result.stderr || result.error?.message || `npm exited ${result.status}`).trim().split('\n')[0];
   return { entry: null, error: `npm install failed: ${reason}` };
