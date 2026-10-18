@@ -63,6 +63,36 @@ describe('verify-map contract', () => {
     expect(shared).toMatch(/references\/verify-map\.md/);
   });
 
+  it('repairs a stale map through a maintain pass with three outcomes', () => {
+    const contract = fs.readFileSync(CONTRACT, 'utf8');
+    expect(contract).not.toMatch(/stale\s+map\s+gets\s+a\s+scratch\s+diff/i);
+    expect(contract).toMatch(/If\s+a\s+map\s+is\s+stale,\s+run\s+the\s+\[maintain\s+pass\]\(#maintain-pass\)/);
+    const section = contract.match(/## Maintain pass[\s\S]*?(?=\n## )/)?.[0] ?? '';
+    expect(section).toMatch(/one\s+source\s+reader\s+for\s+each\s+feature\s+file/i);
+    expect(section).toMatch(/in\s+parallel/i);
+    expect(section).toMatch(/Keep\s+the\s+evidence\s+after\s+cleanup/i);
+    expect(section).toMatch(/exactly\s+one\s+of\s+these\s+three\s+outcomes/i);
+    expect(section).toMatch(/\*\*clean:\*\*/);
+    expect(section).toMatch(/\*\*changed:\*\*[\s\S]*?only\s+inside\s+`\.vs\/verify-map\/`/);
+    expect(section).toMatch(/\*\*blocked:\*\*[\s\S]*?Name\s+the\s+blocker/);
+  });
+
+  it('reports a broken app as a product regression, not a map rewrite', () => {
+    const contract = fs.readFileSync(CONTRACT, 'utf8');
+    const section = contract.match(/## Maintain pass[\s\S]*?(?=\n## )/)?.[0] ?? '';
+    expect(section).toMatch(/Report\s+it\s+as\s+a\s+product\s+regression/);
+    expect(section).toMatch(/Do\s+not\s+rewrite\s+the\s+map\s+to\s+match\s+broken\s+behavior/);
+    expect(section).toMatch(/product\s+regression\s+is\s+not\s+map\s+drift/i);
+  });
+
+  it('points vs-verify and vs-qa at the maintain pass without copying it', () => {
+    for (const folder of ['vs-verify', 'vs-qa']) {
+      const raw = fs.readFileSync(path.join(SKILLS_DIR, folder, 'SKILL.md'), 'utf8');
+      expect(raw, folder).toMatch(/run\s+the\s+maintain\s+pass\s+in\s+that\s+contract/);
+      expect(raw, folder).not.toMatch(/exactly\s+one\s+of\s+these\s+three\s+outcomes/i);
+    }
+  });
+
   it('names .vs/verify-map/ as committed source-of-truth, distinct from session artifacts', () => {
     const shared = fs.readFileSync(SHARED_SKILL, 'utf8');
     const section =
