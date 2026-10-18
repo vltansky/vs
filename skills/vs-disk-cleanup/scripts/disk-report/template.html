@@ -1,0 +1,238 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dev Disk Report</title>
+<style>
+:root {
+  color-scheme: light;
+  --page: #f9f9f7; --surface: #fcfcfb; --ink: #0b0b0b; --ink-2: #52514e; --line: #e4e3df;
+  --safe: #2a78d6; --review: #eb6834; --warn: #fab219; --on-fill: #fff;
+  --sel: #0b0b0b;
+}
+@media (prefers-color-scheme: dark) {
+  :root { color-scheme: dark; --page: #0d0d0d; --surface: #1a1a19; --ink: #f0efec; --ink-2: #c3c2b7; --line: #383835;
+    --safe: #3987e5; --review: #d95926; --sel: #f0efec; }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--page); color: var(--ink); font: 14px/1.45 -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif; }
+main { max-width: 1280px; margin: 0 auto; padding: 28px 20px 200px; }
+h1 { font-size: 22px; margin: 0 0 4px; letter-spacing: -0.01em; }
+.sub { color: var(--ink-2); margin: 0 0 20px; }
+.stats { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 20px; }
+.stat { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px; min-width: 150px; }
+.stat b { display: block; font-size: 20px; font-variant-numeric: tabular-nums; }
+.stat span { color: var(--ink-2); font-size: 12px; }
+.legend { display: flex; gap: 16px; flex-wrap: wrap; color: var(--ink-2); font-size: 13px; margin-bottom: 8px; align-items: center; }
+.sw { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
+.groups { display: flex; gap: 6px; height: 540px; }
+.grp { position: relative; min-width: 0; display: flex; flex-direction: column; }
+.grp h2 { font-size: 13px; font-weight: 600; margin: 0 0 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.grp h2 small { color: var(--ink-2); font-weight: 400; }
+.tm { position: relative; flex: 1; background: var(--surface); border-radius: 8px; overflow: hidden; }
+.cell { position: absolute; border: 2px solid var(--surface); border-radius: 6px; color: var(--on-fill); padding: 6px 7px; overflow: hidden; cursor: pointer; font-size: 12px; line-height: 1.25; transition: filter .12s; }
+.cell:hover { filter: brightness(1.08); }
+.cell.safe { background: var(--safe); } .cell.review { background: var(--review); }
+.cell.on { box-shadow: inset 0 0 0 3px var(--sel); }
+.cell.on::after { content: "\2713"; position: absolute; top: 4px; right: 6px; font-weight: 700; }
+.cell b { display: block; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-right: 12px; }
+.cell .badge { display: inline-block; margin-top: 3px; background: var(--warn); color: #0b0b0b; border-radius: 3px; padding: 0 4px; font-size: 11px; font-weight: 600; }
+.tip { position: fixed; z-index: 10; pointer-events: none; max-width: 420px; background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; box-shadow: 0 6px 24px rgb(0 0 0 / .18); font-size: 12px; }
+.tip code { font-size: 11px; color: var(--ink-2); word-break: break-all; }
+section.list { margin-top: 32px; }
+section.list h2 { font-size: 16px; margin: 0 0 8px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+section.list h2 button { font-size: 12px; }
+.tbl { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; }
+table { border-collapse: collapse; width: 100%; min-width: 760px; }
+th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-size: 12px; color: var(--ink-2); font-weight: 500; }
+tr:last-child td { border-bottom: 0; }
+td.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+td.path code { font-size: 11.5px; color: var(--ink-2); word-break: break-all; display: block; }
+td.path details summary { cursor: pointer; color: var(--ink-2); font-size: 12px; }
+.tag { font-size: 11px; color: var(--ink-2); border: 1px solid var(--line); border-radius: 3px; padding: 0 4px; margin-left: 4px; }
+.grow { color: var(--ink); font-weight: 600; } .grow::before { content: "\25B2 "; color: var(--warn); }
+.dim { color: var(--ink-2); }
+button { font: inherit; border: 1px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 6px; padding: 6px 12px; cursor: pointer; }
+button.primary { background: var(--ink); color: var(--page); border-color: var(--ink); }
+button:disabled { opacity: .45; cursor: default; }
+.bar { position: fixed; left: 0; right: 0; bottom: 0; background: var(--surface); border-top: 1px solid var(--line); padding: 10px 20px calc(10px + env(safe-area-inset-bottom, 0px)); z-index: 5; }
+.bar-in { max-width: 1280px; margin: 0 auto; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.bar-in .sum { flex: 1; min-width: 200px; }
+pre#script { max-height: 40vh; overflow: auto; margin: 10px auto 0; max-width: 1280px; background: var(--page); border: 1px solid var(--line); border-radius: 8px; padding: 12px; font-size: 12px; }
+.note { color: var(--ink-2); font-size: 12px; margin-top: 10px; }
+@media (max-width: 760px) { .groups { flex-direction: column; height: auto; } .grp { width: 100% !important; height: 420px; } }
+</style>
+</head>
+<body>
+<main>
+  <h1>Dev disk report</h1>
+  <p class="sub" id="sub"></p>
+  <div class="stats" id="stats"></div>
+  <div class="legend">
+    <span><i class="sw" style="background:var(--safe)"></i>Safe to remove</span>
+    <span><i class="sw" style="background:var(--review)"></i>Let me review first</span>
+    <span><i class="sw" style="background:var(--warn)"></i>Grew since last scan</span>
+    <span>Area = size. Click a box or tick a row to add it to the cleanup script.</span>
+  </div>
+  <div class="groups" id="groups"></div>
+  <section class="list" id="list-safe"></section>
+  <section class="list" id="list-review"></section>
+  <section class="list" id="list-excluded"></section>
+  <p class="note">Sizes from <code>du -skx</code>; no file contents were read. iCloud, Photos, Desktop/Documents/Downloads, Mail/Messages/Safari, app Containers and Trash were skipped. pnpm/Yarn caches may share hard links with node_modules, so freed space can be less than the sum. Re-scan: <code>__SCAN_CMD__</code></p>
+</main>
+<div class="tip" id="tip" hidden></div>
+<div class="bar">
+  <div class="bar-in">
+    <div class="sum" id="sum">Nothing selected</div>
+    <button id="toggle" disabled>Show script</button>
+    <button id="copy" disabled>Copy script</button>
+    <button id="dl" class="primary" disabled>Download cleanup.sh</button>
+  </div>
+  <pre id="script" hidden></pre>
+</div>
+<script>
+const DATA = /*__DATA__*/null;
+const $ = (s) => document.querySelector(s);
+const gb = (kb) => kb >= 1048576 ? (kb / 1048576).toFixed(1) + ' GB' : Math.round(kb / 1024) + ' MB';
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+const fmtDate = (s) => new Date(s).toLocaleString();
+const selected = new Set();
+const byId = new Map(DATA.items.map((it) => [it.id, it]));
+const groups = [
+  { key: 'safe', title: 'Safe to remove' },
+  { key: 'review', title: 'Let me review first', hint: 'sessions, models, Docker, worktrees, unknown tools' },
+].map((g) => ({ ...g, items: DATA.items.filter((i) => i.group === g.key) }))
+ .map((g) => ({ ...g, total: g.items.reduce((s, i) => s + i.kb, 0) }));
+
+// header
+const excluded = DATA.items.filter((i) => i.group === 'excluded');
+const exTotal = excluded.reduce((s, i) => s + i.kb, 0);
+const ago = (iso) => { if (!iso) return '—'; const d = Math.floor((Date.parse(DATA.scannedAt) - Date.parse(iso)) / 864e5); return d <= 0 ? 'today' : d === 1 ? '1 day ago' : d < 60 ? `${d} days ago` : `${Math.round(d / 30)} months ago`; };
+const grown = DATA.items.filter((i) => i.grew);
+$('#sub').textContent = `Scanned ${fmtDate(DATA.scannedAt)}` + (DATA.prevAt ? ` · compared with ${fmtDate(DATA.prevAt)}` : ' · first scan, growth tracking starts next run');
+const stats = [
+  [gb(DATA.disk.freeKb), `free of ${gb(DATA.disk.totalKb)} (${Math.round(DATA.disk.usedKb / DATA.disk.totalKb * 100)}% used)`],
+  [gb(groups[0].total), `safe to remove · ${groups[0].items.length} items`],
+  [gb(groups[1].total), `to review · ${groups[1].items.length} items`],
+  [gb(exTotal), `excluded · rebuilds or in use`],
+  [DATA.prevAt ? String(grown.length) : '—', DATA.prevAt ? `grew since last scan (+${gb(grown.reduce((s, i) => s + i.delta, 0))})` : 'growth: needs a 2nd scan'],
+];
+$('#stats').innerHTML = stats.map(([v, l]) => `<div class="stat"><b>${v}</b><span>${esc(l)}</span></div>`).join('');
+
+// squarified treemap
+function squarify(items, x, y, w, h) {
+  const out = []; const total = items.reduce((s, i) => s + i.kb, 0); if (!total) return out;
+  const scale = (w * h) / total; let rest = items.map((i) => ({ it: i, a: i.kb * scale }));
+  while (rest.length) {
+    const short = Math.min(w, h); let row = []; let best = Infinity;
+    for (const r of rest) {
+      const next = [...row, r]; const s = next.reduce((a, b) => a + b.a, 0);
+      const worst = Math.max(...next.map((n) => Math.max((short * short * n.a) / (s * s), (s * s) / (short * short * n.a))));
+      if (worst > best) break; best = worst; row = next;
+    }
+    rest = rest.slice(row.length);
+    const s = row.reduce((a, b) => a + b.a, 0); const thick = s / short; let off = 0;
+    for (const r of row) {
+      const len = r.a / thick;
+      out.push(w >= h ? { it: r.it, x, y: y + off, w: thick, h: len } : { it: r.it, x: x + off, y, w: len, h: thick });
+      off += len;
+    }
+    if (w >= h) { x += thick; w -= thick; } else { y += thick; h -= thick; }
+  }
+  return out;
+}
+function drawTreemaps() {
+  const wrap = $('#groups'); const narrow = matchMedia('(max-width: 760px)').matches;
+  const all = groups[0].total + groups[1].total;
+  wrap.innerHTML = groups.map((g) => {
+    const pct = Math.max(18, Math.min(82, g.total / all * 100));
+    return `<div class="grp" style="width:${narrow ? 100 : pct}%"><h2>${g.title} <small>${gb(g.total)}${g.hint ? ' · ' + g.hint : ''}</small></h2><div class="tm" data-g="${g.key}"></div></div>`;
+  }).join('');
+  for (const g of groups) {
+    const tm = wrap.querySelector(`[data-g="${g.key}"]`); const { width, height } = tm.getBoundingClientRect();
+    tm.innerHTML = squarify(g.items, 0, 0, width, height).map((c) => {
+      const small = c.w < 70 || c.h < 34;
+      return `<div class="cell ${g.key}${selected.has(c.it.id) ? ' on' : ''}" data-id="${esc(c.it.id)}" style="left:${c.x}px;top:${c.y}px;width:${c.w}px;height:${c.h}px">` +
+        (small ? '' : `<b>${esc(c.it.label)}</b>${gb(c.it.kb)}${c.it.grew && c.h > 52 ? `<br><span class="badge">+${gb(c.it.delta)}</span>` : ''}`) + '</div>';
+    }).join('');
+  }
+}
+
+// tooltip
+const tip = $('#tip');
+function tipHtml(it) {
+  const change = it.delta === null ? (DATA.prevAt ? 'new since last scan' : '') : (it.delta >= 0 ? '+' : '−') + gb(Math.abs(it.delta)) + ' since last scan';
+  return `<b>${esc(it.label)}</b> · ${gb(it.kb)}${change ? ` · <span class="${it.grew ? 'grow' : 'dim'}">${change}</span>` : ''}<br>` +
+    `<span class="dim">Last used ${ago(it.lastUsed)}${it.active ? ' (in use)' : ''}</span><br>` +
+    it.paths.slice(0, 4).map((p) => `<code>${esc(p)}</code>`).join('<br>') + (it.paths.length > 4 ? `<br><span class="dim">+${it.paths.length - 4} more</span>` : '') +
+    `<div style="margin-top:6px">${esc(it.effect)}</div>`;
+}
+$('#groups').addEventListener('mousemove', (e) => {
+  const c = e.target.closest('.cell'); if (!c) { tip.hidden = true; return; }
+  tip.innerHTML = tipHtml(byId.get(c.dataset.id)); tip.hidden = false;
+  const r = tip.getBoundingClientRect();
+  tip.style.left = Math.min(e.clientX + 14, innerWidth - r.width - 8) + 'px';
+  tip.style.top = Math.min(e.clientY + 14, innerHeight - r.height - 8) + 'px';
+});
+$('#groups').addEventListener('mouseleave', () => { tip.hidden = true; });
+$('#groups').addEventListener('click', (e) => { const c = e.target.closest('.cell'); if (c) toggle(c.dataset.id); });
+
+// tables
+const REASON = { rebuilds: 'Package-manager cache: refills on the next install', active: `In use: touched in the last 14 days` };
+function drawTables() {
+  for (const g of [...groups, { key: 'excluded', title: 'Excluded', items: excluded, total: exTotal }]) {
+    const isEx = g.key === 'excluded';
+    const rows = g.items.map((it) => {
+      const change = it.delta === null ? (it.isNew ? '<span class="dim">new</span>' : '<span class="dim">—</span>')
+        : it.grew ? `<span class="grow">+${gb(it.delta)}</span>` : `<span class="dim">${it.delta >= 0 ? '+' : '−'}${gb(Math.abs(it.delta))}</span>`;
+      const paths = it.paths.length <= 2 ? it.paths.map((p) => `<code>${esc(p)}</code>`).join('')
+        : `<code>${esc(it.paths[0])}</code><details><summary>+${it.paths.length - 1} more paths</summary>${it.paths.slice(1).map((p) => `<code>${esc(p)}</code>`).join('')}</details>`;
+      const used = `<span class="${it.active ? '' : 'dim'}">${ago(it.lastUsed)}</span>`;
+      return `<tr><td>${isEx ? '' : `<input type="checkbox" data-id="${esc(it.id)}" ${selected.has(it.id) ? 'checked' : ''} aria-label="Select ${esc(it.label)}">`}</td>
+        <td>${esc(it.label)}<span class="tag">${esc(it.tag)}</span></td><td class="path">${paths}</td>
+        <td class="num">${gb(it.kb)}</td><td class="num">${change}</td><td class="num">${used}</td><td>${esc(isEx ? REASON[it.excluded] : it.effect)}</td></tr>`;
+    }).join('');
+    const table = `<div class="tbl"><table><thead><tr><th></th><th>Item</th><th>Path</th><th style="text-align:right">Size</th><th style="text-align:right">Change</th><th style="text-align:right">Last used</th><th>${isEx ? 'Why excluded' : 'If deleted'}</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+    $(`#list-${g.key}`).innerHTML = isEx
+      ? (g.items.length ? `<details><summary><h2 style="display:inline-flex">Excluded: rebuilds on its own or in use <span class="dim" style="font-weight:400;font-size:13px">${gb(g.total)} · ${g.items.length} items · still tracked for growth</span></h2></summary>${table}</details>` : '')
+      : `<h2>${g.title} <span class="dim" style="font-weight:400;font-size:13px">${gb(g.total)}</span>
+      <button data-all="${g.key}">Select all</button><button data-none="${g.key}">Clear</button></h2>${table}`;
+  }
+}
+document.addEventListener('change', (e) => { if (e.target.matches('input[data-id]')) toggle(e.target.dataset.id, e.target.checked); });
+document.addEventListener('click', (e) => {
+  const a = e.target.dataset?.all, n = e.target.dataset?.none;
+  if (a) { groups.find((g) => g.key === a).items.forEach((i) => selected.add(i.id)); refresh(); }
+  if (n) { groups.find((g) => g.key === n).items.forEach((i) => selected.delete(i.id)); refresh(); }
+});
+function toggle(id, on = !selected.has(id)) { on ? selected.add(id) : selected.delete(id); refresh(); }
+
+// cleanup script: builder inlined from cleanup-script.mjs by scan.mts (shared with cleanup.mts)
+/*__BUILD__*/
+const scriptFor = () => buildScript(DATA.items.filter((i) => selected.has(i.id)), { scannedAt: DATA.scannedAt, scanCmd: DATA.scanPath });
+function refresh() {
+  drawTreemaps(); drawTables();
+  const its = DATA.items.filter((i) => selected.has(i.id));
+  const nRev = its.filter((i) => i.group === 'review').length;
+  $('#sum').innerHTML = its.length ? `<b>${its.length}</b> selected · <b>${gb(its.reduce((s, i) => s + i.kb, 0))}</b>${nRev ? ` · ${nRev} from “review first”` : ''}` : 'Nothing selected';
+  for (const b of ['#toggle', '#copy', '#dl']) $(b).disabled = !its.length;
+  $('#script').textContent = scriptFor();
+  if (!its.length) $('#script').hidden = true;
+}
+$('#toggle').addEventListener('click', () => { $('#script').hidden = !$('#script').hidden; $('#toggle').textContent = $('#script').hidden ? 'Show script' : 'Hide script'; });
+$('#copy').addEventListener('click', async () => {
+  try { await navigator.clipboard.writeText(scriptFor()); $('#copy').textContent = 'Copied'; }
+  catch { $('#script').hidden = false; $('#copy').textContent = 'Copy failed - select the text below'; }
+  setTimeout(() => { $('#copy').textContent = 'Copy script'; }, 2000);
+});
+$('#dl').addEventListener('click', () => {
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([scriptFor()], { type: 'text/x-shellscript' }));
+  a.download = 'cleanup.sh'; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+});
+let rt; addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(drawTreemaps, 100); });
+refresh();
+</script>
+</body>
+</html>

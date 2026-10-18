@@ -1,0 +1,5 @@
+interface:
+  display_name: "vs-disk-cleanup"
+
+policy:
+  allow_implicit_invocation: true
