@@ -8,6 +8,6 @@
     "target": "ES2022",
     "types": ["node", "vitest/globals"]
   },
-  "include": ["skills/*/test/*.ts", "tests/*.ts", "mcp/*.ts"],
+  "include": ["skills/*/test/*.ts", "tests/*.ts", "mcp/*.ts", "bench/*/test/*.ts"],
   "exclude": ["**/fixtures/**", "**/pathgrade-debug/**"]
 }
