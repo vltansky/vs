@@ -44,8 +44,8 @@ gives the same frame.
 
 | Helper | Use for |
 |---|---|
-| `rise(e, t, s, {dy, dx, d})` | default entrance: fade and slide in |
-| `pop(e, t, s)` | chips, badges, a new state: scale with overshoot |
+| `rise(e, t, s, {dy, dx, d})` | default entrance: fade and slide in on a spring |
+| `pop(e, t, s)` | chips, badges, a new state: scale with a playful spring |
 | `dim(e, t, s, to)` | old state stays, quieter; call after its entrance |
 | `hide(e, t, s)` | only when the old state is truly gone |
 | `flash(e, t, s)` | one-shot accent glow: "this just changed" |
@@ -55,7 +55,27 @@ gives the same frame.
 | `path(svg, curve(...), 'ln acc arrow')` + `draw(p, k)` | an arrow that draws on |
 | `dot(svg)` + `along(c, p, k)` | the example travelling along an arrow |
 | `type(term.body, lines, t, s)` | a command typed into the terminal |
-| `P(t, s, d, ease)` | raw eased 0..1 progress for anything custom |
+| `spring(t, s, preset)` | raw 0..1 spring progress for anything custom |
+| `springTo(t, [[t0, v0], [t1, v1]], preset)` | a value that moves, then retargets mid-move |
+| `settle(preset)`, `readTime(text)` | seconds a move needs to land; seconds text needs to be read |
+| `P(t, s, d, ease)` | fixed-length eased progress (dims, fades, counters) |
+
+## Springs, never linear
+
+Nothing that moves (position, scale, opacity) eases linearly: it reads as a
+slide deck. `ease.linear` is for stepped progress only (typing, a progress
+bar). Springs are closed form, so any `t` draws the same frame. Pick by what
+moves:
+
+| Preset | Stiffness/damping | For | Lands in |
+|---|---|---|---|
+| `snappy` | 320/30 | chips, badges, checkmarks | ~0.25 s, a hair of overshoot |
+| `camera` | 170/26 | cards, panels, arrows (the `rise` default) | ~0.5 s, no bounce |
+| `heavy` | 120/24 | titles, big numbers (`rise` with `d` 0.75+) | ~0.75 s, no overshoot |
+| `playful` | 180/12 | a pop with personality (the `pop` default) | ~0.65 s, ~20% overshoot |
+
+When something changes destination mid-move, add a key to `springTo` instead
+of starting a new move: the sum keeps its momentum.
 
 ## Rules that make it read well
 
@@ -68,9 +88,12 @@ gives the same frame.
    the viewer can compare.
 5. **Show cause, then effect.** The arrow draws, the dot travels, then the
    target reacts (`flash`, `pop`, `count`).
-6. **Last beat lands.** End each scene on its conclusion fully built and
+6. **Fast moves, slow meanings.** One read at a time. A move may be quick;
+   its meaning needs a hold: `settle(preset) + readTime(text)` before the
+   next build. Two things that land together give the viewer one of them.
+7. **Last beat lands.** End each scene on its conclusion fully built and
    still for at least a second; the scene end still checks it.
-7. **No bullet slides.** If a scene is text while the voice talks, redraw
+8. **No bullet slides.** If a scene is text while the voice talks, redraw
    it as the example moving through the system.
 
 ## Fixing audit issues

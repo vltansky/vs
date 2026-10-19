@@ -152,6 +152,22 @@ the frequency gate, easing and duration rules, component rules, springs,
 gestures, performance notes, and the Before/After/Why review format. The copied
 MIT license notice is included at `skills/vs-ui/LICENSE.emil-design-eng`.
 
+## take-one springs and claude-motion-design
+
+- Authors: Tal Siach (take-one); Raphael Aubry (claude-motion-design)
+- Projects: https://github.com/talsiach/take-one and
+  https://github.com/howseen-ai/claude-motion-design
+- Used in: `skills/vs-explain-video/assets/motion.js` (the springs)
+- Source: take-one's `scripts/springs.js` at
+  https://github.com/talsiach/take-one/tree/b81bdafa4ed2bc0a483407cf160e60f7634d4ef2
+- License: MIT
+
+The `vs-explain-video` springs adapt take-one's closed-form springs. They keep
+its four presets, their constants and notes, and its sum-of-springs retarget.
+take-one credits the springs idea to claude-motion-design; no
+claude-motion-design text or code is used directly. The copied take-one MIT
+license text is included at `skills/vs-explain-video/LICENSE.take-one`.
+
 ## better-ui
 
 - Project: https://github.com/jakubkrehel/skills

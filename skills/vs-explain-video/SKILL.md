@@ -103,10 +103,13 @@ Run `narrate.mjs` without `--dry-run`. It picks ElevenLabs when
 kokoro, then piper, then macOS `say`. It speaks each beat separately (cached,
 so a rerun only speaks changed beats), then writes `narration.wav` and
 `timeline.js`. It prints each scene's `cues`: `B[i] = <seconds>` per beat.
-
 When the user cares about the voice, narrate one beat with 4-6 voices first
-(`KOKORO_VOICE=am_michael` and so on; default `af_heart`) and let them pick
-before the full run.
+(`KOKORO_VOICE=am_michael`; default `af_heart`) and let them pick.
+
+It then checks without ears (`narration-check.json`). With whisper installed,
+it transcribes each beat; a flagged beat lost or gained words: rewrite it or
+add a `pronounce` entry, and rerun. Without whisper it says the words were not
+checked; report that (`--require-word-check` exits 2). It levels the track to -16 LUFS.
 
 The API key is a secret. Never print, log, echo, or write the key, and never
 put it in a command line. Never ask the user to paste it into chat; ask them
@@ -117,7 +120,9 @@ to export it in their shell. Report only whether it is set.
 In `scenes.js`, one `scene(id, build)` per script scene. `build(root)` makes
 the DOM once and returns `update(t, B, D)`; drive every change from `t` and the
 beat starts `B`. Never use timers, `requestAnimationFrame`, or CSS animations;
-they do not move under seek.
+they do not move under seek. Moves spring (`rise`, `pop`, `spring`,
+`springTo`); never move anything linearly. Hold each build for its settle plus
+`readTime(text)` before the next one lands.
 
 Every sentence gets a visual change. Start the build for beat i at `B[i]` (or
 up to a second after, on the word that names it). A beat with no build is a
