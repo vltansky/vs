@@ -5,8 +5,10 @@ stranger misses. The reviewer is a new agent that has seen none of the work.
 It stands in for a viewer who sees the video once, at full speed, with no
 context. Its score is the score.
 
-Idea from take-one (github.com/talsiach/take-one, MIT); the rubric here is
-for code explainers.
+Adapted from take-one's `references/reviewer-brief.md`
+(github.com/talsiach/take-one), Copyright (c) 2026 Tal Siach, MIT. See
+[LICENSE.take-one](../LICENSE.take-one) and `THIRD_PARTY_NOTICES.md`. Modified
+by vs: the rubric is for code explainers.
 
 ## Rules
 
@@ -17,12 +19,14 @@ for code explainers.
 - **It cannot hear.** `WORDS.md` gives it every spoken line with its time and
   the sound measures.
 - **The bar is 8.** PASS needs 8 or more on every axis. Anything less is
+  RETURN. `verdict.mjs` decides by the scores, so a PASS with a 7 is a
   RETURN.
 - **RETURN goes back to the scenes.** Fix what it names in `scenes.js` (or
   the beats in `script.json`, then narrate again). Rerun `render.mjs --stills`
   and `check.mjs`, render again, build a new pack, and give it to a new
   reviewer.
-- **Three rounds at most.** `pack.mjs` refuses a fourth. Still under the bar
+- **Three rounds at most.** `pack.mjs` refuses a fourth and never redoes a
+  round; a pack that fails does not use one up. Still under the bar
   after round 3: stop, deliver the video with the last score and the open
   problems, and let the user decide. Never report a pass that did not
   happen.
@@ -40,6 +44,17 @@ It writes `review/round-N/` with one-frame-a-second sheets, beat grids,
 12-frame strips across each scene cut, a 360 px phone-width sheet,
 `WORDS.md`, and `BRIEF.md`. Put `question`, `audience`, and `locked` in
 `script.json` so `WORDS.md` carries them.
+
+## Read the reply
+
+Save the reviewer's whole reply as `review/round-N/REPLY.md`, then run:
+
+```bash
+node <skill-dir>/scripts/verdict.mjs "$WORK"
+```
+
+Exit 0 is PASS, 1 is RETURN, 2 means the reply has no score for every axis:
+it is not a review, so give `BRIEF.md` to a new reviewer.
 
 ## The brief
 
@@ -64,7 +79,8 @@ Report, in this order, in under 400 words:
 
 1. The video retold in one sentence, as a viewer would tell a friend. If you
    could not follow something, say what.
-2. Scores from 1 to 10, one line of reason each:
+2. Scores from 1 to 10, one line each, written as `- axis: N` and then the
+   reason:
    - answer: does it answer the question in WORDS.md?
    - example: can you follow one concrete example from start to end?
    - builds: does every spoken line change the picture, or are some slides?
@@ -75,5 +91,5 @@ Report, in this order, in under 400 words:
      in WORDS.md)?
    - overall: against the best explainer videos you know.
 3. The three worst problems, each with a timestamp and what exactly is wrong.
-4. Verdict: PASS if every score is 8 or more, otherwise RETURN.
+4. Verdict: PASS if every score is [bar] or more, otherwise RETURN.
 <!-- /brief -->

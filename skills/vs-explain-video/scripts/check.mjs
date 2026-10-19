@@ -11,35 +11,49 @@
 //             animations: anything that does not move under seek.
 //   DETERMINISM  12 frames (0, the last, evenly between) drawn forward on a
 //             fresh page, then in reverse on the same, now warm, page. They
-//             must hash the same (or above 45 dB PSNR). On a mismatch it redraws
-//             the bad frame on fresh pages after each other sample and names
-//             the frame that changes it: state one seek leaves for the next.
-//   NO-BUILD  every beat must change the picture: the frame at the beat start
-//             against the frame before the next beat (subtitles, chapter,
-//             progress line and glow hidden). Under 0.5% changed pixels is a
-//             slide. An intended still beat is declared in scenes.js:
-//             window.HOLDS = ['scene-id:2'].
+//             must hash the same, or differ only by anti-aliasing noise: above
+//             45 dB PSNR with under 64 pixels off by more than 32/255. On a
+//             mismatch it draws the bad frame on two fresh pages: if those
+//             differ, NONDETERMINISTIC (random or a clock). Else it redraws the
+//             frame on fresh pages after each other sample and names the one
+//             that changes it: ORDER-DEPENDENT, state one seek leaves behind.
+//   NO-BUILD  every beat must change the picture: the frame one frame before
+//             the beat starts against the frame one frame before the next
+//             beat (subtitles, chapter, progress line and glow hidden). Under
+//             0.5% changed pixels is a slide. An intended still beat is
+//             declared in scenes.js: window.HOLDS = ['scene-id:2'].
 // --text   samples every --step seconds and joins what is on screen into "this
 //          text was up from A to B" per element, so a typed line or a counter
 //          is one piece:
 //   FLASH    up shorter than 0.4 s + 0.2 s a word (FAIL under 60% of that).
-//   SMALL    held 0.6 s or more and never reaches 20px.
+//   SMALL    held 0.6 s or more and never reaches 20px (19.5px measured passes:
+//            layout rounding). The size counts every CSS transform scale.
 //   LONG     one 54px+ line held unchanged over 6 s (WARN: may be a slide).
 //   OVERLAP  two different texts on each other for 0.3 s or more (FAIL when
 //            both sit still, WARN when one moves). data-overlap-ok exempts.
 //          Subtitles, chapter and brand are the stage's own and are skipped;
 //          data-audit-skip skips any other block.
 //
-// Ideas from take-one (github.com/talsiach/take-one, MIT); this code is our own.
+// Third-party code (see THIRD_PARTY_NOTICES.md at the repo root):
+// - The gate (forward cold and reverse warm draws, the PSNR tolerance, the
+//   culprit search on fresh pages, window.HOLDS) is adapted from the render
+//   gate in take-one's scripts/gate.mjs, which is adapted from anidoodle
+//   (github.com/alexgreensh/anidoodle), Copyright 2026 Alex Greenshpun,
+//   Apache License 2.0. See ../LICENSE.anidoodle and ../NOTICE.anidoodle.
+//   Modified by vs: a seeked HTML stage instead of a canvas, a changed-area
+//   test, and the every-beat-builds measure.
+// - The text audit is adapted from take-one's scripts/text-audit.mjs
+//   (github.com/talsiach/take-one), Copyright (c) 2026 Tal Siach, MIT. See
+//   ../LICENSE.take-one. Modified by vs: DOM spans per owner element.
 // Exit codes: 0 no FAIL (WARN lines are leads: fix or say why they stay);
 // 1 at least one FAIL; 2 blocked.
 import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 
-import { beatIssues, beatWindows, changedFraction, compareDraws, RULES, sampleTimes, scanScenes, textIssues, textSpans } from './checks.mjs';
+import { beatIssues, beatWindows, changedFraction, compareDraws, determinismIssue, diffRegion, RULES, sameDraw, sampleTimes, scanScenes, textIssues, textSpans } from './checks.mjs';
 import { fail } from './media.mjs';
 import { openStage } from './stage.mjs';
 
@@ -57,6 +71,7 @@ const samples = Number(opt('--samples', String(RULES.samples)));
 
 const { browser, newPage, errors } = await openStage(work, 'check.mjs');
 const scratch = mkdtempSync(path.join(tmpdir(), 'vs-check-'));
+process.on('exit', () => rmSync(scratch, { recursive: true, force: true }));
 const report = { gate: null, text: null };
 const issues = [];
 const sha = (buffer) => createHash('sha1').update(buffer).digest('hex');
@@ -65,12 +80,15 @@ const shot = async (page, t) => {
   await seek(page, t);
   return page.screenshot({ type: 'png' });
 };
-// 480x270 grey pixels, decoded by ffmpeg, for the changed-area measure.
-const grey = (png) => {
-  const out = spawnSync('ffmpeg', ['-v', 'error', '-f', 'png_pipe', '-i', '-', '-vf', 'scale=480:270,format=gray', '-f', 'rawvideo', '-'], { input: png, maxBuffer: 1 << 24 });
+// Grey pixels decoded by ffmpeg: 480x270 for the beat measure, full size for
+// the determinism patch test.
+const grey = (png, scale = 'scale=480:270,') => {
+  const out = spawnSync('ffmpeg', ['-v', 'error', '-f', 'png_pipe', '-i', '-', '-vf', `${scale}format=gray`, '-f', 'rawvideo', '-'], { input: png, maxBuffer: 1 << 24 });
   if (out.status !== 0) fail(`ffmpeg could not decode a frame: ${out.stderr.toString().slice(-300)}`);
   return out.stdout;
 };
+const measure = (a, b) => ({ psnr: psnr(a, b), region: diffRegion(grey(a, ''), grey(b, ''), 1920) });
+const same = (a, b) => sha(a) === sha(b) || sameDraw({ equal: false, ...measure(a, b) });
 const psnr = (a, b) => {
   const fa = path.join(scratch, 'a.png');
   const fb = path.join(scratch, 'b.png');
@@ -102,31 +120,30 @@ try {
       reversePngs[t] = await shot(page, t);
       reverse[t] = sha(reversePngs[t]);
     }
-    const mismatches = compareDraws(forward, reverse, (t) => psnr(pngs[t], reversePngs[t]));
+    const mismatches = compareDraws(forward, reverse, (t) => measure(pngs[t], reversePngs[t]));
     const determinism = [];
-    for (const { t, psnr: db } of mismatches.slice(0, 2)) {
-      const cold = await newPage();
-      const coldHash = sha(await shot(cold, t));
-      await cold.close();
+    const coldShot = async (t, first = null) => {
+      const p = await newPage();
+      if (first !== null) await seek(p, first);
+      const png = await shot(p, t);
+      await p.close();
+      return png;
+    };
+    for (const mismatch of mismatches.slice(0, 2)) {
+      const { t } = mismatch;
+      // Cold twice first: two fresh pages that disagree mean randomness, not order.
+      const cold = await coldShot(t);
+      const coldSame = same(cold, await coldShot(t));
       let culprit = null;
-      for (const other of times.filter((x) => x !== t)) {
-        const p = await newPage();
-        await seek(p, other);
-        const after = sha(await shot(p, t));
-        await p.close();
-        if (after !== coldHash) {
-          culprit = other;
-          break;
+      if (coldSame) {
+        for (const other of times.filter((x) => x !== t)) {
+          if (!same(cold, await coldShot(t, other))) {
+            culprit = other;
+            break;
+          }
         }
       }
-      determinism.push({
-        level: 'FAIL',
-        kind: 'DETERMINISM',
-        at: t,
-        detail: culprit !== null
-          ? `ORDER-DEPENDENT: drawing ${culprit}s first changes the frame at ${t}s (${db.toFixed(1)} dB). update() leaves state behind; set every property from t on every call.`
-          : `the frame at ${t}s differs between draws (${db.toFixed(1)} dB). Something in scenes.js does not come from t.`,
-      });
+      determinism.push(determinismIssue(mismatch, { coldSame, culprit }));
     }
     // Every beat builds: chrome hidden, scene pixels only.
     await page.addStyleTag({ content: '#progress,#sub,#chap,#brand,#glow{visibility:hidden!important}' });
@@ -202,8 +219,17 @@ function collectText() {
     range.selectNodeContents(node);
     const r = range.getBoundingClientRect();
     if (r.width < 1 || r.height < 1 || r.right < 0 || r.left > 1920 || r.bottom < 0 || r.top > 1080) continue;
-    const box = owner.getBoundingClientRect();
-    const scale = owner.offsetWidth ? box.width / owner.offsetWidth : 1;
+    // The size on screen: the computed font size times every transform scale
+    // above it. (A box width over the layout width carries the layout width's
+    // whole-pixel rounding into the size: a 20px label read as 19.97px.)
+    let scale = 1;
+    for (let e = parent; e && e !== document.documentElement; e = e.parentElement) {
+      const transform = getComputedStyle(e).transform;
+      if (transform && transform !== 'none') {
+        const m = new DOMMatrixReadOnly(transform);
+        scale *= Math.hypot(m.a, m.b);
+      }
+    }
     const px = Number.parseFloat(getComputedStyle(parent).fontSize) * scale;
     const id = owner.dataset.vsTid;
     const g = groups.get(id);

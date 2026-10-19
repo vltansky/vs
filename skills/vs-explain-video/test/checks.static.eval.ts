@@ -3,14 +3,15 @@ import * as fs from 'node:fs';
 import { tmpdir } from 'node:os';
 import * as path from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { describe, expect, it } from 'vitest';
+import { afterAll, describe, expect, it } from 'vitest';
 
 // Static evals for the over-time checks (check.mjs), the fresh-reviewer pack
-// (pack.mjs + references/reviewer-brief.md), and the Playwright lookup order.
-// `problems()` reads the shipped text; mutants must each break a rule. The
-// behaviour suites feed fixtures to the pure rules in checks.mjs, and run each
-// rule mutant through the same probes. Browser and ffmpeg runs skip when the
-// tool is not there (CI has neither).
+// (pack.mjs, verdict.mjs, references/reviewer-brief.md), the third-party
+// notices, and the Playwright lookup order. `problems()` reads the docs and
+// the browser-only flow (CI cannot run it); every rule that can run without a
+// browser is tested by behaviour: fixtures through the pure rules in
+// checks.mjs, with each rule mutant run through the same probes. Browser and
+// ffmpeg runs skip when the tool is not there (CI has neither).
 
 const DIR = path.resolve(__dirname, '..');
 const read = (...p: string[]) => fs.readFileSync(path.join(DIR, ...p), 'utf8');
@@ -19,13 +20,19 @@ const BRIEF = read('references', 'reviewer-brief.md');
 const FIXES = read('references', 'checks.md');
 const RULES_SRC = read('scripts', 'checks.mjs');
 const CHECK = read('scripts', 'check.mjs');
-const PACK = read('scripts', 'pack.mjs');
-const MEDIA = read('scripts', 'media.mjs');
 const script = (name: string) => path.join(DIR, 'scripts', name);
-const tmp = (prefix: string) => fs.mkdtempSync(path.join(tmpdir(), prefix));
+const temps: string[] = [];
+const tmp = (prefix: string) => {
+  const dir = fs.mkdtempSync(path.join(tmpdir(), prefix));
+  temps.push(dir);
+  return dir;
+};
+afterAll(() => {
+  for (const dir of temps) fs.rmSync(dir, { recursive: true, force: true });
+});
 
-type Files = { skill: string; brief: string; fixes: string; rules: string; check: string; pack: string; media: string };
-const SHIPPED: Files = { skill: SKILL, brief: BRIEF, fixes: FIXES, rules: RULES_SRC, check: CHECK, pack: PACK, media: MEDIA };
+type Files = { skill: string; brief: string; fixes: string; check: string };
+const SHIPPED: Files = { skill: SKILL, brief: BRIEF, fixes: FIXES, check: CHECK };
 
 function problems(f: Files): string[] {
   const out: string[] = [];
@@ -38,6 +45,7 @@ function problems(f: Files): string[] {
   need(/A new agent every round/.test(f.skill), 'skill: new agent every round');
   need(/PASS needs 8 or more on every\s+axis/.test(f.skill), 'skill: bar of 8');
   need(/RETURN goes back to `scenes\.js`/.test(f.skill), 'skill: RETURN loop to scenes.js');
+  need(/run `verdict\.mjs "\$WORK"`/.test(f.skill), 'skill: verdict.mjs decides');
   need(/Three rounds at most/.test(f.skill), 'skill: at most 3 rounds');
   need(/Never report a pass that did not\s+happen/.test(f.skill), 'skill: no invented pass');
   need(/not reviewed by fresh eyes/.test(f.skill), 'skill: handoff says when unreviewed');
@@ -48,34 +56,26 @@ function problems(f: Files): string[] {
   need(/Do not open any other file/.test(block), 'brief: pack only');
   need(/retold in one sentence/.test(block), 'brief: retell');
   need(/three worst problems, each with a timestamp/.test(block), 'brief: three problems with times');
-  need(/Verdict: PASS if every score is 8 or more, otherwise RETURN/.test(block), 'brief: verdict rule');
-  for (const axis of ['answer', 'example', 'builds', 'readability', 'pacing', 'sync']) need(new RegExp(`- ${axis}:`).test(block), `brief: axis ${axis}`);
+  need(/Verdict: PASS if every score is \[bar\] or more, otherwise RETURN/.test(block), 'brief: verdict rule');
+  need(/written as `- axis: N`/.test(block), 'brief: parseable scores');
+  for (const axis of ['answer', 'example', 'builds', 'readability', 'pacing', 'sync', 'overall']) need(new RegExp(`- ${axis}:`).test(block), `brief: axis ${axis}`);
   need(/\[pack folder\]/.test(block) && /\[video\]/.test(block), 'brief: placeholders');
   need(/\*\*A new agent every round\.\*\*/.test(f.brief), 'brief rules: new agent');
   need(/\*\*Three rounds at most\.\*\*/.test(f.brief), 'brief rules: 3 rounds');
   need(/no `scenes\.js`/.test(f.brief), 'brief rules: no code');
   // The fix table names every issue kind.
-  for (const kind of ['CONTRACT', 'DETERMINISM', 'NO-BUILD', 'FLASH', 'SMALL', 'LONG', 'OVERLAP']) need(f.fixes.includes(`\`${kind}\``), `fix table: ${kind}`);
-  // The rules.
-  for (const [key, value] of [['minPx', '20'], ['flashBase', '0.4'], ['flashPerWord', '0.2'], ['flashFail', '0.6'], ['longPx', '54'], ['longHold', '6'], ['overlapHold', '0.3'], ['minChange', '0.005'], ['psnr', '45']]) {
-    need(new RegExp(`\\b${key}: ${value.replace('.', '\\.')},`).test(f.rules), `rule ${key} = ${value}`);
-  }
-  // check.mjs: forward cold, reverse warm, fresh pages to name the culprit, chrome hidden for builds.
+  for (const kind of ['CONTRACT', 'DETERMINISM', 'NONDETERMINISTIC', 'ORDER-DEPENDENT', 'NO-BUILD', 'FLASH', 'SMALL', 'LONG', 'OVERLAP']) need(f.fixes.includes(`\`${kind}\``), `fix table: ${kind}`);
+  // check.mjs, the browser-only flow: forward cold, reverse warm, cold twice,
+  // fresh pages to name the culprit, chrome hidden for builds.
   need(/for \(const t of \[\.\.\.times\]\.reverse\(\)\)/.test(f.check), 'check: reverse pass');
-  need(/const cold = await newPage\(\)/.test(f.check) && /const p = await newPage\(\);\s+await seek\(p, other\)/.test(f.check), 'check: culprit on fresh pages');
+  need(/const coldSame = same\(cold, await coldShot\(t\)\)/.test(f.check), 'check: cold twice');
+  need(/const p = await newPage\(\);\s+if \(first !== null\) await seek\(p, first\)/.test(f.check) && /await coldShot\(t, other\)/.test(f.check), 'check: culprit on fresh pages');
+  need(/diffRegion\(grey\(a, ''\), grey\(b, ''\), 1920\)/.test(f.check), 'check: full-size changed area');
+  need(/new DOMMatrixReadOnly\(transform\)/.test(f.check) && !/offsetWidth/.test(f.check), 'check: size from transforms, not offsetWidth');
   need(/#progress,#sub,#chap,#brand,#glow\{visibility:hidden!important\}/.test(f.check), 'check: chrome hidden for builds');
   need(/closest\('\[data-vs-tid\]'\)/.test(f.check), 'check: text grouped by owner element');
   need(/process\.exit\(fails \? 1 : 0\)/.test(f.check), 'check: exit 1 on FAIL');
   need(/scanScenes\(readFileSync\(path\.join\(work, 'scenes\.js'\)/.test(f.check), 'check: contract scan');
-  // pack.mjs.
-  need(/export const MAX_ROUNDS = 3;/.test(f.pack), 'pack: 3 rounds');
-  need(/if \(round > MAX_ROUNDS\)[\s\S]{0,400}process\.exit\(1\)/.test(f.pack), 'pack: refuses round 4');
-  need(/phone-360\.png/.test(f.pack) && /tile=12x1/.test(f.pack) && /fps=1,scale=320/.test(f.pack), 'pack: sheets, strips, phone');
-  need(/reviewer-brief\.md/.test(f.pack) && /BRIEF\.md/.test(f.pack), 'pack: writes the brief');
-  // media.mjs: lookup order and no parent-directory walk.
-  need(/const explicit = process\.env\.PLAYWRIGHT_MODULE;\s+if \(explicit\)/.test(f.media), 'media: PLAYWRIGHT_MODULE first');
-  need(/\[\.\.\.extraRoots, toolingDir\(\), process\.cwd\(\)\]\.map\(\(root\) => path\.join\(root, 'node_modules'\)\)/.test(f.media), 'media: work dir, tool cache, cwd order');
-  need(/existsSync\(path\.join\(dir, 'package\.json'\)\)/.test(f.media), 'media: only a root\'s own node_modules');
   return out;
 }
 
@@ -91,25 +91,24 @@ const mutants: Record<string, (f: Files) => Files> = {
   'skill handoff hides no review': swap('skill', ' (or "not reviewed by fresh eyes")', ''),
   'skill review after handoff': swap('skill', '## 8. Fresh review', '## 10. Fresh review'),
   'brief may read code': swap('brief', 'Do not open any other file.', 'Open scenes.js if it helps.'),
-  'brief no verdict rule': swap('brief', 'Verdict: PASS if every score is 8 or more, otherwise RETURN.', 'Verdict: your call.'),
+  'brief no verdict rule': swap('brief', 'Verdict: PASS if every score is [bar] or more, otherwise RETURN.', 'Verdict: your call.'),
+  'brief free-form scores': swap('brief', 'written as `- axis: N`', 'in any form'),
+  'brief drops overall axis': swap('brief', /   - overall:[^\n]*\n/, ''),
+  'skill skips verdict.mjs': swap('skill', 'run `verdict.mjs "$WORK"`', 'read it'),
+  'fix table drops NONDETERMINISTIC': swap('fixes', /`NONDETERMINISTIC`/g, 'random'),
   'brief drops builds axis': swap('brief', /   - builds:[^\n]*\n/, ''),
   'brief drops pacing axis': swap('brief', /   - pacing:[^\n]*\n[^\n]*\n/, ''),
   'brief no timestamps': swap('brief', 'three worst problems, each with a timestamp', 'three worst problems'),
   'brief rules reuse agent': swap('brief', '**A new agent every round.**', '**One agent for all rounds.**'),
   'fix table drops NO-BUILD': swap('fixes', '`NO-BUILD`', 'no build'),
-  'rule small 18px': swap('rules', 'minPx: 20,', 'minPx: 18,'),
-  'rule flash per word 0.1': swap('rules', 'flashPerWord: 0.2,', 'flashPerWord: 0.1,'),
-  'rule beat change 0.05%': swap('rules', 'minChange: 0.005,', 'minChange: 0.0005,'),
-  'rule psnr 30': swap('rules', 'psnr: 45,', 'psnr: 30,'),
   'check no reverse pass': swap('check', 'for (const t of [...times].reverse())', 'for (const t of times)'),
   'check culprit on the warm page': swap('check', 'const p = await newPage();', 'const p = page;'),
+  'check skips cold twice': swap('check', 'const coldSame = same(cold, await coldShot(t));', 'const coldSame = true;'),
+  'check psnr only': swap('check', "region: diffRegion(grey(a, ''), grey(b, ''), 1920)", 'region: { count: 0, box: null }'),
+  'check size from offsetWidth': swap('check', 'scale *= Math.hypot(m.a, m.b);', 'scale = owner.getBoundingClientRect().width / owner.offsetWidth;'),
   'check keeps the chrome in builds': swap('check', "await page.addStyleTag({ content: '#progress,#sub,#chap,#brand,#glow{visibility:hidden!important}' });", ''),
   'check never fails': swap('check', 'process.exit(fails ? 1 : 0)', 'process.exit(0)'),
   'check skips the contract scan': swap('check', "scanScenes(readFileSync(path.join(work, 'scenes.js'), 'utf8'))", '[]'),
-  'pack 5 rounds': swap('pack', 'export const MAX_ROUNDS = 3;', 'export const MAX_ROUNDS = 5;'),
-  'pack no phone sheet': swap('pack', /phone-360\.png/g, 'phone.png'),
-  'media cwd first': swap('media', '[...extraRoots, toolingDir(), process.cwd()]', '[process.cwd(), ...extraRoots, toolingDir()]'),
-  'media walks parents': swap('media', "existsSync(path.join(dir, 'package.json'))", 'true'),
 };
 
 describe('explain-video checks: contract', () => {
@@ -124,10 +123,74 @@ describe('explain-video checks: contract', () => {
   it('keeps SKILL.md under 200 lines', () => {
     expect(SKILL.split('\n').length).toBeLessThan(200);
   });
-  it('credits take-one and copies none of its Apache-2.0 files', () => {
-    for (const src of [CHECK, PACK, BRIEF]) expect(src).toMatch(/take-one/);
-    const all = fs.readdirSync(path.join(DIR, 'scripts')).map((f) => read('scripts', f)).join('\n');
-    expect(all).not.toMatch(/anidoodle|Apache License/);
+});
+
+// ---------- third-party notices: every adapted file is credited, with its licence
+const ROOT = path.resolve(DIR, '..', '..');
+type Notice = { notices: string; files: Record<string, string>; licenses: Record<string, string | null> };
+// What each adapted file came from, and the licence file its header must name.
+const ADAPTED: Record<string, Array<'take-one' | 'anidoodle'>> = {
+  'scripts/check.mjs': ['anidoodle', 'take-one'],
+  'scripts/checks.mjs': ['anidoodle', 'take-one'],
+  'scripts/pack.mjs': ['take-one'],
+  'references/reviewer-brief.md': ['take-one'],
+};
+const LICENSE_FILES = ['LICENSE.take-one', 'LICENSE.anidoodle', 'NOTICE.anidoodle'];
+const readMaybe = (file: string) => (fs.existsSync(file) ? fs.readFileSync(file, 'utf8') : null);
+const SHIPPED_NOTICE: Notice = {
+  notices: fs.readFileSync(path.join(ROOT, 'THIRD_PARTY_NOTICES.md'), 'utf8'),
+  files: Object.fromEntries(Object.keys(ADAPTED).map((f) => [f, read(f)])),
+  licenses: Object.fromEntries(LICENSE_FILES.map((f) => [f, readMaybe(path.join(DIR, f))])),
+};
+const section = (notices: string, title: string) => {
+  const start = notices.indexOf(`## ${title}\n`);
+  if (start < 0) return '';
+  const end = notices.indexOf('\n## ', start + 3);
+  return notices.slice(start, end < 0 ? undefined : end);
+};
+function noticeProblems(n: Notice): string[] {
+  const out: string[] = [];
+  const need = (ok: boolean, name: string) => { if (!ok) out.push(name); };
+  const takeOne = section(n.notices, 'take-one');
+  const anidoodle = section(n.notices, 'anidoodle (via take-one)');
+  need(/Author: Tal Siach/.test(takeOne) && /License: MIT/.test(takeOne) && takeOne.includes('`skills/vs-explain-video/LICENSE.take-one`'), 'notices: take-one entry');
+  need(/Author: Alex Greenshpun/.test(anidoodle) && /License: Apache-2\.0/.test(anidoodle)
+    && anidoodle.includes('`skills/vs-explain-video/LICENSE.anidoodle`') && anidoodle.includes('`skills/vs-explain-video/NOTICE.anidoodle`'), 'notices: anidoodle entry');
+  for (const [file, sources] of Object.entries(ADAPTED)) {
+    const head = (n.files[file] ?? '').split('\n').slice(0, 60).join('\n');
+    const name = path.basename(file);
+    for (const source of sources) {
+      const entry = source === 'take-one' ? takeOne : anidoodle;
+      need(entry.includes(`\`${file}\``) || entry.includes(`vs-explain-video/${file}\``) || entry.includes(`\`${name}\``), `notices: ${source} lists ${file}`);
+      need(source === 'take-one'
+        ? /take-one/.test(head) && /Tal Siach/.test(head) && /MIT/.test(head) && /LICENSE\.take-one/.test(head)
+        : /anidoodle/.test(head) && /Alex Greenshpun/.test(head) && /Apache License 2\.0/.test(head) && /LICENSE\.anidoodle/.test(head) && /NOTICE\.anidoodle/.test(head) && /Modified by vs/.test(head),
+      `${file}: ${source} header`);
+    }
+  }
+  need(/^MIT License\s+Copyright \(c\) 2026 Tal Siach/.test(n.licenses['LICENSE.take-one'] ?? '') && /THE SOFTWARE IS PROVIDED "AS IS"/.test(n.licenses['LICENSE.take-one'] ?? ''), 'LICENSE.take-one: full MIT text');
+  need(/Apache License\s+Version 2\.0, January 2004/.test(n.licenses['LICENSE.anidoodle'] ?? '') && /END OF TERMS AND CONDITIONS/.test(n.licenses['LICENSE.anidoodle'] ?? ''), 'LICENSE.anidoodle: full Apache-2.0 text');
+  need(/Copyright 2026 Alex Greenshpun/.test(n.licenses['NOTICE.anidoodle'] ?? ''), 'NOTICE.anidoodle: the NOTICE');
+  return out;
+}
+const noticeMutants: Record<string, (n: Notice) => Notice> = {
+  'no anidoodle entry': (n) => ({ ...n, notices: n.notices.replace('## anidoodle (via take-one)', '## anidoodle-ish') }),
+  'take-one entry says Apache': (n) => ({ ...n, notices: n.notices.replace(/(## take-one\n[\s\S]*?)License: MIT/, '$1License: Apache-2.0') }),
+  'take-one entry drops pack.mjs': (n) => ({ ...n, notices: n.notices.replace('`scripts/pack.mjs` (the review pack)', 'the review pack') }),
+  'check.mjs credits MIT only': (n) => ({ ...n, files: { ...n.files, 'scripts/check.mjs': n.files['scripts/check.mjs'].replace(/anidoodle/g, 'take-one') } }),
+  'checks.mjs header drops the change note': (n) => ({ ...n, files: { ...n.files, 'scripts/checks.mjs': n.files['scripts/checks.mjs'].replace('Modified by vs', 'Changed') } }),
+  'brief drops its credit': (n) => ({ ...n, files: { ...n.files, 'references/reviewer-brief.md': n.files['references/reviewer-brief.md'].replace('Tal Siach', 'someone') } }),
+  'no NOTICE file': (n) => ({ ...n, licenses: { ...n.licenses, 'NOTICE.anidoodle': null } }),
+  'Apache text cut short': (n) => ({ ...n, licenses: { ...n.licenses, 'LICENSE.anidoodle': (n.licenses['LICENSE.anidoodle'] ?? '').slice(0, 2000) } }),
+};
+describe('explain-video checks: third-party notices', () => {
+  it('credits every adapted file, with its licence and NOTICE', () => {
+    expect(noticeProblems(SHIPPED_NOTICE)).toEqual([]);
+  });
+  it.each(Object.entries(noticeMutants))('mutant "%s" is caught', (_name, mutate) => {
+    const mutated = mutate(SHIPPED_NOTICE);
+    expect(JSON.stringify(mutated)).not.toBe(JSON.stringify(SHIPPED_NOTICE));
+    expect(noticeProblems(mutated).length).toBeGreaterThan(0);
   });
 });
 
@@ -164,6 +227,8 @@ const probes: Record<string, (m: Mod) => boolean> = {
   },
   'SMALL fails 18px held a second': (m) => kinds(m, series(0.1, 5, [{ from: 1, to: 2, item: item('a', 'label', { px: 18 }) }]), 5).includes('FAIL SMALL'),
   'SMALL passes 20px': (m) => !kinds(m, series(0.1, 5, [{ from: 1, to: 3, item: item('a', 'label', { px: 20 }) }]), 5).includes('FAIL SMALL'),
+  'SMALL passes a 20px label measured at 19.97px': (m) => !kinds(m, series(0.1, 5, [{ from: 1, to: 3, item: item('a', 'label', { px: 19.97 }) }]), 5).includes('FAIL SMALL'),
+  'SMALL fails 19.4px': (m) => kinds(m, series(0.1, 5, [{ from: 1, to: 3, item: item('a', 'label', { px: 19.4 }) }]), 5).includes('FAIL SMALL'),
   'SMALL ignores a pop that settles at 20px': (m) => !kinds(m, series(0.1, 5, [{ from: 1, to: 3, item: (t) => item('a', 'label', { px: t < 1.3 ? 12 : 20 }) }]), 5).includes('FAIL SMALL'),
   'LONG warns a 120px title held 8 s': (m) => kinds(m, series(0.1, 12, [{ from: 1, to: 9, item: item('a', 'Title', { px: 120 }) }]), 12).includes('WARN LONG'),
   'LONG leaves a changing counter alone': (m) => !kinds(m, series(0.1, 12, [{ from: 1, to: 9, item: (t) => item('a', String(Math.round(840 - t * 50)), { px: 72 }) }]), 12).includes('WARN LONG'),
@@ -177,8 +242,21 @@ const probes: Record<string, (m: Mod) => boolean> = {
     return JSON.stringify(found.map((i: { line: number }) => i.line)) === '[3,4,5,6]';
   },
   'contract scan passes the example scenes': (m) => m.scanScenes(read('assets', 'scenes.example.js')).length === 0,
-  'determinism accepts equal draws and >45 dB': (m) => m.compareDraws({ 0: 'a', 1: 'b' }, { 0: 'a', 1: 'c' }, () => 50).length === 0,
-  'determinism fails a 30 dB mismatch': (m) => JSON.stringify(m.compareDraws({ 0: 'a', 1: 'b' }, { 0: 'a', 1: 'c' }, () => 30)) === '[{"t":1,"psnr":30}]',
+  'determinism accepts anti-aliasing noise: >45 dB, a few pixels': (m) => m.compareDraws({ 0: 'a', 1: 'b' }, { 0: 'a', 1: 'c' }, () => ({ psnr: 50, region: { count: 12, box: null } })).length === 0,
+  'determinism fails a 30 dB mismatch': (m) => m.compareDraws({ 0: 'a', 1: 'b' }, { 0: 'a', 1: 'c' }, () => ({ psnr: 30, region: { count: 12, box: null } })).map((x: { t: number }) => x.t).join() === '1',
+  'determinism fails a small random chip even at 60 dB': (m) => {
+    // A 40x30 chip whose digit changes per draw: the frame average stays high.
+    const w = 1920;
+    const a = new Uint8Array(w * 1080);
+    const b = Uint8Array.from(a);
+    for (let y = 500; y < 530; y += 1) for (let x = 800; x < 840; x += 1) if ((x + y) % 3 === 0) b[y * w + x] = 200;
+    const region = m.diffRegion(a, b, w);
+    const ok = region.count === 400 && JSON.stringify(region.box) === '{"x":800,"y":500,"w":40,"h":30}';
+    return ok && m.compareDraws({ 2: 'a' }, { 2: 'b' }, () => ({ psnr: 60, region })).length === 1;
+  },
+  'diff region ignores noise under 32/255': (m) => m.diffRegion(Uint8Array.from([0, 0, 0, 0]), Uint8Array.from([30, 32, 33, 0]), 2).count === 1,
+  'two fresh pages that differ read NONDETERMINISTIC': (m) => /^NONDETERMINISTIC/.test(m.determinismIssue({ t: 2, psnr: 30, region: { count: 900, box: { x: 1, y: 2, w: 30, h: 30 } } }, { coldSame: false, culprit: 0 }).detail),
+  'a culprit reads ORDER-DEPENDENT': (m) => /^ORDER-DEPENDENT: drawing 0s first changes the frame at 2s/.test(m.determinismIssue({ t: 2, psnr: 30, region: { count: 900, box: null } }, { coldSame: true, culprit: 0 }).detail),
   'sample times cover 0 and the last frame': (m) => {
     const ts = m.sampleTimes(10, 12, 30);
     return ts.length === 12 && ts[0] === 0 && ts[11] === 9.967;
@@ -187,7 +265,7 @@ const probes: Record<string, (m: Mod) => boolean> = {
   'NO-BUILD fails a beat under 0.5%': (m) => {
     const TL = { scenes: [{ id: 's', start: 0, dur: 10, beats: [{ t: 0.7, d: 3, text: 'one' }, { t: 4.2, d: 3, text: 'two' }] }] };
     const w = m.beatWindows(TL);
-    return m.beatIssues(w, [0.02, 0.002]).map((i: { kind: string; at: number }) => `${i.kind}@${i.at}`).join() === 'NO-BUILD@4.2';
+    return m.beatIssues(w, [0.02, 0.002]).map((i: { kind: string; at: number }) => `${i.kind}@${i.at}`).join() === 'NO-BUILD@4.167';
   },
   'NO-BUILD passes a declared hold': (m) => {
     const TL = { scenes: [{ id: 's', start: 0, dur: 10, beats: [{ t: 0.7, d: 3, text: 'one' }, { t: 4.2, d: 3, text: 'two' }] }] };
@@ -195,8 +273,23 @@ const probes: Record<string, (m: Mod) => boolean> = {
   },
   'beat windows skip the crossfades': (m) => {
     const TL = { scenes: [{ id: 's', start: 10, dur: 8, beats: [{ t: 0.7, d: 3, text: 'one' }, { t: 4.2, d: 3, text: 'two' }] }] };
-    return JSON.stringify(m.beatWindows(TL).map((w: { from: number; to: number }) => [w.from, w.to])) === '[[10.45,14.2],[14.2,17.55]]';
+    return JSON.stringify(m.beatWindows(TL).map((w: { from: number; to: number }) => [w.from, w.to])) === '[[10.45,14.167],[14.167,17.55]]';
   },
+  'beat windows sample one frame before each boundary': (m) => {
+    // A change made exactly at a beat start must land inside that beat's window.
+    const TL = { fps: 30, scenes: [{ id: 's', start: 0, dur: 10, beats: [{ t: 0.3, d: 1, text: 'one' }, { t: 2, d: 3, text: 'two' }, { t: 6, d: 3, text: 'three' }] }] };
+    const w = m.beatWindows(TL);
+    return w.every((x: { from: number; to: number }, i: number) => x.from < TL.scenes[0].beats[i].t && x.to < (TL.scenes[0].beats[i + 1]?.t ?? 99)) && w[1].from === 1.967 && w[1].to === 5.967 && w[0].from === 0.267;
+  },
+  'rounds: next free round, capped at 3': (m) => m.nextRound([]).round === 1 && m.nextRound([1, 2]).round === 3 && m.nextRound([1, 2, 3]).code === 1,
+  'rounds: --round must be new, whole, and 1-3': (m) => m.nextRound([1], '2').round === 2 && m.nextRound([1], '1').code === 2 && m.nextRound([], 'x').code === 2 && m.nextRound([], '1.5').code === 2 && m.nextRound([], '0').code === 2 && m.nextRound([], '4').code === 1,
+  'verdict: PASS needs 8 on every axis': (m) => {
+    const reply = (pacing: number, said = 'PASS') => `1. A viewer follows a search.\n2. Scores:\n- answer: 9 clear\n- example: 8\n- builds: **8**\n- readability: 9/10\n- pacing: ${pacing} ok\n- sync: 8\n- overall: 8\n3. ...\n4. Verdict: ${said}`;
+    const pass = m.parseVerdict(reply(8));
+    const low = m.parseVerdict(reply(7));
+    return pass.verdict === 'PASS' && !pass.overruled && low.verdict === 'RETURN' && low.overruled && low.below.join() === 'pacing';
+  },
+  'verdict: a missing axis is not a review': (m) => m.parseVerdict('- answer: 9\nVerdict: PASS').missing.length === 6,
   'pack plan times beats and cuts': (m) => {
     const TL = { total: 50, scenes: [{ id: 'a', start: 0, dur: 10, beats: [{ t: 0.7, d: 3, text: 'x' }] }, { id: 'b', start: 10, dur: 40, beats: [{ t: 0.7, d: 3, text: 'y' }] }] };
     const plan = m.packPlan(TL);
@@ -204,12 +297,24 @@ const probes: Record<string, (m: Mod) => boolean> = {
   },
 };
 const ruleMutants: Record<string, [string | RegExp, string]> = {
+  'no px slack': ['pxSlack: 0.5,', 'pxSlack: 0,'],
+  'px slack too wide': ['pxSlack: 0.5,', 'pxSlack: 1,'],
+  'psnr alone decides': ['equal || (psnr > RULES.psnr && region.count < RULES.noiseArea)', 'equal || psnr > RULES.psnr'],
+  'diff region counts noise': ['if (Math.abs(a[i] - b[i]) <= threshold) continue;', 'if (a[i] === b[i]) continue;'],
+  'cold twice ignored': ['const detail = !coldSame', 'const detail = false'],
+  'windows on the boundaries': ['const before = (x) => Math.max(0, x - 1 / fps);', 'const before = (x) => x;'],
+  'reused round allowed': ['if (used.has(round)) return {', 'if (false) return {'],
+  'any round string': ['if (!/^[1-9]\\d*$/.test(String(arg)))', 'if (Number.isNaN(Number(arg)))'],
+  'round past the cap': ['if (round > RULES.rounds) return {', 'if (round > 5) return {'],
+  'verdict trusts the word': ["const verdict = missing.length === 0 && below.length === 0 ? 'PASS' : 'RETURN';", "const verdict = said ?? 'RETURN';"],
+  'bar of 7': ['bar: 8,', 'bar: 7,'],
   'flash rule off': ['if (span.words > 0 && held < need && !atEnd)', 'if (false)'],
   'flash fails everything': ["held < need * RULES.flashFail ? 'FAIL' : 'WARN'", "'FAIL'"],
   'flash ignores the end': ['const atEnd = span.to >= end - step;', 'const atEnd = false;'],
   'typed text splits per letter': ['if (span && t - span.last <= step * 1.5 + 1e-9) {', 'if (span && span.text === item.text && t - span.last <= step * 1.5 + 1e-9) {'],
   'small uses the smallest size': ['span.maxPx = Math.max(span.maxPx, item.px);', 'span.maxPx = Math.min(span.maxPx, item.px);'],
   'small threshold 16': ['minPx: 20,', 'minPx: 16,'],
+  'flash per word 0.1': ['flashPerWord: 0.2,', 'flashPerWord: 0.1,'],
   'long off': ["add('WARN', 'LONG', span,", "void ('WARN', 'LONG', span,"],
   'long counts a changing counter': ['held > RULES.longHold && !span.changed', 'held > RULES.longHold'],
   'overlap off': ['if (held + 1e-9 < RULES.overlapHold) continue;', 'continue;'],
@@ -218,11 +323,12 @@ const ruleMutants: Record<string, [string | RegExp, string]> = {
   'overlap any distance': ['return x >= 0.2 * Math.min(a.w, b.w) && y >= 0.25 * Math.min(a.h, b.h) && x > 0 && y > 0;', 'return true;'],
   'scan reads comments': ['stripComments(source).split', 'source.split'],
   'scan misses transitions': ["|\\.(animation|transition)\\w*\\s*=", ''],
-  'determinism trusts any psnr': ['.filter(({ psnr: db }) => !(db > RULES.psnr));', ';'],
+  'determinism trusts any draw': ['.filter((m) => !sameDraw({ equal: false, ...m }));', ';'],
   'change threshold 0': ['if (Math.abs(a[i] - b[i]) > threshold) changed += 1;', 'if (Math.abs(a[i] - b[i]) >= threshold) changed += 1;'],
   'holds ignored': ['w.hold || fractions[i] >= RULES.minChange', 'fractions[i] >= RULES.minChange'],
-  'windows include the fade': ['const from = i === 0 ? Math.min(0.45, beat.t) : beat.t;', 'const from = i === 0 ? 0 : beat.t;'],
+  'windows include the fade': ['const from = i === 0 ? Math.min(0.45, before(beat.t)) : before(beat.t);', 'const from = i === 0 ? 0 : before(beat.t);'],
   'last sample dropped': ['const last = Math.max(0, total - 1 / fps);', 'const last = Math.max(0, total - 1);'],
+  'beat change 0.05%': ['minChange: 0.005,', 'minChange: 0.0005,'],
 };
 
 describe('explain-video checks: rules on fixtures', () => {
@@ -253,17 +359,25 @@ describe('explain-video Playwright lookup', () => {
     fs.writeFileSync(path.join(dir, 'index.js'), '');
     return fs.realpathSync(path.join(dir, 'index.js'));
   };
-  const lookup = (cwd: string, work: string, tooling: string, explicit?: string) => {
-    const code = `import(${JSON.stringify(pathToFileURL(script('media.mjs')).href)}).then((m) => process.stdout.write(String(m.resolvePlaywright([${JSON.stringify(work)}]))))`;
+  const MEDIA_SRC = read('scripts', 'media.mjs');
+  const mediaFile = (src: string) => {
+    if (src === MEDIA_SRC) return script('media.mjs');
+    const file = path.join(tmp('vs-media-mutant-'), 'media.mjs');
+    fs.writeFileSync(file, src);
+    return file;
+  };
+  const lookup = (cwd: string, work: string, tooling: string, explicit?: string, media = script('media.mjs')) => {
+    const code = `import(${JSON.stringify(pathToFileURL(media).href)}).then((m) => { const r = m.ensurePlaywright([${JSON.stringify(work)}]); process.stdout.write(r.entry ? r.entry : 'null:' + r.error); })`;
     const out = spawnSync(process.execPath, ['-e', code], {
       cwd,
       encoding: 'utf8',
-      env: { PATH: '/nonexistent', HOME: tmpdir(), VS_TOOLING_DIR: tooling, ...(explicit ? { PLAYWRIGHT_MODULE: explicit } : {}) },
+      env: { PATH: '/nonexistent', HOME: tmpdir(), VS_TOOLING_DIR: tooling, VS_EXPLAIN_VIDEO_NO_INSTALL: '1', ...(explicit ? { PLAYWRIGHT_MODULE: explicit } : {}) },
     });
     const found = out.stdout.trim();
-    return found === 'null' ? null : fs.realpathSync(found);
+    return found.startsWith('null:') ? null : fs.realpathSync(found);
   };
-  it('prefers PLAYWRIGHT_MODULE, then the work dir, then the tool cache, then cwd', () => {
+  // Runs the whole order on a fresh tree; returns the first wrong step, or null.
+  const orderBreaks = (media: string): string | null => {
     const root = tmp('vs-pw-order-');
     const parent = path.join(root, 'parent');
     const cwd = path.join(parent, 'project');
@@ -272,16 +386,43 @@ describe('explain-video Playwright lookup', () => {
     for (const d of [cwd, work, tooling]) fs.mkdirSync(d, { recursive: true });
     // A parent directory's node_modules never counts.
     fakePkg(path.join(parent, 'node_modules'));
-    expect(lookup(cwd, work, tooling)).toBeNull();
+    if (lookup(cwd, work, tooling, undefined, media) !== null) return 'a parent node_modules counted';
     const inCwd = fakePkg(path.join(cwd, 'node_modules'));
-    expect(lookup(cwd, work, tooling)).toBe(inCwd);
+    if (lookup(cwd, work, tooling, undefined, media) !== inCwd) return 'cwd';
     const inTooling = fakePkg(path.join(tooling, 'node_modules'));
-    expect(lookup(cwd, work, tooling)).toBe(inTooling);
+    if (lookup(cwd, work, tooling, undefined, media) !== inTooling) return 'tool cache before cwd';
     const inWork = fakePkg(path.join(work, 'node_modules'));
-    expect(lookup(cwd, work, tooling)).toBe(inWork);
+    if (lookup(cwd, work, tooling, undefined, media) !== inWork) return 'work dir first';
     const explicitDir = path.join(root, 'explicit', 'node_modules');
     const inExplicit = fakePkg(explicitDir);
-    expect(lookup(cwd, work, tooling, path.join(explicitDir, 'playwright-core'))).toBe(inExplicit);
+    if (lookup(cwd, work, tooling, path.join(explicitDir, 'playwright-core'), media) !== inExplicit) return 'PLAYWRIGHT_MODULE first';
+    // A bad explicit setting fails loudly; it never falls back to the work dir.
+    if (lookup(cwd, work, tooling, path.join(root, 'missing', 'playwright-core'), media) !== null) return 'bad PLAYWRIGHT_MODULE fell through';
+    return null;
+  };
+  it('prefers PLAYWRIGHT_MODULE, then the work dir, then the tool cache, then cwd', () => {
+    expect(orderBreaks(script('media.mjs'))).toBeNull();
+  });
+  it('names a bad PLAYWRIGHT_MODULE instead of using another copy', () => {
+    const root = tmp('vs-pw-bad-');
+    const work = path.join(root, 'work');
+    fakePkg(path.join(work, 'node_modules'));
+    const code = `import(${JSON.stringify(pathToFileURL(script('media.mjs')).href)}).then((m) => process.stdout.write(JSON.stringify(m.ensurePlaywright([${JSON.stringify(work)}]))))`;
+    const out = spawnSync(process.execPath, ['-e', code], { cwd: root, encoding: 'utf8', env: { PATH: '/nonexistent', HOME: tmpdir(), VS_TOOLING_DIR: path.join(root, 't'), PLAYWRIGHT_MODULE: '/nope/playwright-core' } });
+    const r = JSON.parse(out.stdout);
+    expect(r.entry).toBeNull();
+    expect(r.error).toMatch(/PLAYWRIGHT_MODULE=\/nope\/playwright-core does not resolve/);
+  });
+  const mediaMutants: Record<string, [string, string]> = {
+    'cwd first': ['[...extraRoots, toolingDir(), process.cwd()]', '[process.cwd(), ...extraRoots, toolingDir()]'],
+    'walks parents': ["const entry = existsSync(path.join(dir, 'package.json')) ? tryResolve(dir, modules) : null;", 'const entry = tryResolve(name, process.cwd());'],
+    'explicit ignored': ['const explicit = process.env.PLAYWRIGHT_MODULE;', 'const explicit = null;'],
+    'bad explicit falls through': ['    throw new Error(`PLAYWRIGHT_MODULE=', '    if (false) throw new Error(`PLAYWRIGHT_MODULE='],
+  };
+  it.each(Object.entries(mediaMutants))('lookup mutant "%s" breaks the order', (_name, [from, to]) => {
+    const src = MEDIA_SRC.replace(from, to);
+    expect(src).not.toBe(MEDIA_SRC);
+    expect(orderBreaks(mediaFile(src))).not.toBeNull();
   });
 });
 
@@ -372,6 +513,35 @@ scene('a', (R) => {
     const det = report.issues.find((i: { kind: string }) => i.kind === 'DETERMINISM');
     expect(det.detail).toMatch(/ORDER-DEPENDENT: drawing [\d.]+s first changes the frame at [\d.]+s/);
   }, 240_000);
+
+  it('fails a small chip that is random on every draw, as NONDETERMINISTIC', () => {
+    // The digit hides from the contract scan; only the pixels give it away.
+    const work = fakeWork(`
+scene('a', (R) => {
+  const chip = box(R, 900, 500, 0, 0, 'chip', '0');
+  const rnd = window['Ma' + 'th']['ran' + 'dom'];
+  return (t) => {
+    chip.textContent = String(100 + Math.floor(rnd() * 900));
+    rise(chip, t, 0.1);
+  };
+});`, { scenes: [{ id: 'a', beats: ['One chip shows a number that should not change.'] }] });
+    const { status, report } = check(work, '--gate');
+    expect(status).toBe(1);
+    expect(report.issues.filter((i: { kind: string }) => i.kind === 'CONTRACT')).toEqual([]);
+    const det = report.issues.find((i: { kind: string }) => i.kind === 'DETERMINISM');
+    expect(det?.detail).toMatch(/^NONDETERMINISTIC/);
+  }, 240_000);
+
+  it('passes eighteen plain 20px .lbl labels', () => {
+    const labels = Array.from({ length: 18 }, (_, i) => `box(R, ${160 + (i % 3) * 560}, ${140 + Math.floor(i / 3) * 120}, 0, 0, 'lbl', 'label ${i + 1}');`).join('\n  ');
+    const work = fakeWork(`
+scene('a', (R) => {
+  ${labels}
+  return () => {};
+});`, { scenes: [{ id: 'a', beats: ['Eighteen labels sit on the stage at the smallest size.'] }] });
+    const { report } = check(work, '--text');
+    expect(report.issues.filter((i: { kind: string }) => i.kind === 'SMALL')).toEqual([]);
+  }, 240_000);
 });
 
 describe.skipIf(!hasFfmpeg)('explain-video pack.mjs', () => {
@@ -399,4 +569,50 @@ describe.skipIf(!hasFfmpeg)('explain-video pack.mjs', () => {
     expect(fourth.status).toBe(1);
     expect(JSON.parse(fourth.stdout).next).toMatch(/Never report a pass that did not happen/);
   }, 120_000);
+
+  it('refuses a bad or reused --round, and a failed pack uses no round', () => {
+    const work = fakeWork();
+    const bad = path.join(work, 'broken.mp4');
+    fs.writeFileSync(bad, 'not a video');
+    const pack = (...a: string[]) => spawnSync(process.execPath, [script('pack.mjs'), work, ...a], { encoding: 'utf8' });
+    expect(pack(bad).status).toBe(2);
+    expect(fs.existsSync(path.join(work, 'review')) ? fs.readdirSync(path.join(work, 'review')) : []).toEqual([]);
+    const TL = JSON.parse(fs.readFileSync(path.join(work, 'timeline.js'), 'utf8').replace(/^window\.TL = /, '').replace(/;\s*$/, ''));
+    const video = path.join(work, 'v.mp4');
+    expect(spawnSync('ffmpeg', ['-y', '-v', 'error', '-f', 'lavfi', '-i', `testsrc=size=1920x1080:rate=30:duration=${TL.total}`, '-pix_fmt', 'yuv420p', video]).status).toBe(0);
+    expect(pack(video, '--round', 'x').status).toBe(2);
+    expect(JSON.parse(pack(video).stdout).round).toBe(1);
+    const again = pack(video, '--round', '1');
+    expect(again.status).toBe(2);
+    expect(again.stderr).toMatch(/round 1 already has a pack/);
+    expect(fs.readdirSync(path.join(work, 'review'))).toEqual(['round-1']);
+  }, 120_000);
+});
+
+describe('explain-video verdict.mjs', () => {
+  const reviewed = (reply: string) => {
+    const work = tmp('vs-verdict-');
+    fs.mkdirSync(path.join(work, 'review', 'round-1'), { recursive: true });
+    fs.writeFileSync(path.join(work, 'review', 'round-1', 'REPLY.md'), reply);
+    const out = spawnSync(process.execPath, [script('verdict.mjs'), work], { encoding: 'utf8' });
+    return { status: out.status, report: out.stdout ? JSON.parse(out.stdout) : null, stderr: out.stderr, work };
+  };
+  const scores = (low: number) => ['answer', 'example', 'builds', 'readability', 'pacing', 'sync', 'overall'].map((a, i) => `- ${a}: ${i === 4 ? low : 9} because`).join('\n');
+  it('passes 8 or more on every axis and writes VERDICT.json', () => {
+    const { status, report, work } = reviewed(`${scores(8)}\n\nVerdict: PASS`);
+    expect(status).toBe(0);
+    expect(report.verdict).toBe('PASS');
+    expect(JSON.parse(fs.readFileSync(path.join(work, 'review', 'round-1', 'VERDICT.json'), 'utf8')).verdict).toBe('PASS');
+  });
+  it('overrules a PASS with a 7', () => {
+    const { status, report } = reviewed(`${scores(7)}\n\nVerdict: PASS`);
+    expect(status).toBe(1);
+    expect(report.overruled).toBe(true);
+    expect(report.next).toMatch(/pacing is under 8: this is a RETURN/);
+  });
+  it('blocks a reply without every score', () => {
+    const { status, stderr } = reviewed('Looks great. Verdict: PASS');
+    expect(status).toBe(2);
+    expect(stderr).toMatch(/no score for: answer/);
+  });
 });

@@ -137,14 +137,13 @@ node <skill-dir>/scripts/render.mjs "$WORK" --stills [--scene <id>]
 node <skill-dir>/scripts/check.mjs "$WORK"
 ```
 
-`--stills` screenshots each beat end and scene end, and runs the layout
-audit: overlap, safe area, subtitle zone, chapter bar, overflow. `check.mjs`
-measures over time: seek-order drift (`DETERMINISM`), a beat that changes
-under 0.5% of the frame (`NO-BUILD`, a slide), and text that flashes, is
-under 20px, holds too long, or overlaps (`FLASH`, `SMALL`, `LONG`,
-`OVERLAP`). Exit 1: fix `scenes.js` ([references/checks.md](references/checks.md))
-and rerun. Then open each still and look at it: the checks catch geometry and
-timing, not meaning. A frame you did not look at is not verified.
+`--stills` screenshots each beat end and scene end, and audits the layout.
+`check.mjs` measures over time: seek drift or randomness (`DETERMINISM`), a
+beat that changes under 0.5% of the frame (`NO-BUILD`), and text that
+flashes, is under 20px, holds too long, or overlaps (`FLASH`, `SMALL`,
+`LONG`, `OVERLAP`). Exit 1: fix `scenes.js` ([references/checks.md](references/checks.md))
+and rerun. Then open each still and look at it: the checks catch geometry
+and timing, not meaning. A frame you did not look at is not verified.
 
 ```bash
 node <skill-dir>/scripts/render.mjs "$WORK" --out "$WORK/<topic>.mp4"
@@ -166,11 +165,12 @@ node <skill-dir>/scripts/pack.mjs "$WORK" "$WORK/<topic>.mp4"
 ```
 
 Give the printed `BRIEF.md`, and nothing else, to a new agent that has seen
-none of the work. A new agent every round. PASS needs 8 or more on every
-axis. RETURN goes back to `scenes.js` (or the beats): fix, check, render,
-pack, and a new reviewer. Three rounds at most; after round 3, deliver with
-the last score and the open problems. Never report a pass that did not
-happen. Rules: [references/reviewer-brief.md](references/reviewer-brief.md).
+none of the work. A new agent every round. Save its reply as `REPLY.md` in
+the round folder and run `verdict.mjs "$WORK"`: PASS needs 8 or more on every
+axis, by the scores. RETURN goes back to `scenes.js` (or the beats): fix,
+check, render, pack. Three rounds at most; after round 3, deliver with the
+last score and open problems. Never report a pass that did not happen.
+Rules: [references/reviewer-brief.md](references/reviewer-brief.md).
 
 ## 9. Handoff
 

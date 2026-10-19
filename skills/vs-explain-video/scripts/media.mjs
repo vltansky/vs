@@ -45,10 +45,13 @@ export const playwrightRoots = (extraRoots = []) => {
   return roots;
 };
 export const resolvePlaywright = (extraRoots = []) => {
+  // An explicit setting is a promise: when it does not resolve, say so instead
+  // of quietly using some other copy.
   const explicit = process.env.PLAYWRIGHT_MODULE;
   if (explicit) {
     const entry = existsSync(explicit) ? tryResolve(explicit, process.cwd()) : null;
     if (entry) return entry;
+    throw new Error(`PLAYWRIGHT_MODULE=${explicit} does not resolve to Playwright (${existsSync(explicit) ? 'no entry point there' : 'no such path'}); point it at .../node_modules/playwright-core, or unset it`);
   }
   for (const modules of playwrightRoots(extraRoots)) {
     for (const name of ['playwright', 'playwright-core']) {
@@ -65,7 +68,12 @@ export const resolvePlaywright = (extraRoots = []) => {
 // download happens. VS_EXPLAIN_VIDEO_NO_INSTALL=1 turns the install off.
 // Returns { entry, error }; error names why the install did not help.
 export const ensurePlaywright = (extraRoots = []) => {
-  const found = resolvePlaywright(extraRoots);
+  let found;
+  try {
+    found = resolvePlaywright(extraRoots);
+  } catch (error) {
+    return { entry: null, error: error.message };
+  }
   if (found) return { entry: found, error: null };
   if (process.env.VS_EXPLAIN_VIDEO_NO_INSTALL === '1') return { entry: null, error: 'auto-install is off (VS_EXPLAIN_VIDEO_NO_INSTALL=1)' };
   if (!which('npm')) return { entry: null, error: 'npm is not on PATH' };
