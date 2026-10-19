@@ -104,10 +104,10 @@ so a rerun only speaks changed beats), then writes `narration.wav` and
 When the user cares about the voice, narrate one beat with 4-6 voices first
 (`KOKORO_VOICE=am_michael`; default `af_heart`) and let them pick.
 
-It then checks what it can without ears (`narration-check.json`). With
-whisper installed, it transcribes each beat; a flagged beat lost or gained
-words: rewrite it or add a `pronounce` entry, and rerun. Without whisper it
-says the words were not checked; report that. It levels the track to -16 LUFS.
+It then checks without ears (`narration-check.json`). With whisper installed,
+it transcribes each beat; a flagged beat lost or gained words: rewrite it or
+add a `pronounce` entry, and rerun. Without whisper it says the words were not
+checked; report that (`--require-word-check` exits 2). It levels the track to -16 LUFS.
 
 The API key is a secret. Never print, log, echo, or write the key, and never
 put it in a command line. Never ask the user to paste it into chat; ask them

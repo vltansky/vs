@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 // Speaks every beat of script.json and lays the beats out on one timeline.
 //
-//   node narrate.mjs <work-dir>/script.json [--dry-run] [--engine auto|elevenlabs|kokoro|piper|say] [--no-word-check]
+//   node narrate.mjs <work-dir>/script.json [--dry-run] [--engine auto|elevenlabs|kokoro|piper|say]
+//                 [--no-word-check | --require-word-check]
 //
 // Writes, next to script.json:
 //   narration.md   one paragraph per scene, for check-ste.mjs (also on --dry-run)
@@ -29,13 +30,15 @@
 //   words     each beat is transcribed (whisper-cli with a ggml model, else
 //             the whisper CLI) and compared with the words the voice was given.
 //             A beat with missing or extra words is flagged; fix the text or
-//             add a `pronounce` entry. No whisper: skipped, with a note.
+//             add a `pronounce` entry. No whisper: skipped, with a note. A
+//             skipped or failed check prints a WARNING line and names itself
+//             in `next`; --require-word-check makes it exit 2 instead.
 //   loudness  ffmpeg's ebur128 meter on narration.wav. Outside -16 LUFS ±2 or
 //             above -1 dBTP true peak, ffmpeg's loudnorm levels it to -16 with
 //             a -1.5 dBTP ceiling, and the meter runs again.
 //
 // Exit codes: 0 narrated (or dry run written; flagged words are reported,
-// not fatal); 2 blocked.
+// not fatal); 2 blocked, or --require-word-check and the words were not checked.
 import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
 import { homedir, tmpdir } from 'node:os';
@@ -264,6 +267,11 @@ if (leveling) {
 }
 const loudness = { measured, leveled: Boolean(leveling), final, verdict: loudnessVerdict(final) };
 writeFileSync(path.join(dir, 'narration-check.json'), `${JSON.stringify({ words: wordCheck, loudness }, null, 2)}\n`);
+const unchecked = wordCheck.status !== 'checked';
+const warning = unchecked
+  ? `WARNING: the words were not checked (${wordCheck.status}: ${wordCheck.note}). Tell the user the narration was not word-checked.`
+  : null;
+if (warning) process.stderr.write(`${warning}\n`);
 
 process.stdout.write(`${JSON.stringify({
   engine,
@@ -274,7 +282,11 @@ process.stdout.write(`${JSON.stringify({
   scenes: scenes.map(({ id, start, dur, beats: b }) => ({ id, start, dur, cues: b.map(({ t, text }, i) => `B[${i}] = ${t}s  ${text.slice(0, 50)}`) })),
   words: wordCheck,
   loudness,
+  ...(warning ? { warning } : {}),
   next: wordCheck.flagged?.length
     ? `The voice did not say ${wordCheck.flagged.length} beat(s) as written (see words.flagged). Rewrite the beat or add a pronounce entry, then rerun narrate.mjs.`
-    : 'Animate scenes.js on these beat starts, then run render.mjs --stills.',
+    : unchecked
+      ? `The word check was ${wordCheck.status}: report the narration as not word-checked. Then animate scenes.js on these beat starts and run render.mjs --stills.`
+      : 'Animate scenes.js on these beat starts, then run render.mjs --stills.',
 }, null, 2)}\n`);
+if (unchecked && args.includes('--require-word-check')) process.exit(2);

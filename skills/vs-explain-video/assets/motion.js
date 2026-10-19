@@ -26,7 +26,12 @@ const ease = {
 const P = (t, s, d = 0.6, e = ease.out) => e(clamp((t - s) / d));
 // ---------- springs: closed form, so the value at t comes straight from t and
 // frames still draw in any order. Mass 1, k = stiffness, c = damping.
-// Idea from take-one (github.com/talsiach/take-one, MIT); this code is our own.
+// Adapted from take-one's scripts/springs.js (github.com/talsiach/take-one),
+// Copyright (c) 2026 Tal Siach, MIT: the four presets and their constants,
+// their notes, and the sum-of-springs retarget. See LICENSE.take-one and
+// THIRD_PARTY_NOTICES.md. take-one credits the springs idea to Raphael
+// Aubry's claude-motion-design (MIT). Modified by vs: settle, readTime, and
+// the rise/pop defaults.
 const SPRINGS = {
   snappy: { k: 320, c: 30 }, // chips, badges, checkmarks: settles in ~0.25 s, a hair of overshoot
   camera: { k: 170, c: 26 }, // cards, panels, arrows: ~0.5 s, no bounce
@@ -35,7 +40,11 @@ const SPRINGS = {
 };
 // 0 -> 1 step response of a spring released at s (0 before s).
 function spring(t, s, preset = 'camera') {
-  const { k, c } = typeof preset === 'string' ? SPRINGS[preset] : preset;
+  const named = typeof preset === 'string' ? SPRINGS[preset] : preset;
+  if (!named || !(named.k > 0) || !(named.c >= 0)) {
+    throw new Error(`spring: unknown preset ${JSON.stringify(preset)}; use ${Object.keys(SPRINGS).join(', ')}, or { k, c }`);
+  }
+  const { k, c } = named;
   const x = t - s;
   if (x <= 0) return 0;
   const w = Math.sqrt(k);
@@ -102,10 +111,13 @@ function rise(e, t, s, { d = 0.6, dy = 26, dx = 0, from = 1, ease: ez, spring: s
   tf(e, { o: clamp(k * 1.4), y: dy * (1 - k), x: dx * (1 - k), s: from + (1 - from) * k });
   return k;
 }
-// Scale in with an overshoot: chips, badges, a new state.
+// Scale in with an overshoot: chips, badges, a new state. The 4th argument is
+// a preset name or { k, c }; a number keeps the old fixed-length pop of d
+// seconds (ease.back), so older scenes still draw the same.
 function pop(e, t, s, preset = 'playful') {
-  const k = spring(t, s, typeof preset === 'string' ? preset : 'playful');
-  tf(e, { o: ease.out(clamp((t - s) / 0.25)), s: 0.6 + 0.4 * k });
+  const fixed = typeof preset === 'number';
+  const k = fixed ? P(t, s, preset, ease.back) : spring(t, s, preset);
+  tf(e, { o: ease.out(clamp((t - s) / (fixed ? preset * 0.5 : 0.25))), s: 0.6 + 0.4 * k });
   return k;
 }
 // Fade to `to` opacity: keep old state visible but quiet instead of removing it.
