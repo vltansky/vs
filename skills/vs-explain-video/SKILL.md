@@ -34,8 +34,8 @@ stills + check.mjs (over time) --> mp4 --pack.mjs--> new reviewer --RETURN--> sc
 
 One 1920x1080 page. Each scene is a function of time: `render.mjs` calls
 `window.seek(t)` and screenshots, so every frame is exact and repeatable. The
-stage draws the chapter bar, progress line, scene crossfades, and subtitles.
-You write only `script.json` and `scenes.js`.
+stage draws the chapter bar, progress line, scene crossfades, and word captions
+([references/captions.md](references/captions.md)). You write only `script.json` and `scenes.js`.
 
 ## 1. Check the tools
 

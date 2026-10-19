@@ -26,6 +26,7 @@ mkdirSync(path.join(work, 'fonts'), { recursive: true });
 
 copyFileSync(path.join(assets, 'stage.html'), path.join(work, 'index.html'));
 copyFileSync(path.join(assets, 'motion.js'), path.join(work, 'motion.js'));
+copyFileSync(path.join(assets, 'captions.js'), path.join(work, 'captions.js'));
 const kept = [];
 for (const [from, to] of [['script.example.json', 'script.json'], ['scenes.example.js', 'scenes.js']]) {
   if (existsSync(path.join(work, to))) kept.push(to);
