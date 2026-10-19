@@ -12,6 +12,7 @@ import { describe, expect, it } from 'vitest';
 
 const DIR = path.resolve(__dirname, '..');
 const SKILL = fs.readFileSync(path.join(DIR, 'SKILL.md'), 'utf8');
+const CAPTIONS_REF = fs.readFileSync(path.join(DIR, 'references', 'captions.md'), 'utf8');
 const NARRATE = fs.readFileSync(path.join(DIR, 'scripts', 'narrate.mjs'), 'utf8');
 const MOTION = fs.readFileSync(path.join(DIR, 'assets', 'motion.js'), 'utf8');
 const STAGE = fs.readFileSync(path.join(DIR, 'assets', 'stage.html'), 'utf8');
@@ -19,6 +20,7 @@ const INIT = fs.readFileSync(path.join(DIR, 'scripts', 'init.mjs'), 'utf8');
 const NODE_SRC = fs.readFileSync(path.join(DIR, 'scripts', 'captions.mjs'), 'utf8');
 const BROWSER_SRC = fs.readFileSync(path.join(DIR, 'assets', 'captions.js'), 'utf8');
 const MEDIA_SRC = fs.readFileSync(path.join(DIR, 'scripts', 'media.mjs'), 'utf8');
+const AUDIO_SRC = fs.readFileSync(path.join(DIR, 'scripts', 'audio.mjs'), 'utf8');
 
 type Word = { text: string; from: number; to: number };
 type Page = { from: number; to: number; words: [number, number, string][] };
@@ -37,6 +39,7 @@ let counter = 0;
 async function loadNode(src: string): Promise<NodeMod> {
   const dir = mkdtempSync(path.join(tmpdir(), 'vs-captions-mod-'));
   writeFileSync(path.join(dir, 'media.mjs'), MEDIA_SRC);
+  writeFileSync(path.join(dir, 'audio.mjs'), AUDIO_SRC);
   const file = path.join(dir, `captions-${(counter += 1)}.mjs`);
   writeFileSync(file, src);
   return (await import(pathToFileURL(file).href)) as NodeMod;
@@ -255,11 +258,12 @@ describe('vs-explain-video word captions', () => {
 describe('vs-explain-video word captions contract', () => {
   it('documents the styles, the default, and the timing sources in order', () => {
     expect(SKILL.split('\n').length).toBeLessThan(200);
-    expect(SKILL).toMatch(/`captions`[\s\S]{0,40}`pill`\s+\(default\)/);
-    for (const style of ['colour', 'pop', 'line']) expect(SKILL).toContain(`\`${style}\``);
-    expect(SKILL).toMatch(/kokoro[\s\S]{0,200}whisper[\s\S]{0,200}estimated/);
-    expect(SKILL).toMatch(/estimated[\s\S]{0,200}(say|report)/i);
-    expect(SKILL).toMatch(/at\s+most\s+6\s+words/);
+    expect(SKILL).toContain('[references/captions.md](references/captions.md)');
+    expect(CAPTIONS_REF).toMatch(/`captions`[\s\S]{0,80}`pill`\s+\(default\)/);
+    for (const style of ['colour', 'pop', 'line']) expect(CAPTIONS_REF).toContain(`\`${style}\``);
+    expect(CAPTIONS_REF).toMatch(/1\.\s+kokoro[\s\S]{0,600}2\.\s+`whisper-cli`[\s\S]{0,300}3\.\s+estimated/);
+    expect(CAPTIONS_REF).toMatch(/estimated beats\.\s+Report their word sync as not checked/);
+    expect(CAPTIONS_REF).toMatch(/at\s+most\s+6\s+words/);
   });
 
   it('keeps the hook small: one module, one call in seek, one script tag, one copy', () => {

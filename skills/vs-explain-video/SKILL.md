@@ -16,8 +16,8 @@ production pipeline, a reusable video framework, or a branded template.
 - **Inputs:** A topic, code path, or PR, plus enough context to answer one
   question about it
 - **Outputs:** An mp4 with burned-in subtitles under
-  `~/.vs/$PROJECT_ID/videos/<topic>/`, audited stills per beat, and a 2-4
-  line chat TLDR
+  `~/.vs/$PROJECT_ID/videos/<topic>/`, audited stills per beat, a fresh
+  reviewer's score, and a 2-4 line chat TLDR
 - **Status:** `VIDEO_READY` or `BLOCKED_TOOLING` (with the install step)
 - **Consumers:** Direct user invocation; `/vs-show-me` or `/vs-eli5` pages
   whose visuals become scenes
@@ -29,12 +29,13 @@ production pipeline, a reusable video framework, or a branded template.
 ```text
 script.json (beats) --narrate--> narration.wav + timeline.js (beat starts, subtitles)
 scenes.js (update(t, B)) + motion.js + index.html --render--> stills (audited) | mp4
+stills + check.mjs (over time) --> mp4 --pack.mjs--> new reviewer --RETURN--> scenes.js
 ```
 
 One 1920x1080 page. Each scene is a function of time: `render.mjs` calls
 `window.seek(t)` and screenshots, so every frame is exact and repeatable. The
-stage draws the chapter bar, progress line, scene crossfades, and subtitles.
-You write only `script.json` and `scenes.js`.
+stage draws the chapter bar, progress line, scene crossfades, and word captions
+([references/captions.md](references/captions.md)). You write only `script.json` and `scenes.js`.
 
 ## 1. Check the tools
 
@@ -50,7 +51,8 @@ without the user's consent.
 ## 2. State the question and audience
 
 Write one sentence: the single question this video answers, and who watches
-it. Every scene must move toward that answer. Cut any scene that does not.
+it. Put them in `script.json` as `question` and `audience`; the reviewer gets
+them. Every scene must move toward that answer. Cut any scene that does not.
 
 ## 3. Scaffold
 
@@ -101,17 +103,13 @@ Run `narrate.mjs` without `--dry-run`. It picks ElevenLabs when
 kokoro, then piper, then macOS `say`. It speaks each beat separately (cached,
 so a rerun only speaks changed beats), then writes `narration.wav` and
 `timeline.js`. It prints each scene's `cues`: `B[i] = <seconds>` per beat.
-
-Captions show the written words of the beat, at most 6 words a page and at
-most 2 lines, and mark the word that is spoken. Set `captions` in `script.json`
-to `pill` (default), `colour`, `pop`, or `line` (the plain caption line). Word
-times come from kokoro when the model reports them, else from `whisper-cli` on
-each beat, else they are estimated from word length. The summary names the
-estimated beats; report their word sync as not checked.
-
 When the user cares about the voice, narrate one beat with 4-6 voices first
-(`KOKORO_VOICE=am_michael` and so on; default `af_heart`) and let them pick
-before the full run.
+(`KOKORO_VOICE=am_michael`; default `af_heart`) and let them pick.
+
+It then checks without ears (`narration-check.json`). With whisper installed,
+it transcribes each beat; a flagged beat lost or gained words: rewrite it or
+add a `pronounce` entry, and rerun. Without whisper it says the words were not
+checked; report that (`--require-word-check` exits 2). It levels the track to -16 LUFS.
 
 The API key is a secret. Never print, log, echo, or write the key, and never
 put it in a command line. Never ask the user to paste it into chat; ask them
@@ -122,7 +120,9 @@ to export it in their shell. Report only whether it is set.
 In `scenes.js`, one `scene(id, build)` per script scene. `build(root)` makes
 the DOM once and returns `update(t, B, D)`; drive every change from `t` and the
 beat starts `B`. Never use timers, `requestAnimationFrame`, or CSS animations;
-they do not move under seek.
+they do not move under seek. Moves spring (`rise`, `pop`, `spring`,
+`springTo`); never move anything linearly. Hold each build for its settle plus
+`readTime(text)` before the next one lands.
 
 Every sentence gets a visual change. Start the build for beat i at `B[i]` (or
 up to a second after, on the word that names it). A beat with no build is a
@@ -135,19 +135,20 @@ type 20px or larger, staggered entrances, keep old state dimmed rather than
 removed, at most three regions on screen. Keep the bottom 150px and the
 chapter bar clear; the subtitle and chapter live there.
 
-## 7. Audit stills, then render
+## 7. Check, then render
 
 ```bash
 node <skill-dir>/scripts/render.mjs "$WORK" --stills [--scene <id>]
+node <skill-dir>/scripts/check.mjs "$WORK"
 ```
 
-It screenshots each beat when it finishes speaking plus each scene end, and
-runs the layout audit: overlap, outside the safe area, under the subtitle zone
-or chapter bar, text overflowing a fixed-size box. Exit 1: fix `scenes.js`
-(move or resize; `data-overlap-ok` marks an intended overlap) and rerun.
-Then open each still and look at it. The audit catches geometry, not meaning:
-check the intended visual is there, text is readable, and nothing is clipped.
-A frame you did not look at is not verified.
+`--stills` screenshots each beat end and scene end, and audits the layout.
+`check.mjs` measures over time: seek drift or randomness (`DETERMINISM`), a
+beat that changes under 0.5% of the frame (`NO-BUILD`), and text that
+flashes, is under 20px, holds too long, or overlaps (`FLASH`, `SMALL`,
+`LONG`, `OVERLAP`). Exit 1: fix `scenes.js` ([references/checks.md](references/checks.md))
+and rerun. Then open each still and look at it: the checks catch geometry
+and timing, not meaning. A frame you did not look at is not verified.
 
 ```bash
 node <skill-dir>/scripts/render.mjs "$WORK" --out "$WORK/<topic>.mp4"
@@ -157,20 +158,31 @@ Use `--scene <id>` with `--out` for a quick preview of one scene. The full
 render checks the ffprobe duration against the timeline and exits 1 when they
 differ by more than 0.25 s; rerun `narrate.mjs`, then render again.
 
-Subtitles are burned in only, drawn by the stage from the beats. Do not add a
-soft subtitle track or a sidecar `.srt`: players turn it on and show every
-line twice.
+Subtitles are burned in only, drawn by the stage. Do not add a soft subtitle
+track or a sidecar `.srt`: players show every line twice. Seeking HTML makes
+every frame exact. Do not add HyperFrames, Remotion, or Manim to a project
+for this video.
 
-Why HTML: agents write HTML and SVG well, Playwright is the only dependency,
-and seeking makes every frame exact. Do not add HyperFrames, Remotion, or
-Manim to a project for this video.
+## 8. Fresh review
 
-## 8. Handoff
+```bash
+node <skill-dir>/scripts/pack.mjs "$WORK" "$WORK/<topic>.mp4"
+```
+
+Give the printed `BRIEF.md`, and nothing else, to a new agent that has seen
+none of the work. A new agent every round. Save its reply as `REPLY.md` in
+the round folder and run `verdict.mjs "$WORK"`: PASS needs 8 or more on every
+axis, by the scores. RETURN goes back to `scenes.js` (or the beats): fix,
+check, render, pack. Three rounds at most; after round 3, deliver with the
+last score and open problems. Never report a pass that did not happen.
+Rules: [references/reviewer-brief.md](references/reviewer-brief.md).
+
+## 9. Handoff
 
 Give the mp4 path as a `file://` link, the stills folder, and a 2-4 line
-TLDR: the question, the answer the video gives, the voice used, and the
-length. Listen-check is not possible for the agent; say so. Mark anything not
-checked as unverified.
+TLDR: the question, the answer, the voice, the length, and the review verdict
+with its round (or "not reviewed by fresh eyes"). Listen-check is not possible
+for the agent; say so. Mark anything not checked as unverified.
 
 Topic: $ARGUMENTS
 

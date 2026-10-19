@@ -18,11 +18,12 @@
 // letter strings (edit distance), so one written word may take several spoken
 // words, or share one. Idea credit: HyperFrames' align-captions (Apache-2.0,
 // github.com/heygen-com/hyperframes); this is a separate implementation.
-import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
-import { homedir, tmpdir } from 'node:os';
+import { existsSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import path from 'node:path';
 
-import { run, which } from './media.mjs';
+import { findWhisper } from './audio.mjs';
+import { run } from './media.mjs';
 
 export const STYLES = ['pill', 'colour', 'pop', 'line'];
 export const DEFAULT_STYLE = 'pill';
@@ -221,13 +222,11 @@ export const readKokoroWords = (audioFile) => {
   }
 };
 
+// The word check's whisper (audio.mjs), when it is whisper-cli: only
+// whisper.cpp gives word times here.
 export const findWhisperCli = () => {
-  const cli = which('whisper-cli');
-  if (!cli) return null;
-  const cache = path.join(homedir(), '.cache', 'whisper');
-  const model = process.env.VS_WHISPER_MODEL
-    ?? (existsSync(cache) ? readdirSync(cache).filter((f) => /^ggml-.*\.bin$/.test(f)).sort().map((f) => path.join(cache, f))[0] : undefined);
-  return model && existsSync(model) ? { cli, model } : null;
+  const whisper = findWhisper();
+  return whisper.engine === 'whisper-cli' ? whisper : null;
 };
 
 // whisper.cpp's full JSON: transcription[] entries with offsets in ms. With
