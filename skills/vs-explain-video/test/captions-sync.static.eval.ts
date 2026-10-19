@@ -6,8 +6,8 @@ import { mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import * as path from 'node:path';
 import { pathToFileURL } from 'node:url';
-import puppeteer, { type Browser, type Page } from 'puppeteer-core';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import puppeteer, { type Browser, type BrowserContext, type Page } from 'puppeteer-core';
+import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 
 const DIR = path.resolve(__dirname, '..');
 const CHROME = [process.env.CHROME_PATH, '/usr/bin/google-chrome-stable', '/usr/bin/google-chrome',
@@ -48,8 +48,13 @@ async function fixture(style: string): Promise<{ work: string; caps: Cap[]; tota
   return { work, caps, total };
 }
 
+// Each page gets its own browser context, so no page waits behind another
+// tab. afterEach closes them all.
+const opened: BrowserContext[] = [];
 async function open(browser: Browser, work: string): Promise<Page> {
-  const page = await browser.newPage();
+  const context = await browser.createBrowserContext();
+  opened.push(context);
+  const page = await context.newPage();
   await page.setViewport({ width: 1920, height: 1080, deviceScaleFactor: 1 });
   await page.goto(pathToFileURL(path.join(work, 'index.html')).href);
   await page.waitForFunction('window.READY === true');
@@ -80,16 +85,45 @@ const expected = (caps: Cap[], T: number) => {
 const nearBoundary = (caps: Cap[], T: number) =>
   caps.some((c) => [c.from, c.to, ...c.words.map((w) => w[0])].some((b) => Math.abs(b - T) <= 1 / FPS + 1e-6));
 
+// The frames where a seek can go wrong: 2 frames each side of every page and
+// word boundary, plus every 15th frame. Sorted, no repeats.
+const boundaryFrames = (caps: Cap[], frames: number) => {
+  const set = new Set<number>();
+  for (let f = 0; f < frames; f += 15) set.add(f);
+  for (const b of caps.flatMap((c) => [c.from, c.to, ...c.words.map((w) => w[0])])) {
+    const at = Math.round(b * FPS);
+    for (let f = at - 2; f <= at + 2; f += 1) if (f >= 0 && f < frames) set.add(f);
+  }
+  return [...set].sort((x, y) => x - y);
+};
+
+// Per-step timings, so a slow CI run shows which step was slow.
+const timer = (name: string) => {
+  const start = performance.now();
+  let last = start;
+  return (step: string) => {
+    const now = performance.now();
+    console.log(`[captions-sync] ${name}: ${step} ${Math.round(now - last)} ms (total ${Math.round(now - start)} ms)`);
+    last = now;
+  };
+};
+
 describe.skipIf(!CHROME)('vs-explain-video word captions in the frame loop', () => {
   let browser: Browser;
   beforeAll(async () => {
     browser = await puppeteer.launch({ executablePath: CHROME, args: ['--no-sandbox', '--force-color-profile=srgb'] });
   }, 60_000);
+  afterEach(async () => {
+    for (const context of opened.splice(0)) await context.close();
+  });
   afterAll(async () => { await browser?.close(); });
 
   it('lights the word the timestamps say, one at a time, each for 2+ frames, within page limits', async () => {
+    const step = timer('sync');
     const { work, caps, total } = await fixture('pill');
+    step('fixture');
     const page = await open(browser, work);
+    step('open');
     const litFrames = new Map<string, number>();
     const firstLit = new Map<string, number>();
     const frames = Math.ceil(total * FPS);
@@ -110,6 +144,7 @@ describe.skipIf(!CHROME)('vs-explain-video word captions in the frame loop', () 
       litFrames.set(key, (litFrames.get(key) ?? 0) + 1);
       if (!firstLit.has(key)) firstLit.set(key, f);
     }
+    step(`${frames} frames`);
     caps.forEach((c, p) => c.words.forEach((w, i) => {
       const key = `${p}:${i}`;
       expect(litFrames.get(key) ?? 0, `"${w[2]}" lit frames`).toBeGreaterThanOrEqual(2);
@@ -122,24 +157,36 @@ describe.skipIf(!CHROME)('vs-explain-video word captions in the frame loop', () 
   }, 120_000);
 
   it('draws the same frame whatever order and whichever page seeks it', async () => {
-    const { work, total } = await fixture('pill');
+    const step = timer('determinism');
+    const { work, caps, total } = await fixture('pill');
+    step('fixture');
     const [a, b] = [await open(browser, work), await open(browser, work)];
-    const times = Array.from({ length: Math.ceil(total * FPS) }, (_, f) => f / FPS);
+    step('open 2 pages');
+    const times = boundaryFrames(caps, Math.ceil(total * FPS)).map((f) => f / FPS);
     const forward: string[] = [];
     for (const T of times) forward.push((await read(a, T)).classes);
+    step(`forward ${times.length} frames`);
     // Two "workers", each taking every other frame in reverse, as a parallel
     // render would split them.
     const split: string[] = Array.from({ length: times.length }, () => '');
     for (let i = times.length - 1; i >= 0; i -= 1) split[i] = (await read(i % 2 ? a : b, times[i])).classes;
+    step(`reverse split ${times.length} frames`);
     expect(split).toEqual(forward);
     const T = 1.0;
     await read(a, T);
     await read(b, 7.3);
     await read(b, T);
-    expect(Buffer.compare(await a.screenshot(), await b.screenshot())).toBe(0);
+    const shot = async (page: Page) => {
+      await page.bringToFront();
+      return page.screenshot();
+    };
+    const [shotA, shotB] = [await shot(a), await shot(b)];
+    step('2 screenshots');
+    expect(Buffer.compare(shotA, shotB)).toBe(0);
   }, 120_000);
 
   it('applies each style and keeps the legacy line', async () => {
+    const step = timer('styles');
     for (const style of ['colour', 'pop']) {
       const { work } = await fixture(style);
       const dom = await read(await open(browser, work), 1.0);
@@ -150,5 +197,6 @@ describe.skipIf(!CHROME)('vs-explain-video word captions in the frame loop', () 
     const dom = await read(await open(browser, work), 1.0);
     expect(dom.box).toBe('');
     expect(dom.legacy).toBe('legacy line');
+    step('4 styles');
   }, 60_000);
 });
