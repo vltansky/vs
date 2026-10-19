@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 // Live speed and token-cost benchmark for the vs-explain-video skill.
 //
-//   npm run bench:explain-video -- [--runs 3] [--brief <id>]... [--set-baseline]
-//                                  [--no-record] [--timeout 1800] [--no-network]
+//   npm run bench:explain-video -- [--runs 5] [--brief <id>]... [--set-baseline]
+//                                  [--no-record] [--timeout 1800] [--network | --no-network]
 //
 // Runs the skill end to end through a real PathGrade agent (Codex on the
 // repository default model unless PATHGRADE_AGENT / PATHGRADE_CODEX_MODEL say
@@ -20,7 +20,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
-import { aggregate, checkResults, compare, parseCodexTap, parseStageLog, pickBaseline, priceTokens, renderedVideo, renderSummary, stageTimes, stepTotals } from './lib.mjs';
+import { aggregate, checkResults, networkDefault, compare, parseCodexTap, parseStageLog, pickBaseline, priceTokens, renderedVideo, renderSummary, stageTimes, stepTotals } from './lib.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(HERE, '..', '..');
@@ -37,11 +37,11 @@ const opt = (name, fallback) => {
   return args[i].includes('=') ? args[i].split('=').slice(1).join('=') : args[i + 1];
 };
 const all = (name) => args.flatMap((a, i) => (a === name ? [args[i + 1]] : a.startsWith(`${name}=`) ? [a.slice(name.length + 1)] : []));
-const runs = Number(opt('--runs', '3'));
+const runs = Number(opt('--runs', '5'));
 const timeoutSec = Number(opt('--timeout', '1800'));
 const record = !args.includes('--no-record');
 const setBaseline = args.includes('--set-baseline');
-const network = !args.includes('--no-network');
+const network = networkDefault(process.platform, args);
 if (!Number.isInteger(runs) || runs < 1) throw new Error('--runs must be a positive integer');
 
 const agentName = process.env.PATHGRADE_AGENT ?? 'codex';
@@ -213,7 +213,7 @@ const runOne = async (brief, i, tooling, fixture, createAgent) => {
       model: codex?.model ?? model ?? null,
       reasoningEffort: codex?.reasoningEffort ?? null,
       videoSec,
-      checks: checkResults(steps, Boolean(mp4 && existsSync(mp4))),
+      checks: checkResults(steps, Boolean(mp4 && existsSync(mp4)), videoSec),
     };
     writeFileSync(path.join(runDir, 'run.json'), `${JSON.stringify(run, null, 2)}\n`);
     log(`${brief.id} #${i}: ${(run.wallMs / 1000).toFixed(0)}s, ${tokens?.total ?? '?'} tokens, $${costUsd ?? '?'}, video ${videoSec?.toFixed(1) ?? '?'}s, ${run.checks.pass ? 'pass' : 'FAIL'}${error ? ` (${error})` : ''}`);
@@ -271,7 +271,7 @@ const main = async () => {
     process.stdout.write(renderSummary(row, cmp));
   }
   for (const w of cmp?.result.warnings ?? []) log(`WARN regression: ${w}`);
-  if (!cmp) log('no baseline row for this agent and model; rerun with --set-baseline to store one');
+  if (!cmp) log('no baseline row for this agent, model, and machine; rerun with --set-baseline to store one');
 };
 
 main().catch((e) => {

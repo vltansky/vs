@@ -10,6 +10,7 @@
 // sandbox's network filter also blocks the socket calls Chrome needs to start.
 const { spawn } = require('node:child_process');
 const { appendFileSync } = require('node:fs');
+const { constants } = require('node:os');
 
 const real = process.env.VS_BENCH_REAL_CODEX;
 if (!real) {
@@ -34,8 +35,10 @@ child.stdout.on('data', (chunk) => {
     try { appendFileSync(tap, out); } catch { /* never break the agent */ }
   }
 });
+// Forward the signals pathgrade sends, and report a child killed by a signal
+// the shell way (128 + signal number), so a killed codex never reads as exit 0.
 for (const signal of ['SIGINT', 'SIGTERM', 'SIGHUP']) process.on(signal, () => child.kill(signal));
 child.on('exit', (code, signal) => {
-  if (signal) process.kill(process.pid, signal);
-  else process.exit(code ?? 1);
+  if (signal) process.exit(128 + (constants.signals[signal] ?? 0));
+  process.exit(code ?? 1);
 });

@@ -90,12 +90,17 @@ export const stepTotals = (steps) => {
   return out;
 };
 
+// The length every brief asks for, in seconds.
+export const VIDEO_RANGE = [20, 40];
+
 // The skill's own checks, from the last run of each: check-ste (exit 2 means
-// not checked, which is not a pass), the stills layout audit, check.mjs (the
+// not checked, which is not a pass), the stills audit, check.mjs (the
 // measured gate and text audit), the full render with its duration check,
-// and the mp4 on disk. The fresh review verdict is reported, not required:
-// it needs a second agent the host may not offer.
-export const checkResults = (steps, mp4Exists) => {
+// and the mp4 on disk. Plus the brief's length: a video outside 20-40 s fails,
+// so a shorter video never reads as a speed or cost win. The fresh review
+// verdict is reported, not required: it needs a second agent the host may not
+// offer.
+export const checkResults = (steps, mp4Exists, videoSec = null) => {
   const lastExit = (kind) => steps.filter((s) => s.kind === kind).at(-1)?.exit ?? null;
   const checks = {
     ste: lastExit('ste') === 0,
@@ -103,6 +108,7 @@ export const checkResults = (steps, mp4Exists) => {
     measured: lastExit('measure') === 0,
     render: lastExit('render') === 0,
     mp4: Boolean(mp4Exists),
+    length: Number.isFinite(videoSec) && videoSec >= VIDEO_RANGE[0] && videoSec <= VIDEO_RANGE[1],
   };
   const verdict = lastExit('verdict');
   const review = verdict === 0 ? 'pass' : verdict === 1 ? 'return' : verdict === null ? 'not-run' : 'blocked';
@@ -234,11 +240,17 @@ export const aggregate = (runs) => {
 
 export const DEFAULT_THRESHOLDS = { time: 0.2, tokens: 0.15, cost: 0.15, tools: 0.25, minTimeMs: 5000 };
 
-// Latest vs baseline, brief by brief, on the medians. A metric is a
-// regression when it grows by more than its kind's threshold. Time metrics
-// whose baseline median is under minTimeMs are reported but never flagged:
-// a 2 s stage moving 1 s is noise. Fewer passing runs is always flagged.
-// Warn-only: the caller prints warnings and never fails CI on them.
+// Latest vs baseline, brief by brief, on the medians. Agent runs vary a lot
+// (the first baseline spread 60-90%), so a metric is a regression only when
+// both hold:
+//   1. the latest median is above the baseline's max: no baseline run was
+//      that high, so it is not run-to-run noise;
+//   2. it grew by more than its kind's limit (time +20%, tokens +15%, ...).
+// A baseline with one run has no range; then the limit alone decides. Time
+// metrics whose baseline median is under minTimeMs never flag. A metric the
+// baseline has and the latest row lacks (a renamed usage event) warns as
+// "no data", never as a pass. Fewer passing runs always flags. Warn only: the
+// caller prints warnings and never fails CI on them.
 export const compare = (baseline, latest, thresholds = {}) => {
   const t = { ...DEFAULT_THRESHOLDS, ...thresholds };
   const rows = [];
@@ -250,16 +262,27 @@ export const compare = (baseline, latest, thresholds = {}) => {
       continue;
     }
     for (const name of METRICS) {
-      const b = base.metrics?.[name]?.median;
-      const c = cur.metrics?.[name]?.median;
-      if (!Number.isFinite(b) || !Number.isFinite(c)) continue;
-      const delta = b === 0 ? (c === 0 ? 0 : Infinity) : (c - b) / b;
+      const bs = base.metrics?.[name] ?? {};
+      const cs = cur.metrics?.[name] ?? {};
+      const b = bs.median;
+      const c = cs.median;
+      if (!Number.isFinite(b)) continue;
       const kind = metricKind(name);
+      if (!Number.isFinite(c)) {
+        rows.push({ brief, metric: name, baseline: b, latest: null, delta: null, noData: true, regressed: false, base: bs, cur: cs });
+        if (kind !== 'info') warnings.push(`${brief}: ${name} no data in the latest row (baseline ${b}); not compared`);
+        continue;
+      }
+      const delta = b === 0 ? (c === 0 ? 0 : Infinity) : (c - b) / b;
       const limit = t[kind];
       const tooSmall = kind === 'time' && b < t.minTimeMs;
-      const regressed = limit !== undefined && !tooSmall && delta > limit;
-      rows.push({ brief, metric: name, baseline: b, latest: c, delta, regressed });
-      if (regressed) warnings.push(`${brief}: ${name} ${fmtDelta(delta)} (limit +${Math.round(limit * 100)}%)`);
+      const hasRange = (bs.n ?? 0) > 1 && Number.isFinite(bs.max);
+      const aboveRange = hasRange ? c > bs.max : true;
+      const regressed = limit !== undefined && !tooSmall && aboveRange && delta > limit;
+      rows.push({ brief, metric: name, baseline: b, latest: c, delta, aboveRange, regressed, base: bs, cur: cs });
+      if (regressed) {
+        warnings.push(`${brief}: ${name} ${fmtDelta(delta)} (limit +${Math.round(limit * 100)}%, above baseline max ${bs.max ?? b}; ${spreadNote(bs, cs)})`);
+      }
     }
     const bRate = base.n ? base.passed / base.n : null;
     const cRate = cur.n ? cur.passed / cur.n : null;
@@ -270,12 +293,29 @@ export const compare = (baseline, latest, thresholds = {}) => {
   return { rows, warnings, thresholds: t };
 };
 
+// "baseline n=5 spread 60%, latest n=5 spread 30%"
+export const spreadNote = (bs, cs) => {
+  const one = (label, s) => `${label} n=${s?.n ?? 0}${Number.isFinite(s?.spread) ? ` spread ${Math.round(s.spread * 100)}%` : ''}`;
+  return `${one('baseline', bs)}, ${one('latest', cs)}`;
+};
+
+// Network for the benchmark agent: on by default only on Linux, where the
+// Codex sandbox's network filter also blocks the socket calls Chrome needs.
+// --network or --no-network overrides.
+export const networkDefault = (platform, args = []) => {
+  if (args.includes('--no-network')) return false;
+  if (args.includes('--network')) return true;
+  return platform === 'linux';
+};
+
 export const fmtDelta = (d) => (Number.isFinite(d) ? `${d >= 0 ? '+' : ''}${Math.round(d * 100)}%` : 'new');
 
 // The row to compare against: the newest row marked baseline for the same
-// agent and model, else null. A sha picks that baseline instead.
+// agent, model, and machine label, else null. Rows from different machines
+// are not comparable. A sha picks that baseline instead (same rule).
 export const pickBaseline = (history, latest, sha) => {
-  const same = history.filter((r) => r !== latest && r.agent === latest.agent && r.model === latest.model);
+  const same = history.filter((r) => r !== latest && r.agent === latest.agent && r.model === latest.model
+    && (r.machine?.label ?? null) === (latest.machine?.label ?? null));
   if (sha) return same.filter((r) => String(r.gitSha).startsWith(sha)).at(-1) ?? null;
   return same.filter((r) => r.baseline).at(-1) ?? null;
 };
@@ -301,7 +341,7 @@ export const renderSummary = (row, cmp) => {
     '',
   ];
   for (const [brief, agg] of Object.entries(row.briefs)) {
-    lines.push(`## ${brief}`, '', `Passed ${agg.passed}/${agg.n} runs (check-ste, stills audit, check.mjs, render duration check, mp4). Fresh review: ${agg.review ?? '—'}.`, '');
+    lines.push(`## ${brief}`, '', `Passed ${agg.passed}/${agg.n} runs (check-ste, stills audit, check.mjs, render duration check, mp4, 20-40 s length). Fresh review: ${agg.review ?? '—'}.`, '');
     lines.push('| Metric | Median | Min | Max | Spread |', '| --- | --- | --- | --- | --- |');
     for (const name of METRICS) {
       const s = agg.metrics[name];
@@ -314,7 +354,7 @@ export const renderSummary = (row, cmp) => {
   if (!cmp) {
     lines.push(row.baseline ? 'This row is the baseline. The next run compares against it.' : 'No baseline row yet for this agent and model.');
   } else {
-    lines.push(`Baseline: \`${String(cmp.baseline.gitSha).slice(0, 7)}\` · ${cmp.baseline.date}. Limits: time +${Math.round(cmp.result.thresholds.time * 100)}%, tokens +${Math.round(cmp.result.thresholds.tokens * 100)}%, cost +${Math.round(cmp.result.thresholds.cost * 100)}%. Warn only.`, '');
+    lines.push(`Baseline: \`${String(cmp.baseline.gitSha).slice(0, 7)}\` · ${cmp.baseline.date}. A metric flags when its median is above the baseline max and past its limit: time +${Math.round(cmp.result.thresholds.time * 100)}%, tokens +${Math.round(cmp.result.thresholds.tokens * 100)}%, cost +${Math.round(cmp.result.thresholds.cost * 100)}%. Warn only.`, '');
     lines.push(cmp.result.warnings.length ? cmp.result.warnings.map((w) => `- ⚠️ ${w}`).join('\n') : '- No regressions.');
   }
   lines.push('');
