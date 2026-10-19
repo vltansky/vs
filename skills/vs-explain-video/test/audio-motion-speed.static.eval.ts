@@ -345,7 +345,7 @@ const FFMPEG = which('ffmpeg');
 const hasFfmpeg = Boolean(FFMPEG && which('ffprobe'));
 
 // A stub piper (a short tone per beat) and, optionally, a stub whisper-cli that
-// answers from a list, one line per call, in beat order.
+// answers from a list, one line per word-check call (-otxt), in beat order.
 function narrateWork(heard: string[] | null, flags: string[] = [], whisperExit = 0) {
   const dir = tmp('vs-ams-narrate-');
   const bin = path.join(dir, 'bin');
@@ -359,6 +359,7 @@ function narrateWork(heard: string[] | null, flags: string[] = [], whisperExit =
     fs.writeFileSync(path.join(bin, 'whisper-cli.cjs'), `const fs = require('node:fs');
 if (${whisperExit}) { process.stderr.write('model failed to load'); process.exit(${whisperExit}); }
 const args = process.argv.slice(2);
+if (!args.includes('-otxt')) process.exit(1); // caption word times: not this stub's job
 const list = JSON.parse(fs.readFileSync(${JSON.stringify(path.join(dir, 'heard.json'))}, 'utf8'));
 const n = Number(fs.existsSync(${JSON.stringify(path.join(dir, 'n'))}) ? fs.readFileSync(${JSON.stringify(path.join(dir, 'n'))}, 'utf8') : 0);
 fs.writeFileSync(${JSON.stringify(path.join(dir, 'n'))}, String(n + 1));

@@ -8,7 +8,7 @@ import { pathToFileURL } from 'node:url';
 import { ensurePlaywright, fail, which } from './media.mjs';
 
 export const openStage = async (work, script) => {
-  for (const file of ['index.html', 'timeline.js', 'scenes.js', 'motion.js']) {
+  for (const file of ['index.html', 'timeline.js', 'scenes.js', 'motion.js', 'captions.js']) {
     if (!existsSync(path.join(work, file))) {
       fail(`${path.join(work, file)} is missing. ${file === 'timeline.js' ? 'Run narrate.mjs first.' : 'Run init.mjs first.'}`);
     }

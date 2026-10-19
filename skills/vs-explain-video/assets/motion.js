@@ -291,8 +291,10 @@ const VS = {
     document.getElementById('progress').style.width = `${(W * T) / TL.total}px`;
     document.getElementById('glow').style.transform =
       `translate(${300 + Math.sin(T * 0.11) * 500}px,${-300 + Math.cos(T * 0.07) * 260}px)`;
-    const cue = TL.subs.find(([from, to]) => T >= from && T < to + 0.15);
     const sub = document.querySelector('#sub span');
+    // Word captions (captions.js) draw the page with the spoken word marked.
+    if (window.VSCaptions && window.VSCaptions.draw(sub, TL, T)) return;
+    const cue = TL.subs.find(([from, to]) => T >= from && T < to + 0.15);
     sub.textContent = cue ? cue[2] : '';
   },
 
