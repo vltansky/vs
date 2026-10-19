@@ -28,7 +28,7 @@ not know where to look.
 
 ## Building blocks (stage.html classes)
 
-`.h1` 120px title, `.h2` 72px, `.h3` 40px, `.body` 30px, `.lbl` 18px
+`.h1` 120px title, `.h2` 72px, `.h3` 40px, `.body` 30px, `.lbl` 20px
 uppercase label, `.mono`. `.card` (add `.on` for the accent border), `.pad`,
 `.head-row` (with `.glyph` and `.meta`), `.row`, `.chip` (`.acc` `.bad`
 `.ok`), `.file`, `.pkg`, `.ver`, `.strike`. A terminal is

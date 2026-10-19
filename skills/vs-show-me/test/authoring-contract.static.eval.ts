@@ -78,6 +78,33 @@ describe('visual explanation composition', () => {
   });
 });
 
+describe('proposal exhibits', () => {
+  // A V2 proposal built from equal rule cards, prose outcomes, and an
+  // oversized heading was rejected on looks; the accepted redesign led with a
+  // worked example matrix, real files, and a diff of the effective result.
+  it('leads a rule-change proposal with a worked example the reader can check', () => {
+    expect(SKILL).toContain('## Proposal exhibits');
+    expect(SKILL).toMatch(/rows are the cases[\s\S]{0,120}effective result/i);
+    expect(SKILL).toMatch(/letter marker[\s\S]{0,80}(?:beside|with) its color/i);
+  });
+
+  it('shows real inputs and the outcome as a diff, not a sentence', () => {
+    expect(SKILL).toMatch(/actual input files side by side/i);
+    expect(SKILL).toMatch(/`diff`[\s\S]{0,120}`-`[\s\S]{0,80}`\+`/);
+  });
+
+  it('compares options by running one scenario under each', () => {
+    expect(SKILL).toMatch(/same scenario under each\s+option/i);
+    expect(SKILL).toMatch(/Pros-and-cons paragraphs do\s+not count/);
+  });
+
+  it('keeps the default view complete and names the rejected looks', () => {
+    expect(SKILL).toMatch(/default view\s+answers the review question without a\s+click/i);
+    expect(SKILL).toMatch(/oversized display heading/i);
+    expect(SKILL).toMatch(/one accent for the thesis/i);
+  });
+});
+
 describe('logic explanations stack diagram and pseudocode', () => {
   it('requires diagram and short fenced pseudocode together when explaining logic or branching', () => {
     expect(SKILL).toMatch(/logic|branching|mechanism/i);

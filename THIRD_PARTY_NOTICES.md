@@ -200,3 +200,41 @@ The `vs-tune-skill` skill is an original rewrite inspired by Warp's
 local-transcript grading idea: collect recent sessions, score them, draft
 skill diffs in scratch, and render one review page. No Warp skill text,
 scripts, HTML, report chrome, or factories CTA is vendored.
+
+## take-one
+
+- Author: Tal Siach
+- Project: https://github.com/talsiach/take-one
+- Used in: `skills/vs-explain-video`
+  - `scripts/check.mjs` and `scripts/checks.mjs` (the text audit)
+  - `scripts/pack.mjs` (the review pack)
+  - `references/reviewer-brief.md` (the fresh-reviewer rules and brief)
+- Source: https://github.com/talsiach/take-one/tree/b81bdafa4ed2bc0a483407cf160e60f7634d4ef2
+  (`scripts/text-audit.mjs`, `scripts/review-pack.sh`, `references/reviewer-brief.md`)
+- License: MIT
+
+The `vs-explain-video` text audit, review pack, and reviewer brief adapt
+take-one. The FLASH, SMALL, LONG, and OVERLAP rules keep its thresholds. The
+brief keeps its review rules and some of its wording, rewritten for code
+explainers. take-one credits the text-audit idea to motionmaxxing by Tejas
+Makwana (Apache-2.0); no motionmaxxing text or code is used. The copied MIT
+license text is included at `skills/vs-explain-video/LICENSE.take-one`.
+
+## anidoodle (via take-one)
+
+- Author: Alex Greenshpun
+- Project: https://github.com/alexgreensh/anidoodle
+- Used in: `skills/vs-explain-video/scripts/check.mjs` and
+  `skills/vs-explain-video/scripts/checks.mjs` (the render gate)
+- Source: take-one's `scripts/gate.mjs`, which is adapted from anidoodle, at
+  https://github.com/talsiach/take-one/tree/b81bdafa4ed2bc0a483407cf160e60f7634d4ef2
+- License: Apache-2.0
+
+The `vs-explain-video` gate adapts the anidoodle render gate. It keeps the
+design: a cold forward pass, a warm reverse pass, and a culprit search on fresh
+pages. It keeps the numbers: 12 samples, 45 dB PSNR, `window.HOLDS`. Some lines
+are close to the source, such as the comment strip and the sample times. vs
+modified it for a seeked HTML stage and added a changed-area test and the
+every-beat-builds measure. Each adapted file says so in its header. The copied
+Apache-2.0 license text is included at `skills/vs-explain-video/LICENSE.anidoodle`,
+and the anidoodle NOTICE at `skills/vs-explain-video/NOTICE.anidoodle`.
