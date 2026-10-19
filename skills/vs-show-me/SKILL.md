@@ -132,7 +132,8 @@ uncertainty.
      section order (Problem → Proposal → Design details → Alternatives →
      Drawbacks → Rollout → Unresolved questions → Future possibilities →
      History → References) is the reviewer's reading order; drop a section only
-     when it truly has nothing to say.
+     when it truly has nothing to say. Compose the Proposal section from
+     [Proposal exhibits](#proposal-exhibits).
 
    Both carry the `vs` artifact metadata the other `vs` report skills share.
    Copy the complete shell; replace the title, frontmatter, and primary source
@@ -233,6 +234,36 @@ uncertainty.
    precise input, and never derive across units, scopes, or time windows the
    sources kept apart.
 9. Remove every placeholder and unused section.
+
+## Proposal exhibits
+
+Engineers review a proposal that changes a rule or behavior by checking an
+example, not by trusting a claim. Build its Proposal section around one worked
+example:
+
+- **Example matrix first.** One dominant table or grid: rows are the cases the
+  rule decides, columns are the inputs and then the effective result. Every
+  outcome the rule names gets a row, and each row carries a letter marker
+  beside its color, defined once in a legend. This replaces a grid of equal
+  rule cards.
+- **Real inputs, diffed output.** Show the actual input files side by side,
+  then the effective result as a `diff` against the default — `-` for what the
+  proposal removes, `+` for what it adds.
+- **Tradeoffs as small multiples.** Run the same scenario under each
+  option and show what runs and what is gone, with at most three terse
+  verdicts per option. Mark the proposed option. Pros-and-cons paragraphs do
+  not count.
+- **One color per meaning.** One accent for the thesis outcome, green for
+  added, red only for removed; unchanged stays neutral.
+- **Close with the decision.** End on the one question reviewers must answer
+  and what a yes or a no commits to.
+
+A variant switch (per host, per environment) or a highlight linking a matrix
+row to its source lines may sharpen the example, but the default view
+answers the review question without a click. Mark illustrative paths and outputs in the hero, not only in a footer.
+Avoid the looks that got proposals rejected: an oversized display heading,
+loose whitespace between disconnected boxes, metric tiles, and slogans in
+place of evidence.
 
 ## Review comments
 
