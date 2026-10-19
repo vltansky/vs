@@ -102,6 +102,13 @@ kokoro, then piper, then macOS `say`. It speaks each beat separately (cached,
 so a rerun only speaks changed beats), then writes `narration.wav` and
 `timeline.js`. It prints each scene's `cues`: `B[i] = <seconds>` per beat.
 
+Captions show the written words of the beat, at most 6 words a page and at
+most 2 lines, and mark the word that is spoken. Set `captions` in `script.json`
+to `pill` (default), `colour`, `pop`, or `line` (the plain caption line). Word
+times come from kokoro when the model reports them, else from `whisper-cli` on
+each beat, else they are estimated from word length. The summary names the
+estimated beats; report their word sync as not checked.
+
 When the user cares about the voice, narrate one beat with 4-6 voices first
 (`KOKORO_VOICE=am_michael` and so on; default `af_heart`) and let them pick
 before the full run.

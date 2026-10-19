@@ -35,7 +35,7 @@ if (!workArg || (!stillsMode && !outArg)) {
   fail('Usage: node render.mjs <work-dir> --stills [--scene <id>] [--at 1,2]  |  node render.mjs <work-dir> --out <video.mp4> [--scene <id>]');
 }
 const work = path.resolve(workArg);
-for (const file of ['index.html', 'timeline.js', 'scenes.js', 'motion.js']) {
+for (const file of ['index.html', 'timeline.js', 'scenes.js', 'motion.js', 'captions.js']) {
   if (!existsSync(path.join(work, file))) {
     fail(`${path.join(work, file)} is missing. ${file === 'timeline.js' ? 'Run narrate.mjs first.' : 'Run init.mjs first.'}`);
   }

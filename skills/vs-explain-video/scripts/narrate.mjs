@@ -7,7 +7,9 @@
 //   narration.md   one paragraph per scene, for check-ste.mjs (also on --dry-run)
 //   narration.wav  the full voice track
 //   timeline.js    window.TL = { total, scenes: [{ id, title, start, dur,
-//                  beats: [{ t, d, text }] }], subs: [[from, to, text]] }
+//                  beats: [{ t, d, text }] }], subs: [[from, to, text]],
+//                  caps: [{ from, to, words: [[from, to, text]] }],
+//                  captions: { style, sources, estimated } }
 // Beat starts (`t`, seconds from scene start) are the cues scenes.js animates
 // on; subtitles are the written text, split into lines of at most ~60 chars.
 //
@@ -15,6 +17,10 @@
 // only ({ "AICM": "A I C M" }); subtitles and screen keep the written form.
 // `timing` { lead, gap, tail } sets silence before the first beat, between
 // beats, and after the last beat of each scene.
+//
+// script.json `captions` picks the caption style: pill (default), colour,
+// pop, or line. captions.mjs times each written word: kokoro's own word
+// times, else whisper-cli per beat, else estimated (named in the summary).
 //
 // Beat audio is cached in audio/ by engine, voice, speed, and spoken text, so
 // a rerun after a wording fix only speaks the beats that changed.
@@ -30,6 +36,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { homedir, tmpdir } from 'node:os';
 import path from 'node:path';
 
+import { buildCaptions, DEFAULT_STYLE, STYLES } from './captions.mjs';
 import { fail, probeDuration, run, which } from './media.mjs';
 
 const args = process.argv.slice(2);
@@ -51,6 +58,7 @@ for (const scene of script.scenes) {
     fail(`scene ${scene.id}: "beats" must be a list of non-empty sentences.`);
   }
 }
+if (script.captions !== undefined && !STYLES.includes(script.captions)) fail(`"captions" must be one of ${STYLES.join(', ')}. Got ${JSON.stringify(script.captions)}.`);
 const dir = path.dirname(path.resolve(scriptPath));
 
 // ---------- narration.md and the length estimate (no TTS needed)
@@ -112,22 +120,53 @@ const elevenlabs = async (text, out) => {
 };
 
 // Python kokoro loads its model once per process, so all beats go in one call.
+// When the model reports durations it also writes <beat audio>.words.json,
+// the word times captions.mjs prefers: the torch pipeline always does; an
+// ONNX model only when it was exported with a duration output (kokoro-onnx
+// scripts/export.py); the stock kokoro-v1.0.onnx does not.
 const KOKORO_BATCH = `
 import sys, json, numpy as np, soundfile as sf
 jobs, voice, speed, mode, model_dir = json.load(sys.stdin), sys.argv[1], float(sys.argv[2]), sys.argv[3], sys.argv[4]
+def save_words(job, words):
+    if words:
+        with open(job["out"] + ".words.json", "w") as f:
+            json.dump(words, f)
 if mode == "onnx":
     import os
     from kokoro_onnx import Kokoro
     k = Kokoro(os.path.join(model_dir, "kokoro-v1.0.onnx"), os.path.join(model_dir, "voices-v1.0.bin"))
     lang = "en-gb" if voice.startswith("b") else "en-us"
+    timed = getattr(k, "has_timings", False)
     for job in jobs:
-        audio, rate = k.create(job["text"], voice=voice, speed=speed, lang=lang)
+        if not timed:
+            audio, rate = k.create(job["text"], voice=voice, speed=speed, lang=lang)
+            sf.write(job["out"], audio, rate)
+            continue
+        audio, rate, timings = k.create_timed(job["text"], voice=voice, speed=speed, lang=lang)
         sf.write(job["out"], audio, rate)
+        words, cur = [], None
+        for t in [*timings, None]:
+            if t is not None and t.phoneme != " ":
+                cur = {"text": None, "start": t.start, "end": t.end, "ph": t.phoneme} if cur is None else {**cur, "end": t.end, "ph": cur["ph"] + t.phoneme}
+                continue
+            if cur and any(c.isalnum() for c in cur["ph"]):
+                words.append(cur)
+            cur = None
+        save_words(job, words)
 else:
     from kokoro import KPipeline
     pipe = KPipeline(lang_code=voice[0])
     for job in jobs:
-        sf.write(job["out"], np.concatenate([a for _, _, a in pipe(job["text"], voice=voice, speed=speed)]), 24000)
+        chunks, words, offset = [], [], 0.0
+        for result in pipe(job["text"], voice=voice, speed=speed):
+            audio = result.audio.numpy() if hasattr(result.audio, "numpy") else np.asarray(result.audio)
+            for t in result.tokens or []:
+                if t.start_ts is not None and t.end_ts is not None and any(c.isalnum() for c in t.text):
+                    words.append({"text": t.text, "start": offset + t.start_ts, "end": offset + t.end_ts})
+            chunks.append(audio)
+            offset += len(audio) / 24000
+        sf.write(job["out"], np.concatenate(chunks), 24000)
+        save_words(job, words)
 `;
 
 const synthesize = async (jobs) => {
@@ -209,6 +248,16 @@ const scenes = script.scenes.map((scene) => {
 });
 const total = round(clock);
 
+// ---------- word captions (captions.mjs)
+let captions;
+try {
+  captions = buildCaptions(scenes.flatMap((scene) => scene.beats.map((beat, index) => ({
+    scene: scene.id, index, text: beat.text, at: scene.start + beat.t, seconds: beat.d, audio: beatFile(spoken(beat.text)),
+  }))), { spokenOf: spoken, style: script.captions ?? DEFAULT_STYLE, fps: script.fps ?? 30 });
+} catch (error) {
+  fail(`captions: ${error.message}`);
+}
+
 // Every beat is delayed to its absolute start and mixed onto one silent bed.
 const wav = path.join(dir, 'narration.wav');
 const filters = placed.map(({ at }, i) =>
@@ -221,7 +270,7 @@ const mixed = run('ffmpeg', [
 ]);
 if (mixed.status !== 0) fail(`ffmpeg could not build narration.wav: ${mixed.stderr.slice(-600)}`);
 
-const TL = { title: script.title ?? '', brand: script.brand ?? '', fps: script.fps ?? 30, total, scenes, subs };
+const TL = { title: script.title ?? '', brand: script.brand ?? '', fps: script.fps ?? 30, total, scenes, subs, caps: captions.caps, captions: captions.meta };
 writeFileSync(path.join(dir, 'timeline.js'), `window.TL = ${JSON.stringify(TL, null, 1)};\n`);
 
 process.stdout.write(`${JSON.stringify({
@@ -230,6 +279,7 @@ process.stdout.write(`${JSON.stringify({
   spokenNow: todo.length,
   cached: beats.length - todo.length,
   totalSeconds: total,
+  captions: { ...captions.meta, note: captions.meta.estimated.length ? `${captions.meta.estimated.length} beat(s) use estimated word times: no kokoro word times and no whisper-cli. Install whisper.cpp and a ggml model (VS_WHISPER_MODEL) for measured times.` : 'every word is timed from the audio' },
   scenes: scenes.map(({ id, start, dur, beats: b }) => ({ id, start, dur, cues: b.map(({ t, text }, i) => `B[${i}] = ${t}s  ${text.slice(0, 50)}`) })),
   next: 'Animate scenes.js on these beat starts, then run render.mjs --stills.',
 }, null, 2)}\n`);
