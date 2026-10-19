@@ -312,7 +312,7 @@ export const renderSummary = (row, cmp) => {
   }
   lines.push('## Compared with baseline', '');
   if (!cmp) {
-    lines.push('No baseline row yet for this agent and model.');
+    lines.push(row.baseline ? 'This row is the baseline. The next run compares against it.' : 'No baseline row yet for this agent and model.');
   } else {
     lines.push(`Baseline: \`${String(cmp.baseline.gitSha).slice(0, 7)}\` · ${cmp.baseline.date}. Limits: time +${Math.round(cmp.result.thresholds.time * 100)}%, tokens +${Math.round(cmp.result.thresholds.tokens * 100)}%, cost +${Math.round(cmp.result.thresholds.cost * 100)}%. Warn only.`, '');
     lines.push(cmp.result.warnings.length ? cmp.result.warnings.map((w) => `- ⚠️ ${w}`).join('\n') : '- No regressions.');

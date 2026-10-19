@@ -45,7 +45,9 @@ if (!latest) {
 }
 const baseline = pickBaseline(history, latest, opt('--baseline'));
 if (!baseline) {
-  process.stderr.write(`No baseline row for ${latest.agent} ${latest.model}. Not compared.\n`);
+  process.stderr.write(latest.baseline
+    ? 'The newest row is the baseline. Run the benchmark again to compare against it.\n'
+    : `No baseline row for ${latest.agent} ${latest.model}. Not compared.\n`);
   process.exit(2);
 }
 const thresholds = Object.fromEntries(
