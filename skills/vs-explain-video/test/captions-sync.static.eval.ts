@@ -83,7 +83,13 @@ const nearBoundary = (caps: Cap[], T: number) =>
 describe.skipIf(!CHROME)('vs-explain-video word captions in the frame loop', () => {
   let browser: Browser;
   beforeAll(async () => {
-    browser = await puppeteer.launch({ executablePath: CHROME, args: ['--no-sandbox', '--force-color-profile=srgb'] });
+    // Two pages share one browser; keep the one behind the other painting, or a
+    // seek, waitForFunction, or screenshot on it can stall on a busy CI runner.
+    browser = await puppeteer.launch({
+      executablePath: CHROME,
+      args: ['--no-sandbox', '--force-color-profile=srgb', '--disable-background-timer-throttling',
+        '--disable-backgrounding-occluded-windows', '--disable-renderer-backgrounding'],
+    });
   }, 60_000);
   afterAll(async () => { await browser?.close(); });
 
