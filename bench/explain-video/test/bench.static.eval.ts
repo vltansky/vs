@@ -74,7 +74,7 @@ const runRow = (wallMs: number, total: number, pass = true) => ({
   checks: { pass },
 });
 const rowOf = (runs: ReturnType<typeof runRow>[], extra: Record<string, unknown> = {}) => ({
-  agent: 'codex', model: 'gpt-5.6-luna', gitSha: 'abc1234', date: 'd',
+  agent: 'codex', model: 'gpt-5.6-luna', gitSha: 'abc1234', date: 'd', machine: { label: 'box' },
   briefs: { a: { ...real.aggregate(runs) } }, ...extra,
 });
 
@@ -102,16 +102,22 @@ function problems(lib: Lib): string[] {
   const totals = lib.stepTotals(steps);
   if (totals.ste?.count !== 2 || totals.ste?.lastExit !== 0 || totals.stills?.ms !== 10000 || totals.render?.count !== 2) out.push('step totals wrong');
 
-  const ok = lib.checkResults(steps, true);
+  const ok = lib.checkResults(steps, true, 30);
   if (!ok.pass) out.push('passing run reported as fail');
   if (ok.review !== 'pass') out.push(`review ${ok.review}, want the last verdict (pass)`);
-  if (lib.checkResults(steps.filter((s) => s.kind !== 'measure'), true).pass) out.push('run without check.mjs still passes');
-  if (lib.checkResults(steps.filter((s) => s.kind !== 'verdict'), true).review !== 'not-run') out.push('no verdict not reported as not-run');
-  if (lib.checkResults(steps, false).pass) out.push('missing mp4 still passes');
+  if (lib.checkResults(steps.filter((s) => s.kind !== 'measure'), true, 30).pass) out.push('run without check.mjs still passes');
+  if (lib.checkResults(steps.filter((s) => s.kind !== 'verdict'), true, 30).review !== 'not-run') out.push('no verdict not reported as not-run');
+  if (lib.checkResults(steps, false, 30).pass) out.push('missing mp4 still passes');
+  for (const sec of [12, 19.9, 40.1, 55, null]) {
+    if (lib.checkResults(steps, true, sec).pass) out.push(`a ${sec} s video passes the 20-40 s brief`);
+  }
+  for (const sec of [20, 30, 40]) {
+    if (!lib.checkResults(steps, true, sec).pass) out.push(`a ${sec} s video fails the 20-40 s brief`);
+  }
   const lastStillsRed = steps.map((s) => (s.kind === 'stills' ? { ...s, exit: 1 } : s));
-  if (lib.checkResults(lastStillsRed, true).pass) out.push('failed layout audit still passes');
+  if (lib.checkResults(lastStillsRed, true, 30).pass) out.push('failed layout audit still passes');
   const steUnchecked = steps.map((s) => (s.kind === 'ste' ? { ...s, exit: 2 } : s));
-  if (lib.checkResults(steUnchecked, true).pass) out.push('check-ste exit 2 (not checked) counted as pass');
+  if (lib.checkResults(steUnchecked, true, 30).pass) out.push('check-ste exit 2 (not checked) counted as pass');
 
   const tap = lib.parseCodexTap(TAP);
   if (tap.toolCalls !== 3) out.push(`tool calls ${tap.toolCalls}, want 3 (messages and reasoning are not tools)`);
@@ -147,6 +153,20 @@ function problems(lib: Lib): string[] {
   const tinyCur = rowOf([runRow(100000, 50000)]);
   (tinyCur.briefs.a.metrics as Record<string, { median: number }>)['stage.setupMs'] = { median: 3000 } as never;
   if (lib.compare(tinyBase, tinyCur).warnings.some((w) => w.includes('stage.setupMs'))) out.push('stage under minTimeMs flagged as regression');
+  const wide = rowOf([runRow(100000, 50000), runRow(200000, 52000), runRow(300000, 54000)], { baseline: true });
+  const inRange = lib.compare(wide, rowOf([runRow(250000, 52000)]));
+  if (inRange.warnings.some((w) => w.includes('wallMs'))) out.push('+25% inside the baseline range flagged as regression');
+  if (!lib.compare(wide, rowOf([runRow(320000, 52000)])).warnings.some((w) => w.includes('wallMs'))) out.push('+60% above the baseline max not flagged');
+  const note = slow.warnings.find((w) => w.includes('wallMs')) ?? '';
+  if (!/baseline n=3 spread \d+%, latest n=1/.test(note)) out.push(`warning has no n and spread: ${note}`);
+  const row = slow.rows.find((r: { metric: string }) => r.metric === 'wallMs');
+  if (row?.base?.n !== 3 || row?.cur?.n !== 1 || !Number.isFinite(row?.base?.spread)) out.push('compare rows carry no n and spread');
+  const blind = rowOf([runRow(110000, 52000)]);
+  for (const m of ['tokens.input', 'tokens.output', 'tokens.total', 'costUsd']) blind.briefs.a.metrics[m] = { n: 0, median: null, min: null, max: null, spread: null };
+  const nd = lib.compare(base, blind);
+  if (!nd.warnings.some((w) => /tokens\.total no data/.test(w))) out.push('missing token data reads as no regression');
+  if (!nd.rows.some((r: { noData?: boolean }) => r.noData)) out.push('missing data not marked in rows');
+  if (!/\| tokens\.total \| no data \|/.test(lib.renderSummary(blind, null))) out.push('summary hides a metric with no data');
   const faster = lib.compare(base, rowOf([runRow(60000, 30000)]));
   if (faster.warnings.length) out.push('improvements flagged as regressions');
 
@@ -156,6 +176,12 @@ function problems(lib: Lib): string[] {
   const plain = rowOf([runRow(1, 1)], { gitSha: 'new0002' });
   if (lib.pickBaseline([old, other, plain, latest], latest, undefined) !== old) out.push('baseline not the newest baseline row of the same model');
   if (lib.pickBaseline([old, plain, latest], latest, 'new0') !== plain) out.push('--baseline sha ignored');
+  const mac = rowOf([runRow(1, 1)], { baseline: true, gitSha: 'mac0003', machine: { label: 'mac' } });
+  if (lib.pickBaseline([old, mac, latest], latest, undefined) !== old) out.push('baseline from another machine picked');
+  if (lib.pickBaseline([mac, latest], latest, undefined) !== null) out.push('only another machine has a baseline, yet one was picked');
+  if (lib.pickBaseline([mac, latest], latest, 'mac0') !== null) out.push('--baseline sha crosses machines');
+  if (lib.networkDefault('linux', []) !== true || lib.networkDefault('darwin', []) !== false || lib.networkDefault('win32', []) !== false) out.push('network default not Linux-only');
+  if (lib.networkDefault('linux', ['--no-network']) !== false || lib.networkDefault('darwin', ['--network']) !== true) out.push('network flags do not override');
   return out;
 }
 
@@ -167,11 +193,19 @@ const mutants: Record<string, (l: Lib) => Lib> = {
   'compare ignores pass rate': (l) => ({ ...l, compare: (b: never, c: never, t = {}) => { const r = l.compare(b, c, t); return { ...r, warnings: r.warnings.filter((w: string) => !w.includes('passing')) }; } }),
   'stages miss handoff': (l) => ({ ...l, stageTimes: (s: never, a: number, b: number) => ({ ...l.stageTimes(s, a, b), handoff: 0 }) }),
   'review stops at the first render': (l) => ({ ...l, stageTimes: (s: never, a: number, b: number) => { const r = l.stageTimes(s, a, b); return { ...r, review: 0, handoff: r.handoff + r.review }; } }),
-  'measured check optional': (l) => ({ ...l, checkResults: (s: { kind: string }[], m: boolean) => l.checkResults([...s, { kind: 'measure', exit: 0 }] as never, m) }),
+  'measured check optional': (l) => ({ ...l, checkResults: (s: { kind: string }[], ...a: unknown[]) => l.checkResults([...s, { kind: 'measure', exit: 0 }] as never, ...(a as [never, never])) }),
   'dry run counted as narrate': (l) => ({ ...l, parseStageLog: (t: string) => l.parseStageLog(t).map((s) => (s.kind === 'narrate-dry' ? { ...s, kind: 'narrate' } : s)) }),
-  'ste exit 2 passes': (l) => ({ ...l, checkResults: (s: never[], m: boolean) => l.checkResults((s as { kind: string; exit: number }[]).map((x) => (x.kind === 'ste' && x.exit === 2 ? { ...x, exit: 0 } : x)) as never, m) }),
+  'ste exit 2 passes': (l) => ({ ...l, checkResults: (s: never[], ...a: unknown[]) => l.checkResults((s as { kind: string; exit: number }[]).map((x) => (x.kind === 'ste' && x.exit === 2 ? { ...x, exit: 0 } : x)) as never, ...(a as [never, never])) }),
   'messages counted as tools': (l) => ({ ...l, parseCodexTap: (t: string) => { const r = l.parseCodexTap(t); return { ...r, toolCalls: r.toolCalls + 2 }; } }),
   'cached tokens priced as input': (l) => ({ ...l, priceTokens: (tok: never, m: string, p: never) => l.priceTokens({ ...(tok as object), cachedInput: 0, cacheWrite: 0 } as never, m, p) }),
+  'length unchecked': (l) => ({ ...l, checkResults: (s: never, m: boolean) => l.checkResults(s, m, 30) }),
+  'range ignored (percent only)': (l) => ({ ...l, compare: (b: { briefs: Record<string, { metrics: Record<string, { n: number }> }> }, c: never, t = {}) => l.compare({ ...b, briefs: Object.fromEntries(Object.entries(b.briefs).map(([k, v]) => [k, { ...v, metrics: Object.fromEntries(Object.entries(v.metrics).map(([m, x]) => [m, { ...x, n: 1 }])) }])) }, c, t) }),
+  'percent ignored (range only)': (l) => ({ ...l, compare: (b: never, c: never, t = {}) => l.compare(b, c, { ...t, time: 0, tokens: 0, cost: 0, tools: 0 }) }),
+  'no n or spread printed': (l) => ({ ...l, compare: (b: never, c: never, t = {}) => { const r = l.compare(b, c, t); return { ...r, warnings: r.warnings.map((w: string) => w.replace(/; baseline n=.*\)$/, ')')) }; } }),
+  'summary drops no-data metrics': (l) => ({ ...l, renderSummary: (r: never, c: never) => l.renderSummary(r, c).split('\n').filter((x: string) => !x.includes('no data')).join('\n') }),
+  'no-data reads as pass': (l) => ({ ...l, compare: (b: never, c: never, t = {}) => { const r = l.compare(b, c, t); return { ...r, warnings: r.warnings.filter((w: string) => !w.includes('no data')) }; } }),
+  'baseline ignores machine': (l) => ({ ...l, pickBaseline: (h: { machine?: unknown }[], latest: { machine?: unknown }, sha?: string) => l.pickBaseline(h.map((r) => ({ ...r, machine: latest.machine })).map((r, i) => (h[i] === latest ? latest : r)) as never, latest, sha) }),
+  'network on everywhere': (l) => ({ ...l, networkDefault: (_p: string, a: string[] = []) => !a.includes('--no-network') }),
   'baseline ignores model': (l) => ({ ...l, pickBaseline: (h: never[], latest: never) => (h as { baseline?: boolean }[]).filter((r) => r !== latest && r.baseline).at(-1) ?? null }),
 };
 
@@ -205,6 +239,26 @@ describe('explain-video benchmark harness', () => {
     expect(lines[0]).toMatchObject({ script: 'narrate', kind: 'narrate-dry', exit: 3 });
   });
 
+  it('codex shim passes exit codes through and reports a signal death as 128+n', () => {
+    const dir = mkdtempSync(path.join(tmpdir(), 'vs-bench-shim-'));
+    const fake = (name: string, body: string) => {
+      const f = path.join(dir, name);
+      writeFileSync(f, `#!/bin/sh\n${body}\n`, { mode: 0o755 });
+      return f;
+    };
+    const tap = path.join(dir, 'tap.jsonl');
+    const shim = (real: string) => spawnSync(process.execPath, [path.join(HERE, 'bin', 'codex'), 'app-server'], {
+      encoding: 'utf8', env: { ...process.env, VS_BENCH_REAL_CODEX: real, VS_BENCH_CODEX_TAP: tap },
+    });
+    const ok = shim(fake('ok', 'echo \'{"method":"x"}\'; exit 3'));
+    expect(ok.status).toBe(3);
+    expect(ok.stdout).toContain('{"method":"x"}');
+    expect(real.parseJsonl(fs.readFileSync(tap, 'utf8'))[0].line).toBe('{"method":"x"}');
+    expect(shim(fake('term', 'kill -TERM $$')).status).toBe(143);
+    expect(shim(fake('kill', 'kill -KILL $$')).status).toBe(137);
+    expect(spawnSync(process.execPath, [path.join(HERE, 'bin', 'codex')], { env: { ...process.env, VS_BENCH_REAL_CODEX: '' } }).status).toBe(2);
+  });
+
   it('compare CLI warns and never fails on a regression', () => {
     const dir = mkdtempSync(path.join(tmpdir(), 'vs-bench-cmp-'));
     const file = path.join(dir, 'history.jsonl');
@@ -214,10 +268,21 @@ describe('explain-video benchmark harness', () => {
     const cli = (...a: string[]) => spawnSync(process.execPath, [path.join(HERE, 'compare.mjs'), '--history', file, ...a], { encoding: 'utf8' });
     const r = cli();
     expect(r.status).toBe(0);
-    expect(r.stdout).toMatch(/a: wallMs \+100%/);
-    expect(r.stdout).toMatch(/regression warning/);
+    expect(r.stdout).toMatch(/a wallMs: 100000 -> 200000 \(\+100%\)  \[baseline n=1 spread 0%, latest n=1 spread 0%\]/);
+    expect(r.stdout).toMatch(/\d+ warning\(s\):/);
     expect(cli('--time=5', '--tokens', '5', '--cost', '5', '--tools', '5').stdout).toMatch(/No regressions\./);
     expect(cli('--time', 'x').status).toBe(2);
+    const blind = rowOf([runRow(100000, 50000)], { gitSha: 'def5678' });
+    for (const m of ['tokens.input', 'tokens.output', 'tokens.total', 'costUsd']) blind.briefs.a.metrics[m] = { n: 0, median: null, min: null, max: null, spread: null };
+    writeFileSync(file, `${JSON.stringify(base)}\n${JSON.stringify(blind)}\n`);
+    const nd = cli();
+    expect(nd.status).toBe(0);
+    expect(nd.stdout).toMatch(/a tokens\.total: 50000 -> no data/);
+    expect(nd.stdout).toMatch(/tokens\.total no data/);
+    expect(nd.stdout).not.toMatch(/No regressions\./);
+    const mac = rowOf([runRow(100000, 50000)], { baseline: true, machine: { label: 'mac' } });
+    writeFileSync(file, `${JSON.stringify(mac)}\n${JSON.stringify(cur)}\n`);
+    expect(cli().status).toBe(2);
     writeFileSync(file, `${JSON.stringify(cur)}\n`);
     expect(cli().status).toBe(2);
   });
@@ -240,7 +305,9 @@ describe('explain-video benchmark harness', () => {
     const { briefs } = JSON.parse(fs.readFileSync(path.join(HERE, 'briefs.json'), 'utf8'));
     expect(briefs).toHaveLength(2);
     expect(run).toMatch(/20-40 seconds/);
-    expect(run).toMatch(/opt\('--runs', '3'\)/);
+    expect(run).toMatch(/opt\('--runs', '5'\)/);
+    expect(run).toMatch(/networkDefault\(process\.platform, args\)/);
+    expect(run).toMatch(/checkResults\(steps, .*, videoSec\)/);
     for (const key of ['gitSha', 'date:', 'agent:', 'model:', 'machine:', 'costSource']) expect(run).toContain(key);
   });
 

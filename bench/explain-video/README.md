@@ -4,7 +4,7 @@ A repeatable speed and token-cost benchmark for `skills/vs-explain-video`.
 Run it before and after a change to the skill, and compare the numbers.
 
 ```bash
-npm run bench:explain-video                  # 2 briefs x 3 runs, record a row
+npm run bench:explain-video                  # 2 briefs x 5 runs, record a row
 npm run bench:explain-video -- --set-baseline  # same, and mark it the baseline
 npm run bench:explain-video -- --runs 1 --brief dns-lookup --no-record  # quick look
 npm run bench:explain-video:compare          # newest row vs the baseline
@@ -34,7 +34,7 @@ Per run it records:
 | `toolCalls` | Codex `item/started` tool items; Claude: PathGrade tool events |
 | `costUsd` | the agent's own cost when it reports one (Claude); else tokens x `prices.json` |
 | `videoSec` | ffprobe of the mp4 the last full render wrote |
-| `checks` | last exit of check-ste, `render --stills`, `check.mjs`, the full render, and the mp4 on disk; `review` is the fresh-review verdict, reported but not required |
+| `checks` | last exit of check-ste, `render --stills`, `check.mjs`, the full render, the mp4 on disk, and `length` (`videoSec` is 20-40 s, as the brief asks; a run outside it or with no mp4 fails); `review` is the fresh-review verdict, reported but not required |
 
 Stages split the wall time at the first time each step happens, so they always
 add up to `wallMs`: `setup` (to the first good `init.mjs`), `script` (to the
@@ -42,7 +42,7 @@ first real narrate), `narrate`, `scenes` (to the first `--stills`), `checks`
 (to the first full render), `render`, `review` (to the last render, pack, or
 verdict), `handoff`.
 
-Each brief runs N times (default 3). The row stores every run plus, per
+Each brief runs N times (default 5). The row stores every run plus, per
 metric, the median, min, max, and spread ((max - min) / median).
 
 ## History and compare
@@ -52,12 +52,26 @@ metric, the median, min, max, and spread ((max - min) / median).
 CLI version, machine, and the per-brief results. `SUMMARY.md` is rewritten from
 the newest row. Commit both.
 
-Compare uses the medians. A metric is a regression when it grows by more than
-its limit: time +20%, tokens +15%, cost +15%, tool calls +25%. Time metrics
-whose baseline is under 5 s are never flagged. Fewer passing runs is always
-flagged. Every limit is a flag on `compare.mjs`. It only warns: exit 0 either
-way, exit 2 when there is no baseline. Compare only rows from the same machine;
-the baseline is picked by agent and model, not machine.
+Compare uses the medians. Agent runs vary a lot: one run can start a
+fresh-review agent and take twice as long. So a metric is a regression only
+when both are true:
+
+1. The latest median is above the baseline's max. No baseline run went that
+   high, so it is not run-to-run noise. A one-run baseline has no range, so
+   only rule 2 applies.
+2. It grew by more than its limit: time +20%, tokens +15%, cost +15%, tool
+   calls +25%.
+
+Time metrics whose baseline is under 5 s are never flagged. Fewer passing runs
+is always flagged. Sometimes the latest row has no value for a baseline metric, for
+example tokens after a Codex event rename. Compare then prints `no data` and a
+warning, never "No regressions". Each line shows n and the spread of both
+rows. Every limit is a flag on `compare.mjs`. It only warns: exit 0 either way,
+exit 2 when there is no baseline.
+
+The baseline is the newest `baseline` row with the same agent, model, and
+machine label (`VS_BENCH_MACHINE`, default platform plus arch, such as `linux-x64`). A row from
+another machine is never compared.
 
 ## Sandbox notes
 
@@ -68,9 +82,11 @@ tools ready on the host under `/tmp/vs-bench-explain-video` (or
 and the fonts. The numbers then measure the skill, not first-time downloads.
 
 On Linux the Codex sandbox's network filter also blocks the socket calls
-Chrome needs, so the `bin/codex` tap turns on
-`sandbox_workspace_write.network_access` for the benchmark agent.
-`--no-network` turns that off (renders then fail on Linux).
+Chrome needs. So on Linux only, the `bin/codex` tap turns on
+`sandbox_workspace_write.network_access` for the benchmark agent. On macOS and
+other platforms network stays off. `--network` and `--no-network` override the
+default (renders fail on Linux without it). If codex dies on a signal, the tap
+exits 128 + the signal number, as a shell does.
 
 Codex does not report cost, so its `costUsd` is computed from tokens with the
 prices pinned in `prices.json` (standard tier, short context). Update the

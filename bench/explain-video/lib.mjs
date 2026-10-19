@@ -345,7 +345,10 @@ export const renderSummary = (row, cmp) => {
     lines.push('| Metric | Median | Min | Max | Spread |', '| --- | --- | --- | --- | --- |');
     for (const name of METRICS) {
       const s = agg.metrics[name];
-      if (!s || s.n === 0) continue;
+      if (!s || s.n === 0) {
+        lines.push(`| ${name} | no data | — | — | — |`);
+        continue;
+      }
       lines.push(`| ${name} | ${fmt(name, s.median)} | ${fmt(name, s.min)} | ${fmt(name, s.max)} | ${Math.round((s.spread ?? 0) * 100)}% |`);
     }
     lines.push('');

@@ -4,15 +4,17 @@
 //   npm run bench:explain-video:compare -- [--history <file>] [--baseline <sha>]
 //       [--time 0.2] [--tokens 0.15] [--cost 0.15] [--tools 0.25] [--min-time-ms 5000]
 //
-// The baseline is the newest row marked "baseline": true for the same agent
-// and model, or the row whose git sha starts with --baseline. Prints one line
-// per metric and a warning per regression. Warn only: exit 0 with or without
-// regressions; exit 2 when there is nothing to compare.
+// The baseline is the newest row marked "baseline": true for the same agent,
+// model, and machine label, or the row whose git sha starts with --baseline.
+// Prints one line per metric with n and spread, and a warning per regression
+// (latest median above the baseline max and over the % limit) or missing
+// metric ("no data"). Warn only: exit 0 with or without warnings; exit 2 when
+// there is nothing to compare.
 import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { compare, fmtDelta, pickBaseline } from './lib.mjs';
+import { compare, fmtDelta, pickBaseline, spreadNote } from './lib.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const args = process.argv.slice(2);
@@ -61,7 +63,16 @@ for (const r of rows) {
     process.stdout.write(`  ${r.brief}: ${r.note}\n`);
     continue;
   }
-  process.stdout.write(`  ${r.regressed ? '⚠' : ' '} ${r.brief} ${r.metric}: ${r.baseline} -> ${r.latest} (${fmtDelta(r.delta)})\n`);
+  const mark = r.regressed ? '⚠' : r.noData ? '?' : ' ';
+  const now = r.noData ? 'no data' : `${r.latest} (${fmtDelta(r.delta)})`;
+  process.stdout.write(`  ${mark} ${r.brief} ${r.metric}: ${r.baseline} -> ${now}  [${spreadNote(r.base, r.cur)}]\n`);
 }
-process.stdout.write(warnings.length ? `${warnings.length} regression warning(s):\n${warnings.map((w) => `  - ${w}`).join('\n')}\n` : 'No regressions.\n');
+const noData = rows.filter((r) => r.noData).length;
+if (warnings.length) {
+  process.stdout.write(`${warnings.length} warning(s):\n${warnings.map((w) => `  - ${w}`).join('\n')}\n`);
+} else if (noData) {
+  process.stdout.write(`No regressions in the compared metrics; ${noData} metric(s) have no data.\n`);
+} else {
+  process.stdout.write('No regressions.\n');
+}
 process.exit(0);
