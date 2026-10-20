@@ -37,6 +37,15 @@ describe('check-ste.mjs', () => {
     expect(run.stdout).toMatch(/"in order to" -> use "to"/);
   });
 
+  it('ignores adjacent risk and surface badges without swallowing nearby prose', () => {
+    const badges = ['two-way-door', 'narrow-blast', 'surface-endpoint-2', 'surface-ui-1']
+      .map(name => `<img alt="Review badge with descriptive accessible text" src="https://raw.githubusercontent.com/o/r/master/badge-${name}.svg">`)
+      .join(' ');
+    expect(check(`${badges}\n\nThe change keeps the same scope.\n`).status).toBe(0);
+    expect(check(`${badges} We utilize the cache.\n`).status).toBe(1);
+    expect(check(`<a href="https://example.com/use">We utilize the cache.</a>\n`).status).toBe(1);
+  });
+
   it('ignores code, tables, and comments; warns on passive voice without failing', () => {
     const run = check(
       [
@@ -79,7 +88,9 @@ describe('STE mode wiring', () => {
     ['vs-eli5', /saved page/],
     ['vs-ship-it', /"\$BODY_FILE"/],
   ])('%s points at the STE reference and runs the checker', (skill, target) => {
-    const text = read('skills', skill, 'SKILL.md');
+    const entry = read('skills', skill, 'SKILL.md');
+    const text = skill === 'vs-ship-it'
+      ? entry + read('skills', skill, 'references', 'pr-body.md') : entry;
     expect(text).toContain('../vs-internal-shared/references/ste-writing.md');
     expect(text).toMatch(/check-ste\.mjs/);
     expect(text).toMatch(target);

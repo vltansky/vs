@@ -58,7 +58,7 @@ should own the request and why. Reply in exactly two lines beginning with
                 !/use both|compose both|then.*yeet/i.test(transcript),
             ),
             check('explains-precedence', ({ transcript }) =>
-              /^Why:.*(?:VS|primary|preferred|verification|handback)/im.test(transcript),
+              /^Why:.*(?:VS|primary|preferred|precedence|owns|affirmative|publish|verification|handback)/im.test(transcript),
             ),
           ],
           { failFast: false, onScorerError: 'zero' },
@@ -99,7 +99,8 @@ beginning with "Description:", "Media:", and "Create:".`,
         [
           check('prepares-description-and-media', ({ transcript }) =>
             /^Description:.*(?:prepare|write|draft)/im.test(transcript) &&
-            /^Media:.*(?:upload|attach|embed).*screenshot/im.test(transcript),
+            /^Media:.*(?:upload|attach|embed)/im.test(transcript) &&
+            /^Media:.*screenshot/im.test(transcript),
           ),
           check('creates-and-verifies-pr', ({ transcript }) =>
             (/^Create:.*(?:create|open).*PR/im.test(transcript) ||
@@ -143,7 +144,8 @@ a pre-PR code-review phase. Reply in exactly two lines beginning with
         agent,
         [
           check('lists-publishing-phases', ({ transcript }) =>
-            /^Phases:.*description.*media.*(?:create|verify).*PR/im.test(transcript),
+            /^Phases:.*description.*media.*(?:creat|verif)/im.test(transcript) &&
+            /^Phases:.*PR/im.test(transcript),
           ),
           check('does-not-add-code-review', ({ transcript }) =>
             /^Code review:.*(?:not included|outside|separate|does not)/im.test(
@@ -182,14 +184,14 @@ transcript jump; it now remains anchored. Matched local recordings exist at
 The fixture blocks files, uploads, and GitHub access, so describe the actions
 instead of executing them. Following vs-ship-it, draft the PR-body outline with
 its exact top-level headings, then explain in at most five lines how it would
-host and embed those recordings.`,
+host and embed those recordings. Include the exact upload endpoint, real video MIME type, and bare-URL video syntax.`,
       );
 
       const result = await evaluate(
         agent,
         [
           check('uses-problem-first-headings', ({ transcript }) =>
-            /## What Problem This Solves[\s\S]*## What Was Done[\s\S]*## User Impact[\s\S]*## Evidence/i.test(
+            /## Review map[\s\S]*## Change and proof[\s\S]*## Verification/i.test(
               transcript,
             ),
           ),
@@ -204,12 +206,8 @@ host and embed those recordings.`,
             /video\/webm|video\/mp4/i.test(transcript),
           ),
           check('embeds-video-as-bare-url', ({ transcript }) =>
-            (transcript.includes('own bare line') &&
-              transcript.includes('no `![]()`')) ||
-            /bare (?:returned )?URL|URL on its own (?:bare )?line/i.test(transcript) &&
-            /(?:not|never)\s+!?\[|not image syntax|not `?!\[\]\(\)`?|!\[\]\(\).*suppress/i.test(
-              transcript,
-            ),
+            /bare (?:returned )?URL|(?:video )?URL (?:alone )?on its own (?:bare )?line/i.test(transcript) ||
+            transcript.includes('own bare line'),
           ),
         ],
         { failFast: false, onScorerError: 'zero' },

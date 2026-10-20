@@ -237,6 +237,27 @@ uncertainty.
 
 ## Proposal exhibits
 
+A proposal reads like an engineering doc, not a pitch. Its first screen is
+three exhibits, in this order, with labels instead of paragraphs:
+
+1. **Schematic hero.** One inline SVG right under the hero band: the real
+   systems as boxes, the gate or rule as a diamond, and the flow between them
+   as wires. Draw the population the rule acts on as one mark per item,
+   colored by outcome, with counts beside each group. Dash the boxes that are
+   new code, so what exists today stays solid. Pin the open blocker on the
+   box it blocks. A subtle motion, such as dashes running along a wire, is
+   fine when it shows direction and stops under `prefers-reduced-motion`.
+2. **The change.** Two panes side by side. The left pane is the code change:
+   a file tree marked `+` added and `~` changed, then the new surface (topics,
+   routes, settings and their defaults). The right pane is the output for one
+   real case, as a `diff` per file it writes.
+3. **Decide strip.** One bordered row: the question reviewers must answer,
+   what a yes commits to, and what a no keeps.
+
+The skeleton sections below the first screen carry the detail: the example
+matrix, the alternatives, and the drawbacks. Never write a marketing headline
+or a lede that restates the diagram.
+
 Engineers review a proposal that changes a rule or behavior by checking an
 example, not by trusting a claim. Build its Proposal section around one worked
 example:
@@ -255,8 +276,6 @@ example:
   not count.
 - **One color per meaning.** One accent for the thesis outcome, green for
   added, red only for removed; unchanged stays neutral.
-- **Close with the decision.** End on the one question reviewers must answer
-  and what a yes or a no commits to.
 
 A variant switch (per host, per environment) or a highlight linking a matrix
 row to its source lines may sharpen the example, but the default view

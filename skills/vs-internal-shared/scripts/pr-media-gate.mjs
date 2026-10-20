@@ -2,7 +2,7 @@
 // Refuses a PR body that shows the reviewer nothing: no Before/After comparison at all,
 // no merge-danger classification, frontend changes with no hosted media, endpoint and
 // schema changes with no contract proof, Surfaces claim↔path mismatches, or changed tests
-// with no ## Tests block.
+// with no ## Verification block.
 //
 //   node pr-media-gate.mjs <body-file> [--base <ref>] [--frontend <regex>] [--api <regex>] [--schema <regex>] [--tests <regex>] [--head <ref>] [--template <path>] [--title <PR title>] [--bugfix[=true|false]]
 //
@@ -17,18 +17,18 @@
 //      stamps Infra without infra paths, stamps a product surface with no matching path
 //      class (including skill-only + Schema), migration-only≠UI, MCP-wrap-only≠Endpoint,
 //      or >3 product surfaces without matching path classes, or test/eval files changed
-//      (added, edited, or deleted) and the body has no ## Tests block with a Not covered: line
+//      (added, edited, or deleted) and the body has no ## Verification block with a Not covered: line
 //      Warn only (never exit 1): behavior paths changed, no test/eval file changed, and
-//      ## Review focus has no "No tests changed" bullet — the warning goes to stderr.
+//      ## Verification has no "No tests changed" bullet — the warning goes to stderr.
 //      or >3 product surfaces without matching path classes, or has no collapsed
 //      last-section Walkthrough (≥1 area group ordered 🔴 → 🟡 → 🟢, each with a ```diff of
 //      logic pseudocode without diff/hunk headers, links pinned to the --head SHA)
 //      or --template <path> was passed and a template section (# … ###### heading or bold-label
 //      line) or checklist item is missing from the body, or a section is out of template order,
-//      or a repo file link under What Problem This Solves is not pinned to the --head SHA
+//      or a repo file link under Change and proof is not pinned to the --head SHA
 //      or the Tests block's Not covered line is neither `none` nor followed by `- [ ]` reviewer
 //      checkboxes (or has a ticked box), or the PR is a bugfix (--bugfix, a fix/ fix- hotfix/ branch, a fix: --title, or a fix: FIRST commit;
-//      --bugfix=false opts out) and What Problem This Solves has no real `Root cause:` line
+//      --bugfix=false opts out) and Change and proof has no real `Root cause:` line
 //      (no <placeholder>, TBD/TODO/unknown/N/A, at least 4 words)
 //      or the body does not start with a two-line plain TL;DR (no links, code, badges; not the title)
 //   2  not checked: body missing, git cannot resolve the base, or --template is unreadable or has no sections
@@ -36,6 +36,7 @@
 // Output is one JSON object on stdout so the caller can quote counts instead of re-reading.
 import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
+import { checkMediaPairs } from './pr-media-pairs.mjs';
 
 const FRONTEND_PATH =
   /\.(?:tsx|jsx|vue|svelte|astro|css|scss|sass|less|styl|html|mdx)$|\/(?:components?|pages|views|layouts|routes|app|ui|styles?|screens?)\/|(?:^|\/)(?:web|client|frontend)\/[^.]*\.[cm]?[jt]s$/i;
@@ -52,7 +53,7 @@ const MCP_PATH =
 const INFRA_PATH =
   /(?:^|\/)\.github\/(?:workflows|actions)\/|(?:^|\/)(?:deploy|deployment|infra|infrastructure|terraform|helm|k8s|kubernetes|charts?)\/|(?:^|\/)Dockerfile|(?:^|\/)docker-compose[^/]*\.(?:ya?ml)$|\.(?:tf|tfvars)$|(?:^|\/)\.env|(?:^|\/)(?:flags?|feature-flags?)\/|(?:^|\/)(?:flags?|feature-flags?)\.[cm]?[jt]s$/i;
 const TEST_PATH = /\.(?:test|spec|stories)\.[cm]?[jt]sx?$|\/(?:__tests__|__snapshots__|test|tests|e2e)\//i;
-// Test/eval files for the ## Tests block and the no-test flag. Generic defaults; pass
+// Test/eval files for the ## Verification block and the no-test flag. Generic defaults; pass
 // --tests <regex> to add a repository convention the defaults miss.
 // `*.spec.*`, `*.test.*`, `*.eval.*`, and a `spec/` directory count only for code files: an
 // `api.spec.yaml` (OpenAPI) or a `docs/spec/design.md` is a specification, not a test.
@@ -87,7 +88,7 @@ const HOSTED_MEDIA_HOST =
 const MERGE_RISK_BADGE = /\/skills\/vs-ship-it\/assets\/badge-[a-z0-9-]+\.svg(?:[?#].*)?$/i;
 const MEDIA_EXTENSION = /\.(?:png|jpe?g|webp|gif|svg|webm|mp4|mov)(?:[?#].*)?$/i;
 const MARKDOWN_IMAGE = /!\[[^\]]*\]\(\s*<?([^\s)>]+)>?(?:\s+"[^"]*")?\s*\)/g;
-const HTML_MEDIA = /<(?:img|video|source)\b[^>]*\bsrc=["']([^"']+)["']/gi;
+const HTML_MEDIA = /<(img|video|source)\b[^>]*\bsrc=["']([^"']+)["']/gi;
 const BARE_URL = /^\s*<?(https?:\/\/\S+?)>?\s*$/;
 
 // Either phrase makes the gap a reviewed decision instead of an omission: the gate exists to
@@ -239,7 +240,9 @@ const labelledBlock = (marker) => {
 };
 const refs = [];
 for (const match of body.matchAll(MARKDOWN_IMAGE)) refs.push({ url: match[1], kind: 'image' });
-for (const match of body.matchAll(HTML_MEDIA)) refs.push({ url: match[1], kind: 'image' });
+for (const match of body.matchAll(HTML_MEDIA)) {
+  refs.push({ url: match[2], kind: match[1].toLowerCase() === 'img' ? 'image' : 'video' });
+}
 for (const line of body.split('\n')) {
   const match = line.match(BARE_URL);
   if (match) refs.push({ url: match[1], kind: 'video' });
@@ -248,7 +251,7 @@ for (const line of body.split('\n')) {
 const isHosted = (url) =>
   !MERGE_RISK_BADGE.test(url) &&
   (HOSTED_MEDIA_HOST.test(url) || (/^https?:\/\//i.test(url) && MEDIA_EXTENSION.test(url)));
-const hosted = refs.filter((ref) => isHosted(ref.url));
+const hosted = [...new Map(refs.filter((ref) => isHosted(ref.url)).map(ref => [`${ref.kind}:${ref.url}`, ref])).values()];
 const localRefs = refs.filter((ref) => !/^(?:https?:|data:)/i.test(ref.url));
 const images = hosted.filter((ref) => ref.kind === 'image').length;
 const videos = hosted.filter((ref) => ref.kind === 'video').length;
@@ -262,7 +265,13 @@ const mergeDanger = {
   door: DOOR_MARKER.test(body) || DOOR_BADGE.test(body),
   blastRadius: BLAST_MARKER.test(body) || BLAST_BADGE.test(body),
 };
-const mediaOk = frontendFiles.length === 0 || images + videos > 0 || gapStated !== null;
+const media = checkMediaPairs({
+  body, images, videos,
+  frontend: frontendFiles.length > 0,
+  functional: args.includes('--functional') ||
+    (!args.includes('--static-ui') && frontendFiles.some(file => !/\.(?:css|scss|sass|less|styl)$/.test(file))),
+});
+const mediaOk = media.ok;
 const beforeAfterOk = beforeAfter.before && beforeAfter.after;
 const mergeDangerOk = mergeDanger.door && mergeDanger.blastRadius;
 const contract = {
@@ -281,7 +290,7 @@ const untilNextBlock = (rest) => {
   return stop === -1 ? rest : rest.slice(0, stop);
 };
 const surfacesSection = (() => {
-  const at = body.search(/^##[ \t]+Surfaces\b/im);
+  const at = body.search(/^##[ \t]+(?:Surfaces|Review map)\b/im);
   if (at === -1) return '';
   const afterHeading = body.indexOf('\n', at);
   if (afterHeading === -1) return '';
@@ -315,7 +324,7 @@ const selectorLines = surfacesSection
       !line.startsWith('-') &&
       !line.startsWith('*'),
   );
-const fromLegacy = selectorLines.flatMap((line) =>
+const fromLegacy = (surfacesSection.includes('**Risk:**') || /^##[ \t]+Review map\b/im.test(body) ? [] : selectorLines).flatMap((line) =>
   line
     .split(/[·|,/]|\s+/)
     .map((token) => token.trim())
@@ -385,20 +394,21 @@ const surfaces = {
 };
 const surfacesOk = surfaces.ok;
 
-// ## Tests block: required when any test/eval file changed. Diff-derived; the gate runs nothing.
+// ## Verification block: required when any test/eval file changed. Diff-derived; the gate runs nothing.
 // Headings inside fenced examples and HTML comments are not sections.
 // The Walkthrough is not prose: its "### " groups and pseudocode are cut before parsing.
 const proseBody = proofBody
   .replace(/^[ \t]*(```|~~~)[^\n]*\n[\s\S]*?^[ \t]*\1[ \t]*$/gm, '')
   .replace(/<!--[\s\S]*?-->/g, '');
 const section = (heading) => {
-  const at = proseBody.search(new RegExp(String.raw`^##[ \t]+${heading}\b`, 'im'));
+  const at = proseBody.search(new RegExp(String.raw`^#{2,3}[ \t]+${heading}\b`, 'im'));
   if (at === -1) return null;
   const afterHeading = proseBody.indexOf('\n', at);
   if (afterHeading === -1) return '';
   return untilNextBlock(proseBody.slice(afterHeading + 1));
 };
-const testsSection = section('Tests');
+const verificationSection = section('Verification');
+const testsSection = verificationSection ?? section('Tests');
 // The label closes explicitly (**Not covered:**, **Not covered**:, __…__, or plain Not covered:),
 // and what follows must carry a letter or digit: `none` or a named behavior, never only
 // whitespace, `*`, or punctuation.
@@ -410,8 +420,12 @@ const notCoveredLines = sectionLines.filter((line) => NOT_COVERED_LABEL.test(lin
 // boxes the human runs. Inline prose after the label, or boxes after `none`, fail.
 const CHECKBOX = /^[ \t]*[-*][ \t]+\[[ xX]\][ \t]+(.*)$/;
 const TICKED = /^[ \t]*[-*][ \t]+\[[xX]\]/;
+// Deleted guards still carry coverage intent. Accept the existing removed label
+// without letting automated-result bullets substitute for behavioral coverage.
+const COVERAGE_LABEL = /^[ \t]*[-*][ \t]+\*\*Coverage(?: removed)?:\*\*[ \t]+\S/i;
 const testLines = sectionLines.filter(
-  (line) => /^[ \t]*[-*][ \t]+\S/.test(line) && !NOT_COVERED_LABEL.test(line) && !CHECKBOX.test(line),
+  (line) => /^[ \t]*[-*][ \t]+\S/.test(line) && !NOT_COVERED_LABEL.test(line) && !CHECKBOX.test(line)
+    && (verificationSection === null || COVERAGE_LABEL.test(line)),
 );
 const checklist = (() => {
   const at = sectionLines.findIndex((line) => NOT_COVERED_LABEL.test(line));
@@ -432,7 +446,7 @@ const checklist = (() => {
   if (!boxes || boxes !== after.length) return { ok: false, none: false, boxes, reason: 'Not covered has no `- [ ] <check>` items' };
   return { ok: true, none: false, boxes, reason: null };
 })();
-const reviewFocus = section('Review focus') ?? '';
+const reviewFocus = section('Verification') ?? section('Review focus') ?? '';
 const NO_TEST_FLAG = /^[ \t]*[-*][ \t]+(?:\*\*|__)?No tests changed\b/im;
 const tests = {
   files: testFiles,
@@ -452,7 +466,7 @@ if (tests.noTestFlag.needed && !tests.noTestFlag.present) {
   warnings.push(
     [
       `pr-media-gate: warning (does not block): ${behaviorFiles.length} behavior file(s) changed and no test/eval file changed.`,
-      '  Next: add one bullet under ## Review focus: "- **No tests changed:** <the behavior that changed with no test>".',
+      '  Next: add one bullet under ## Verification: "- **No tests changed:** <the behavior that changed with no test>".',
       '  Do not run tests or write new ones to clear this; it is a reviewer note.',
       `  Changed: ${behaviorFiles.join(', ')}`,
     ].join('\n'),
@@ -481,7 +495,7 @@ const codeSignals = (line) => {
   const text = line.replace(/^[+\- ]/, '');
   return CODE_SIGNALS.filter(([, pattern]) => pattern.test(text)).map(([name]) => name);
 };
-const RISK_RANK = { '🔴': 0, '🟡': 1, '🟢': 2 };
+const RISK_RANK = { High: 0, Medium: 1, Low: 2, '🔴': 0, '🟡': 1, '🟢': 2 };
 
 // Balanced <details> matching, so a nested <details> inside a group does not end the section.
 // Tags inside fenced code are text (pseudocode may mention <details>), so mask fences first;
@@ -553,7 +567,8 @@ const walkthroughWarnings = [];
 const walkthroughGroups = [];
 const walkthroughBlock = findWalkthrough(body);
 if (!walkthroughBlock) {
-  walkthroughReasons.push('no <details><summary>Walkthrough: N areas, M files</summary> section');
+  if (/^#{1,6}[ \t]+Walkthrough\b/im.test(maskFences(body)))
+    walkthroughReasons.push('Walkthrough must be collapsed in <details>');
 } else {
   if (walkthroughBlock.unclosed) walkthroughReasons.push('Walkthrough <details> is never closed');
   const trailing = walkthroughBlock.trailing.replace(/<!--[\s\S]*?-->/g, '').trim();
@@ -596,9 +611,9 @@ if (!walkthroughBlock) {
   if (links.length === 0) walkthroughReasons.push('Walkthrough has no file links pinned to the head SHA');
   walkthroughReasons.push(...pinReasons(links));
 }
-// What Problem This Solves: the Closes/Refs spec link (any repo file link there) pins the head too.
+// Change and proof: the Closes/Refs spec link (any repo file link there) pins the head too.
 const problemSection = (() => {
-  const match = maskFences(body).match(/^##[ \t]+What Problem This Solves[ \t]*$([\s\S]*?)(?=^##[ \t]|<details\b|$(?![\s\S]))/im);
+  const match = maskFences(body).match(/^##[ \t]+(?:Change and proof|What Problem This Solves)[ \t]*$([\s\S]*?)(?=^##[ \t]|<details\b|$(?![\s\S]))/im);
   return match ? match[1].replace(/<!--[\s\S]*?-->/g, '') : '';
 })();
 // Embedded images and video are Before/After proof, checked by the media rule; only links count.
@@ -610,6 +625,7 @@ const walkthrough = {
   head: headSha,
   repo: repoSlug,
   groups: walkthroughGroups,
+  included: walkthroughBlock !== null,
   reasons: walkthroughReasons,
   warnings: walkthroughWarnings.length,
 };
@@ -658,7 +674,7 @@ const templateOk = template === null || template.ok;
 warnings.push(...walkthroughWarnings);
 // Root cause: a bugfix PR (--bugfix) has one `Root cause: <mechanism>` line under What Problem.
 const ROOT_CAUSE = /^[ \t]*(?:\*\*Root cause:?\*\*:?|__Root cause:?__:?|Root cause:)[ \t]*(.*)$/im;
-const problemText = section('What Problem This Solves') ?? '';
+const problemText = section('Change and proof') ?? section('What Problem This Solves') ?? '';
 const rootCauseMatch = problemText.match(ROOT_CAUSE);
 // Bugfix detection: the branch name, the PR title (--title, else `gh pr view` when it
 // answers), or the FIRST commit subject after the merge-base. Later `fix:` commits
@@ -715,7 +731,7 @@ const tldr = (() => {
   // line (`**Before** …`, `**Door:**`). Those bodies have no TL;DR at all: report missing.
   const NOT_CANDIDATE = /^(?:#{1,6}[ \t]|<|[-*+>|][ \t]|\d+[.)][ \t]|\*\*|__|[*_](?=\S))/;
   if (!content.length || NOT_CANDIDATE.test(content[0]))
-    return { ok: false, labeled, lines: 0, reasons: ['missing: the body must start with a two-line TL;DR, before Merge risk and any repo template'] };
+    return { ok: false, labeled, lines: 0, reasons: ['missing: the body must start with a two-line TL;DR, before Review map and any repo template'] };
   if (content.length !== 2) reasons.push(`has ${content.length} line(s); write exactly 2`);
   content.forEach((line, n) => {
     const at = `line ${n + 1}`;
@@ -738,7 +754,7 @@ const tldrOk = tldr.ok;
 const valid = rootCauseOk && tldrOk && mediaOk && beforeAfterOk && mergeDangerOk && contractOk && surfacesOk && testsOk && walkthroughOk && templateOk && problemLinks.ok;
 
 process.stdout.write(
-  `${JSON.stringify({ valid, base, frontendFiles, apiFiles, schemaFiles, cliFiles, mcpFiles, infraFiles, images, videos, localRefs: localRefs.map((ref) => ref.url), gapStated, beforeAfter, mergeDanger, contract, surfaces, tests, walkthrough, template, problemLinks, rootCause, tldr, warnings: warnings.length }, null, 2)}\n`,
+  `${JSON.stringify({ valid, base, frontendFiles, apiFiles, schemaFiles, cliFiles, mcpFiles, infraFiles, images, videos, media, localRefs: localRefs.map((ref) => ref.url), gapStated, beforeAfter, mergeDanger, contract, surfaces, tests, walkthrough, template, problemLinks, rootCause, tldr, warnings: warnings.length }, null, 2)}\n`,
 );
 
 if (warnings.length > 0) process.stderr.write(`${warnings.join('\n')}\n`);
@@ -760,7 +776,7 @@ const next = [
   !mergeDangerOk
     ? [
         `pr-media-gate: the PR body has no ${[!mergeDanger.door && 'Door', !mergeDanger.blastRadius && 'Blast radius'].filter(Boolean).join(' and ')} line. Every PR states its merge risk.`,
-        '  Next: classify from the diff, one line each, under a "## Merge risk" heading:',
+        '  Next: classify from the diff, one line each, under a "## Review map" heading:',
         '    **Door:** Two-way — <what makes reverting cheap>, or One-way — <the irreversible step and its cost>',
         '    **Blast radius:** <who breaks and how widely> — <the adjacent surfaces this does not touch>',
         '  One-way signals: migration, backfill, destructive write, released artifact, public API or wire',
@@ -801,8 +817,8 @@ const next = [
     : null,
   !testsOk
     ? [
-        `pr-media-gate: ${testFiles.length} test/eval file(s) changed and the PR body has no complete ## Tests block.`,
-        !tests.section ? '  Missing: the "## Tests" heading.' : null,
+        `pr-media-gate: ${testFiles.length} test/eval file(s) changed and the PR body has no complete ## Verification block.`,
+        !tests.section ? '  Missing: the "## Verification" heading.' : null,
         tests.section && tests.lines === 0 ? '  Missing: one line per changed test naming the behavior it proves.' : null,
         tests.section && !tests.notCovered
           ? `  Not covered: ${tests.checklist.reason}. Write "- **Not covered:** none", or the label alone followed by "  - [ ] <concrete check the reviewer runs>" lines.`
@@ -837,7 +853,7 @@ const next = [
     : null,
   !rootCauseOk
     ? [
-        `pr-media-gate: bugfix PR (${rootCause.source}) and the What Problem This Solves Root cause line is ${rootCause.problem}.`,
+        `pr-media-gate: bugfix PR (${rootCause.source}) and the Change and proof Root cause line is ${rootCause.problem}.`,
         '  Not a bugfix? pass --bugfix=false.',
         '  Next: after the STE scenario, add one line "Root cause: <mechanism that caused the bug>".',
       ].join('\n')
@@ -853,17 +869,18 @@ const next = [
     : null,
   !problemLinks.ok
     ? [
-        'pr-media-gate: a repo file link under What Problem This Solves (the spec link) is not pinned to the head.',
+        'pr-media-gate: a repo file link under Change and proof (the spec link) is not pinned to the head.',
         ...problemLinks.reasons.map((reason) => `  - ${reason}`),
         '  Next: link the spec as https://github.com/<owner>/<repo>/blob/<HEAD_SHA>/<path>, like the Walkthrough links.',
       ].join('\n')
     : null,
   !mediaOk
     ? [
-        `pr-media-gate: ${frontendFiles.length} frontend file(s) changed and the PR body embeds no hosted media.`,
+        `pr-media-gate: ${frontendFiles.length} frontend file(s) changed and the PR body lacks matched hosted media pairs.`,
         localRefs.length > 0
           ? `  ${localRefs.length} reference(s) point at a local path the reviewer cannot open: ${localRefs.map((ref) => ref.url).join(', ')}. Upload them and embed the returned URL.`
           : null,
+        ...media.reasons.map(reason => `  - ${reason}`),
         '  Next, one of:',
         '    1. Capture: write flow.json with captions, run node <shared>/scripts/record-flow.mjs flow.json --out <dir>,',
         '       upload the stills and video from the manifest, embed the URLs (image: ![caption](url), video: bare URL line).',
