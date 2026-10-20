@@ -38,7 +38,7 @@ bash "$VS_DISK_CLEANUP_DIR/scripts/inventory.sh" > "<scratchpad>/wt.tsv"; df -h 
 |---|---|---|
 | `SAFE` | no tracked changes, 0 commits missing from remotes, idle >= DAYS, no process cwd inside, untracked files are only junk (`node_modules`, `build/`, `.playwright-mcp/`, logs...), no gitignored secrets (`.env*`, keys) | remove |
 | `BUSY` | some process has its cwd inside | never touch |
-| `RECENT` | commit or dir mtime within DAYS | never touch |
+| `RECENT` | last commit, or the newest changed or untracked non-junk file, within DAYS. The worktree root's own mtime doesn't count: any tool writing at the root bumps it | never touch |
 | `DECIDE` | uncommitted changes, unpushed commits, real untracked files (ADRs, prototypes, docs, an uncommitted `.vs/verify-map/`), or gitignored secrets | ask the user |
 
 ## 2. Remove the SAFE worktrees
@@ -103,7 +103,7 @@ awk -F'\t' '$1=="DECIDE"{print $2}' "<scratchpad>/wt.tsv" | bash "$VS_DISK_CLEAN
 - Call out `unpushed=N (upstream gone, likely merged)` rows separately. These branches were usually squash-merged, so they are the easiest ones to approve. The unpushed count uses local remote refs (no `git fetch`), so it can be stale.
 - List `REVIEW` rows from `~/.vs` with size and last used.
 - Offer options for `DECIDE` rows; don't act on them yet:
-  - Save first: `git -C <wt> diff > patch` plus a tarball of the untracked files, then remove.
+  - Save first, then remove: `... | bash "$VS_DISK_CLEANUP_DIR/scripts/remove.sh" --backup <dir>`. For each DECIDE row it writes `<dir>/<parent>-<name>.patch` (`git diff HEAD --binary`) and `.files.tgz` (untracked files plus ignored secrets, no `node_modules`). It then removes the worktree and keeps the local branch, so unpushed commits stay in the main repo. Without `--backup`, DECIDE rows are skipped.
   - Push the unpushed branch, then remove.
   - Remove anyway: needs explicit user approval per group.
 - If space is still tight, go to step 6 instead of ad-hoc `du`.
@@ -120,7 +120,8 @@ node "$VS_DISK_CLEANUP_DIR/scripts/disk-report/scan.mts"   # ~6 min; run in the 
 - Reuse: if `~/disk-report/latest.json` has a `scannedAt` less than 1 hour old and nothing was deleted since, reuse it instead of rescanning.
 - It writes `~/disk-report/index.html`: a treemap plus tables with path, size, last used and what happens if deleted. Ticking items there generates `cleanup.sh`. It also writes `~/disk-report/latest.json`, which `cleanup.mts` reads.
 - Grouping rules:
-  - **Excluded, never offered:** package-manager caches (npm, Yarn, pnpm, uv, pip, Gradle, CocoaPods, Cargo, Go, Bun, Homebrew, node-gyp, Electron). They refill on the next install. Also any *safe* item touched in the last 14 days (`ACTIVE_DAYS`), meaning it is in use and would just rebuild. Both stay in the CSV for growth tracking.
+  - **Excluded, never offered:** whole package-manager caches (npm, Yarn, pnpm, uv, pip, Gradle, CocoaPods, Cargo, Go, Bun, Homebrew, node-gyp, Electron). They refill on the next install. Also any *safe* item touched in the last 14 days (`ACTIVE_DAYS`), meaning it is in use and would just rebuild. Both stay in the CSV for growth tracking.
+  - **Prune items, offered even while active:** the stale parts of those caches. `pnpm store prune` and `uv cache prune` (drop only unreferenced entries, often a fraction of the size shown), npx envs unused 30+ days, Yarn Berry zips unused 60+ days, Gradle versions (cache plus wrapper) no build ran for 30+ days, the newest kept. Also Codex update leftovers older than a day: `.codex/.tmp/marketplaces/.staging/*`, `marketplace-backup-*` and `.cache/codex-runtimes/codex-runtime-install-*`. Codex never deletes these, and they reach tens of GB.
   - **Let me review first:** sessions, models and Docker always go here, along with worktrees, `~/.vs` artifacts, simulators/AVDs, runtimes and unknown tools' caches. This group needs explicit per-item approval.
   - **Safe to remove:** stale, regenerable items (old project `node_modules`/build dirs, Xcode DerivedData, iOS DeviceSupport).
 - To remove, first show the item list with sizes, taken from `latest.json`. Once the user approves, generate the script with `--yes` (the y/N prompt would abort in a background run) and run it. Each item uses its tool's own clean command; the `~/.vs` item runs step 3's `vs-artifacts.sh` pipeline, never a whole-dir delete:
