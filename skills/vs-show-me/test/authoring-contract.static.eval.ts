@@ -98,6 +98,18 @@ describe('proposal exhibits', () => {
     expect(SKILL).toMatch(/Pros-and-cons paragraphs do\s+not count/);
   });
 
+  // Three rounds of card and memo layouts were rejected as generic and wordy;
+  // the accepted one led with a system schematic, then the code change and its
+  // output diff, then a decide strip.
+  it('opens with a schematic, the change, and a decide strip', () => {
+    expect(SKILL).toMatch(/\*\*Schematic hero\.\*\*[\s\S]{0,200}inline SVG/);
+    expect(SKILL).toMatch(/one mark per\s+item/i);
+    expect(SKILL).toMatch(/Dash the boxes that are\s+new code/);
+    expect(SKILL).toMatch(/\*\*The change\.\*\*[\s\S]{0,200}file tree[\s\S]{0,200}`diff` per file/);
+    expect(SKILL).toMatch(/\*\*Decide strip\.\*\*[\s\S]{0,200}yes commits to[\s\S]{0,60}no keeps/);
+    expect(SKILL).toMatch(/Never write a marketing headline/);
+  });
+
   it('keeps the default view complete and names the rejected looks', () => {
     expect(SKILL).toMatch(/default view\s+answers the review question without a\s+click/i);
     expect(SKILL).toMatch(/oversized display heading/i);
