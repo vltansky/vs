@@ -1,3 +1,4 @@
+import { SHIP_IT_SOURCE } from './ship-it-source';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { describe, expect, it } from 'vitest';
@@ -6,7 +7,7 @@ import { describe, expect, it } from 'vitest';
 // `- [ ]` boxes (or `none`), and bugfix PRs add one `Root cause:` line under What Problem.
 // `problems(skill, gate)` returns every broken rule; shipped files return none, mutants some.
 
-const SKILL = fs.readFileSync(path.resolve(__dirname, '..', 'SKILL.md'), 'utf8');
+const SKILL = SHIP_IT_SOURCE;
 const BUGFIX = fs.readFileSync(path.resolve(__dirname, '..', '..', 'vs-bugfix', 'SKILL.md'), 'utf8');
 const GATE = fs.readFileSync(path.resolve(__dirname, '..', '..', 'vs-internal-shared', 'scripts', 'pr-media-gate.mjs'), 'utf8');
 
@@ -22,8 +23,8 @@ function problems(skill: string, gate: string, bugfix = BUGFIX): string[] {
   const out: string[] = [];
   const box = para(skill, '- **Reviewer checklist.**');
   const root = para(skill, '**Root cause (bugfix PRs only).**');
-  const problem = skill.slice(skill.indexOf('\n## What Problem This Solves\n'), skill.indexOf('\n**Before** <same-state'));
-  const tests = skill.slice(skill.indexOf('\n## Tests\n\n- `<test file'), skill.indexOf('<!-- From the diff only'));
+  const problem = skill.slice(skill.indexOf('\n## Change and proof\n'), skill.indexOf('\n**Before** <same-state'));
+  const tests = skill.slice(skill.indexOf('\n## Verification\n'), skill.indexOf('<!-- From the diff only'));
   if (!box) out.push('no reviewer checklist rule');
   if (!root) out.push('no root cause rule');
   if (!/`- \[ \]`\s+checkboxes the reviewer must verify/.test(box)) out.push('Not covered not a checklist');
@@ -34,7 +35,7 @@ function problems(skill: string, gate: string, bugfix = BUGFIX): string[] {
   if (!/branch starts\s+with `fix\/`, `fix-`, or `hotfix\/`/.test(root) || !/`fix:` \/ `fix\(<scope>\):`\s+conventional prefix/.test(root) || !/labeled `bug`/.test(root))
     out.push('bugfix detection incomplete');
   if (!/after the STE scenario/.test(root) || !/`Root cause: <mechanism>`/.test(root)) out.push('root cause line not after scenario');
-  if (!/only place in \*\*What Problem This\s+Solves\*\* where mechanism is allowed;\s+the scenario itself still has no How/.test(root))
+  if (!/root-cause sentence explains the failure\s+mechanism/.test(root) || !/The scenario itself still has no How/.test(root))
     out.push('no-How rule loosened');
   if (!/Non-bug PRs skip the line/.test(root)) out.push('non-bug PRs get root cause');
   if (!/\nRoot cause: <mechanism[^\n]*>\n/.test(problem)) out.push('template has no Root cause line');
@@ -46,8 +47,7 @@ function problems(skill: string, gate: string, bugfix = BUGFIX): string[] {
     out.push('any fix: commit makes a bugfix');
   if (!/--title "<PR title>" \[--template/.test(skill)) out.push('ship-it does not pass the PR title');
   if (!/auto-detects a bugfix from the\s+head branch, `--title "<PR title>"`/.test(root) || !/`--bugfix=false` only when/.test(root)) out.push('no auto-detect or opt-out');
-  if (!/`--template` with no \*\*What Problem This Solves\*\* section/.test(root) || !/Note: Root cause skipped: <template constraint>/.test(root))
-    out.push('template without What Problem not handled');
+
   if (!/convert the text to `- \[ \]` reviewer checkboxes, or to\s+`none`, before updating/.test(skill)) out.push('refresh does not convert old Not covered');
   if (!/reuses the \*\*Root cause:\*\* sentence above as the PR's `Root cause:` line and runs the gate with `--bugfix`/.test(bugfix)
     || !/\*\*Next:\*\* `\/vs-ship-it` \(bugfix handoff: carry the \*\*Root cause:\*\* sentence/.test(bugfix))
@@ -88,7 +88,6 @@ const mutants: Record<string, (p: P) => P> = {
   'gate misses hotfix': ([s, g]) => [s, g.replace('(?:hot)?fix[', 'fix[')],
   'gate drops --title': ([s, g]) => [s, g.replace(", '--template', '--title']);", ", '--template']);")],
   'gate rejects any unknown mention': ([s, g]) => [s, g.replace('/\\b(?:TBD|TODO)\\b/i', '/\\b(?:TBD|TODO|unknown)\\b/i')],
-  'template without What Problem ignored': ([s, g]) => [s.replace(/A repo `--template` with no[\s\S]*?<template constraint>` line\.\n/, ''), g],
   'refresh keeps old Not covered': ([s, g]) => [s.replace(/ When that rerun fails on an older body[\s\S]*?before updating\./, ''), g],
   'vs-bugfix drops root cause': ([s, g]) => [s, g, BUGFIX.replace(/ as a bugfix: it reuses[^\n]*/, '')],
   'vs-bugfix Next drops root cause': ([s, g]) => [s, g, BUGFIX.replace(' (bugfix handoff: carry the **Root cause:** sentence; ship-it passes `--bugfix`)', '')],
@@ -97,7 +96,7 @@ const mutants: Record<string, (p: P) => P> = {
   'gate accepts placeholder': ([s, g]) => [s, g.replace('/<[^>]*>/.test(rootText)', 'false')],
   'gate accepts short root cause': ([s, g]) => [s, g.replace('.length < 4', '.length < 1')],
   'gate accepts ticked boxes': ([s, g]) => [s, g.replace('if (ticked) return { ok: false', 'if (false) return { ok: false')],
-  'mechanism allowed in scenario': ([s, g]) => [s.replace('the scenario itself still has no How', 'the scenario may name it too'), g],
+  'mechanism allowed in scenario': ([s, g]) => [s.replace('The scenario itself still has no How', 'The scenario may name it too'), g],
   'root cause on every PR': ([s, g]) => [s.replace('Non-bug PRs skip the line.', 'Every PR gets the line.'), g],
   'template drops root cause': ([s, g]) => [s.replace('\nRoot cause: <mechanism that made the bug happen>\n', '\n'), g],
   'gate call without --bugfix': ([s, g]) => [s.replace(' [--bugfix]', ''), g],
