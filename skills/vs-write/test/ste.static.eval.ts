@@ -79,7 +79,9 @@ describe('STE mode wiring', () => {
     ['vs-eli5', /saved page/],
     ['vs-ship-it', /"\$BODY_FILE"/],
   ])('%s points at the STE reference and runs the checker', (skill, target) => {
-    const text = read('skills', skill, 'SKILL.md');
+    const entry = read('skills', skill, 'SKILL.md');
+    const text = skill === 'vs-ship-it'
+      ? entry + read('skills', skill, 'references', 'pr-body.md') : entry;
     expect(text).toContain('../vs-internal-shared/references/ste-writing.md');
     expect(text).toMatch(/check-ste\.mjs/);
     expect(text).toMatch(target);

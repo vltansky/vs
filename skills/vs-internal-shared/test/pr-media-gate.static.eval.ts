@@ -3,6 +3,7 @@ import * as os from 'os';
 import * as path from 'path';
 import { spawnSync } from 'child_process';
 import { describe, expect, it } from 'vitest';
+import { SHIP_IT_SOURCE } from '../../vs-ship-it/test/ship-it-source';
 
 // A frontend PR with no picture is the common quiet failure of the shipping
 // flow: the code lands, the body reads well, and the reviewer never sees what
@@ -13,19 +14,51 @@ const ROOT = path.resolve(__dirname, '..', '..', '..');
 const SHARED_DIR = path.join(ROOT, 'skills', 'vs-internal-shared');
 const GATE = path.join(SHARED_DIR, 'scripts', 'pr-media-gate.mjs');
 const RECORD = path.join(SHARED_DIR, 'scripts', 'record-flow.mjs');
-const SHIP_IT = fs.readFileSync(
-  path.join(ROOT, 'skills', 'vs-ship-it', 'SKILL.md'),
-  'utf8',
-);
+const SHIP_IT = SHIP_IT_SOURCE;
 const RECORDING = fs.readFileSync(
   path.join(SHARED_DIR, 'references', 'recording.md'),
   'utf8',
 );
 
 const HOSTED_IMAGE =
-  '![After: toggle is dark](https://github.com/user-attachments/assets/0f0e1c2a-1111-4c3b-9d8e-abcdefabcdef)';
+  '![Before](https://github.com/user-attachments/assets/before-image)\n![After: toggle is dark](https://github.com/user-attachments/assets/after-image)';
 const HOSTED_VIDEO =
-  'https://github.com/user-attachments/assets/1a2b3c4d-2222-4c3b-9d8e-abcdefabcdef';
+  'https://github.com/user-attachments/assets/before-video\nhttps://github.com/user-attachments/assets/after-video';
+
+describe('compact body gate integration', () => {
+  const compact = `## Review map\n\n**Door:** two-way\n**Blast radius:** checkout only\n\n## Change and proof\n\n**Before** spinner\n\n**After** inline error\n\n${HOSTED_IMAGE}\n${HOSTED_VIDEO}\n\n## Verification\n\n- **Coverage:** checkout test proves retry after removing an expired coupon\n- **Not covered:** none\n`;
+  it('accepts compact risk, coverage and matched functional media without a walkthrough', () => {
+    const cwd = repoWithBranch(['src/components/Checkout.tsx', 'src/checkout.test.ts']);
+    const result = rawGate(cwd, compact, '--functional');
+    expect(result.status, result.stderr).toBe(0);
+    expect(result.json.walkthrough.included).toBe(false);
+    expect(result.json.media.functional).toBe(true);
+  });
+  it('rejects a missing functional video pair and repeated image URLs', () => {
+    const cwd = repoWithBranch(['src/components/Checkout.tsx']);
+    expect(rawGate(cwd, compact.replace(HOSTED_VIDEO, ''), '--functional').status).toBe(1);
+    expect(rawGate(cwd, compact.replace('after-image', 'before-image'), '--functional').status).toBe(1);
+  });
+  it('does not mistake a passing command for changed-test coverage', () => {
+    const cwd = repoWithBranch(['src/checkout.test.ts']);
+    const commandsOnly = compact.replace('- **Coverage:** checkout test proves retry after removing an expired coupon', '- **Automated:** npm test passed');
+    expect(rawGate(cwd, commandsOnly).status).toBe(1);
+  });
+  it('does not count HTML video embeds as screenshots', () => {
+    const cwd = repoWithBranch(['src/components/Checkout.tsx']);
+    const videosOnly = compact.replace(HOSTED_IMAGE, '<video src="https://github.com/user-attachments/assets/clip-before"></video>\n<video src="https://github.com/user-attachments/assets/clip-after"></video>');
+    const result = rawGate(cwd, videosOnly, '--functional');
+    expect(result.status).toBe(1);
+    expect(result.json.images).toBe(0);
+  });
+  it('checks surface claims in Review map and root cause in Change and proof', () => {
+    const cwd = repoWithBranch(['src/server/parse.ts']);
+    const stamped = compact.replace('**Door:**', '<img src="https://raw.githubusercontent.com/vltansky/vs/master/skills/vs-ship-it/assets/badge-surface-ui-1.svg">\n**Door:**');
+    expect(rawGate(cwd, stamped).json.surfaces.ok).toBe(false);
+    expect(rawGate(cwd, compact, '--bugfix').status).toBe(1);
+    expect(rawGate(cwd, compact.replace('**Before**', 'Root cause: the parser discarded the original error\n\n**Before**'), '--bugfix').status).toBe(0);
+  });
+});
 // Every body the gate should pass carries both sides and its merge danger; media is the
 // third, narrower duty.
 // Every ship-it body ends with a collapsed Walkthrough of logic pseudocode.
@@ -90,9 +123,12 @@ function bareGate(cwd: string, body: string, ...flags: string[]) {
   const bodyPath = path.join(cwd, 'pr-body.md');
   // Walkthrough links pin the exact head; fixtures write __HEAD__ and get the repo's real SHA.
   fs.writeFileSync(bodyPath, body.replaceAll('__HEAD__', git(cwd, 'rev-parse', 'HEAD')));
+  // Fixtures have no hosted PR; a supplied title avoids a real gh lookup per case.
+  const title = flags.some(value => value === '--title' || value.startsWith('--title='))
+    ? [] : ['--title', 'feat: fixture change'];
   const result = spawnSync(
     process.execPath,
-    [GATE, bodyPath, '--base', 'main', ...flags],
+    [GATE, bodyPath, '--base', 'main', '--static-ui', ...title, ...flags],
     { cwd, encoding: 'utf8' },
   );
   return { ...result, json: result.stdout ? JSON.parse(result.stdout) : null };
@@ -119,16 +155,16 @@ describe('pr-media-gate blocks a frontend PR body that shows nothing', () => {
     expect(result.stderr).toMatch(/Still unverified/);
   });
 
-  it('passes when the body embeds a hosted image or a bare video URL', () => {
+  it('requires paired screenshots; paired videos alone do not replace them', () => {
     const cwd = repoWithBranch(['src/components/Toggle.tsx']);
 
     const withImage = gate(cwd, `${BEFORE_AFTER}\n${HOSTED_IMAGE}\n`);
     expect(withImage.status).toBe(0);
-    expect(withImage.json).toMatchObject({ valid: true, images: 1, videos: 0 });
+    expect(withImage.json).toMatchObject({ valid: true, images: 2, videos: 0 });
 
     const withVideo = gate(cwd, `${BEFORE_AFTER}\n${HOSTED_VIDEO}\n`);
-    expect(withVideo.status).toBe(0);
-    expect(withVideo.json).toMatchObject({ valid: true, images: 0, videos: 1 });
+    expect(withVideo.status).toBe(1);
+    expect(withVideo.json).toMatchObject({ valid: false, images: 0, videos: 2 });
   });
 
   it('does not count a local path as proof: the reviewer cannot open it', () => {
@@ -263,7 +299,7 @@ describe('pr-media-gate requires Before and After on every PR', () => {
 
     expect(result.status).toBe(1);
     expect(result.stderr).toMatch(/Before and After/);
-    expect(result.stderr).toMatch(/embeds no hosted media/);
+    expect(result.stderr).toMatch(/lacks matched hosted media pairs/);
   });
 });
 
@@ -511,7 +547,7 @@ describe('vs-ship-it runs the gate and never reads the pixels', () => {
   });
 
   it('classifies merge risk from the diff and reports it in the handoff', () => {
-    expect(SHIP_IT).toContain('## Merge risk');
+    expect(SHIP_IT).toContain('## Review map');
     expect(SHIP_IT).toMatch(/\*\*Merge risk\*\* is not\s+droppable/);
     expect(SHIP_IT).toMatch(/Classify merge risk from the scoped diff, never from/);
     expect(SHIP_IT).toMatch(/Schema migration, data backfill, destructive write, deletion \| One-way/);
@@ -755,7 +791,7 @@ describe('pr-media-gate Tests block', () => {
     expect(result.status).toBe(1);
     expect(result.json.valid).toBe(false);
     expect(result.json.tests).toMatchObject({ files: ['src/server/auth.test.ts'], section: false });
-    expect(result.stderr).toMatch(/## Tests/);
+    expect(result.stderr).toMatch(/## Verification/);
     expect(result.stderr).toMatch(/Do not run tests to fill it/);
   });
 
@@ -1117,8 +1153,8 @@ describe('pr-media-gate requires a last-section logic Walkthrough', () => {
     expect(result.json.walkthrough.warnings).toBe(0);
   });
 
-  it('fails when the walkthrough is missing or not in <details>', () => {
-    expect(run(base).status).toBe(1);
+  it('allows no walkthrough but rejects an expanded heading instead of <details>', () => {
+    expect(run(base).status).toBe(0);
     expect(run(base + '## Walkthrough\n\n' + good).status).toBe(1);
   });
 

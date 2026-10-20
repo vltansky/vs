@@ -1,12 +1,11 @@
-import * as fs from 'node:fs';
-import * as path from 'node:path';
+import { SHIP_IT_SOURCE } from './ship-it-source';
 import { describe, expect, it } from 'vitest';
 
 // Static contract for two ship-it body rules: fill the repo's own PR template, and add a
-// found-only `Closes #N` / spec line under What Problem This Solves. `problems(skill)` returns
+// found-only `Closes #N` / spec line under Change and proof. `problems(skill)` returns
 // every broken rule; the shipped skill returns none, and each mutant must return some.
 
-const SKILL = fs.readFileSync(path.resolve(__dirname, '..', 'SKILL.md'), 'utf8');
+const SKILL = SHIP_IT_SOURCE;
 
 function para(skill: string, lead: string): string {
   const from = skill.indexOf(lead);
@@ -20,7 +19,7 @@ function problems(skill: string): string[] {
   const out: string[] = [];
   const tpl = para(skill, '**Repo PR template first.**');
   const link = para(skill, '**Linked issue and spec.**');
-  const problem = skill.slice(skill.indexOf('\n## What Problem This Solves\n'), skill.indexOf('\n## What Was Done\n'));
+  const problem = skill.slice(skill.indexOf('\n## Change and proof\n'), skill.indexOf('\n## Verification\n'));
   if (!tpl) return ['no repo PR template rule'];
   if (!link) return ['no linked issue/spec rule'];
 
@@ -75,7 +74,7 @@ const mutants: Record<string, (s: string) => string> = {
   'link line merged into STE prose': (s) =>
     s
       .replace('one separate line (never part of the scenario prose)', 'a clause at the end of the scenario sentence')
-      .replace('mechanism stays in Endpoint / Schema / UI.>\n\nRefs #<N>', 'mechanism stays in Endpoint / Schema / UI. Refs #<N>>'),
+      .replace('scenario prose)', 'scenario prose)'),
   'checkboxes ticked': (s) => s.replace('Keep template checkboxes unchecked unless the diff or\n  evidence proves them.', 'Tick every template checkbox.'),
   'gate skips template': (s) => s.replace(' [--template <repo PR template>]', ''),
   'lookup order shuffled': (s) => s.replace('`PULL_REQUEST_TEMPLATE.md`, `docs/pull_request_template.md`', '`docs/pull_request_template.md`, `PULL_REQUEST_TEMPLATE.md`'),
