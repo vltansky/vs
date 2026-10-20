@@ -34,6 +34,11 @@ Return one JSON object, the `script.json` file:
   "pronounce": { "AICM": "A I C M" },
   "scenes": [
     { "id": "intro", "title": "Intro", "beats": ["One spoken sentence.", "..."] }
+  ],
+  "quiz": [
+    { "q": "Why did <the pain> happen?", "a": "<the chain, one line>" },
+    { "q": "What does the change do to <the example>?", "a": "..." },
+    { "q": "Why is it safe to <what was removed or changed>?", "a": "..." }
   ]
 }
 ```
@@ -41,6 +46,10 @@ Return one JSON object, the `script.json` file:
 - 4-6 scenes, 2-4 beats each, 14-22 beats in total.
 - A beat is one spoken sentence of 6-20 words.
 - 160-240 words in total. Shorter is clearer.
+- `quiz`: three questions a viewer must answer after one viewing: why it
+  broke, what the change does, why it is safe. Each answer comes only from
+  the beats, in one line. A fresh reader answers them from the beats before
+  any voice is made; a wrong answer gets one fix: the missing beat.
 - `pronounce` changes only what the voice says. Add each acronym said letter
   by letter, and each name the voice would read badly.
 
@@ -61,11 +70,15 @@ Return one JSON object, the `script.json` file:
    a name ends.
 3. **The term budget.** Terms the team already uses (product names,
    common protocol words like token or 401, the product's own nouns) need
-   no explanation: use them, they are precise. Names that live only in this
-   area of the code (a module, a flag, a helper) cost the viewer: keep at
-   most three, and give each its plain meaning the first time it is spoken.
-   If such a name would first appear after scene 3, cut the line or say it
-   in plain words.
+   no explanation: use them, they are precise. Count as local, and so as a
+   cost, every name that lives only in this area: a module, a flag, a
+   helper, and also another team's service or tool that only this area
+   talks to ("Hermes", "Pitwall"). Keep at most three. Each one is spoken
+   with its plain meaning the first time ("Pitwall, the service that scores
+   each request"), and that first time is in scene 1 or scene 2, before the
+   change. A name you need only to say "it is not affected" is cut. Never
+   point back with "both", "that", or "the" to a thing the viewer has not
+   heard named ("both steps", "that address").
 4. **The cut list.** Everything not on the chain, the mechanism, or the
    example stays out: secondary fixes, test names, version bumps, config,
    and every second number. Keep a mechanism step, an edge case, or a
@@ -125,6 +138,8 @@ Read only your beats, as a teammate who never read this code, and do this:
 3. Check the example is named in every scene after scene 1.
 4. Check no line asks a question the script never answers (an unexplained
    exception, a contradiction with an earlier fix, a "race").
-5. Count words and beats against the limits.
+5. Answer your own quiz from the beats alone. If an answer needs a fact
+   the beats do not say, add the beat or change the question.
+6. Count words and beats against the limits.
 
 Fix what fails, then return only the JSON.

@@ -133,6 +133,15 @@ describe('the explain-pr skill', () => {
     expect(SKILL).toMatch(/words not checked/);
   });
 
+  it('uses the shared explain-video review once, like explain-video', () => {
+    const review = flat(section(fs.readFileSync(path.join(SKILL_DIR, 'SKILL.md'), 'utf8'), '## 7. Review'));
+    expect(review).toMatch(/`pack\.mjs`, a new agent, `verdict\.mjs`/);
+    expect(review).toMatch(/It runs once/);
+    expect(review).toMatch(/on BELOW, report the scores and do not re-render or review again/);
+    expect(review).not.toMatch(/\bround/i);
+    expect(review).toMatch(/quiz is skipped here/);
+  });
+
   it('edits the PR body only through the marked block and REST', () => {
     expect(SKILL).toMatch(/attach\.mjs/);
     expect(SKILL).toMatch(/Never use `gh pr edit`/);

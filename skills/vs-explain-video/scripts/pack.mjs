@@ -2,40 +2,37 @@
 // Builds the pack a fresh reviewer reads: what a viewer sees and hears, and
 // nothing about how the video was made.
 //
-//   node pack.mjs <work-dir> <video.mp4> [--round N]
+//   node pack.mjs <work-dir> <video.mp4>
 //
-// Writes <work-dir>/review/round-N/. N is the next free round; --round must
-// name a new round from 1 to 3. The folder appears only once the whole pack is
-// written, so a failed pack does not use up a round:
+// Writes <work-dir>/review/. There is one review per video: a second pack is
+// refused. The folder appears only once the whole pack is written, so a failed
+// pack can be rerun:
 //   sheet-1fps-K.png  one frame per second of the whole video, 40 per sheet
 //   beats-K.png       each beat once it is spoken, 9 per grid
 //   strip-cut-<id>.png  12 frames in a row across each scene cut
 //   phone-360.png     the beat frames at phone width (360 px)
 //   WORDS.md          the question, the audience, every spoken line with its
 //                     time, what is locked, and the sound measures
-//   BRIEF.md          references/reviewer-brief.md filled in for this round
+//   BRIEF.md          references/reviewer-brief.md filled in for this video
 // Then give BRIEF.md to a new agent that has seen none of the work, and read
 // its reply with verdict.mjs.
 //
 // Adapted from take-one's scripts/review-pack.sh (github.com/talsiach/take-one),
 // Copyright (c) 2026 Tal Siach, MIT. See ../LICENSE.take-one and
 // THIRD_PARTY_NOTICES.md. Modified by vs: beat grids and cut strips from the
-// timeline, WORDS.md, and the round cap.
-// Exit codes: 0 pack written; 1 the rounds are used up; 2 blocked or a bad --round.
+// timeline, WORDS.md, and one review per video.
+// Exit codes: 0 pack written; 1 the video already has a review; 2 blocked.
 import { spawnSync } from 'node:child_process';
-import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { clock, nextRound, packPlan, RULES } from './checks.mjs';
+import { clock, packPlan, RULES } from './checks.mjs';
 import { fail, probeDuration, which } from './media.mjs';
 
-export const MAX_ROUNDS = RULES.rounds;
-const args = process.argv.slice(2);
-const positional = args.filter((arg, i) => !arg.startsWith('--') && args[i - 1] !== '--round');
-const [workArg, videoArg] = positional;
-if (!workArg || !videoArg) fail('Usage: node pack.mjs <work-dir> <video.mp4> [--round N]');
+const [workArg, videoArg] = process.argv.slice(2).filter((arg) => !arg.startsWith('--'));
+if (!workArg || !videoArg) fail('Usage: node pack.mjs <work-dir> <video.mp4>');
 if (!which('ffmpeg') || !which('ffprobe')) fail('ffmpeg/ffprobe missing. Run: brew install ffmpeg. Then rerun pack.mjs.');
 const work = path.resolve(workArg);
 const video = path.resolve(videoArg);
@@ -45,24 +42,16 @@ if (!existsSync(tlFile)) fail(`${tlFile} is missing. Run narrate.mjs first.`);
 const TL = JSON.parse(readFileSync(tlFile, 'utf8').replace(/^window\.TL\s*=\s*/, '').replace(/;\s*$/, ''));
 const script = existsSync(path.join(work, 'script.json')) ? JSON.parse(readFileSync(path.join(work, 'script.json'), 'utf8')) : {};
 
-const reviewDir = path.join(work, 'review');
-const existing = existsSync(reviewDir)
-  ? readdirSync(reviewDir).map((name) => /^round-(\d+)$/.exec(name)?.[1]).filter(Boolean).map(Number)
-  : [];
-const picked = nextRound(existing, args.includes('--round') ? args[args.indexOf('--round') + 1] ?? '' : null);
-if (picked.code === 1) {
+const dir = path.join(work, 'review');
+if (existsSync(dir)) {
   process.stdout.write(`${JSON.stringify({
-    error: picked.error,
-    next: `${MAX_ROUNDS} review rounds are used up. Stop. Deliver the video with the last score and its open problems, and say it did not pass. Never report a pass that did not happen.`,
+    error: `${dir} already has the review`,
+    next: 'One review per video: it is never redone. Hand off with its scores (verdict.mjs) and the open problems. A fix made after it is not reviewed; say so.',
   }, null, 2)}\n`);
   process.exit(1);
 }
-if (picked.error) fail(`${picked.error}.`);
-const { round } = picked;
-const dir = path.join(reviewDir, `round-${round}`);
-// Build in a staging folder; it becomes round-N only when every file is there.
-mkdirSync(reviewDir, { recursive: true });
-const staging = mkdtempSync(path.join(reviewDir, `.round-${round}-`));
+// Build in a staging folder next to it; it becomes review/ only when every file is there.
+const staging = mkdtempSync(path.join(work, '.review-'));
 const scratch = mkdtempSync(path.join(tmpdir(), 'vs-pack-'));
 process.on('exit', () => {
   rmSync(scratch, { recursive: true, force: true });
@@ -71,7 +60,7 @@ process.on('exit', () => {
 
 const ff = (list) => {
   const out = spawnSync('ffmpeg', ['-y', '-v', 'error', ...list], { encoding: 'utf8' });
-  if (out.status !== 0) fail(`ffmpeg failed: ${out.stderr.slice(-400)}. No round was used; fix that and rerun pack.mjs.`);
+  if (out.status !== 0) fail(`ffmpeg failed: ${out.stderr.slice(-400)}. No review folder was written; fix that and rerun pack.mjs.`);
 };
 const plan = packPlan(TL);
 const length = probeDuration(video) ?? TL.total;
@@ -122,18 +111,16 @@ const template = readFileSync(path.join(path.dirname(fileURLToPath(import.meta.u
 const brief = template.slice(template.indexOf('<!-- brief -->') + '<!-- brief -->'.length, template.indexOf('<!-- /brief -->'))
   .replaceAll('[pack folder]', dir)
   .replaceAll('[video]', video)
-  .replaceAll('[round]', `${round} of ${MAX_ROUNDS}`)
   .replaceAll('[bar]', String(RULES.bar))
   .trim();
 writeFileSync(path.join(staging, 'BRIEF.md'), `${brief}\n`);
 renameSync(staging, dir);
 
 process.stdout.write(`${JSON.stringify({
-  round,
   pack: dir,
   brief: path.join(dir, 'BRIEF.md'),
   beats: plan.beats.length,
   cuts: plan.cuts.length,
   bar: RULES.bar,
-  next: `Give ${path.join(dir, 'BRIEF.md')} to a NEW agent that has seen none of this work, and nothing else. Save its reply as ${path.join(dir, 'REPLY.md')} and run verdict.mjs on it. PASS needs ${RULES.bar} or more on every axis.`,
+  next: `Give ${path.join(dir, 'BRIEF.md')} to a NEW agent that has seen none of this work, and nothing else. Save its reply as ${path.join(dir, 'REPLY.md')} and run verdict.mjs on it. The score goes in the handoff; there is no second round.`,
 }, null, 2)}\n`);

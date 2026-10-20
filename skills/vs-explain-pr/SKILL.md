@@ -123,10 +123,12 @@ cut beats.
 
 ## 7. Review: none by default
 
-The default is 0 fresh-review rounds. The block then says "not reviewed by
-fresh eyes". Run one round of the explain-video review (`pack.mjs`, a new
-agent, `verdict.mjs`) only when the user asked for it, and then pass
-`--reviewed` only on a PASS.
+The default is no fresh review. The block then says "not reviewed by fresh
+eyes". Run the explain-video review (`pack.mjs`, a new agent, `verdict.mjs`)
+only when the user asked for it. It runs once: pass `--reviewed` only on a
+PASS; on BELOW, report the scores and do not re-render or review again. The
+explain-video quiz is skipped here: the beats come from the PR body, which
+was already reviewed.
 
 ## 8. Attach to the PR
 
