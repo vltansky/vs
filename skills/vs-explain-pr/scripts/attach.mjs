@@ -89,7 +89,10 @@ const build = (current) => {
   const body = upsertVideoBlock(current.body ?? '', block);
   const file = path.join(scratch, 'body.md');
   writeFileSync(file, body);
-  const gate = run(process.execPath, [GATE, file, '--base', base, '--title', current.title, '--head', sha, ...gateFlags]);
+  // Gate against the PR's current head, not the head the video was made for: a
+  // repair push during the render moves the Walkthrough links to the new head.
+  // The block keeps its "made for <sha>" label.
+  const gate = run(process.execPath, [GATE, file, '--base', base, '--title', current.title, '--head', current.head?.sha ?? sha, ...gateFlags]);
   return { body, file, gate };
 };
 
@@ -117,7 +120,10 @@ if ((again.body ?? '') !== (current.body ?? '')) {
     process.exit(1);
   }
 }
+// GitHub has no compare-and-set for a PR body, so an edit that lands between the
+// last read above and this PATCH is lost. The window is one REST round trip; the
+// two re-reads make it that small, and nothing can close it.
 const payload = path.join(scratch, 'payload.json');
 writeFileSync(payload, JSON.stringify({ body: next.body }));
 gh(['api', '-X', 'PATCH', `repos/${repo}/pulls/${pr}`, '--input', payload, '--jq', '.number']);
-process.stdout.write(`${JSON.stringify({ status: 'ATTACHED', url, pr: Number(pr), madeFor: sha.slice(0, 7), bytes, next: 'Tell the parent the video is on the PR. Do not edit the body again.' }, null, 2)}\n`);
+process.stdout.write(`${JSON.stringify({ status: 'ATTACHED', url, pr: Number(pr), madeFor: sha.slice(0, 7), gatedHead: (current.head?.sha ?? sha).slice(0, 7), bytes, next: 'Tell the parent the video is on the PR. Do not edit the body again.' }, null, 2)}\n`);

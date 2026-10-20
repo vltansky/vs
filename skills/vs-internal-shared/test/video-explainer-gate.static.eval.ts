@@ -64,6 +64,21 @@ describe('pr-media-gate ignores the video explainer block', () => {
     expect(r.json.tests.section).toBe(true);
   });
 
+  it('ignores a block quoted in a code fence', () => {
+    const cwd = repo(['src/components/Checkout.tsx', 'src/checkout.test.ts']);
+    const r = gate(cwd, body(IMAGES, `\`\`\`markdown\n${EXPLAINER}\`\`\`\n`));
+    expect(r.json.explainer).toMatchObject({ present: false, videos: 0, ok: true });
+  });
+
+  it('names a lone marker, which attach.mjs repairs', () => {
+    const cwd = repo(['src/components/Checkout.tsx', 'src/checkout.test.ts']);
+    const r = gate(cwd, body(IMAGES, EXPLAINER.replace('<!-- /vs:video -->\n', '')));
+    expect(r.status).toBe(1);
+    expect(r.json.explainer.ok).toBe(false);
+    expect(r.json.explainer.reasons.join(' ')).toMatch(/lone video marker/);
+    expect(r.json.tests.section).toBe(true);
+  });
+
   it('passes the same body as without the explainer when real proof is there', () => {
     const cwd = repo(['src/components/Checkout.tsx', 'src/checkout.test.ts']);
     const plain = gate(cwd, body(`${IMAGES}\n${VIDEOS}`), '--functional');

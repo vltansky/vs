@@ -1,5 +1,6 @@
 // Pure helpers for the PR video explainer: caps, the scene contract, the marked
-// body block, and the size budget. No I/O, so the static evals import it.
+// body block, and the size budget. The block parsing itself is shared with
+// pr-media-gate and ship-it (vs-internal-shared/scripts/video-block.mjs).
 
 export const MAX_SECONDS = 75;
 export const MAX_BYTES = 10 * 1024 * 1024;
@@ -7,8 +8,9 @@ export const WIDTH = 1280;
 export const HEIGHT = 720;
 export const AUDIO_KBPS = 128;
 export const ROLES = ['problem', 'before', 'change', 'after', 'risk'];
-export const VIDEO_START = '<!-- vs:video -->';
-export const VIDEO_END = '<!-- /vs:video -->';
+import { VIDEO_END, VIDEO_START } from '../../vs-internal-shared/scripts/video-block.mjs';
+
+export { VIDEO_END, VIDEO_START, findVideoBlocks, keepVideoBlock, upsertVideoBlock } from '../../vs-internal-shared/scripts/video-block.mjs';
 // Spoken rate of the shared narrator at speed 1.0, in words a second (150 a minute).
 const WORDS_PER_SECOND = 2.5;
 // Each beat also holds a short pause, and each scene a handoff.
@@ -84,15 +86,3 @@ export function videoBlock({ url, sha, seconds, reviewed = false, wordsChecked =
   ].join('\n');
 }
 
-const WALKTHROUGH = /<details\b[^>]*>\s*<summary\b[^>]*>\s*(?:<(?:b|strong)>\s*)?Walkthrough\b/i;
-
-// Replace the marked block, or insert it before the Walkthrough (else at the end).
-// Everything outside the markers stays byte for byte.
-export function upsertVideoBlock(body, block) {
-  // Markers count only on their own line, so prose that quotes the marker is left alone.
-  const existing = /^<!-- vs:video -->[ \t]*\r?$[\s\S]*?^<!-- \/vs:video -->[ \t]*\r?$/m.exec(body);
-  if (existing) return body.slice(0, existing.index) + block + body.slice(existing.index + existing[0].length);
-  const walk = body.search(WALKTHROUGH);
-  if (walk !== -1) return `${body.slice(0, walk)}${block}\n\n${body.slice(walk)}`;
-  return `${body.replace(/\s*$/, '')}\n\n${block}\n`;
-}

@@ -88,7 +88,14 @@ describe('ship-it opens the PR first and adds the video later', () => {
   it('never makes or uploads the video before gh pr create', () => {
     const before = SHIP.slice(0, SHIP.indexOf('gh pr create --title'));
     expect(before).not.toMatch(/vs-explain-pr\/scripts|attach\.mjs/);
-    expect(flat(SHIP)).toMatch(/keep the `<!-- vs:video -->` block as it is/);
+  });
+
+  it('carries the live video block into every body update after the PR opens', () => {
+    const step5 = flat(SHIP.slice(SHIP.indexOf('### Step 5'), SHIP.indexOf('## Handoff')));
+    expect(step5).toMatch(/video-block\.mjs keep --repo <owner\/name> --pr <N> "\$BODY_FILE"/);
+    expect(step5).toMatch(/reads the live body over REST/);
+    expect(step5).toMatch(/gh api -X PATCH/);
+    expect(step5).not.toMatch(/gh pr edit/);
   });
 });
 
@@ -244,6 +251,7 @@ describe('registration', () => {
 
 describe('attach.mjs against an offline gh', () => {
   const MOCK = path.join(ROOT, 'skills', 'vs-ship-it', 'test', 'ab', 'mock-gh.mjs');
+  const KEEP = path.join(ROOT, 'skills', 'vs-internal-shared', 'scripts', 'video-block.mjs');
   const git = (cwd: string, ...a: string[]) => spawnSync('git', a, { cwd, encoding: 'utf8' }).stdout.trim();
   const BODY = '**TL;DR**\nReaders of the notes page get a setup section.\nThey find the install steps faster.\n\n## Review map\n\n**Door:** two-way\n**Blast radius:** docs only\n\n## Change and proof\n\n**Before** the page has no setup steps\n\n**After** the page lists the setup steps\n\n## Verification\n\n- **Not covered:** none\n';
 
@@ -307,5 +315,93 @@ describe('attach.mjs against an offline gh', () => {
     expect(r.status).toBe(1);
     expect(JSON.parse(r.stdout).status).toBe('GATE_FAILED');
     expect(calls(s.dir).some((a) => a.includes('PATCH'))).toBe(false);
+  });
+  const state = (s: ReturnType<typeof setup>) => JSON.parse(fs.readFileSync(path.join(s.dir, 'state.json'), 'utf8'));
+  const writeState = (s: ReturnType<typeof setup>, value: unknown) => fs.writeFileSync(path.join(s.dir, 'state.json'), JSON.stringify(value));
+  const walkthrough = (sha: string) => `\n<details><summary>Walkthrough: 1 area, 1 file</summary>\n\n### 🟢 Notes · low risk\n\`\`\`diff\n- no setup steps\n+ setup steps listed\n\`\`\`\n[notes](https://github.com/acme/shop/blob/${sha}/docs/notes.md)\n\n</details>\n`;
+
+  it('gates against the current PR head after a repair push, and keeps the made-for label', () => {
+    const s = setup();
+    fs.writeFileSync(path.join(s.repo, 'docs', 'notes.md'), 'setup steps, fixed\n');
+    git(s.repo, 'commit', '-qam', 'fix: repair');
+    const repaired = git(s.repo, 'rev-parse', 'HEAD');
+    const value = state(s);
+    value.prs[0].headRefOid = repaired;
+    value.prs[0].body = BODY + walkthrough(repaired);
+    writeState(s, value);
+    const r = attach(s);
+    expect(r.status, r.stdout + r.stderr).toBe(0);
+    const out = JSON.parse(r.stdout);
+    expect(out).toMatchObject({ status: 'ATTACHED', madeFor: s.sha.slice(0, 7), gatedHead: repaired.slice(0, 7) });
+    const body = state(s).prs[0].body as string;
+    expect(body).toContain(`made for \`${s.sha.slice(0, 7)}\``);
+    expect(body.indexOf('<!-- vs:video -->')).toBeLessThan(body.indexOf('Walkthrough: 1 area'));
+  });
+
+  it('rebuilds on a body edited during the attach, and keeps that edit', () => {
+    const s = setup();
+    const edited = BODY.replace('They find the install steps faster.', 'They find the install steps in one place.');
+    const value = state(s);
+    value.bodyEditsOnRead = { 2: edited };
+    writeState(s, value);
+    const r = attach(s);
+    expect(r.status, r.stdout + r.stderr).toBe(0);
+    const body = state(s).prs[0].body as string;
+    expect(body.startsWith(edited.trimEnd())).toBe(true);
+    expect(body).toContain('<!-- vs:video -->');
+  });
+
+  it('stops without a PATCH when the body changes on both re-reads', () => {
+    const s = setup();
+    const value = state(s);
+    value.bodyEditsOnRead = { 2: `${BODY}\nfirst edit\n`, 3: `${BODY}\nsecond edit\n` };
+    writeState(s, value);
+    const r = attach(s);
+    expect(r.status).toBe(1);
+    expect(JSON.parse(r.stdout).status).toBe('BODY_CHANGED');
+    expect(calls(s.dir).some((a) => a.includes('PATCH'))).toBe(false);
+    expect(state(s).prs[0].body).toBe(`${BODY}\nsecond edit\n`);
+  });
+
+  it('documents the read-to-PATCH gap it cannot close', () => {
+    const src = fs.readFileSync(path.join(SCRIPTS, 'attach.mjs'), 'utf8');
+    expect(flat(src)).toMatch(/no compare-and-set for a PR body/);
+  });
+
+  it('repairs a lone opening marker into one block, and a rerun changes nothing', () => {
+    const s = setup();
+    const value = state(s);
+    value.prs[0].body = `${BODY}\n<!-- vs:video -->\n<details>\n<summary>Video explainer (40 s)</summary>\n\nold\n\n</details>\n`;
+    writeState(s, value);
+    const first = attach(s, '--url', 'https://github.com/user-attachments/assets/one');
+    expect(first.status, first.stdout + first.stderr).toBe(0);
+    const once = state(s).prs[0].body as string;
+    expect(once.match(/<!-- vs:video -->/g)).toHaveLength(1);
+    expect(once.match(/<!-- \/vs:video -->/g)).toHaveLength(1);
+    expect(once).not.toContain('\nold\n');
+    const again = attach(s, '--url', 'https://github.com/user-attachments/assets/one');
+    expect(again.status, again.stdout + again.stderr).toBe(0);
+    expect(state(s).prs[0].body).toBe(once);
+  });
+
+  it('carries the live block into a refreshed body file (ship-it Step 5)', () => {
+    const s = setup();
+    expect(attach(s, '--url', 'https://github.com/user-attachments/assets/kept').status).toBe(0);
+    const file = path.join(s.dir, 'refreshed.md');
+    fs.writeFileSync(file, BODY.replace('docs only', 'docs page only'));
+    const r = spawnSync(process.execPath, [KEEP, 'keep', '--repo', 'acme/shop', '--pr', '101', file], { cwd: s.repo, env: s.env, encoding: 'utf8' });
+    expect(r.status, r.stdout + r.stderr).toBe(0);
+    expect(JSON.parse(r.stdout).kept).toBe(true);
+    const refreshed = fs.readFileSync(file, 'utf8');
+    expect(refreshed).toContain('docs page only');
+    expect(refreshed).toContain('https://github.com/user-attachments/assets/kept');
+    expect(refreshed.match(/<!-- vs:video -->/g)).toHaveLength(1);
+  });
+
+  it('mock gh fails loudly when it cannot count changed files', () => {
+    const s = setup();
+    const r = spawnSync('gh', ['pr', 'view', '101', '--json', 'changedFiles'], { cwd: s.repo, env: s.env, encoding: 'utf8' });
+    expect(r.status).toBe(5);
+    expect(r.stderr).toMatch(/cannot count changed files/);
   });
 });

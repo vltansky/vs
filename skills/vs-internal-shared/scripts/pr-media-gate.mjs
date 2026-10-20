@@ -37,6 +37,7 @@
 import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import { checkMediaPairs } from './pr-media-pairs.mjs';
+import { findVideoBlocks, stripVideoBlocks, walkthroughOffset } from './video-block.mjs';
 
 const FRONTEND_PATH =
   /\.(?:tsx|jsx|vue|svelte|astro|css|scss|sass|less|styl|html|mdx)$|\/(?:components?|pages|views|layouts|routes|app|ui|styles?|screens?)\/|(?:^|\/)(?:web|client|frontend)\/[^.]*\.[cm]?[jt]s$/i;
@@ -227,20 +228,21 @@ const rawBody = fs.readFileSync(bodyPath, 'utf8');
 // The PR video explainer (vs-explain-pr) is narration over the PR, not proof: its
 // marked block is cut before every check, so its video never counts as a
 // Before/After or functional video and its words never count as markers.
-// Markers count only on their own line, so prose that quotes `<!-- vs:video -->` is not a block.
-const VIDEO_BLOCK = /^<!-- vs:video -->[ \t]*\r?$[\s\S]*?^<!-- \/vs:video -->[ \t]*\r?$/gm;
-const videoBlocks = [...rawBody.matchAll(VIDEO_BLOCK)];
-const body = rawBody.replace(VIDEO_BLOCK, '');
+// Markers count only on their own line and outside code fences (video-block.mjs).
+const videoSpans = findVideoBlocks(rawBody);
+const videoBlocks = videoSpans.filter((span) => span.kind === 'block');
+const body = stripVideoBlocks(rawBody);
 const explainerReasons = [];
-for (const match of videoBlocks) {
-  if (!/^<!-- vs:video -->\s*<details\b[^>]*>\s*<summary\b[^>]*>\s*Video explainer\b[\s\S]*<\/details>\s*<!-- \/vs:video -->[ \t]*\r?$/i.test(match[0]))
+const walkAt = walkthroughOffset(rawBody);
+for (const span of videoBlocks) {
+  if (!/^<!-- vs:video -->\s*<details\b[^>]*>\s*<summary\b[^>]*>\s*Video explainer\b[\s\S]*<\/details>\s*<!-- \/vs:video -->[ \t]*\r?$/i.test(span.text))
     explainerReasons.push('Video explainer block must be one collapsed <details> whose <summary> starts "Video explainer"');
-  const walkAt = rawBody.search(/<details\b[^>]*>\s*<summary\b[^>]*>\s*(?:<(?:b|strong)>\s*)?Walkthrough\b/i);
-  if (walkAt !== -1 && match.index > walkAt) explainerReasons.push('Video explainer block must come before the Walkthrough');
+  if (walkAt !== -1 && span.start > walkAt) explainerReasons.push('Video explainer block must come before the Walkthrough');
 }
+if (videoSpans.some((span) => span.kind !== 'block')) explainerReasons.push('a lone video marker (an opener or closer without its pair); attach.mjs replaces it with one whole block');
 if (videoBlocks.length > 1) explainerReasons.push('more than one Video explainer block; attach.mjs keeps exactly one');
-const explainer = videoBlocks.length
-  ? { present: true, videos: videoBlocks.reduce((n, m) => n + m[0].split('\n').filter((line) => BARE_URL.test(line)).length, 0) }
+const explainer = videoSpans.length
+  ? { present: true, videos: videoSpans.reduce((n, m) => n + m.text.split('\n').filter((line) => BARE_URL.test(line)).length, 0) }
   : { present: false, videos: 0 };
 // The label must carry a code block after it: a request/response or schema shape, not a sentence.
 // The Walkthrough's pseudocode fences are not proof, so the search stops where it starts.

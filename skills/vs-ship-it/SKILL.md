@@ -379,9 +379,19 @@ Hand the verified PR to `vs-baby-sit` immediately. Babysit owns its single
 watcher and the draft-around-repair transition back to ready for review;
 ship-it does not duplicate that skill's CI or automated-review loop. At
 every handoff where a repair push moved the head, refresh the Walkthrough links
-to that head and rerun `pr-media-gate.mjs` before updating the body. When you
-update the body, keep the `<!-- vs:video -->` block as it is; edit only
-outside it.
+to that head and rerun `pr-media-gate.mjs` before updating the body. The
+local body file has no video block, because the video lands after the PR
+opens. So before every body update after `gh pr create`, carry the live
+block into the file:
+
+```bash
+node <vs-internal-shared>/scripts/video-block.mjs keep --repo <owner/name> --pr <N> "$BODY_FILE"
+```
+
+It reads the live body over REST and copies its `<!-- vs:video -->` block
+into the file unchanged. Then run the gate on that file and update the body
+over REST (`gh api -X PATCH repos/<owner/name>/pulls/<N> --input <payload>`).
+If the live body does not read, do not update it.
 
 When the composed babysitter reaches `reason: review-approval`, return its
 concise `Review needed: @<user-or-team>` handoff and end the workflow turn. Do
