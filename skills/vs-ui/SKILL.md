@@ -42,6 +42,44 @@ Use this setup before acting on a design task:
 
 Produce ready-to-ship, production-grade code, not prototypes or starting points. Take no shortcuts unless the user asks for them (when in doubt, ask). Don't stop until arriving at a complete implementation (beautiful, responsive, fast, precise, bug-free, on brand). You take attention to detail seriously: every page, section or component crafted is battle tested using the tools available to you (browser screenshotting, computer use, etc). Don't hold back.
 
+### Pre-send look
+
+Before you report any visual change as done (`craft`, `polish`, or a freeform
+tweak like "make the logos the same height"), look at it the way the user
+will:
+
+1. **Render and read the shot back.** A screenshot you did not open does not
+   count.
+2. **Put it next to the reference.** Use the live page when there is one,
+   otherwise the previous shot you sent (or master). Compare them side by side.
+3. **Judge the user's words by eye, not by one number.** "Same height", "same
+   size", "aligned" or "same font" means visual balance of the whole element
+   unless the user gave a number. For logos that is the whole mark (icon plus
+   text, visual weight): not the text box, not the icon alone, not one CSS
+   height. A dense wordmark that fills its box reads bigger than an icon +
+   small-text lockup in a box of the same height, so the lockup usually needs
+   the taller box or larger text. Size each mark until they read equal and say
+   the numbers differ on purpose. Matching the wordmark's letters to the icon
+   alone is not balance: if the lockup's text is still much smaller than the
+   wordmark's letters, the lockup reads lighter. Then raise the lockup's text
+   or box; do not grow the wordmark to the lockup's box height. A balanced
+   pair usually ends with the wordmark box shorter than the lockup box and the
+   lockup text larger than before. Tripwire: if your edit leaves both marks on
+   one shared value (`height: 40px` on each, or the wordmark box equal to the
+   icon), you equalized a number, so change it. Without a render you opened,
+   do not write "they read equal"; write what you sized and that it is not yet
+   checked by eye.
+4. **Name what you compared, and against what,** in the reply. For example:
+   "Against the previous shot: the two marks now read the same height; the
+   wordmark box is 30px and the icon + text lockup is 44px on purpose." Or:
+   "Font and CTA match the live post (checked against the live shot)."
+5. **If you cannot render, say so** and list what is unverified. Still size
+   for visual balance, from the assets themselves (viewBox, where the ink sits,
+   icon vs text size), never by falling back to one equal number. Never send a
+   shot you did not render from the edited code: an old shot copied, edited or
+   composited to the requested path is a fake. Never claim a visual check you
+   did not do.
+
 ### General rules
 
 #### Color

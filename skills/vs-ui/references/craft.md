@@ -112,11 +112,14 @@ Actively check: responsive behavior (composes, not shrinks), every state (empty 
 
 Detector or QA output is defect evidence only; never proof the work is finished.
 
+Run the **Pre-send look** from [SKILL.md](../SKILL.md#pre-send-look) before Step 6: render, compare against the reference (live page or the previous shot), and name what you compared.
+
 ## Step 6: Present
 
 Present the result to the user:
 - Show the feature in its primary state
 - Summarize the browser/viewports checked and the most important fixes made after inspection
+- Name what the pre-send look compared and against what reference
 - Walk through the key states (empty, error, responsive)
 - Explain design decisions that connect back to the design brief and, when used, the chosen north-star mock. Include any accepted deviations from the mock; do not hide unimplemented mock ingredients.
 - Note any remaining limitations or follow-up risks honestly

@@ -1,0 +1,18 @@
+:root {
+  --ink: oklch(0.22 0.02 160);
+  --brand: oklch(0.47 0.11 165);
+  --bg: oklch(0.985 0 0);
+}
+* { box-sizing: border-box; }
+body { margin: 0; font-family: "Assistant", Arial, sans-serif; color: var(--ink); background: var(--bg); }
+.cobrand { display: flex; align-items: center; justify-content: center; gap: 20px; padding: 28px 24px; border-bottom: 1px solid oklch(0.9 0 0); }
+.cobrand__x { font-size: 22px; color: oklch(0.6 0 0); }
+.logo { display: block; width: auto; }
+.logo--wix { height: 28px; }
+.logo--multitan { display: flex; align-items: center; gap: 8px; height: 40px; }
+.logo--multitan__icon { height: 100%; width: auto; }
+.logo--multitan__text { font-size: 18px; font-weight: 700; color: var(--brand); }
+.hero { max-width: 760px; margin: 0 auto; padding: 72px 24px; text-align: center; }
+.hero h1 { font-size: clamp(2rem, 4vw, 3.25rem); line-height: 1.1; margin: 0 0 16px; text-wrap: balance; }
+.hero p { font-size: 1.2rem; margin: 0 0 32px; }
+.cta { display: inline-block; padding: 14px 28px; border-radius: 999px; background: var(--brand); color: #fff; text-decoration: none; font-weight: 700; }

@@ -227,7 +227,7 @@ Before marking as done:
 - **Use it yourself**: Actually interact with the feature.
 - **Test on real devices**: Not just browser DevTools.
 - **Ask someone else to review**: Fresh eyes catch things.
-- **Compare to design**: Match intended design.
+- **Pre-send look**: Follow [SKILL.md](../SKILL.md#pre-send-look): render, compare side by side against the reference (live page or the previous shot), judge a numeric-sounding ask ("same height") as visual balance unless the user gave a number, and name what you compared in the report.
 - **Check all states**: Don't just test happy path.
 - **Treat automation carefully**: Run detector or QA commands when they are available and relevant, fix their defects, but never cite a clean result as proof that the work is polished.
 
