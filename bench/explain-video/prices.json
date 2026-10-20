@@ -1,0 +1,11 @@
+{
+  "note": "USD per 1M tokens, OpenAI standard tier, short context (<272K input). Pinned 2026-10-19 from https://developers.openai.com/api/docs/pricing. Used only when the agent does not report its own cost (Codex never does). Prompts over 272K input tokens cost more; the benchmark does not price that tier.",
+  "pinned": "2026-10-19",
+  "models": {
+    "gpt-5.6-luna": { "input": 0.2, "cachedInput": 0.02, "cacheWrite": 0.25, "output": 1.2 },
+    "gpt-5.6-terra": { "input": 2.0, "cachedInput": 0.2, "cacheWrite": 2.5, "output": 12.0 },
+    "gpt-5.6-sol": { "input": 4.0, "cachedInput": 0.4, "cacheWrite": 5.0, "output": 20.0 },
+    "gpt-6-luna": { "input": 0.1, "cachedInput": 0.01, "cacheWrite": 0.125, "output": 0.5 },
+    "gpt-6-sol": { "input": 2.0, "cachedInput": 0.2, "cacheWrite": 2.5, "output": 10.0 }
+  }
+}

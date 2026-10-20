@@ -1,6 +1,6 @@
 {
   "name": "vs",
-  "version": "1.31.1",
+  "version": "1.32.0",
   "description": "Plan-to-ship workflow skills for shaping ideas, building autonomously, reviewing code, and shipping PRs with agent discipline.",
   "keywords": [
     "claude-code",
@@ -18,6 +18,8 @@
     "eval:static": "vitest run static.eval.ts",
     "eval:watch": "vitest",
     "eval:preview": "pathgrade preview browser",
+    "bench:explain-video": "node bench/explain-video/run.mjs",
+    "bench:explain-video:compare": "node bench/explain-video/compare.mjs",
     "build:mcp": "node mcp/build.mjs",
     "typecheck": "tsc --noEmit"
   },

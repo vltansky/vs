@@ -1,0 +1,44 @@
+#!/usr/bin/env node
+// Benchmark-only `codex` shim. run.mjs puts this directory first on PATH for
+// the pathgrade agent, so pathgrade's `codex app-server` spawn lands here.
+// It runs the real codex (VS_BENCH_REAL_CODEX) unchanged and copies every
+// stdout line, with a timestamp, to VS_BENCH_CODEX_TAP. The app-server's
+// thread/tokenUsage/updated and item/* notifications in that tap are the
+// benchmark's token and tool-call source; pathgrade does not report tokens
+// for Codex. VS_BENCH_CODEX_NETWORK=1 adds
+// -c sandbox_workspace_write.network_access=true: on Linux the Codex
+// sandbox's network filter also blocks the socket calls Chrome needs to start.
+const { spawn } = require('node:child_process');
+const { appendFileSync } = require('node:fs');
+const { constants } = require('node:os');
+
+const real = process.env.VS_BENCH_REAL_CODEX;
+if (!real) {
+  process.stderr.write('vs-bench codex shim: VS_BENCH_REAL_CODEX is not set\n');
+  process.exit(2);
+}
+const tap = process.env.VS_BENCH_CODEX_TAP;
+const extra = process.env.VS_BENCH_CODEX_NETWORK === '1' && process.argv.includes('app-server')
+  ? ['-c', 'sandbox_workspace_write.network_access=true']
+  : [];
+const child = spawn(real, [...extra, ...process.argv.slice(2)], { stdio: ['inherit', 'pipe', 'inherit'] });
+let buffered = '';
+child.stdout.on('data', (chunk) => {
+  process.stdout.write(chunk);
+  if (!tap) return;
+  buffered += chunk.toString('utf8');
+  const lines = buffered.split('\n');
+  buffered = lines.pop() ?? '';
+  const ts = Date.now();
+  const out = lines.filter(Boolean).map((line) => `${JSON.stringify({ ts, line })}\n`).join('');
+  if (out) {
+    try { appendFileSync(tap, out); } catch { /* never break the agent */ }
+  }
+});
+// Forward the signals pathgrade sends, and report a child killed by a signal
+// the shell way (128 + signal number), so a killed codex never reads as exit 0.
+for (const signal of ['SIGINT', 'SIGTERM', 'SIGHUP']) process.on(signal, () => child.kill(signal));
+child.on('exit', (code, signal) => {
+  if (signal) process.exit(128 + (constants.signals[signal] ?? 0));
+  process.exit(code ?? 1);
+});

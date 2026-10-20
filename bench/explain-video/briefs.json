@@ -1,0 +1,15 @@
+{
+  "note": "Fixed benchmark briefs. Each one asks for a 20-40 second video. Do not edit a brief in place: add a new id, or every older history row stops being comparable.",
+  "briefs": [
+    {
+      "id": "dns-lookup",
+      "topic": "dns-lookup",
+      "brief": "How a browser finds the IP address for shop.example.com the first time: the resolver cache misses, then the root server, the .com server, and the shop.example.com name server answer in turn, and the resolver caches the address."
+    },
+    {
+      "id": "retry-backoff",
+      "topic": "retry-backoff",
+      "brief": "Why a payment client that gets HTTP 503 waits 1, 2, then 4 seconds with a small random jitter before each retry, and stops after three tries, instead of retrying at once."
+    }
+  ]
+}
