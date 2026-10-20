@@ -504,4 +504,4 @@ Direct: emit **Next** only. Composed: return to caller.
 
 **Prev:** `/vs-build-it`
 **Next:** done
-**Relevant:** `/vs-eval`, `/vs-explain-pr`
+**Relevant:** `/vs-eval`
