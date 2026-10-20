@@ -21,6 +21,32 @@ skill is unavailable.
 Compose `/vs-eval` only when the PR is a skill/eval contract. Skip it for
 ordinary product PRs.
 
+## Video explainer check
+
+Run this first, before Nothing built yet, Direct-push, or Step 1. It decides
+once whether to offer a narrated PR video (`vs-explain-pr`). The video never
+delays the PR: it starts only after Step 4.
+
+1. **User words win.** "with video", "make a video", or `--video` means yes;
+   "no video", "skip the video", or `--no-video` means no. An explicit word
+   overrides the rubric. Do not ask. Direct-push mode never makes a video.
+2. **Else classify** from `git diff --shortstat origin/<default>...HEAD` plus
+   the working-tree diff, and the changed paths (the same paths that decide
+   Surfaces):
+   - **Skip silently** when any is true: only docs, skill text, comments, tests,
+     config, or dependency files changed; a typo, rename, format, or version
+     bump; fewer than 150 changed lines and no user-facing flow; a refactor
+     with the same visible behavior. Do not ask, and do not mention the video.
+   - **Offer** when any is true: a user-facing flow changed (frontend paths
+     with a click, form, navigation, or multi-step change, or a new screen);
+     300 or more changed lines outside tests and docs; two or more Surfaces
+     (UI, Endpoint, Schema, CLI, MCP); a new user-facing feature.
+   - Neither list matches: skip silently.
+3. **Offer means one question:** `Want a video explainer for this PR? (yes/no)`.
+   Ask it once, before Step 1, and wait for the answer. Yes: run Step 4b after
+   the PR is verified. No, or no clear yes: no video, and do not ask again in
+   this ship.
+
 ## Nothing built yet
 
 At ship-it entry — before Direct-push or the PR workflow — detect whether
@@ -321,13 +347,27 @@ broken embed with `gh pr edit --body-file`; do not claim the proof is attached.
 Apply only explicitly requested PR modifiers. Do not suggest reviewers or run broad QA by default. Preview startup is
 limited to the focused evidence capture in Step 3.
 
+### Step 4b: Start the video explainer
+
+Only when the Video explainer check ended in yes. Right after the PR is
+verified, start one fresh-context background agent that reads and follows
+`vs-explain-pr`. Give it only: repo, PR number, the head SHA, the base ref,
+the final body file path, the record-flow manifest paths (or media files with
+their captions), and the gate flags used in Step 3. No transcript. Do not wait
+for it. Start babysitting in the same turn. The agent renders, uploads, and
+patches only the `<!-- vs:video -->` block of the body through REST
+(`attach.mjs`); it never runs `gh pr edit`. When it returns, report its status
+in one line. A failed video is a note, not a PR blocker.
+
 ### Step 5: Start babysitting
 
 Hand the verified PR to `vs-baby-sit` immediately. Babysit owns its single
 watcher and the draft-around-repair transition back to ready for review;
 ship-it does not duplicate that skill's CI or automated-review loop. At
 every handoff where a repair push moved the head, refresh the Walkthrough links
-to that head and rerun `pr-media-gate.mjs` before updating the body.
+to that head and rerun `pr-media-gate.mjs` before updating the body. When you
+update the body, keep the `<!-- vs:video -->` block as it is; edit only
+outside it.
 
 When the composed babysitter reaches `reason: review-approval`, return its
 concise `Review needed: @<user-or-team>` handoff and end the workflow turn. Do
@@ -352,6 +392,7 @@ PR created and verified: [#<N> — <title>](<PR_URL>)
   review only when the new head is green.
 - Merge risk: <two-way | one-way> door, <blast radius in a few words>
 - Media: <N screenshots, N videos attached | none available | exact upload gap>
+- Video: <rendering in the background | none>
 - Checks: <fresh results reused or repository-required checks run>
 ```
 
@@ -437,6 +478,10 @@ separate `vs-baby-sit` goal only when the user explicitly requested a Codex goal
       reran `pr-media-gate.mjs`.
 - [ ] No brief, broad verify, reviewer lookup, or broad QA ran without an
       explicit request or repository requirement.
+- [ ] The Video explainer check ran first: user words win; skip silently when
+      the rubric says skip; at most one yes/no question, before Step 1.
+- [ ] A yes started one background `vs-explain-pr` agent only after PR
+      verification; ship-it did not wait for it.
 - [ ] `vs-baby-sit` started after PR verification unless the user explicitly opted out.
 - [ ] The handoff reports PR URL, head, media, and checks.
 - [ ] The final message ends with the bare full PR URL on its own last line.
@@ -459,4 +504,4 @@ Direct: emit **Next** only. Composed: return to caller.
 
 **Prev:** `/vs-build-it`
 **Next:** done
-**Relevant:** `/vs-eval`
+**Relevant:** `/vs-eval`, `/vs-explain-pr`

@@ -67,6 +67,8 @@ gives the same frame.
 | `springTo(t, [[t0, v0], [t1, v1]], preset)` | a value that moves, then retargets mid-move |
 | `settle(preset)`, `readTime(text)` | seconds a move needs to land; seconds text needs to be read |
 | `P(t, s, d, ease)` | fixed-length eased progress (dims, fades, counters) |
+| `still(root, src, x, y, w, h)` | a real screenshot in a card, fitted, never cropped (vs-explain-pr) |
+| `clip(root, src, x, y, w, h)` | a slot for a real recording; `vs-explain-pr`'s `finish.mjs` plays it over the slot |
 
 ## Springs, never linear
 

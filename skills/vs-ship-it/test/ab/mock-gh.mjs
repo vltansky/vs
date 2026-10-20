@@ -169,7 +169,18 @@ else if (cmd === 'auth') {
   const pr = state.prs.at(-1);
   if (pr) refresh(state, pr);
   const ep = (endpoint ?? '').replace(/^\//, '').split('?')[0];
-  if (ep === 'graphql') out({ data: { repository: { pullRequest: { reviewDecision: 'REVIEW_REQUIRED', reviewThreads: { nodes: [] } } } } });
+  const method = (flag('-X') ?? flag('--method') ?? 'GET').toUpperCase();
+  if (/^https:\/\/uploads\.github\.com\/user-attachments\/assets$/.test(ep)) {
+    if (method !== 'POST') fail('gh: Bad Request (HTTP 400)');
+    out({ id: Date.now(), name: 'upload', url: `https://github.com/user-attachments/assets/mock-${Date.now()}` });
+  } else if (pr && method === 'PATCH' && ep === `repos/${REPO}/pulls/${pr.number}`) {
+    const input = flag('--input');
+    const payload = input ? JSON.parse(fs.readFileSync(input, 'utf8')) : {};
+    if (typeof payload.body === 'string') pr.body = payload.body;
+    if (typeof payload.title === 'string') pr.title = payload.title;
+    save(state);
+    out({ number: pr.number, body: pr.body, title: pr.title });
+  } else if (ep === 'graphql') out({ data: { repository: { pullRequest: { reviewDecision: 'REVIEW_REQUIRED', reviewThreads: { nodes: [] } } } } });
   else if (ep === `repos/${REPO}`) out({ id: 987654321, full_name: REPO, default_branch: 'main', private: true });
   else if (ep === 'user') out({ login: 'eval-user' });
   else if (pr && ep === `repos/${REPO}/pulls/${pr.number}`) out({ number: pr.number, state: 'open', merged: false, draft: pr.isDraft, mergeable: true, head: { sha: pr.headRefOid, ref: pr.headRefName }, base: { ref: pr.baseRefName }, requested_reviewers: [{ login: 'alice' }], requested_teams: [], body: pr.body, title: pr.title });

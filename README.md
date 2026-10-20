@@ -203,6 +203,7 @@ Architecture: /vs-architect -> /vs-shape-it -> /vs-build-it
 | `/vs-explain-back` | Rewrite the user's messy explanation as a clean proposal, then ask clarifying questions |
 | `/vs-eli5` | Explain from zero with big pictures and few words, via `/vs-show-me` |
 | `/vs-explain-video` | Make a short narrated explainer video of a topic, code path, or PR |
+| `/vs-explain-pr` | Make a narrated video of an open PR from its body and media, and add it to the PR (offered by `/vs-ship-it`) |
 | `/vs-eval` | Write PathGrade static pins and live evals with exclusive contracts, not slogan mentions |
 | `/vs-tune-skill` | Grade one named skill from local chats and propose a scratch diff |
 | `/vs-perf` | Optimize performance against an explicit evaluator |
