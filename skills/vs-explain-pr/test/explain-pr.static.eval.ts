@@ -282,6 +282,12 @@ describe('attach.mjs against an offline gh', () => {
     expect(body).toMatch(/<!-- vs:video -->[\s\S]*Video explainer[\s\S]*made for `[0-9a-f]{7}`[\s\S]*words not checked[\s\S]*<!-- \/vs:video -->/);
   });
 
+  it('reads child output from files, because the Codex sandbox drops piped output', () => {
+    const src = fs.readFileSync(path.join(SCRIPTS, 'attach.mjs'), 'utf8');
+    expect(src).toMatch(/stdio: \['ignore', \.\.\.fds\]/);
+    expect(src).not.toMatch(/encoding: 'utf8'[^)]*\)/);
+  });
+
   it('does not patch when the gate refuses the new body', () => {
     const s = setup();
     const state = JSON.parse(fs.readFileSync(path.join(s.dir, 'state.json'), 'utf8'));

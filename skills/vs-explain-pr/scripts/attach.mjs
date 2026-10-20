@@ -20,12 +20,11 @@
 // Exit codes: 0 attached (or --dry-run wrote the new body); 1 the gate refused
 // the new body or the PR changed twice; 2 blocked (missing input, upload or gh failure).
 import { spawnSync } from 'node:child_process';
-import { existsSync, mkdtempSync, statSync, writeFileSync } from 'node:fs';
+import { closeSync, existsSync, mkdtempSync, openSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { probeDuration } from '../../vs-explain-video/scripts/media.mjs';
 import { MAX_BYTES, upsertVideoBlock, videoBlock } from './pr-video.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -47,10 +46,29 @@ if (!existsSync(video)) blocked(`${video} is missing. Run finish.mjs first.`);
 const bytes = statSync(video).size;
 if (bytes > MAX_BYTES) blocked(`${video} is ${(bytes / 1024 / 1024).toFixed(1)} MB; GitHub takes 10 MB on Free plans. Run finish.mjs again.`);
 
-const gh = (list, input) => {
-  const result = spawnSync('gh', list, { encoding: 'utf8', input, maxBuffer: 64 * 1024 * 1024 });
+const scratch = mkdtempSync(path.join(tmpdir(), 'vs-attach-'));
+// Child output goes to files, not pipes: the Codex Linux sandbox drops piped
+// child output (spawnSync reports EPERM and an empty stdout), while file
+// descriptors work everywhere.
+let runs = 0;
+const run = (cmd, list) => {
+  const n = runs++;
+  const outFile = path.join(scratch, `out-${n}`);
+  const errFile = path.join(scratch, `err-${n}`);
+  const fds = [openSync(outFile, 'w'), openSync(errFile, 'w')];
+  const result = spawnSync(cmd, list, { stdio: ['ignore', ...fds] });
+  fds.forEach(closeSync);
+  return { status: result.status, stdout: readFileSync(outFile, 'utf8'), stderr: readFileSync(errFile, 'utf8') || (result.error?.message ?? '') };
+};
+const gh = (list) => {
+  const result = run('gh', list);
   if (result.status !== 0) blocked(`gh ${list.slice(0, 3).join(' ')} failed: ${(result.stderr || result.stdout).trim().slice(0, 400)}`);
   return result.stdout.trim();
+};
+const duration = () => {
+  const result = run('ffprobe', ['-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', video]);
+  const seconds = Number.parseFloat(result.stdout);
+  return Number.isFinite(seconds) ? seconds : 0;
 };
 const readPr = () => JSON.parse(gh(['api', `repos/${repo}/pulls/${pr}`]));
 
@@ -64,15 +82,14 @@ if (!url && !has('--dry-run')) {
 }
 url ??= 'https://github.com/user-attachments/assets/dry-run';
 
-const block = videoBlock({ url, sha, seconds: probeDuration(video) ?? 0, reviewed: has('--reviewed'), wordsChecked: !has('--words-unchecked') });
-const scratch = mkdtempSync(path.join(tmpdir(), 'vs-attach-'));
+const block = videoBlock({ url, sha, seconds: duration(), reviewed: has('--reviewed'), wordsChecked: !has('--words-unchecked') });
 const gateFlags = (opt('--gate') ?? '').split(/\s+/).filter(Boolean);
 
 const build = (current) => {
   const body = upsertVideoBlock(current.body ?? '', block);
   const file = path.join(scratch, 'body.md');
   writeFileSync(file, body);
-  const gate = spawnSync(process.execPath, [GATE, file, '--base', base, '--title', current.title, '--head', sha, ...gateFlags], { encoding: 'utf8' });
+  const gate = run(process.execPath, [GATE, file, '--base', base, '--title', current.title, '--head', sha, ...gateFlags]);
   return { body, file, gate };
 };
 
