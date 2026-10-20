@@ -81,10 +81,10 @@ meaning. Rules and examples:
 Pointer only; do not copy those rules here. Ground every claim in the code,
 PR, or source you read.
 
-Carry one concrete example through every scene: a named plugin, request, or
-value the viewer can follow from start to end. Abstract boxes with generic
-labels read as slides. If no real example exists, invent a small one and say
-so in the first scene.
+Write the beats with [references/scenarist.md](references/scenarist.md); a
+subagent can take that file alone. Open slowly: scene one says how this area
+works today, what is wrong, and the question, before any example (motion-craft
+rule 0). Carry one concrete example through every scene.
 
 `pronounce` changes only what the voice says; subtitles and the screen keep
 the written form. Add every acronym said letter by letter (`"AICM": "A I C M"`)

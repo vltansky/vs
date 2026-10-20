@@ -89,6 +89,13 @@ of starting a new move: the sum keeps its momentum.
 
 ## Rules that make it read well
 
+0. **Setup before the example.** The first scene (10-20 s, 2-3 beats) is
+   for a teammate who knows the product but not this area of the code.
+   Beat 1: how this area works today, in one plain sentence. Beat 2: what
+   is wrong, slow, or missing today, as what a person sees or waits for.
+   Beat 3 (or the end of beat 2): the question this video answers. Draw the system as one or two plain boxes with no
+   internal names. Name a class, function, or field only after the viewer
+   knows what it is for. The fresh reviewer scores this as `setup`.
 1. **One example moves.** The request, plugin, or value from the first scene
    is the thing that travels, changes color, and lands. Name it on screen.
 2. **Every beat builds.** Start beat i's build at `B[i]`, or on the word
