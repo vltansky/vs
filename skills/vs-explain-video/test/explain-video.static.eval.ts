@@ -95,6 +95,8 @@ describe('vs-explain-video contract', () => {
 
   it('carries one example, builds every beat, and keeps motion seekable', () => {
     expect(SKILL).toMatch(/Carry\s+one\s+concrete\s+example\s+through\s+every\s+scene/);
+    expect(SKILL).toMatch(/Open\s+slowly/);
+    expect(CRAFT).toMatch(/Setup\s+before\s+the\s+example/);
     expect(SKILL).toMatch(/Every\s+sentence\s+gets\s+a\s+visual\s+change/);
     expect(SKILL).toMatch(/Never\s+use\s+timers,\s+`requestAnimationFrame`,\s+or\s+CSS\s+animations/);
     expect(SKILL).toMatch(/keep\s+old\s+state\s+dimmed\s+rather\s+than\s+removed/);

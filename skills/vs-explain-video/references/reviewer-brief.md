@@ -81,6 +81,9 @@ Report, in this order, in under 400 words:
    could not follow something, say what.
 2. Scores from 1 to 10, one line each, written as `- axis: N` and then the
    reason:
+   - setup: from the first 15 seconds alone, can you say what the system
+     is, what is wrong or missing today, and which question the video
+     answers? A video that starts inside the example scores 5 or less.
    - answer: does it answer the question in WORDS.md?
    - example: can you follow one concrete example from start to end?
    - builds: does every spoken line change the picture, or are some slides?

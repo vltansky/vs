@@ -34,7 +34,7 @@ export const RULES = {
   rounds: 3, // review: at most this many rounds
 };
 // The review axes, in the order the brief asks for them.
-export const AXES = ['answer', 'example', 'builds', 'readability', 'pacing', 'sync', 'overall'];
+export const AXES = ['setup', 'answer', 'example', 'builds', 'readability', 'pacing', 'sync', 'overall'];
 
 // ---------- contract scan of scenes.js
 // Anything that makes a frame depend on wall-clock time or call order. The
