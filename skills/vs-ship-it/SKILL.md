@@ -8,10 +8,9 @@ description: "Use vs-ship-it when the user asks to create or open a PR; says cre
 Create the PR quickly and independently. Ask the user only when a decision is
 both necessary and impossible to infer safely. A missing optional input is a
 reason to omit or mark a gap, not a reason to stop PR creation.
-The one planned exception is the [Video explainer check](#video-explainer-check):
-it runs before anything else and, only for a big user-facing change, asks one
-yes/no question. "Create pr", "ship it", or "do not watch" is not an answer to
-it.
+The [Video explainer check](#video-explainer-check) runs before anything else.
+For a big user-facing change it adds a one-line offer to the opening message
+and then continues: it never ends the turn or waits for an answer.
 
 ## Routing precedence
 
@@ -28,12 +27,14 @@ ordinary product PRs.
 ## Video explainer check
 
 Run this first, before Nothing built yet, Direct-push, or Step 1. It decides
-once whether to offer a narrated PR video (`vs-explain-pr`). The video never
-delays the PR: it starts only after Step 4.
+once whether to offer a narrated PR video (`vs-explain-pr`). The offer never
+blocks: the PR work continues in the same turn, and the video starts only
+after Step 4.
 
-1. **User words win.** "with video", "make a video", or `--video` means yes;
-   "no video", "skip the video", or `--no-video` means no. An explicit word
-   overrides the rubric. Do not ask. Direct-push mode never makes a video.
+1. **User words win.** "with video", "make a video", or `--video` means yes:
+   no offer, and Step 4b runs after the PR is verified. "no video", "skip the
+   video", or `--no-video` means no: no offer. An explicit word overrides the
+   rubric. Direct-push mode never makes a video.
 2. **Else classify** from `git diff --shortstat origin/<default>...HEAD`, the
    working-tree diff, and untracked files (`git status --porcelain`; count the
    lines of each new file, because `--shortstat` does not see them), plus the
@@ -48,14 +49,16 @@ delays the PR: it starts only after Step 4.
      (UI, Endpoint, Schema, CLI, MCP); a new user-facing feature or screen,
      also when it is one new uncommitted file.
    - Neither list matches: skip silently.
-3. **Offer means one question:** `Want a video explainer for this PR? (yes/no)`.
-   Missing capture tools (no preview, browser, or Playwright) do not cancel
-   the offer: the explainer is narrated from the PR body, with stills only
-   when they exist.
-   Ask it once, before Step 1, and wait for the answer: end the turn with the
-   question, before any commit, push, or `gh` call. Yes: run Step 4b after
-   the PR is verified. No, or no clear yes: no video, and do not ask again in
-   this ship.
+3. **Offer means one line, then keep going.** Put this line in your opening
+   message: `Want a narrated video of this PR? Reply yes and I'll add it.`
+   Then continue at once with commit, push, `gh pr create`, the gate, and
+   babysitting. Do not end the turn, wait, or ask again. Missing capture tools
+   (no preview, browser, or Playwright) do not cancel the offer: the explainer
+   is narrated from the PR body, with stills only when they exist. Unattended
+   runs and the `vs-build-it` handoff keep the line and never stall on it.
+4. **The answer can come at any time.** A yes before the PR exists: run Step
+   4b after the PR is verified. A yes after the PR is open: run Step 4b on the
+   open PR at its current head. No answer, or no: no video.
 
 ## Nothing built yet
 
@@ -359,8 +362,8 @@ limited to the focused evidence capture in Step 3.
 
 ### Step 4b: Start the video explainer
 
-Only when the Video explainer check ended in yes. Right after the PR is
-verified, start one fresh-context background agent that reads and follows
+Only on a yes: the user's words, or a yes to the offer at any time. Right
+after the PR is verified, or when a late yes arrives on the open PR, start one fresh-context background agent that reads and follows
 `vs-explain-pr`. Give it only: repo, PR number, the head SHA, the base ref,
 the final body file path, the record-flow manifest paths (or media files with
 their captions), and the gate flags used in Step 3. No transcript. Do not wait
@@ -416,7 +419,7 @@ PR created and verified: [#<N> — <title>](<PR_URL>)
   review only when the new head is green.
 - Merge risk: <two-way | one-way> door, <blast radius in a few words>
 - Media: <N screenshots, N videos attached | none available | exact upload gap>
-- Video: <rendering in the background | none>
+- Video: <rendering in the background | offered, reply yes to add it | none>
 - Checks: <fresh results reused or repository-required checks run>
 ```
 
@@ -503,7 +506,8 @@ separate `vs-baby-sit` goal only when the user explicitly requested a Codex goal
 - [ ] No brief, broad verify, reviewer lookup, or broad QA ran without an
       explicit request or repository requirement.
 - [ ] The Video explainer check ran first: user words win; skip silently when
-      the rubric says skip; at most one yes/no question, before Step 1.
+      the rubric says skip; at most one offer line in the opening message, and
+      the PR work continued in the same turn.
 - [ ] A yes started one background `vs-explain-pr` agent only after PR
       verification; ship-it did not wait for it.
 - [ ] `vs-baby-sit` started after PR verification unless the user explicitly opted out.

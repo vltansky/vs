@@ -8,9 +8,12 @@ import { agentEnv, buildWorkspace, gitDirFor, ghCalls, pinMockGhFirst, prepareRu
 import { VARIANTS } from '../../vs-ship-it/test/ab/variants';
 
 // Live ship-it runs against the offline gh (ship-it/test/ab/mock-gh.mjs):
-//   asks-up-front    a big user-facing UI change: ship-it asks "Want a video explainer?" before any PR work
-//   tiny-silent      a one-word docs typo: no question, no video, a normal PR
-//   pr-before-video  "create pr with video": the PR is created before the upload and the REST PATCH
+//   offers-and-ships  a big user-facing UI change: ship-it offers the video in one line early, then
+//                     commits, pushes, and opens the PR in the same run (the offer never blocks)
+//   tiny-silent       a one-word docs typo: no offer, no video, a normal PR
+//   mid-silent        a ~90-line pricing helper with a test, no UI: no offer, no video, a normal PR
+//   pr-before-video   "create pr with video": no offer; the PR is created before the upload and the REST PATCH
+//   late-yes          the offer is answered "yes" after the PR is open: the video lands on the open PR
 // Opt-in (each run is a full agent session):
 //   EXPLAIN_PR_LIVE=1 [EXPLAIN_PR_CASES=asks-up-front,...] [EXPLAIN_PR_RUNS=3] [EXPLAIN_PR_ARM=branch]
 //   [SHIPIT_AB_SKILLS_ROOT=<master checkout>/skills] npx vitest run skills/vs-explain-pr/test/explain-pr.eval.ts
@@ -19,10 +22,11 @@ import { VARIANTS } from '../../vs-ship-it/test/ab/variants';
 const EVAL_AGENT = (process.env.PATHGRADE_AGENT ?? 'codex') as 'claude' | 'codex';
 const RUNS = Number(process.env.EXPLAIN_PR_RUNS ?? 3);
 const ARM = process.env.EXPLAIN_PR_ARM ?? 'branch';
-const CASES = (process.env.EXPLAIN_PR_CASES ?? 'asks-up-front,tiny-silent,pr-before-video').split(',');
+const CASES = (process.env.EXPLAIN_PR_CASES ?? 'offers-and-ships,tiny-silent,mid-silent,pr-before-video,late-yes').split(',');
 const RESULTS = '/tmp/shipit-ab/runs/explain-pr.jsonl';
 const BASELINE = VARIANTS.find((v) => v.id === 'v0-baseline')!;
-const QUESTION = /video explainer|want a video/i;
+const QUESTION = /narrated video|video explainer|want a video/i;
+const OFFER = /want a narrated video|reply yes and i'll add it|want a video/i;
 const NO_BROWSER = 'No preview server, browser, or Playwright exists in this environment: state the media gaps instead of capturing.';
 
 const g = (runDir: string, ws: string, ...a: string[]) =>
@@ -60,6 +64,24 @@ function writeWizard(ws: string) {
   fs.writeFileSync(path.join(ws, 'src', 'ui', 'CheckoutWizard.jsx'), `${lines.join('\n')}\n`);
 }
 
+// A ~90-line backend helper plus its test: below the 150-line skip line, no UI, no new screen.
+function writePricing(ws: string) {
+  const tiers = [[10, 2], [25, 5], [50, 8], [100, 12], [250, 15], [500, 18]];
+  const lines = ['// Bulk discounts: the percent off grows with the quantity.', 'export const TIERS = ['];
+  for (const [qty, pct] of tiers) lines.push(`  { minQty: ${qty}, percentOff: ${pct} },`);
+  lines.push('];', '', 'export function tierFor(qty) {', '  let tier = null;', '  for (const t of TIERS) if (qty >= t.minQty) tier = t;', '  return tier;', '}', '');
+  for (const name of ['unitPrice', 'lineTotal', 'discountFor', 'roundCents', 'clampQty', 'formatPercent']) {
+    lines.push(`export function ${name}(value, qty = 1) {`, '  if (!Number.isFinite(value)) throw new TypeError(`bad value: ${value}`);',
+      '  const tier = tierFor(qty);', '  const pct = tier ? tier.percentOff : 0;', `  return Math.round(value * (1 - pct / 100) * 100) / 100; // ${name}`, '}', '');
+  }
+  fs.writeFileSync(path.join(ws, 'src', 'pricing.js'), `${lines.join('\n')}\n`);
+  fs.mkdirSync(path.join(ws, 'test'), { recursive: true });
+  fs.writeFileSync(path.join(ws, 'test', 'pricing.test.js'), ["import { test } from 'node:test';", "import assert from 'node:assert/strict';",
+    "import { tierFor, lineTotal } from '../src/pricing.js';", '',
+    "test('no tier under ten', () => assert.equal(tierFor(9), null));", "test('ten gets two percent', () => assert.equal(tierFor(10).percentOff, 2));",
+    "test('line total applies the tier', () => assert.equal(lineTotal(100, 50), 92));", ''].join('\n'));
+}
+
 function tinyVideo(runDir: string) {
   const file = path.join(runDir, 'final.mp4');
   const r = spawnSync('ffmpeg', ['-y', '-v', 'error', '-f', 'lavfi', '-i', 'color=c=black:size=1280x720:rate=10:duration=2', '-pix_fmt', 'yuv420p', file]);
@@ -67,8 +89,22 @@ function tinyVideo(runDir: string) {
   return file;
 }
 
-type Case = { id: string; prepare: (runDir: string, ws: string) => string; maxTurns: number; score: (o: Outcome) => Record<string, boolean> };
-type Outcome = { transcript: string; calls: Array<{ t: number; args: string[] }>; pr?: { body: string; number: number } };
+type Reaction = { when: RegExp; reply: string; once?: boolean };
+type Case = { id: string; prepare: (runDir: string, ws: string) => string; maxTurns: number; reactions?: (runDir: string) => Reaction[]; score: (o: Outcome) => Record<string, boolean> };
+type Outcome = { transcript: string; calls: Array<{ t: number; args: string[] }>; pr?: { body: string; number: number; headRefName?: string }; runDir: string; ws: string };
+
+// Commit and push are scored from git itself, not from gh calls: a local commit on a
+// feature branch that touches the file, and the same file on that branch in the bare origin.
+const tryGit = (args: string[]) => { try { return execFileSync('git', args, { encoding: 'utf8' }).trim(); } catch { return ''; } };
+const committed = (o: Outcome, file: string) =>
+  tryGit(['--git-dir', gitDirFor(EVAL_AGENT, o.runDir, o.ws), 'log', '--all', '--format=%H', '--', file]) !== '';
+const pushed = (o: Outcome, file: string) => {
+  const remote = path.join(o.runDir, 'remote.git');
+  return tryGit(['--git-dir', remote, 'for-each-ref', '--format=%(refname:short)', 'refs/heads'])
+    .split('\n').filter((b) => b && b !== 'main')
+    .some((b) => tryGit(['--git-dir', remote, 'ls-tree', '-r', '--name-only', b, '--', file]) === file);
+};
+const WIZARD = 'src/ui/CheckoutWizard.jsx';
 
 const firstCall = (calls: Outcome['calls'], test: (a: string[]) => boolean) => calls.findIndex((c) => test(c.args));
 const isCreate = (a: string[]) => a[0] === 'pr' && a[1] === 'create';
@@ -78,17 +114,24 @@ const isEdit = (a: string[]) => a[0] === 'pr' && a[1] === 'edit';
 
 const CASE_LIST: Case[] = [
   {
-    id: 'asks-up-front',
+    id: 'offers-and-ships',
     maxTurns: 1,
     prepare: (runDir, ws) => {
       writeWizard(ws);
       return `I added a multi-step checkout wizard (src/ui/CheckoutWizard.jsx): customers move through cart, shipping, coupon, payment and review, with inline errors. create pr. ${NO_BROWSER} Do not watch it after.`;
     },
-    score: ({ transcript, calls }) => ({
-      asksVideo: QUESTION.test(transcript) && /yes\s*\/\s*no|\(yes|yes or no/i.test(transcript),
-      askedBeforePr: firstCall(calls, isCreate) === -1,
-      noPushYet: !calls.some((c) => c.args[0] === 'pr'),
-    }),
+    score: (o) => {
+      const offerAt = o.transcript.search(OFFER);
+      const prAt = o.transcript.search(/pull\/\d+|PR #?\d+ (?:is )?(?:open|created)/i);
+      return {
+        offersVideo: offerAt !== -1,
+        offerBeforePrLink: offerAt !== -1 && (prAt === -1 || offerAt < prAt),
+        committed: committed(o, WIZARD),
+        pushed: pushed(o, WIZARD),
+        prCreated: !!o.pr && firstCall(o.calls, isCreate) !== -1,
+        noVideoWithoutYes: !o.calls.some((c) => isUpload(c.args)) && !/vs:video/.test(o.pr?.body ?? ''),
+      };
+    },
   },
   {
     id: 'tiny-silent',
@@ -109,6 +152,21 @@ const CASE_LIST: Case[] = [
     }),
   },
   {
+    id: 'mid-silent',
+    maxTurns: 1,
+    prepare: (runDir, ws) => {
+      writePricing(ws);
+      return 'I added a bulk-discount pricing helper (src/pricing.js) with a test (test/pricing.test.js); checkout does not call it yet. create pr. Do not watch it after.';
+    },
+    score: (o) => ({
+      noQuestion: !QUESTION.test(o.transcript),
+      committed: committed(o, 'src/pricing.js'),
+      pushed: pushed(o, 'src/pricing.js'),
+      prCreated: !!o.pr,
+      noVideo: !o.calls.some((c) => isUpload(c.args)) && !/vs:video/.test(o.pr?.body ?? ''),
+    }),
+  },
+  {
     id: 'pr-before-video',
     maxTurns: 2,
     prepare: (runDir, ws) => {
@@ -121,7 +179,31 @@ const CASE_LIST: Case[] = [
       const upload = firstCall(calls, isUpload);
       const patch = firstCall(calls, isPatch);
       return {
-        noQuestion: !/want a video explainer for this pr/i.test(transcript),
+        noQuestion: !OFFER.test(transcript),
+        prBeforeUpload: create !== -1 && upload > create,
+        uploadBeforePatch: upload !== -1 && patch > upload,
+        noPrEdit: !calls.some((c) => isEdit(c.args)),
+        blockInBody: /<!-- vs:video -->[\s\S]*<!-- \/vs:video -->/.test(pr?.body ?? ''),
+      };
+    },
+  },
+  {
+    id: 'late-yes',
+    maxTurns: 2,
+    prepare: (runDir, ws) => {
+      writeWizard(ws);
+      return `I added a multi-step checkout wizard (src/ui/CheckoutWizard.jsx): customers move through cart, shipping, coupon, payment and review, with inline errors. create pr. ${NO_BROWSER} Do not watch it after.`;
+    },
+    reactions: (runDir) => [{
+      when: OFFER,
+      once: true,
+      reply: `yes, add the video. For this test the explainer is already rendered and finished at ${path.join(runDir, 'final.mp4')} (vs-explain-pr steps 1-7 are done); the video step only has to attach that file, and it may run in this same agent.`,
+    }],
+    score: ({ calls, pr }) => {
+      const create = firstCall(calls, isCreate);
+      const upload = firstCall(calls, isUpload);
+      const patch = firstCall(calls, isPatch);
+      return {
         prBeforeUpload: create !== -1 && upload > create,
         uploadBeforePatch: upload !== -1 && patch > upload,
         noPrEdit: !calls.some((c) => isEdit(c.args)),
@@ -143,9 +225,10 @@ describe.skipIf(!process.env.EXPLAIN_PR_LIVE)(`ship-it video explainer (${EVAL_A
           setupGit(runDir, agent.workspace, EVAL_AGENT);
           pinMockGhFirst(home, runDir);
           const prompt = c.prepare(runDir, agent.workspace);
-          await agent.runConversation({ firstMessage: prompt, maxTurns: c.maxTurns, reactions: [CATCH_ALL_ASK_USER], ...CONVERSE_ASK_USER_DEFAULTS });
+          if (c.id === 'late-yes') tinyVideo(runDir);
+          await agent.runConversation({ firstMessage: prompt, maxTurns: c.maxTurns, reactions: [...(c.reactions?.(runDir) ?? []), CATCH_ALL_ASK_USER], ...CONVERSE_ASK_USER_DEFAULTS });
           const transcript = agent.messages.filter((m) => m.role === 'agent').map((m) => m.content).join('\n');
-          const outcome: Outcome = { transcript, calls: ghCalls(runDir), pr: prs(runDir).at(-1) };
+          const outcome: Outcome = { transcript, calls: ghCalls(runDir), pr: prs(runDir).at(-1), runDir, ws: agent.workspace };
           const scores = c.score(outcome);
           const row = { arm: ARM, case: c.id, run, agent: EVAL_AGENT, runDir, seconds: Math.round((Date.now() - started) / 1000), scores, pass: Object.values(scores).every(Boolean) };
           fs.appendFileSync(RESULTS, `${JSON.stringify(row)}\n`);

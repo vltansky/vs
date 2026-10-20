@@ -49,18 +49,30 @@ describe('ship-it decides up front whether to offer a video', () => {
     expect(gate).toMatch(/two or more Surfaces/);
   });
 
-  it('asks one yes/no question when warranted and never when not', () => {
-    expect(gate).toMatch(/Want a video explainer for this PR\? \(yes\/no\)/);
-    expect(gate).toMatch(/Ask it once, before Step 1/);
+  it('offers in one line when warranted, never blocks, and stays silent when not', () => {
+    expect(gate).toMatch(/Want a narrated video of this PR\? Reply yes and I'll add it\./);
+    expect(gate).toMatch(/opening message/);
+    expect(gate).toMatch(/continue at once with commit, push, `gh pr create`/);
+    expect(gate).toMatch(/Do not end the turn, wait, or ask again/);
+    expect(gate).not.toMatch(/end the turn with the question/i);
+    expect(gate).toMatch(/Unattended runs and the `vs-build-it` handoff .*never stall/);
     expect(gate).toMatch(/do not mention the video/i);
     expect(gate).toMatch(/Direct-push mode never makes a video/);
+    expect(flat(SHIP.slice(0, SHIP.indexOf('## Routing precedence')))).toMatch(/never ends the turn or waits/);
   });
 
-  it('lets an explicit user word override the classifier without a question', () => {
+  it('takes a yes at any time, also after the PR is open; no answer means no video', () => {
+    expect(gate).toMatch(/A yes after the PR is open: run Step 4b on the open PR at its current head/);
+    expect(gate).toMatch(/No answer, or no: no video/);
+    expect(flat(section(SHIP, '### Step 4b: Start the video explainer'))).toMatch(/a late yes arrives on the open PR/);
+  });
+
+  it('lets an explicit user word override the classifier without an offer', () => {
     expect(gate).toMatch(/with video/);
     expect(gate).toMatch(/no video/);
     expect(gate).toMatch(/overrides the rubric/i);
-    expect(gate).toMatch(/Do not ask/);
+    expect(gate).toMatch(/means yes: no offer/);
+    expect(gate).toMatch(/means no: no offer/);
   });
 });
 
@@ -82,7 +94,7 @@ describe('ship-it opens the PR first and adds the video later', () => {
     expect(late).toMatch(/head SHA/);
     expect(late).toMatch(/Do not wait for it/);
     expect(late).toMatch(/Start babysitting in the same turn/);
-    expect(SHIP).toMatch(/- Video: <rendering in the background \| none>/);
+    expect(SHIP).toMatch(/- Video: <rendering in the background \| offered, reply yes to add it \| none>/);
   });
 
   it('never makes or uploads the video before gh pr create', () => {
