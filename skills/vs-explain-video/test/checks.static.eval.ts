@@ -58,7 +58,7 @@ function problems(f: Files): string[] {
   need(/three worst problems, each with a timestamp/.test(block), 'brief: three problems with times');
   need(/Verdict: PASS if every score is \[bar\] or more, otherwise RETURN/.test(block), 'brief: verdict rule');
   need(/written as `- axis: N`/.test(block), 'brief: parseable scores');
-  for (const axis of ['answer', 'example', 'builds', 'readability', 'pacing', 'sync', 'overall']) need(new RegExp(`- ${axis}:`).test(block), `brief: axis ${axis}`);
+  for (const axis of ['setup', 'answer', 'example', 'builds', 'readability', 'pacing', 'sync', 'overall']) need(new RegExp(`- ${axis}:`).test(block), `brief: axis ${axis}`);
   need(/\[pack folder\]/.test(block) && /\[video\]/.test(block), 'brief: placeholders');
   need(/\*\*A new agent every round\.\*\*/.test(f.brief), 'brief rules: new agent');
   need(/\*\*Three rounds at most\.\*\*/.test(f.brief), 'brief rules: 3 rounds');
@@ -286,12 +286,12 @@ const probes: Record<string, (m: Mod) => boolean> = {
   'rounds: next free round, capped at 3': (m) => m.nextRound([]).round === 1 && m.nextRound([1, 2]).round === 3 && m.nextRound([1, 2, 3]).code === 1,
   'rounds: --round must be new, whole, and 1-3': (m) => m.nextRound([1], '2').round === 2 && m.nextRound([1], '1').code === 2 && m.nextRound([], 'x').code === 2 && m.nextRound([], '1.5').code === 2 && m.nextRound([], '0').code === 2 && m.nextRound([], '4').code === 1,
   'verdict: PASS needs 8 on every axis': (m) => {
-    const reply = (pacing: number, said = 'PASS') => `1. A viewer follows a search.\n2. Scores:\n- answer: 9 clear\n- example: 8\n- builds: **8**\n- readability: 9/10\n- pacing: ${pacing} ok\n- sync: 8\n- overall: 8\n3. ...\n4. Verdict: ${said}`;
+    const reply = (pacing: number, said = 'PASS') => `1. A viewer follows a search.\n2. Scores:\n- setup: 9 clear\n- answer: 9 clear\n- example: 8\n- builds: **8**\n- readability: 9/10\n- pacing: ${pacing} ok\n- sync: 8\n- overall: 8\n3. ...\n4. Verdict: ${said}`;
     const pass = m.parseVerdict(reply(8));
     const low = m.parseVerdict(reply(7));
     return pass.verdict === 'PASS' && !pass.overruled && low.verdict === 'RETURN' && low.overruled && low.below.join() === 'pacing';
   },
-  'verdict: a missing axis is not a review': (m) => m.parseVerdict('- answer: 9\nVerdict: PASS').missing.length === 6,
+  'verdict: a missing axis is not a review': (m) => m.parseVerdict('- answer: 9\nVerdict: PASS').missing.length === 7,
   'pack plan times beats and cuts': (m) => {
     const TL = { total: 50, scenes: [{ id: 'a', start: 0, dur: 10, beats: [{ t: 0.7, d: 3, text: 'x' }] }, { id: 'b', start: 10, dur: 40, beats: [{ t: 0.7, d: 3, text: 'y' }] }] };
     const plan = m.packPlan(TL);
@@ -599,7 +599,7 @@ describe('explain-video verdict.mjs', () => {
     const out = spawnSync(process.execPath, [script('verdict.mjs'), work], { encoding: 'utf8' });
     return { status: out.status, report: out.stdout ? JSON.parse(out.stdout) : null, stderr: out.stderr, work };
   };
-  const scores = (low: number) => ['answer', 'example', 'builds', 'readability', 'pacing', 'sync', 'overall'].map((a, i) => `- ${a}: ${i === 4 ? low : 9} because`).join('\n');
+  const scores = (low: number) => ['setup', 'answer', 'example', 'builds', 'readability', 'pacing', 'sync', 'overall'].map((a, i) => `- ${a}: ${i === 5 ? low : 9} because`).join('\n');
   it('passes 8 or more on every axis and writes VERDICT.json', () => {
     const { status, report, work } = reviewed(`${scores(8)}\n\nVerdict: PASS`);
     expect(status).toBe(0);
@@ -615,6 +615,6 @@ describe('explain-video verdict.mjs', () => {
   it('blocks a reply without every score', () => {
     const { status, stderr } = reviewed('Looks great. Verdict: PASS');
     expect(status).toBe(2);
-    expect(stderr).toMatch(/no score for: answer/);
+    expect(stderr).toMatch(/no score for: setup/);
   });
 });
