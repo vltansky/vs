@@ -49,6 +49,9 @@ delays the PR: it starts only after Step 4.
      also when it is one new uncommitted file.
    - Neither list matches: skip silently.
 3. **Offer means one question:** `Want a video explainer for this PR? (yes/no)`.
+   Missing capture tools (no preview, browser, or Playwright) do not cancel
+   the offer: the explainer is narrated from the PR body, with stills only
+   when they exist.
    Ask it once, before Step 1, and wait for the answer: end the turn with the
    question, before any commit, push, or `gh` call. Yes: run Step 4b after
    the PR is verified. No, or no clear yes: no video, and do not ask again in
