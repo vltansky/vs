@@ -1,0 +1,24 @@
+name: Screenmap
+on:
+  pull_request:
+    paths: ['packages/reportan-mobile/**', 'packages/models/**']
+jobs:
+  screenmap:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - run: npm ci
+      - name: Restore Android dev client (Gradle cache)
+        uses: actions/cache@v4
+        with:
+          path: packages/reportan-mobile/android/app/build/outputs/apk
+          key: dev-client-${{ hashFiles('packages/reportan-mobile/android/**', 'packages/reportan-mobile/package.json') }}
+      - name: Build dev client on cache miss
+        run: npx expo run:android --variant debug --no-install
+      - name: Boot emulator and capture affected screens
+        run: node scripts/screenmap-ci.mjs --pr ${{ github.event.number }}
+      - name: Upload dev client to EAS
+        run: npx eas upload --platform android
+      - name: Post screenshots comment
+        run: node scripts/screenmap-comment.mjs
