@@ -10,7 +10,7 @@
 #sub.cap > span { max-width: 1500px; padding: 8px 22px; line-height: 1.25; white-space: normal; }
 #sub.cap .w { display: inline-block; padding: 0 7px; margin: 0 -1px; border-radius: 10px; }
 #sub.cap .w.next { opacity: 0.62; }
-#sub.cap-pill .w.on { background: var(--acc); color: #14100a; }
+#sub.cap-pill .w.on { background: var(--acc); color: var(--bg); }
 #sub.cap-colour .w.on { color: var(--acc); }
 #sub.cap-pop > span { background: none; font-weight: 700; -webkit-text-stroke: 7px #000; paint-order: stroke; text-shadow: 0 3px 0 #000; }
 #sub.cap-pop .w.past { opacity: 0.6; }

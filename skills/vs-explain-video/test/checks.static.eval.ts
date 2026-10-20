@@ -72,7 +72,8 @@ function problems(f: Files): string[] {
   need(/const p = await newPage\(\);\s+if \(first !== null\) await seek\(p, first\)/.test(f.check) && /await coldShot\(t, other\)/.test(f.check), 'check: culprit on fresh pages');
   need(/diffRegion\(grey\(a, ''\), grey\(b, ''\), 1920\)/.test(f.check), 'check: full-size changed area');
   need(/new DOMMatrixReadOnly\(transform\)/.test(f.check) && !/offsetWidth/.test(f.check), 'check: size from transforms, not offsetWidth');
-  need(/#progress,#sub,#chap,#brand,#glow\{visibility:hidden!important\}/.test(f.check), 'check: chrome hidden for builds');
+  need(/#progress,#sub,#chap,#brand,#bg\{visibility:hidden!important\}/.test(f.check), 'check: chrome hidden for builds');
+  need(/await page\.evaluate\('window\.VS_CALM = true'\)/.test(f.check), 'check: camera still for builds');
   need(/closest\('\[data-vs-tid\]'\)/.test(f.check), 'check: text grouped by owner element');
   need(/process\.exit\(fails \? 1 : 0\)/.test(f.check), 'check: exit 1 on FAIL');
   need(/scanScenes\(readFileSync\(path\.join\(work, 'scenes\.js'\)/.test(f.check), 'check: contract scan');
@@ -106,7 +107,8 @@ const mutants: Record<string, (f: Files) => Files> = {
   'check skips cold twice': swap('check', 'const coldSame = same(cold, await coldShot(t));', 'const coldSame = true;'),
   'check psnr only': swap('check', "region: diffRegion(grey(a, ''), grey(b, ''), 1920)", 'region: { count: 0, box: null }'),
   'check size from offsetWidth': swap('check', 'scale *= Math.hypot(m.a, m.b);', 'scale = owner.getBoundingClientRect().width / owner.offsetWidth;'),
-  'check keeps the chrome in builds': swap('check', "await page.addStyleTag({ content: '#progress,#sub,#chap,#brand,#glow{visibility:hidden!important}' });", ''),
+  'check keeps the chrome in builds': swap('check', "await page.addStyleTag({ content: '#progress,#sub,#chap,#brand,#bg{visibility:hidden!important}' });", ''),
+  'check measures builds with the camera moving': swap('check', "await page.evaluate('window.VS_CALM = true');", ''),
   'check never fails': swap('check', 'process.exit(fails ? 1 : 0)', 'process.exit(0)'),
   'check skips the contract scan': swap('check', "scanScenes(readFileSync(path.join(work, 'scenes.js'), 'utf8'))", '[]'),
 };
