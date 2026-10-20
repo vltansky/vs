@@ -85,7 +85,25 @@ url ??= 'https://github.com/user-attachments/assets/dry-run';
 const block = videoBlock({ url, sha, seconds: duration(), reviewed: has('--reviewed'), wordsChecked: !has('--words-unchecked') });
 const gateFlags = (opt('--gate') ?? '').split(/\s+/).filter(Boolean);
 
+// The gate pins Walkthrough links to the PR head, so that commit must exist locally.
+// A repair pushed from another machine is not here yet: fetch it by SHA (then by the
+// PR ref). If that fails, say a fetch is needed instead of a misleading GATE_FAILED.
+const haveCommit = (ref) => run('git', ['cat-file', '-e', `${ref}^{commit}`]).status === 0;
+const ensureHead = (head) => {
+  if (!head || haveCommit(head)) return;
+  const tries = [['fetch', '--quiet', 'origin', head], ['fetch', '--quiet', 'origin', `pull/${pr}/head`]];
+  const errors = [];
+  for (const args of tries) {
+    const r = run('git', args);
+    if (r.status !== 0) errors.push(`git ${args.join(' ')}: ${r.stderr.trim().split('\n').at(-1) ?? ''}`);
+    if (haveCommit(head)) return;
+  }
+  process.stdout.write(`${JSON.stringify({ status: 'NEEDS_FETCH', url, head, tried: errors, next: `The PR head ${head.slice(0, 7)} is not in this checkout and could not be fetched. Run \`git fetch origin ${head}\` (or fetch the PR branch), then rerun attach.mjs with --url ${url} to reuse the upload. Nothing was patched.` }, null, 2)}\n`);
+  process.exit(1);
+};
+
 const build = (current) => {
+  ensureHead(current.head?.sha);
   const body = upsertVideoBlock(current.body ?? '', block);
   const file = path.join(scratch, 'body.md');
   writeFileSync(file, body);

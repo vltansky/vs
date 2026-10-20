@@ -45,4 +45,15 @@ describe('video-block.mjs', () => {
     expect(keepVideoBlock(fresh, 'no video yet')).toBe(fresh);
     expect(keepVideoBlock(keepVideoBlock(fresh, live), live)).toBe(keepVideoBlock(fresh, live));
   });
+  it('puts the block before the Walkthrough when a stray marker sits after it, and a rerun changes nothing', () => {
+    const stray = `Intro\n\n${WALK}\n${VIDEO_END}\n`;
+    const out = upsertVideoBlock(stray, block('new'));
+    expect(out.indexOf(block('new'))).toBeLessThan(out.indexOf('Walkthrough: 1 area'));
+    expect(out.match(/<!-- \/vs:video -->/g)).toHaveLength(1);
+    expect(upsertVideoBlock(out, block('new'))).toBe(out);
+    const late = `Intro\n\n${WALK}\n${block('old')}\n\ntail\n`;
+    const moved = upsertVideoBlock(late, block('new'));
+    expect(moved).toBe(`Intro\n\n${block('new')}\n\n${WALK}\ntail\n`);
+    expect(upsertVideoBlock(moved, block('new'))).toBe(moved);
+  });
 });

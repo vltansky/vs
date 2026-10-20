@@ -96,6 +96,11 @@ export function stripVideoBlocks(body) {
 // Everything outside the spans stays byte for byte.
 export function upsertVideoBlock(body, block) {
   const spans = findVideoBlocks(body);
+  // A span after the Walkthrough (a stray marker) must not decide where the block
+  // goes: the gate rejects that spot, and a rerun would land there again. Cut every
+  // span, then insert before the Walkthrough.
+  const walkAt = walkthroughOffset(body);
+  if (spans.length > 0 && walkAt !== -1 && spans[0].start > walkAt) return upsertVideoBlock(cutSpans(body, spans), block);
   if (spans.length > 0) {
     let out = '';
     let at = 0;
@@ -110,6 +115,21 @@ export function upsertVideoBlock(body, block) {
   const walk = walkthroughOffset(body);
   if (walk !== -1) return `${body.slice(0, walk)}${block}\n\n${body.slice(walk)}`;
   return `${body.replace(/\s*$/, '')}\n\n${block}\n`;
+}
+
+// The body with every span cut, each with the blank line that followed it, so
+// nothing piles up where a span was.
+function cutSpans(body, spans) {
+  let out = '';
+  let at = 0;
+  for (const span of spans) {
+    out += body.slice(at, span.start);
+    at = span.end;
+    while (body[at] === '\n' && (body[at + 1] === '\n' || at + 1 >= body.length)) at += 1;
+    if (body[at] === '\n') at += 1;
+  }
+  const rest = out + body.slice(at);
+  return /\n$/.test(body) ? rest.replace(/\n+$/, '\n') : rest.replace(/\n+$/, '');
 }
 
 // The live video block (a complete one), or null.

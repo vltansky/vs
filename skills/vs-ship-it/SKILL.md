@@ -357,7 +357,10 @@ mismatch, and stop. Do not switch branches before this succeeds.
 
 Re-open the PR description read-only and verify every uploaded image renders and
 every video exposes a player. If rendering fails, remove or correct only the
-broken embed with `gh pr edit --body-file`; do not claim the proof is attached.
+broken embed in `$BODY_FILE`, then carry the live video block into it and
+update the body over REST, as in Step 5 (`video-block.mjs keep`, then
+`gh api -X PATCH repos/<owner/name>/pulls/<N> --input <payload>`). Never
+`gh pr edit`. Do not claim the proof is attached.
 
 Apply only explicitly requested PR modifiers. Do not suggest reviewers or run broad QA by default. Preview startup is
 limited to the focused evidence capture in Step 3.

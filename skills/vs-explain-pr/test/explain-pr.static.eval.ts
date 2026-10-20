@@ -416,4 +416,56 @@ describe('attach.mjs against an offline gh', () => {
     expect(r.status).toBe(5);
     expect(r.stderr).toMatch(/cannot count changed files/);
   });
+  it('fetches a PR head pushed from elsewhere before gating', () => {
+    const s = setup();
+    const origin = path.join(s.dir, 'origin.git');
+    spawnSync('git', ['init', '-q', '--bare', origin]);
+    git(s.repo, 'remote', 'add', 'origin', origin);
+    git(s.repo, 'push', '-q', 'origin', 'feature');
+    const other = path.join(s.dir, 'other');
+    spawnSync('git', ['clone', '-q', '-b', 'feature', origin, other]);
+    git(other, 'config', 'user.email', 'eval@example.com');
+    git(other, 'config', 'user.name', 'eval');
+    fs.writeFileSync(path.join(other, 'docs', 'notes.md'), 'setup steps, repaired elsewhere\n');
+    git(other, 'commit', '-qam', 'fix: repair from another machine');
+    git(other, 'push', '-q', 'origin', 'feature');
+    const repaired = git(other, 'rev-parse', 'HEAD');
+    expect(spawnSync('git', ['cat-file', '-e', `${repaired}^{commit}`], { cwd: s.repo }).status).not.toBe(0);
+    const value = state(s);
+    value.prs[0].headRefOid = repaired;
+    value.prs[0].body = BODY + walkthrough(repaired);
+    writeState(s, value);
+    const r = attach(s, '--url', 'https://github.com/user-attachments/assets/fetched');
+    expect(r.status, r.stdout + r.stderr).toBe(0);
+    expect(JSON.parse(r.stdout)).toMatchObject({ status: 'ATTACHED', gatedHead: repaired.slice(0, 7) });
+  });
+
+  it('says a fetch is needed, and patches nothing, when the PR head cannot be fetched', () => {
+    const s = setup();
+    const missing = 'f'.repeat(40);
+    const value = state(s);
+    value.prs[0].headRefOid = missing;
+    writeState(s, value);
+    const r = attach(s, '--url', 'https://github.com/user-attachments/assets/kept');
+    expect(r.status).toBe(1);
+    const out = JSON.parse(r.stdout);
+    expect(out.status).toBe('NEEDS_FETCH');
+    expect(out.next).toMatch(/git fetch origin f{40}/);
+    expect(out.next).toMatch(/--url https:\/\/github\.com\/user-attachments\/assets\/kept/);
+    expect(calls(s.dir).some((a) => a.includes('PATCH'))).toBe(false);
+  });
+
+  it('moves a block from after the Walkthrough to before it, and a rerun is stable', () => {
+    const s = setup();
+    const value = state(s);
+    value.prs[0].body = `${BODY}${walkthrough(s.sha)}\n<!-- /vs:video -->\n`;
+    writeState(s, value);
+    const first = attach(s, '--url', 'https://github.com/user-attachments/assets/one');
+    expect(first.status, first.stdout + first.stderr).toBe(0);
+    const once = state(s).prs[0].body as string;
+    expect(once.indexOf('<!-- vs:video -->')).toBeLessThan(once.indexOf('Walkthrough: 1 area'));
+    expect(once.match(/<!-- \/vs:video -->/g)).toHaveLength(1);
+    expect(attach(s, '--url', 'https://github.com/user-attachments/assets/one').status).toBe(0);
+    expect(state(s).prs[0].body).toBe(once);
+  });
 });

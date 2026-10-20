@@ -81,12 +81,16 @@ describe('vs-ship-it independent PR preparation', () => {
     expect(PR_WORKFLOW).toMatch(/Do not suggest reviewers or run broad QA by default/i);
   });
 
-  it('uses body files for create and edit', () => {
+  it('uses body files for create and edit, and edits over REST with the video block kept', () => {
     expect(PR_WORKFLOW).toContain(
       'gh pr create --title "<title>" --body-file "$BODY_FILE"',
     );
     expect(PR_WORKFLOW).toMatch(/never pass[\s\S]*inline `--body`/i);
-    expect(PR_WORKFLOW).toContain('gh pr edit --body-file');
+    expect(PR_WORKFLOW).not.toContain('gh pr edit --body-file');
+    const step4 = PR_WORKFLOW.slice(PR_WORKFLOW.indexOf('### Step 4'), PR_WORKFLOW.indexOf('### Step 4b')).replace(/\s+/g, ' ');
+    expect(step4).toMatch(/video-block\.mjs keep/);
+    expect(step4).toMatch(/gh api -X PATCH repos\/<owner\/name>\/pulls\/<N> --input <payload>/);
+    expect(step4).toMatch(/Never `gh pr edit`/);
   });
 });
 
