@@ -100,8 +100,10 @@ or one slow or flaky job (including "how can we cut", "make X faster", "fix X so
 it stops eating 30 min"), run the playbook's
 [CI & test suite: signal vs cost](references/audit-playbook.md#ci--test-suite-signal-vs-cost)
 section first, at step level (a rules suite inside a bigger job is its own
-row). Failures that were only infra or flakes count as zero signal. Do not
-fold this into the findings table; it comes before it (see Phase 3).
+row). Failures that were only infra or flakes count as zero signal. For a job
+that does not block merge, the signal is whether anyone used its output, not
+failures caught. Do not fold this into the findings table; it comes before it
+(see Phase 3).
 
 Audit depth follows the **effort level** (default `standard`; the user sets it with a `quick` / `deep` keyword anywhere in the invocation):
 
@@ -130,21 +132,24 @@ table**, before the findings table and before any speed-up or hardening idea.
 Lead with the decision, then the table:
 
 > Contract tests take 80s on every API PR and caught 0 real failures in 30
-> days; the visual-diff job failed 6 times, all infra, never a real diff. Cut,
-> path-gate, or keep?
+> days; the visual-diff job does not block merge and nobody opened its report
+> on any PR. Cut, path-gate, move to nightly / local, or keep?
 >
-> | Step / job | Runs | Real failures caught | Infra / flaky | Time per run | Billed min | Verdict |
+> | Step / job | Runs | Real failures caught / output used | Infra / flaky | Time per run | Billed min | Verdict |
 
 The first line is that decision, not a summary like "the main issue is
-reliability" or "the fastest cut is running the suites in parallel". Every step
-with zero real failures (infra-only and flaky count as zero) goes in the
-question, even when the zero is weak evidence (few runs, often skipped); say
-so in the question rather than leading with something else. Do not decide
-"keep" or "harden" for it yourself.
-Parallelizing, caching, faster installs, retries, or resilience work appear
-only after that, and only for steps that passed the "is it needed?" row. If
-every step caught something, the opening line says "checked, none found" with
-the window.
+reliability" or "the fastest cut is running the suites in parallel". For a job
+that does not block merge (screenshots, previews, report bots), failures caught
+is the wrong measure: count whether its output was looked at or acted on
+(replies, links opened or quoted, fixes or decisions that cite it). Every step
+with zero real failures (infra-only and flaky count as zero), and every
+non-blocking job whose output nobody used, goes in the question, even when the
+zero is weak evidence (few runs, often skipped); say so in the question rather
+than leading with something else. Do not decide "keep" or "harden" for it
+yourself. Parallelizing, caching, faster installs, retries, or resilience work
+appear only after that, and only for steps that passed the "is it needed?" row.
+If every step caught something, the opening line says "checked, none found"
+with the window.
 
 Then present the vetted findings table, ordered by leverage (impact ÷ effort, weighted by confidence):
 

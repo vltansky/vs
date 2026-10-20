@@ -69,14 +69,22 @@ running.
    30 days: `gh run list` plus `gh api repos/<owner>/<repo>/actions/runs/<id>/jobs`,
    or an exported runs file). One row per step or job:
 
-   | Step / job | Runs | Real failures caught | Infra / flaky failures | Time per run | Billed min (window) | Verdict |
+   | Step / job | Runs | Real failures caught / output used | Infra / flaky failures | Time per run | Billed min (window) | Verdict |
 
    A real failure points at a code defect: an assertion, a type error, a lint
    rule on changed code. Infra (runner disk, emulator boot, download timeouts,
    cache misses) and flakes that passed on rerun are not signal.
-2. **Name the steps that caught nothing**, with their cost, and put the
-   decision to the user per step: cut, path-gate (run only when its inputs
-   change), or move local / nightly? That call is the user's, not yours: do
+
+   **A job that does not block merge** (screenshot or preview comments, bundle
+   size reports, coverage bots) cannot "catch" anything, so failures caught is
+   the wrong measure for it. Measure what its output informed: was the comment
+   or link looked at or acted on (a reply or review comment that cites it, the
+   link opened or quoted, a fix pushed or a decision made because of it)? Put
+   that count in the "caught" column and say it is output use. Output nobody
+   looked at in the window is zero signal, even when the job never failed.
+2. **Name the steps that caught nothing** (or whose output nobody used),
+   with their cost, and put the decision to the user per step: cut, path-gate
+   (run only when its inputs change), move to nightly / local, or keep? That call is the user's, not yours: do
    not mark a zero-signal step "keep" or "harden" on your own. If every step
    caught something, say "checked, none found" and the window.
 3. **Only steps that passed the "is it needed?" row get speed-ups**
@@ -115,7 +123,7 @@ running.
 ## 7. DX & Tooling
 
 - Missing or broken: typecheck script, lint config, formatter, pre-commit hooks, editorconfig.
-- Slow feedback loops: dev-server or test startup measured in minutes, no watch mode. For CI, the signal-vs-cost table below comes before any caching idea.
+- Slow feedback loops: dev-server or test startup measured in minutes, no watch mode. For CI, the signal-vs-cost table above comes before any caching idea.
 - Onboarding friction: README setup steps that are wrong/incomplete, undocumented required env vars, no `.env.example`.
 - Missing `CLAUDE.md`/`AGENTS.md` — for repos where agents will execute the plans, this is high-leverage: recommend one and include its outline as a plan.
 - Error messages/logging: unstructured logs on services, missing request IDs/correlation, debugging requiring code changes.

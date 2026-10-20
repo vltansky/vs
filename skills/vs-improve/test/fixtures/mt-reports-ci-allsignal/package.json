@@ -1,0 +1,15 @@
+{
+  "name": "mt-reports",
+  "private": true,
+  "workspaces": ["packages/*"],
+  "scripts": {
+    "lint": "oxlint .",
+    "typecheck": "tsc -b",
+    "test:functions": "vitest run --project functions",
+    "test:firestore-rules": "firebase emulators:exec --only firestore 'node --test scripts/firestore-rules.test.mjs'",
+    "test:storage-rules": "firebase emulators:exec --only storage 'node --test scripts/storage-rules.test.mjs'",
+    "test:web": "vitest run --project reportan-web",
+    "test:headless": "vitest run --project headless",
+    "e2e:web": "playwright test"
+  }
+}
