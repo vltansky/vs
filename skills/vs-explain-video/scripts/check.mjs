@@ -19,7 +19,8 @@
 //             that changes it: ORDER-DEPENDENT, state one seek leaves behind.
 //   NO-BUILD  every beat must change the picture: the frame one frame before
 //             the beat starts against the frame one frame before the next
-//             beat (subtitles, chapter, progress line and glow hidden). Under
+//             beat (subtitles, chapter, progress line and dot field hidden, camera
+//             push off). Under
 //             0.5% changed pixels is a slide. An intended still beat is
 //             declared in scenes.js: window.HOLDS = ['scene-id:2'].
 // --text   samples every --step seconds and joins what is on screen into "this
@@ -145,8 +146,9 @@ try {
       }
       determinism.push(determinismIssue(mismatch, { coldSame, culprit }));
     }
-    // Every beat builds: chrome hidden, scene pixels only.
-    await page.addStyleTag({ content: '#progress,#sub,#chap,#brand,#glow{visibility:hidden!important}' });
+    // Every beat builds: chrome hidden and the camera still, scene pixels only.
+    await page.addStyleTag({ content: '#progress,#sub,#chap,#brand,#bg{visibility:hidden!important}' });
+    await page.evaluate('window.VS_CALM = true');
     const holds = (await page.evaluate('window.HOLDS')) ?? [];
     const windows = beatWindows(TL, holds);
     const fractions = [];
@@ -162,7 +164,9 @@ try {
 
   if (runText) {
     const text = await newPage();
+    // The camera push moves every block a little; OVERLAP would read still text as moving.
     await text.evaluate(() => {
+      window.VS_CALM = true;
       let n = 0;
       for (const e of document.querySelectorAll('#scenes *')) e.dataset.vsTid = String(n++);
     });

@@ -11,19 +11,24 @@ worked example in `assets/scenes.example.js` uses every pattern here.
 - Two or three regions per scene, laid out on a left/right or top/bottom
   split. A typical split: left block at x=120, w=860; right block at x=1160,
   w=640.
-- The stage already draws the brand, chapter, progress line, background
-  grid, drifting glow, scene crossfades, and subtitles. Do not redraw them.
+- The stage already draws the brand, chapter, progress line, the animated
+  dot field, scene handoffs (fade, spring up from 97%, lift away), a slow
+  camera push on every scene, and subtitles. Do not redraw them, and do not
+  add a background of your own.
+- Keep it cheap to render: move things with transform, opacity, and
+  clip-path. No CSS `filter: blur` or `backdrop-filter`; they slow every
+  screenshot.
 
 ## Color has one meaning each
 
 | Token | Means |
 |---|---|
-| `--acc` (amber) | the thing under discussion right now |
+| `--acc` (lime) | the thing under discussion right now |
 | `--bad` (red) | the problem, the cost, what gets removed |
 | `--ok` (green) | the fix, success, what is kept |
 | `--ink` / `--mute` | everything else |
 
-Never use a color for decoration. If two things are amber, the viewer does
+Never use a color for decoration. If two things are lime, the viewer does
 not know where to look.
 
 ## Building blocks (stage.html classes)
@@ -45,6 +50,9 @@ gives the same frame.
 | Helper | Use for |
 |---|---|
 | `rise(e, t, s, {dy, dx, d})` | default entrance: fade and slide in on a spring |
+| `words(e, t, s, {gap})` | kinetic title: each word rises out of its own mask, `gap` s apart |
+| `mark(e, t, s)` | highlighter sweep behind a `<span class="mark">` in the text |
+| `stagger(list, t, s, gap, fn)` | run `fn(e, t, start)` on a list, starts `gap` s apart |
 | `pop(e, t, s)` | chips, badges, a new state: scale with a playful spring |
 | `dim(e, t, s, to)` | old state stays, quieter; call after its entrance |
 | `hide(e, t, s)` | only when the old state is truly gone |
@@ -83,7 +91,9 @@ of starting a new move: the sum keeps its momentum.
    is the thing that travels, changes color, and lands. Name it on screen.
 2. **Every beat builds.** Start beat i's build at `B[i]`, or on the word
    that names it (up to a second later). Look at `cues` from `narrate.mjs`.
-3. **Stagger.** Lists enter 0.3-0.5 s apart, never all at once.
+3. **Stagger.** Lists enter 0.3-0.5 s apart, never all at once
+   (`stagger`). Titles enter word by word (`words`), and the key phrase
+   gets a `mark` on the word that names it.
 4. **Keep old state dimmed, not removed.** Before/after stays on screen so
    the viewer can compare.
 5. **Show cause, then effect.** The arrow draws, the dot travels, then the
