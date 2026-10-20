@@ -33,5 +33,10 @@
         "The second search for nile now hits the cache. The answer time goes from eight hundred forty milliseconds to twelve."
       ]
     }
+  ],
+  "quiz": [
+    { "q": "Why does every search for nile miss the cache?", "a": "The key is the full URL, and its timestamp changes every second." },
+    { "q": "What does the fix change for the search for nile?", "a": "The key drops the timestamp, so the second search hits the cache." },
+    { "q": "How much faster is the second search for nile?", "a": "From 840 ms to 12 ms." }
   ]
 }

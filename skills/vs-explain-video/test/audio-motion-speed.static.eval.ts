@@ -44,7 +44,7 @@ function problems(f: Files): string[] {
   const need = (ok: boolean, name: string) => { if (!ok) out.push(name); };
   // #4 word check and loudness.
   need(/With\s+whisper\s+installed,\s+it transcribes each beat/.test(f.skill), 'skill: word check');
-  need(/rewrite it or\s+add a `pronounce` entry, and rerun/.test(f.skill), 'skill: fix a flagged beat');
+  need(/report it in\s+the handoff and do not narrate again/.test(f.skill), 'skill: report a flagged beat, no re-narration');
   need(/Without whisper it says the words were not\s+checked; report that/.test(f.skill), 'skill: report a skipped check');
   need(/`--require-word-check` exits 2/.test(f.skill), 'skill: the word check can be required');
   need(/levels the track to -16 LUFS/.test(f.skill), 'skill: loudness');
@@ -78,6 +78,7 @@ function problems(f: Files): string[] {
 const swap = (key: keyof Files, from: string | RegExp, to: string) => (f: Files): Files => ({ ...f, [key]: f[key].replace(from, to) });
 const mutants: Record<string, (f: Files) => Files> = {
   'skill drops the word check': swap('skill', /With\s+whisper\s+installed,\s+it transcribes each beat/, 'It may transcribe'),
+  'skill re-narrates a flagged beat': swap('skill', /report it in\s+the handoff and do not narrate again/, 'rewrite it and rerun'),
   'skill hides a skipped check': swap('skill', /Without whisper it says the words were not\s+checked; report that/, ''),
   'skill drops loudness': swap('skill', 'It levels the track to -16 LUFS.', ''),
   'narrate never checks words': swap('narrate', 'const result = checkBeat(text, spoken(text), heard);', 'const result = { ok: true };'),

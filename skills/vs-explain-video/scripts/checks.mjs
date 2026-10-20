@@ -30,8 +30,7 @@ export const RULES = {
   noisePx: 32, // ...and with fewer than 64 full-size pixels off by more than 32/255,
   noiseArea: 64, // so a small chip that changes per draw still fails
   samples: 12,
-  bar: 8, // review: PASS needs this score or more on every axis
-  rounds: 3, // review: at most this many rounds
+  bar: 8, // review: PASS needs this score or more on every axis; under it is reported, not redone
 };
 // The review axes, in the order the brief asks for them.
 export const AXES = ['setup', 'answer', 'example', 'builds', 'readability', 'pacing', 'sync', 'overall'];
@@ -259,26 +258,11 @@ export const clock = (seconds) => {
   return `${m}:${(seconds - m * 60).toFixed(1).padStart(4, '0')}`;
 };
 
-// ---------- review rounds and the verdict
-// The round a new pack gets. existing: round numbers already in review/.
-// arg: the --round value as typed, or null. Returns { round } or { error, code }:
-// code 1 means the rounds are used up, code 2 a bad request.
-export const nextRound = (existing, arg = null) => {
-  const used = new Set(existing);
-  if (arg !== null) {
-    if (!/^[1-9]\d*$/.test(String(arg))) return { error: `--round takes a whole number from 1 to ${RULES.rounds}, not "${arg}"`, code: 2 };
-    const round = Number(arg);
-    if (round > RULES.rounds) return { error: `round ${round} is past the cap of ${RULES.rounds}`, code: 1 };
-    if (used.has(round)) return { error: `round ${round} already has a pack; a review round is never redone. Build the next round`, code: 2 };
-    return { round };
-  }
-  let round = 1;
-  while (used.has(round)) round += 1;
-  return round > RULES.rounds ? { error: `${RULES.rounds} review rounds are used up`, code: 1 } : { round };
-};
+// ---------- the review score
 // Reads a reviewer's reply: one "name: N" score per axis (a leading "- " is
-// fine) and a "Verdict: PASS|RETURN" line. The verdict that counts is the one
-// the scores earn: PASS only with every axis at the bar or above.
+// fine) and a "Verdict: PASS|BELOW" line. The verdict that counts is the one
+// the scores earn: PASS only with every axis at the bar or above. There is one
+// review per video, so BELOW is reported in the handoff, never sent back.
 export const parseVerdict = (reply) => {
   const scores = {};
   for (const axis of AXES) {
@@ -287,7 +271,22 @@ export const parseVerdict = (reply) => {
   }
   const missing = AXES.filter((axis) => !(axis in scores));
   const below = AXES.filter((axis) => axis in scores && scores[axis] < RULES.bar);
-  const said = /verdict\W*\s*(PASS|RETURN)\b/i.exec(reply)?.[1]?.toUpperCase() ?? null;
-  const verdict = missing.length === 0 && below.length === 0 ? 'PASS' : 'RETURN';
+  const said = /verdict\W*\s*(PASS|BELOW|RETURN)\b/i.exec(reply)?.[1]?.toUpperCase() ?? null;
+  const verdict = missing.length === 0 && below.length === 0 ? 'PASS' : 'BELOW';
   return { scores, missing, below, said, verdict, overruled: said === 'PASS' && verdict !== 'PASS' };
+};
+
+// ---------- the quiz
+// Three questions a viewer must answer from the beats alone, written by the
+// scenarist into script.json "quiz". Returns the problems with it; empty is fine.
+export const quizIssues = (script) => {
+  const quiz = script?.quiz;
+  if (!Array.isArray(quiz)) return ['script.json has no "quiz" array'];
+  const out = [];
+  if (quiz.length !== 3) out.push(`"quiz" has ${quiz.length} questions; it needs 3: why it broke, what the change does, why it is safe`);
+  quiz.forEach((item, i) => {
+    if (typeof item?.q !== 'string' || !item.q.trim()) out.push(`quiz[${i}] has no "q"`);
+    if (typeof item?.a !== 'string' || !item.a.trim()) out.push(`quiz[${i}] has no "a"`);
+  });
+  return out;
 };

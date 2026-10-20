@@ -42,11 +42,11 @@ function problems(f: Files): string[] {
   need(f.skill.includes('references/checks.md'), 'skill links the fix table');
   need(/node <skill-dir>\/scripts\/pack\.mjs "\$WORK" "\$WORK\/<topic>\.mp4"/.test(f.skill), 'skill builds the pack');
   need(/new agent that has seen\s+none of the work/.test(f.skill), 'skill: reviewer saw none of the work');
-  need(/A new agent every round/.test(f.skill), 'skill: new agent every round');
   need(/PASS needs 8 or more on every\s+axis/.test(f.skill), 'skill: bar of 8');
-  need(/RETURN goes back to `scenes\.js`/.test(f.skill), 'skill: RETURN loop to scenes.js');
-  need(/run `verdict\.mjs "\$WORK"`/.test(f.skill), 'skill: verdict.mjs decides');
-  need(/Three rounds at most/.test(f.skill), 'skill: at most 3 rounds');
+  need(/run\s+`verdict\.mjs "\$WORK"`/.test(f.skill), 'skill: verdict.mjs decides');
+  need(/Do not re-render or review again/.test(f.skill), 'skill: one review, no loop');
+  need(/node <skill-dir>\/scripts\/quiz\.mjs "\$WORK"/.test(f.skill) && f.skill.indexOf('quiz.mjs') < f.skill.indexOf('## 5. Narrate'), 'skill: quiz before narration');
+  need(/The quiz never runs twice/.test(f.skill), 'skill: quiz runs once');
   need(/Never report a pass that did not\s+happen/.test(f.skill), 'skill: no invented pass');
   need(/not reviewed by fresh eyes/.test(f.skill), 'skill: handoff says when unreviewed');
   need(f.skill.indexOf('## 7. Check, then render') < f.skill.indexOf('## 8. Fresh review') && f.skill.indexOf('## 8. Fresh review') < f.skill.indexOf('## 9. Handoff'), 'skill: check, review, handoff order');
@@ -56,12 +56,13 @@ function problems(f: Files): string[] {
   need(/Do not open any other file/.test(block), 'brief: pack only');
   need(/retold in one sentence/.test(block), 'brief: retell');
   need(/three worst problems, each with a timestamp/.test(block), 'brief: three problems with times');
-  need(/Verdict: PASS if every score is \[bar\] or more, otherwise RETURN/.test(block), 'brief: verdict rule');
+  need(/Verdict: PASS if every score is \[bar\] or more, otherwise BELOW/.test(block), 'brief: verdict rule');
   need(/written as `- axis: N`/.test(block), 'brief: parseable scores');
   for (const axis of ['setup', 'answer', 'example', 'builds', 'readability', 'pacing', 'sync', 'overall']) need(new RegExp(`- ${axis}:`).test(block), `brief: axis ${axis}`);
   need(/\[pack folder\]/.test(block) && /\[video\]/.test(block), 'brief: placeholders');
-  need(/\*\*A new agent every round\.\*\*/.test(f.brief), 'brief rules: new agent');
-  need(/\*\*Three rounds at most\.\*\*/.test(f.brief), 'brief rules: 3 rounds');
+  need(/\*\*A new agent\.\*\*/.test(f.brief), 'brief rules: new agent');
+  need(/\*\*One review, reported\.\*\*/.test(f.brief), 'brief rules: one review');
+  need(!/\bround\b|RETURN/.test(f.brief), 'brief: no review rounds');
   need(/no `scenes\.js`/.test(f.brief), 'brief rules: no code');
   // The fix table names every issue kind.
   for (const kind of ['CONTRACT', 'DETERMINISM', 'NONDETERMINISTIC', 'ORDER-DEPENDENT', 'NO-BUILD', 'FLASH', 'SMALL', 'LONG', 'OVERLAP']) need(f.fixes.includes(`\`${kind}\``), `fix table: ${kind}`);
@@ -84,23 +85,25 @@ const swap = (key: keyof Files, from: string | RegExp, to: string) => (f: Files)
 const mutants: Record<string, (f: Files) => Files> = {
   'skill skips check.mjs': swap('skill', 'node <skill-dir>/scripts/check.mjs "$WORK"\n', ''),
   'skill skips the pack': swap('skill', /node <skill-dir>\/scripts\/pack\.mjs[^\n]*\n/, ''),
-  'skill reuses the reviewer': swap('skill', 'A new agent every round.', 'Reuse the reviewer.'),
   'skill bar of 7': swap('skill', 'PASS needs 8 or more on every', 'PASS needs 7 or more on every'),
-  'skill RETURN not looped': swap('skill', 'RETURN goes back to `scenes.js`', 'RETURN is noted'),
-  'skill unlimited rounds': swap('skill', 'Three rounds at most', 'Repeat until it passes'),
+  'skill loops the review': swap('skill', 'Do not re-render or review again.', 'Fix, render, and review until it passes.'),
+  'skill skips the quiz': swap('skill', /Run `node <skill-dir>\/scripts\/quiz\.mjs[^`]*`/, 'Optionally quiz'),
+  'skill quiz after narration': swap('skill', 'Run `node <skill-dir>/scripts/quiz.mjs', '## 5. Narrate\n\nRun `node <skill-dir>/scripts/quiz.mjs'),
+  'skill quizzes again': swap('skill', 'The quiz never runs twice.', 'Quiz again after the fix.'),
   'skill allows an invented pass': swap('skill', /Never report a pass that did not\s+happen\./, ''),
   'skill handoff hides no review': swap('skill', ' (or "not reviewed by fresh eyes")', ''),
   'skill review after handoff': swap('skill', '## 8. Fresh review', '## 10. Fresh review'),
   'brief may read code': swap('brief', 'Do not open any other file.', 'Open scenes.js if it helps.'),
-  'brief no verdict rule': swap('brief', 'Verdict: PASS if every score is [bar] or more, otherwise RETURN.', 'Verdict: your call.'),
+  'brief no verdict rule': swap('brief', 'Verdict: PASS if every score is [bar] or more, otherwise BELOW.', 'Verdict: your call.'),
   'brief free-form scores': swap('brief', 'written as `- axis: N`', 'in any form'),
   'brief drops overall axis': swap('brief', /   - overall:[^\n]*\n/, ''),
-  'skill skips verdict.mjs': swap('skill', 'run `verdict.mjs "$WORK"`', 'read it'),
+  'skill skips verdict.mjs': swap('skill', /run\s+`verdict\.mjs "\$WORK"`/, 'read it'),
   'fix table drops NONDETERMINISTIC': swap('fixes', /`NONDETERMINISTIC`/g, 'random'),
   'brief drops builds axis': swap('brief', /   - builds:[^\n]*\n/, ''),
   'brief drops pacing axis': swap('brief', /   - pacing:[^\n]*\n[^\n]*\n/, ''),
   'brief no timestamps': swap('brief', 'three worst problems, each with a timestamp', 'three worst problems'),
-  'brief rules reuse agent': swap('brief', '**A new agent every round.**', '**One agent for all rounds.**'),
+  'brief rules reuse agent': swap('brief', '**A new agent.**', '**Reuse the agent.**'),
+  'brief rules allow rounds': swap('brief', '**One review, reported.**', '**Up to three rounds.**'),
   'fix table drops NO-BUILD': swap('fixes', '`NO-BUILD`', 'no build'),
   'check no reverse pass': swap('check', 'for (const t of [...times].reverse())', 'for (const t of times)'),
   'check culprit on the warm page': swap('check', 'const p = await newPage();', 'const p = page;'),
@@ -283,13 +286,16 @@ const probes: Record<string, (m: Mod) => boolean> = {
     const w = m.beatWindows(TL);
     return w.every((x: { from: number; to: number }, i: number) => x.from < TL.scenes[0].beats[i].t && x.to < (TL.scenes[0].beats[i + 1]?.t ?? 99)) && w[1].from === 1.967 && w[1].to === 5.967 && w[0].from === 0.267;
   },
-  'rounds: next free round, capped at 3': (m) => m.nextRound([]).round === 1 && m.nextRound([1, 2]).round === 3 && m.nextRound([1, 2, 3]).code === 1,
-  'rounds: --round must be new, whole, and 1-3': (m) => m.nextRound([1], '2').round === 2 && m.nextRound([1], '1').code === 2 && m.nextRound([], 'x').code === 2 && m.nextRound([], '1.5').code === 2 && m.nextRound([], '0').code === 2 && m.nextRound([], '4').code === 1,
+  'quiz: three questions, each with an answer': (m) => {
+    const q = (n: number) => Array.from({ length: n }, (_, i) => ({ q: `Q${i}?`, a: `A${i}` }));
+    return m.quizIssues({ quiz: q(3) }).length === 0 && m.quizIssues({}).length === 1 && m.quizIssues({ quiz: q(2) }).length === 1
+      && m.quizIssues({ quiz: [...q(2), { q: 'Q?', a: ' ' }] }).join() === 'quiz[2] has no "a"';
+  },
   'verdict: PASS needs 8 on every axis': (m) => {
     const reply = (pacing: number, said = 'PASS') => `1. A viewer follows a search.\n2. Scores:\n- setup: 9 clear\n- answer: 9 clear\n- example: 8\n- builds: **8**\n- readability: 9/10\n- pacing: ${pacing} ok\n- sync: 8\n- overall: 8\n3. ...\n4. Verdict: ${said}`;
     const pass = m.parseVerdict(reply(8));
     const low = m.parseVerdict(reply(7));
-    return pass.verdict === 'PASS' && !pass.overruled && low.verdict === 'RETURN' && low.overruled && low.below.join() === 'pacing';
+    return pass.verdict === 'PASS' && !pass.overruled && low.verdict === 'BELOW' && low.overruled && low.below.join() === 'pacing';
   },
   'verdict: a missing axis is not a review': (m) => m.parseVerdict('- answer: 9\nVerdict: PASS').missing.length === 7,
   'pack plan times beats and cuts': (m) => {
@@ -305,10 +311,9 @@ const ruleMutants: Record<string, [string | RegExp, string]> = {
   'diff region counts noise': ['if (Math.abs(a[i] - b[i]) <= threshold) continue;', 'if (a[i] === b[i]) continue;'],
   'cold twice ignored': ['const detail = !coldSame', 'const detail = false'],
   'windows on the boundaries': ['const before = (x) => Math.max(0, x - 1 / fps);', 'const before = (x) => x;'],
-  'reused round allowed': ['if (used.has(round)) return {', 'if (false) return {'],
-  'any round string': ['if (!/^[1-9]\\d*$/.test(String(arg)))', 'if (Number.isNaN(Number(arg)))'],
-  'round past the cap': ['if (round > RULES.rounds) return {', 'if (round > 5) return {'],
-  'verdict trusts the word': ["const verdict = missing.length === 0 && below.length === 0 ? 'PASS' : 'RETURN';", "const verdict = said ?? 'RETURN';"],
+  'verdict trusts the word': ["const verdict = missing.length === 0 && below.length === 0 ? 'PASS' : 'BELOW';", "const verdict = said ?? 'BELOW';"],
+  'quiz of any length': ['if (quiz.length !== 3)', 'if (quiz.length < 1)'],
+  'quiz answers optional': ["if (typeof item?.a !== 'string' || !item.a.trim())", 'if (false)'],
   'bar of 7': ['bar: 8,', 'bar: 7,'],
   'flash rule off': ['if (span.words > 0 && held < need && !atEnd)', 'if (false)'],
   'flash fails everything': ["held < need * RULES.flashFail ? 'FAIL' : 'WARN'", "'FAIL'"],
@@ -547,55 +552,81 @@ scene('a', (R) => {
 });
 
 describe.skipIf(!hasFfmpeg)('explain-video pack.mjs', () => {
-  it('writes the reviewer pack, numbers rounds, and refuses a fourth', () => {
-    const work = fakeWork();
+  const testVideo = (work: string) => {
     const TL = JSON.parse(fs.readFileSync(path.join(work, 'timeline.js'), 'utf8').replace(/^window\.TL = /, '').replace(/;\s*$/, ''));
     const video = path.join(work, 'v.mp4');
     expect(spawnSync('ffmpeg', ['-y', '-v', 'error', '-f', 'lavfi', '-i', `testsrc=size=1920x1080:rate=30:duration=${TL.total}`, '-pix_fmt', 'yuv420p', video]).status).toBe(0);
-    for (const round of [1, 2, 3]) {
-      const out = spawnSync(process.execPath, [script('pack.mjs'), work, video], { encoding: 'utf8' });
-      expect(out.status, out.stderr).toBe(0);
-      const report = JSON.parse(out.stdout);
-      expect(report.round).toBe(round);
-      const files = fs.readdirSync(report.pack);
-      for (const f of ['sheet-1fps-1.png', 'beats-1.png', 'phone-360.png', 'strip-cut-miss.png', 'strip-cut-fix.png', 'WORDS.md', 'BRIEF.md']) expect(files, f).toContain(f);
-      const brief = fs.readFileSync(report.brief, 'utf8');
-      expect(brief).toContain(report.pack);
-      expect(brief).toContain(`round ${round} of 3`);
-      expect(brief).not.toMatch(/\[pack folder\]|\[video\]|<!--/);
-      const words = fs.readFileSync(path.join(report.pack, 'WORDS.md'), 'utf8');
-      expect(words).toContain('Why does the same search miss the CDN cache every time');
-      expect(words).toMatch(/- 0:00\.7 Search answers slowly/);
-    }
-    const fourth = spawnSync(process.execPath, [script('pack.mjs'), work, video], { encoding: 'utf8' });
-    expect(fourth.status).toBe(1);
-    expect(JSON.parse(fourth.stdout).next).toMatch(/Never report a pass that did not happen/);
+    return video;
+  };
+  const pack = (work: string, ...a: string[]) => spawnSync(process.execPath, [script('pack.mjs'), work, ...a], { encoding: 'utf8' });
+
+  it('writes one reviewer pack and refuses a second', () => {
+    const work = fakeWork();
+    const video = testVideo(work);
+    const out = pack(work, video);
+    expect(out.status, out.stderr).toBe(0);
+    const report = JSON.parse(out.stdout);
+    expect(report.pack).toBe(path.join(work, 'review'));
+    expect(report).not.toHaveProperty('round');
+    const files = fs.readdirSync(report.pack);
+    for (const f of ['sheet-1fps-1.png', 'beats-1.png', 'phone-360.png', 'strip-cut-miss.png', 'strip-cut-fix.png', 'WORDS.md', 'BRIEF.md']) expect(files, f).toContain(f);
+    const brief = fs.readFileSync(report.brief, 'utf8');
+    expect(brief).toContain(report.pack);
+    expect(brief).not.toMatch(/\[pack folder\]|\[video\]|\[round\]|<!--|\bround\b/);
+    const words = fs.readFileSync(path.join(report.pack, 'WORDS.md'), 'utf8');
+    expect(words).toContain('Why does the same search miss the CDN cache every time');
+    expect(words).toMatch(/- 0:00\.7 Search answers slowly/);
+    const second = pack(work, video);
+    expect(second.status).toBe(1);
+    expect(JSON.parse(second.stdout).next).toMatch(/One review per video/);
   }, 120_000);
 
-  it('refuses a bad or reused --round, and a failed pack uses no round', () => {
+  it('a failed pack writes no review folder', () => {
     const work = fakeWork();
     const bad = path.join(work, 'broken.mp4');
     fs.writeFileSync(bad, 'not a video');
-    const pack = (...a: string[]) => spawnSync(process.execPath, [script('pack.mjs'), work, ...a], { encoding: 'utf8' });
-    expect(pack(bad).status).toBe(2);
-    expect(fs.existsSync(path.join(work, 'review')) ? fs.readdirSync(path.join(work, 'review')) : []).toEqual([]);
-    const TL = JSON.parse(fs.readFileSync(path.join(work, 'timeline.js'), 'utf8').replace(/^window\.TL = /, '').replace(/;\s*$/, ''));
-    const video = path.join(work, 'v.mp4');
-    expect(spawnSync('ffmpeg', ['-y', '-v', 'error', '-f', 'lavfi', '-i', `testsrc=size=1920x1080:rate=30:duration=${TL.total}`, '-pix_fmt', 'yuv420p', video]).status).toBe(0);
-    expect(pack(video, '--round', 'x').status).toBe(2);
-    expect(JSON.parse(pack(video).stdout).round).toBe(1);
-    const again = pack(video, '--round', '1');
-    expect(again.status).toBe(2);
-    expect(again.stderr).toMatch(/round 1 already has a pack/);
-    expect(fs.readdirSync(path.join(work, 'review'))).toEqual(['round-1']);
+    expect(pack(work, bad).status).toBe(2);
+    expect(fs.existsSync(path.join(work, 'review'))).toBe(false);
+    expect(fs.readdirSync(work).filter((f) => f.startsWith('.review-'))).toEqual([]);
+    expect(pack(work, testVideo(work)).status).toBe(0);
   }, 120_000);
+});
+
+describe('explain-video quiz.mjs', () => {
+  const quiz = (work: string) => {
+    const out = spawnSync(process.execPath, [script('quiz.mjs'), work], { encoding: 'utf8' });
+    return { status: out.status, report: out.status === 0 || out.status === 1 ? JSON.parse(out.stdout) : null, stderr: out.stderr };
+  };
+  it('writes a brief with the beats and questions, never the answers, once', () => {
+    const work = fakeWork();
+    const script = JSON.parse(fs.readFileSync(path.join(work, 'script.json'), 'utf8'));
+    const { status, report } = quiz(work);
+    expect(status).toBe(0);
+    expect(report.expected).toEqual(script.quiz);
+    const brief = fs.readFileSync(report.brief, 'utf8');
+    for (const beat of script.scenes.flatMap((s: { beats: string[] }) => s.beats)) expect(brief).toContain(beat);
+    for (const { q, a } of script.quiz) {
+      expect(brief).toContain(q);
+      expect(brief).not.toContain(a);
+    }
+    const again = quiz(work);
+    expect(again.status).toBe(1);
+    expect(again.report.next).toMatch(/The quiz runs once/);
+  });
+  it('blocks a script without three questions and answers', () => {
+    const work = fakeWork(undefined, { title: 't', scenes: [{ id: 'a', beats: ['One beat is here.'] }], quiz: [{ q: 'Why?', a: '' }] });
+    const { status, stderr } = quiz(work);
+    expect(status).toBe(2);
+    expect(stderr).toMatch(/needs 3/);
+    expect(fs.existsSync(path.join(work, 'quiz'))).toBe(false);
+  });
 });
 
 describe('explain-video verdict.mjs', () => {
   const reviewed = (reply: string) => {
     const work = tmp('vs-verdict-');
-    fs.mkdirSync(path.join(work, 'review', 'round-1'), { recursive: true });
-    fs.writeFileSync(path.join(work, 'review', 'round-1', 'REPLY.md'), reply);
+    fs.mkdirSync(path.join(work, 'review'), { recursive: true });
+    fs.writeFileSync(path.join(work, 'review', 'REPLY.md'), reply);
     const out = spawnSync(process.execPath, [script('verdict.mjs'), work], { encoding: 'utf8' });
     return { status: out.status, report: out.stdout ? JSON.parse(out.stdout) : null, stderr: out.stderr, work };
   };
@@ -604,13 +635,16 @@ describe('explain-video verdict.mjs', () => {
     const { status, report, work } = reviewed(`${scores(8)}\n\nVerdict: PASS`);
     expect(status).toBe(0);
     expect(report.verdict).toBe('PASS');
-    expect(JSON.parse(fs.readFileSync(path.join(work, 'review', 'round-1', 'VERDICT.json'), 'utf8')).verdict).toBe('PASS');
+    expect(JSON.parse(fs.readFileSync(path.join(work, 'review', 'VERDICT.json'), 'utf8')).verdict).toBe('PASS');
   });
-  it('overrules a PASS with a 7', () => {
-    const { status, report } = reviewed(`${scores(7)}\n\nVerdict: PASS`);
-    expect(status).toBe(1);
+  it('reports a 7 as BELOW, overrules a PASS, and never asks for another round', () => {
+    const { status, report, work } = reviewed(`${scores(7)}\n\nVerdict: PASS`);
+    expect(status).toBe(0);
+    expect(report.verdict).toBe('BELOW');
     expect(report.overruled).toBe(true);
-    expect(report.next).toMatch(/pacing is under 8: this is a RETURN/);
+    expect(report.next).toMatch(/The reviewer wrote PASS, but pacing is under 8\. BELOW the bar on pacing/);
+    expect(report.next).toMatch(/Do not re-render or review again/);
+    expect(JSON.parse(fs.readFileSync(path.join(work, 'review', 'VERDICT.json'), 'utf8')).verdict).toBe('BELOW');
   });
   it('blocks a reply without every score', () => {
     const { status, stderr } = reviewed('Looks great. Verdict: PASS');

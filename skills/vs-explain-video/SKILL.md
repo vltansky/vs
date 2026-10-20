@@ -10,6 +10,9 @@ example moving through the system, each build landing on the sentence that
 names it. The video is a disposable explainer artifact. Do not widen it into a
 production pipeline, a reusable video framework, or a branded template.
 
+One shot: the text checks run before the voice, then one narration, one
+render, and one review whose score is reported. No step loops back.
+
 ## Flow Contract
 
 - **Kind:** Building block
@@ -27,9 +30,9 @@ production pipeline, a reusable video framework, or a branded template.
 ## How it works
 
 ```text
-script.json (beats) --narrate--> narration.wav + timeline.js (beat starts, subtitles)
+script.json (beats) --quiz (text, one fix)--> --narrate--> narration.wav + timeline.js
 scenes.js (update(t, B)) + motion.js + index.html --render--> stills (audited) | mp4
-stills + check.mjs (over time) --> mp4 --pack.mjs--> new reviewer --RETURN--> scenes.js
+stills + check.mjs (one fix) --> mp4 --pack.mjs--> new reviewer --> score in the handoff
 ```
 
 One 1920x1080 page. Each scene is a function of time: `render.mjs` calls
@@ -64,37 +67,35 @@ WORK="$HOME/.vs/$PROJECT_ID/videos/<topic>"
 node <skill-dir>/scripts/init.mjs "$WORK"
 ```
 
-It copies the stage, the motion kit, fonts, and a worked example
-(`script.json`, `scenes.js`). Read the example before writing your own; it
-shows every pattern below. Rerunning `init.mjs` refreshes the kit and never
-overwrites your script or scenes. Never commit videos, audio, or frames, and
-never write them into the project tree.
+It copies the stage, motion kit, fonts, and a worked example (`script.json`,
+`scenes.js`); read it first. A rerun refreshes the kit, never your files.
+Never commit videos, audio, or frames, or write them into the project tree.
 
 ## 4. Write the beats
 
-`script.json` holds `title`, `brand` (top-left label), `voice`, `speed`,
-`pronounce`, and 4-7 scenes of 2-4 beats. A beat is one spoken sentence, at
-about 150 words a minute. Write the beats in ASD-STE100-style plain English:
-short sentences, one fact per sentence, active voice, one word for one
-meaning. Rules and examples:
+Write `script.json` (beats, `pronounce`, `quiz`) with
+[references/scenarist.md](references/scenarist.md); a subagent can take that
+file alone. Beats are ASD-STE100-style plain English:
 [../vs-internal-shared/references/ste-writing.md](../vs-internal-shared/references/ste-writing.md).
-Pointer only; do not copy those rules here. Ground every claim in the code,
-PR, or source you read.
+Pointer only; do not copy those rules here. Open slowly: scene one says how
+this area works today, what is wrong, and the question, before any example
+(motion-craft rule 0). Carry one concrete example through every scene.
+Ground every claim in the code, PR, or source you read.
 
-Write the beats with [references/scenarist.md](references/scenarist.md); a
-subagent can take that file alone. Open slowly: scene one says how this area
-works today, what is wrong, and the question, before any example (motion-craft
-rule 0). Carry one concrete example through every scene.
-
-`pronounce` changes only what the voice says; subtitles and the screen keep
-the written form. Add every acronym said letter by letter (`"AICM": "A I C M"`)
-and every name the voice gets wrong. When you do not know how the team says a
-name, ask.
+`pronounce` changes only what the voice says, not subtitles or the screen:
+add each acronym said letter by letter (`"AICM": "A I C M"`) and each name the
+voice gets wrong. Ask how the team says a name you do not know.
 
 Run `node <skill-dir>/scripts/narrate.mjs "$WORK/script.json" --dry-run`. It
 writes `narration.md` and estimates the length. Run
 `node <skill-dir>/../vs-write/scripts/check-ste.mjs narration.md` on it. Exit
-1: rewrite the flagged beats. Exit 2 means not checked, not a pass.
+1: rewrite the flagged beats once; do not rerun it. Exit 2 means not
+checked, not a pass.
+
+Run `node <skill-dir>/scripts/quiz.mjs "$WORK"` and give the printed
+`BRIEF.md`, and nothing else, to a new agent. It answers the script's three
+`quiz` questions from the beats alone. A wrong answer or "not said" means a
+beat is missing: add it once. The quiz never runs twice.
 
 ## 5. Narrate
 
@@ -107,8 +108,8 @@ When the user cares about the voice, narrate one beat with 4-6 voices first
 (`KOKORO_VOICE=am_michael`; default `af_heart`) and let them pick.
 
 It then checks without ears (`narration-check.json`). With whisper installed,
-it transcribes each beat; a flagged beat lost or gained words: rewrite it or
-add a `pronounce` entry, and rerun. Without whisper it says the words were not
+it transcribes each beat; a flagged beat lost or gained words: report it in
+the handoff and do not narrate again. Without whisper it says the words were not
 checked; report that (`--require-word-check` exits 2). It levels the track to -16 LUFS.
 
 The API key is a secret. Never print, log, echo, or write the key, and never
@@ -129,11 +130,9 @@ up to a second after, on the word that names it). A beat with no build is a
 slide; redraw it as the example moving through the system. Kit helpers,
 layout grid, and the design rules: [references/motion-craft.md](references/motion-craft.md).
 
-Design rules, short form: dark stage, colors with fixed meaning (accent =
-the thing under discussion, red = broken or removed, green = fixed or kept),
-type 20px or larger, staggered entrances, keep old state dimmed rather than
-removed, at most three regions on screen. Keep the bottom 150px and the
-chapter bar clear; the subtitle and chapter live there.
+Short form: fixed colors (accent = under discussion, red = broken or removed,
+green = fixed or kept), type 20px or larger, staggered entrances, keep old
+state dimmed rather than removed, at most three regions, bottom 150px clear.
 
 ## 7. Check, then render
 
@@ -146,9 +145,11 @@ node <skill-dir>/scripts/check.mjs "$WORK"
 `check.mjs` measures over time: seek drift or randomness (`DETERMINISM`), a
 beat that changes under 0.5% of the frame (`NO-BUILD`), and text that
 flashes, is under 20px, holds too long, or overlaps (`FLASH`, `SMALL`,
-`LONG`, `OVERLAP`). Exit 1: fix `scenes.js` ([references/checks.md](references/checks.md))
-and rerun. Then open each still and look at it: the checks catch geometry
-and timing, not meaning. A frame you did not look at is not verified.
+`LONG`, `OVERLAP`). Exit 1: fix each FAIL in `scenes.js` once
+([references/checks.md](references/checks.md)) and rerun once; what still
+fails goes in the handoff. Then open each still and look at it: the checks
+catch geometry and timing, not meaning. A frame you did not look at is not
+verified.
 
 ```bash
 node <skill-dir>/scripts/render.mjs "$WORK" --out "$WORK/<topic>.mp4"
@@ -156,12 +157,11 @@ node <skill-dir>/scripts/render.mjs "$WORK" --out "$WORK/<topic>.mp4"
 
 Use `--scene <id>` with `--out` for a quick preview of one scene. The full
 render checks the ffprobe duration against the timeline and exits 1 when they
-differ by more than 0.25 s; rerun `narrate.mjs`, then render again.
+differ by more than 0.25 s; report that, do not narrate again.
 
 Subtitles are burned in only, drawn by the stage. Do not add a soft subtitle
-track or a sidecar `.srt`: players show every line twice. Seeking HTML makes
-every frame exact. Do not add HyperFrames, Remotion, or Manim to a project
-for this video.
+track or a sidecar `.srt`: players show every line twice. Do not add
+HyperFrames, Remotion, or Manim to a project for this video.
 
 ## 8. Fresh review
 
@@ -170,19 +170,19 @@ node <skill-dir>/scripts/pack.mjs "$WORK" "$WORK/<topic>.mp4"
 ```
 
 Give the printed `BRIEF.md`, and nothing else, to a new agent that has seen
-none of the work. A new agent every round. Save its reply as `REPLY.md` in
-the round folder and run `verdict.mjs "$WORK"`: PASS needs 8 or more on every
-axis, by the scores. RETURN goes back to `scenes.js` (or the beats): fix,
-check, render, pack. Three rounds at most; after round 3, deliver with the
-last score and open problems. Never report a pass that did not happen.
-Rules: [references/reviewer-brief.md](references/reviewer-brief.md).
+none of the work. Save its reply as `review/REPLY.md` and run
+`verdict.mjs "$WORK"`: PASS needs 8 or more on every axis, by the scores;
+anything less is BELOW. One review: its score and three problems go in the
+handoff. Do not re-render or review again. Never report a pass that did not
+happen. Rules: [references/reviewer-brief.md](references/reviewer-brief.md).
 
 ## 9. Handoff
 
 Give the mp4 path as a `file://` link, the stills folder, and a 2-4 line
-TLDR: the question, the answer, the voice, the length, and the review verdict
-with its round (or "not reviewed by fresh eyes"). Listen-check is not possible
-for the agent; say so. Mark anything not checked as unverified.
+TLDR: the question, the answer, the voice, the length, the review verdict
+with its scores (or "not reviewed by fresh eyes"), and any open quiz gap,
+word flag, or check failure. Listen-check is not possible for the agent; say
+so. Mark anything not checked as unverified.
 
 Topic: $ARGUMENTS
 
