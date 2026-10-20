@@ -51,13 +51,14 @@ function out(value) {
   const jq = flag('--jq') ?? flag('-q');
   const text = typeof value === 'string' ? value : JSON.stringify(value);
   if (jq) {
-    const r = spawnSync('jq', ['-r', jq], { input: text, encoding: 'utf8' });
-    if (r.error && /^(\.[A-Za-z_][\w]*)+$/.test(jq)) {
-      // jq could not start (sandbox EPERM): plain .a.b paths are enough for the skills.
+    // Plain .a.b paths are answered here: inside the Codex sandbox a jq child can
+    // fail to start or hang, and the skills' own scripts only ask for such paths.
+    if (/^(\.[A-Za-z_][\w]*)+$/.test(jq)) {
       const v = jq.slice(1).split('.').reduce((o, k) => (o == null ? o : o[k]), JSON.parse(text));
-      process.stdout.write(`${typeof v === 'object' ? JSON.stringify(v) : v}\n`);
+      process.stdout.write(`${v == null ? 'null' : typeof v === 'object' ? JSON.stringify(v) : v}\n`);
       return;
     }
+    const r = spawnSync('jq', ['-r', jq], { input: text, encoding: 'utf8' });
     process.stdout.write(r.stdout);
     if (r.status) fail(r.stderr, r.status);
     return;

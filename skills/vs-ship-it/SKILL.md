@@ -360,9 +360,13 @@ verified, start one fresh-context background agent that reads and follows
 the final body file path, the record-flow manifest paths (or media files with
 their captions), and the gate flags used in Step 3. No transcript. Do not wait
 for it. Start babysitting in the same turn. The agent renders, uploads, and
-patches only the `<!-- vs:video -->` block of the body through REST
-(`attach.mjs`); it never runs `gh pr edit`. When it returns, report its status
-in one line. A failed video is a note, not a PR blocker.
+patches only the `<!-- vs:video -->` block of the body through REST. The
+video's upload and body edit go only through
+`node <vs-explain-pr>/scripts/attach.mjs --repo <owner/name> --pr <N> --sha <head SHA> --video <final.mp4> --base origin/<base>`,
+also when a finished mp4 already exists or the host has no subagents and you
+run it yourself. Never the Step 3 curl upload, `gh pr edit`, or a whole-body
+rewrite for it. When it returns, report its status in one line. A failed
+video is a note, not a PR blocker.
 
 ### Step 5: Start babysitting
 
