@@ -16,10 +16,15 @@ is_busy() { # $1 path, $2 newline list of cwds
   printf '%s\n' "$2" | grep -qxE -- "$re(/.*)?"
 }
 
+mtime_day() { stat -f %Sm -t %Y-%m-%d "$1" 2>/dev/null || date -r "$1" +%Y-%m-%d 2>/dev/null; }
+
+# Newest of: last commit, and each changed or untracked non-junk path. The worktree root's own
+# mtime is not used: any tool writing at the root bumps it, which kept weeks-idle worktrees RECENT.
 last_activity() {
   local c m
   c=$(git -C "$1" log -1 --format=%cs 2>/dev/null)
-  m=$(stat -f %Sm -t %Y-%m-%d "$1" 2>/dev/null || date -r "$1" +%Y-%m-%d)
+  m=$(git -C "$1" status --porcelain 2>/dev/null | cut -c4- | sed 's/^"//; s/"$//; s/.* -> //' | while read -r f; do
+    [[ "$(basename "${f%/}")" =~ $JUNK_RE ]] || mtime_day "$1/$f"; done | sort | tail -1)
   [[ "$m" > "$c" ]] && echo "$m" || echo "$c"
 }
 

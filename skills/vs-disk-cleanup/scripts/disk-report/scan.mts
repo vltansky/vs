@@ -30,11 +30,34 @@ type Item = {
   id: string; label: string; group: Group; tag: string;
   paths: string[]; effect: string; clean: (paths: string[]) => string[];
   rebuilds?: boolean; // package-manager cache: refills on the next install, so never offered for cleanup
+  // Its command removes only stale or unreferenced entries, so it is offered even while the tool is in use.
+  prune?: boolean;
+  measure?: () => number; // KB, for items whose paths are too many to pass to du
 };
 
 const trash = (paths: string[]) => paths.map((p) => `rm_safe ${q(p)}`);
 const exists = (p: string) => existsSync(p) && !isProtected(p);
 const lsDirs = (p: string) => (existsSync(p) ? readdirSync(p).filter((n) => !n.startsWith('.') && statSync(join(p, n)).isDirectory()) : []);
+const DAY = 86400e3;
+// Direct children of dir not modified for `days` (metadata only). Package caches only add entries,
+// so an old mtime means the entry has not been re-fetched since.
+const staleIn = (dir: string, days: number, keep: (n: string) => boolean = () => true) => (existsSync(dir)
+  ? readdirSync(dir).filter(keep).map((n) => join(dir, n)).filter((p) => { try { return statSync(p).mtimeMs < Date.now() - days * DAY; } catch { return false; } })
+  : []);
+const sumKb = (paths: string[]) => paths.reduce((s, p) => { try { return s + Math.ceil(statSync(p).size / 1024); } catch { return s; } }, 0);
+// Gradle writes into caches/<version> on every build that runs that version; a long-quiet
+// version dir is one no project builds with any more. The newest version is always kept.
+const gradleVersions = lsDirs(h('.gradle/caches')).filter((n) => /^\d+\.\d+/.test(n))
+  .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+const gradleStale = gradleVersions.slice(0, -1).filter((v) => lastTouched([h(`.gradle/caches/${v}`)]) < Date.now() - 30 * DAY);
+const gradleStalePaths = gradleStale.flatMap((v) => [h(`.gradle/caches/${v}`),
+  ...lsDirs(h('.gradle/wrapper/dists')).filter((n) => n.startsWith(`gradle-${v}-`)).map((n) => h(`.gradle/wrapper/dists/${n}`))]);
+const codexLeftovers = [
+  ...staleIn(h('.codex/.tmp/marketplaces/.staging'), 1),
+  ...staleIn(h('.codex/.tmp/marketplaces'), 1, (n) => n.startsWith('marketplace-backup-')),
+  ...staleIn(h('.cache/codex-runtimes'), 1, (n) => n.startsWith('codex-runtime-install-')),
+];
+const yarnStaleZips = staleIn(h('.yarn/berry/cache'), 60, (n) => n.endsWith('.zip'));
 
 const items: Item[] = [
   // ---- safe to remove: caches that the owning tool re-downloads on demand
@@ -42,12 +65,27 @@ const items: Item[] = [
     effect: 'Next npm/npx install re-downloads packages. No project data lost.', clean: () => ['npm cache clean --force'] },
   { id: 'yarn-berry-cache', rebuilds: true, label: 'Yarn Berry global cache', group: 'safe', tag: 'cache', paths: [h('.yarn/berry/cache')],
     effect: 'Yarn 2+ re-fetches packages on next install (slower first install).', clean: () => ['(cd "$HOME" && yarn cache clean --mirror)'] },
-  { id: 'pnpm-store', rebuilds: true, label: 'pnpm content store', group: 'safe', tag: 'cache', paths: [h('Library/pnpm/store')],
-    effect: 'prune only drops packages no project references; referenced ones stay.', clean: () => ['pnpm store prune'] },
+  { id: 'pnpm-store', prune: true, label: 'pnpm content store', group: 'safe', tag: 'cache', paths: [h('Library/pnpm/store')],
+    effect: 'Prune drops only packages no project references (often a fraction of the size shown); referenced ones stay.', clean: () => ['pnpm store prune'] },
   { id: 'pnpm-meta', rebuilds: true, label: 'pnpm metadata cache', group: 'safe', tag: 'cache', paths: [h('Library/Caches/pnpm')],
     effect: 'Registry metadata is re-fetched on next install.', clean: trash },
-  { id: 'uv-cache', rebuilds: true, label: 'uv cache', group: 'safe', tag: 'cache', paths: [h('.cache/uv')],
-    effect: 'uv re-downloads wheels; existing venvs keep working.', clean: () => ['uv cache clean'] },
+  { id: 'npx-stale', prune: true, label: 'npx envs unused 30+ days', group: 'safe', tag: 'cache', paths: staleIn(h('.npm/_npx'), 30),
+    effect: 'Each is one package npx installed for a one-off run; npx reinstalls it on the next run.',
+    clean: () => ['find "$HOME/.npm/_npx" -mindepth 1 -maxdepth 1 -type d -mtime +30 -exec rm -rf {} +'] },
+  { id: 'yarn-stale-zips', prune: true, label: 'Yarn Berry zips unused 60+ days', group: 'safe', tag: 'cache', paths: [h('.yarn/berry/cache')],
+    measure: () => sumKb(yarnStaleZips),
+    effect: `${yarnStaleZips.length} package zips not re-fetched for 60 days; Yarn re-downloads any a project still needs.`,
+    clean: () => ['find "$HOME/.yarn/berry/cache" -maxdepth 1 -name "*.zip" -mtime +60 -delete'] },
+  { id: 'gradle-stale-versions', prune: true, label: `Gradle versions unused 30+ days (${gradleStale.join(', ') || 'none'})`, group: 'safe', tag: 'cache',
+    paths: gradleStalePaths, effect: 'Caches and wrapper of Gradle versions no recent build ran; a project pinned to one re-downloads it.',
+    clean: (p) => ['gradle --stop || true', ...trash(p)] },
+  { id: 'codex-leftovers', prune: true, label: 'Codex update leftovers', group: 'safe', tag: 'cache', paths: codexLeftovers,
+    effect: 'Marketplace upgrade staging dirs, marketplace backups and runtime installs older than a day that Codex never deleted. The live marketplaces and runtime stay.',
+    clean: () => ['find "$HOME/.codex/.tmp/marketplaces/.staging" -mindepth 1 -maxdepth 1 -mtime +1 -exec rm -rf {} +',
+      'find "$HOME/.codex/.tmp/marketplaces" -mindepth 1 -maxdepth 1 -name "marketplace-backup-*" -mtime +1 -exec rm -rf {} +',
+      'find "$HOME/.cache/codex-runtimes" -mindepth 1 -maxdepth 1 -name "codex-runtime-install-*" -mtime +1 -exec rm -rf {} +'] },
+  { id: 'uv-cache', prune: true, label: 'uv cache', group: 'safe', tag: 'cache', paths: [h('.cache/uv')],
+    effect: 'Prune drops only entries no longer used (often a fraction of the size shown); existing venvs keep working.', clean: () => ['uv cache prune'] },
   { id: 'pip-cache', rebuilds: true, label: 'pip cache', group: 'safe', tag: 'cache', paths: [h('Library/Caches/pip')],
     effect: 'pip re-downloads wheels on next install.', clean: () => ['pip3 cache purge'] },
   { id: 'gradle-caches', rebuilds: true, label: 'Gradle caches', group: 'safe', tag: 'cache', paths: [h('.gradle/caches')],
@@ -79,7 +117,7 @@ const items: Item[] = [
     effect: 'App caches only; rebuilt on launch. Quit Codex first.', clean: trash },
 
   // ---- let me review first
-  { id: 'codex-tmp', label: 'Codex .tmp', group: 'review', tag: 'session', paths: [h('.codex/.tmp')],
+  { id: 'codex-tmp', label: 'Codex .tmp', group: 'review', tag: 'session', paths: existsSync(h('.codex/.tmp')) ? readdirSync(h('.codex/.tmp')).filter((n) => n !== 'marketplaces').map((n) => h(`.codex/.tmp/${n}`)) : [],
     effect: 'Codex scratch space. Safe only while Codex is fully quit; a running task would lose its temp files.', clean: trash },
   { id: 'codex-sessions', label: 'Codex session history', group: 'review', tag: 'session',
     paths: [h('.codex/sessions'), h('.codex/archived_sessions'), h('.codex/thread_history_1.sqlite')],
@@ -124,7 +162,8 @@ const items: Item[] = [
     clean: (p) => [`rustup toolchain uninstall ${p.map((x) => x.split('/').pop()).join(' ')}`] },
   { id: 'verdaccio', label: 'Verdaccio local registry', group: 'review', tag: 'data', paths: [h('.local/share/verdaccio')],
     effect: 'Packages published only to your local registry are lost.', clean: trash },
-  { id: 'codex-runtimes', label: 'Codex runtimes cache', group: 'review', tag: 'cache', paths: [h('.cache/codex-runtimes')],
+  { id: 'codex-runtimes', label: 'Codex runtimes cache', group: 'review', tag: 'cache',
+    paths: lsDirs(h('.cache/codex-runtimes')).filter((n) => !n.startsWith('codex-runtime-install-')).map((n) => h(`.cache/codex-runtimes/${n}`)),
     effect: 'Likely re-downloaded by Codex; unverified, so review.', clean: trash },
 ];
 
@@ -153,9 +192,10 @@ for (const [label, paths] of wtGroups) {
 // ---- project build artifacts, grouped per project (worktrees excluded: counted above)
 const ARTIFACT_NAMES = ['node_modules', '.next', '.turbo', '.angular', '.parcel-cache', '.nx', 'target', '.venv', 'venv', 'Pods', '.expo'];
 const nameExpr = ARTIFACT_NAMES.flatMap((n, i) => (i ? ['-o', '-name', n] : ['-name', n]));
-// Common code roots; realpath dedupes case-insensitive twins (~/Projects vs ~/projects on APFS).
+// Common code roots. realpathSync.native canonicalizes case, so ~/Projects and ~/projects on a
+// case-insensitive APFS volume collapse to one root; plain realpathSync keeps both and doubles every row.
 const artRoots = [...new Set(['Projects', 'projects', 'dev', 'src', 'code', 'repos', 'work', 'conductor']
-  .map(h).filter(existsSync).map((p) => realpathSync(p)))];
+  .map(h).filter(existsSync).map((p) => realpathSync.native(p)))];
 const found = spawnSync('find', [...artRoots, '-xdev', '-type', 'd', '(', '-name', 'worktrees', '-o', '-name', '.git', ')', '-prune', '-o',
   '-type', 'd', '(', ...nameExpr, ')', '-prune', '-print'], { encoding: 'utf8', maxBuffer: 1 << 26 }).stdout.split('\n').filter(Boolean);
 const artGroups = new Map<string, string[]>();
@@ -208,14 +248,14 @@ const ACTIVE_DAYS = 14; // safe items touched more recently are in use and would
 const MIN_KB = 200 * 1024; // hide items under 200 MB
 const GROW_KB = 100 * 1024; // flag growth >= 100 MB and >= 5%
 const results = items.map((it) => {
-  const kb = du(it.paths);
+  const kb = it.measure ? it.measure() : du(it.paths);
   const before = prev.get(it.id);
   const delta = before === undefined ? null : kb - before;
   const grew = delta !== null && delta >= GROW_KB && delta >= before! * 0.05;
   const touched = lastTouched(it.paths.filter(exists));
   const active = touched > Date.now() - ACTIVE_DAYS * 86400e3;
   // Only "safe" items get excluded for activity; "review" items are a human call either way.
-  const excluded = it.rebuilds ? 'rebuilds' : it.group === 'safe' && active ? 'active' : null;
+  const excluded = it.rebuilds ? 'rebuilds' : it.group === 'safe' && active && !it.prune ? 'active' : null;
   return { id: it.id, label: it.label, group: excluded ? 'excluded' : it.group, excluded, active,
     lastUsed: touched ? new Date(touched).toISOString() : null, tag: it.tag, kb, before: before ?? null, delta, grew, isNew: prevAt !== '' && before === undefined,
     paths: it.paths.filter(exists).map(tilde), effect: it.effect,
