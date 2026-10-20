@@ -79,10 +79,12 @@ text = text
 function prose(line) {
   return line
     .replace(/`[^`]*`/g, 'CODE')
+    // Strip tags before URL normalization, which otherwise consumes their closing
+    // delimiters and makes adjacent badge attributes look like a prose sentence.
+    .replace(/<\/?[A-Za-z][^>]*>/g, ' ')
     .replace(/!\[[^\]]*\]\([^)]*\)/g, ' ')
     .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1')
     .replace(/https?:\/\/\S+/g, 'URL')
-    .replace(/<\/?[A-Za-z][^>]*>/g, ' ')
     .replace(/\{[^}]*\}/g, ' ')
     .replace(/[*_]{1,3}([^*_]+)[*_]{1,3}/g, '$1')
     .trim();

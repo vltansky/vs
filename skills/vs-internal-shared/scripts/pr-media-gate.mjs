@@ -420,9 +420,12 @@ const notCoveredLines = sectionLines.filter((line) => NOT_COVERED_LABEL.test(lin
 // boxes the human runs. Inline prose after the label, or boxes after `none`, fail.
 const CHECKBOX = /^[ \t]*[-*][ \t]+\[[ xX]\][ \t]+(.*)$/;
 const TICKED = /^[ \t]*[-*][ \t]+\[[xX]\]/;
+// Deleted guards still carry coverage intent. Accept the existing removed label
+// without letting automated-result bullets substitute for behavioral coverage.
+const COVERAGE_LABEL = /^[ \t]*[-*][ \t]+\*\*Coverage(?: removed)?:\*\*[ \t]+\S/i;
 const testLines = sectionLines.filter(
   (line) => /^[ \t]*[-*][ \t]+\S/.test(line) && !NOT_COVERED_LABEL.test(line) && !CHECKBOX.test(line)
-    && (verificationSection === null || /^[ \t]*[-*][ \t]+\*\*Coverage:\*\*[ \t]+\S/.test(line)),
+    && (verificationSection === null || COVERAGE_LABEL.test(line)),
 );
 const checklist = (() => {
   const at = sectionLines.findIndex((line) => NOT_COVERED_LABEL.test(line));

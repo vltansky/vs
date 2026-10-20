@@ -11,6 +11,28 @@ and remaining gaps. Do not repeat the comparison in User Impact, Evidence,
 Tests, or a separate implementation section. Replace stale verification history
 with current results; retain revision provenance only where it matters.
 
+**Retention before compression.** Make a private fact ledger from the source:
+conditions, failure consequences, unchanged behavior, recovery/deploy effects,
+evidence limits, media URLs and revision mapping, and real rejected alternatives.
+Check the final body against it. Keep each fact once; fold secondary rationale
+rather than deleting it to meet a bullet or line budget. Retain exact commands,
+outputs and security constraints; do not infer a new assurance from a shorter summary.
+
+**Do not expand a rewrite to fill the format.** Compare the full-body word count
+before finalizing: keep the rewrite no longer than the source. Growth is allowed
+only for mandatory proof, risk or template detail the source lacked; name that
+exception in the handoff. Shorten boilerplate first, never required evidence.
+For historical inputs, state provenance once outside the body instead of repeating
+it in every result. Preserve known revision limits where they qualify a claim.
+Unknown templates or missing inputs are not reviewer tasks; do not invent gaps,
+checklists or verification results merely because the supplied context lacks them.
+Keep actionable, source-supported unverified behavior in Verification.
+
+**Final shape check.** Use `**Before:**` and `**After:**` outside code fences;
+table-only proof uses the plain headers `| Before | After |` without colons.
+Keep the final collapsed Walkthrough for multiple architectural areas, even
+when compressing. Check these directly in description-only replays; never run
+the git-aware gate against an unrelated checkout to validate a historical PR.
 
 Write the description directly from the live conversation, scoped diff, runtime
 evidence, and existing test results. Do not ask the user to write or approve PR
@@ -387,6 +409,9 @@ runner `include` glob, a `checks/` folder) and pass it to the gate as
   `<path or case>` — the behavior it proves, in behavior words, not the test
   name restated. List deleted tests too, with the behavior they no longer
   guard. Keep it to about 5 lines; group many tests into one line per behavior.
+  Use the canonical label for deletions too: `- **Coverage:** Deleted <guard> —
+  <behavior no longer guarded>`. Existing `Coverage removed:` labels are accepted
+  by the gate; automated results alone never count as coverage intent.
 - **Reviewer checklist.** End the block with `**Not covered:**`. When changed
   behavior has no test, leave the label alone and list it under it as `- [ ]`
   checkboxes the reviewer must verify before merge. Each box is one concrete
@@ -431,6 +456,8 @@ backtick-heavy Markdown through inline `--body` or `gh pr edit --body`.
 ### Walkthrough
 
 Only include a Walkthrough when the change crosses multiple architectural areas.
+Supporting tests, docs, ADRs, lockfiles and release metadata do not create an
+architectural area by themselves; count independent behavior/ownership boundaries.
 Omit it for a single-area change; file count is not the trigger. There is no size gate and no child agent: ship-it writes it
 from the scoped diff while it writes the rest of the body, with no extra runs.
 

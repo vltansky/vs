@@ -44,6 +44,14 @@ describe('compact body gate integration', () => {
     const commandsOnly = compact.replace('- **Coverage:** checkout test proves retry after removing an expired coupon', '- **Automated:** npm test passed');
     expect(rawGate(cwd, commandsOnly).status).toBe(1);
   });
+  it('accepts removed-test coverage intent without treating automated results as coverage', () => {
+    const cwd = repoWithBranch(['scripts/removed-guard.test.mjs']);
+    const removed = compact.replace('- **Coverage:** checkout test proves retry after removing an expired coupon',
+      '- **Coverage removed:** the deleted guard no longer checks the removed workflow');
+    const result = rawGate(cwd, removed);
+    expect(result.status, result.stderr).toBe(0);
+    expect(result.json.tests.lines).toBe(1);
+  });
   it('does not count HTML video embeds as screenshots', () => {
     const cwd = repoWithBranch(['src/components/Checkout.tsx']);
     const videosOnly = compact.replace(HOSTED_IMAGE, '<video src="https://github.com/user-attachments/assets/clip-before"></video>\n<video src="https://github.com/user-attachments/assets/clip-after"></video>');
