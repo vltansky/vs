@@ -34,9 +34,10 @@ delays the PR: it starts only after Step 4.
 1. **User words win.** "with video", "make a video", or `--video` means yes;
    "no video", "skip the video", or `--no-video` means no. An explicit word
    overrides the rubric. Do not ask. Direct-push mode never makes a video.
-2. **Else classify** from `git diff --shortstat origin/<default>...HEAD` plus
-   the working-tree diff, and the changed paths (the same paths that decide
-   Surfaces):
+2. **Else classify** from `git diff --shortstat origin/<default>...HEAD`, the
+   working-tree diff, and untracked files (`git status --porcelain`; count the
+   lines of each new file, because `--shortstat` does not see them), plus the
+   changed paths (the same paths that decide Surfaces):
    - **Skip silently** when any is true: only docs, skill text, comments, tests,
      config, or dependency files changed; a typo, rename, format, or version
      bump; fewer than 150 changed lines and no user-facing flow; a refactor
@@ -44,7 +45,8 @@ delays the PR: it starts only after Step 4.
    - **Offer** when any is true: a user-facing flow changed (frontend paths
      with a click, form, navigation, or multi-step change, or a new screen);
      300 or more changed lines outside tests and docs; two or more Surfaces
-     (UI, Endpoint, Schema, CLI, MCP); a new user-facing feature.
+     (UI, Endpoint, Schema, CLI, MCP); a new user-facing feature or screen,
+     also when it is one new uncommitted file.
    - Neither list matches: skip silently.
 3. **Offer means one question:** `Want a video explainer for this PR? (yes/no)`.
    Ask it once, before Step 1, and wait for the answer: end the turn with the
