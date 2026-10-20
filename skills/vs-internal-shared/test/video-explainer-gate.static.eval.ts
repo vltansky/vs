@@ -56,6 +56,14 @@ describe('pr-media-gate ignores the video explainer block', () => {
     expect(r.json.beforeAfter).toEqual({ before: false, after: false });
   });
 
+  it('ignores a marker quoted in prose, so it cannot swallow Verification', () => {
+    const cwd = repo(['src/components/Checkout.tsx', 'src/checkout.test.ts']);
+    const quoted = body(IMAGES.replace('**Before**', '**Before**'), EXPLAINER).replace('**After** inline error', '**After** inline error; the video lands in a `<!-- vs:video -->` block');
+    const r = gate(cwd, quoted);
+    expect(r.json.explainer).toMatchObject({ present: true, videos: 1, ok: true });
+    expect(r.json.tests.section).toBe(true);
+  });
+
   it('passes the same body as without the explainer when real proof is there', () => {
     const cwd = repo(['src/components/Checkout.tsx', 'src/checkout.test.ts']);
     const plain = gate(cwd, body(`${IMAGES}\n${VIDEOS}`), '--functional');

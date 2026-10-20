@@ -227,12 +227,13 @@ const rawBody = fs.readFileSync(bodyPath, 'utf8');
 // The PR video explainer (vs-explain-pr) is narration over the PR, not proof: its
 // marked block is cut before every check, so its video never counts as a
 // Before/After or functional video and its words never count as markers.
-const VIDEO_BLOCK = /<!-- vs:video -->[\s\S]*?<!-- \/vs:video -->/g;
+// Markers count only on their own line, so prose that quotes `<!-- vs:video -->` is not a block.
+const VIDEO_BLOCK = /^<!-- vs:video -->[ \t]*\r?$[\s\S]*?^<!-- \/vs:video -->[ \t]*\r?$/gm;
 const videoBlocks = [...rawBody.matchAll(VIDEO_BLOCK)];
 const body = rawBody.replace(VIDEO_BLOCK, '');
 const explainerReasons = [];
 for (const match of videoBlocks) {
-  if (!/^<!-- vs:video -->\s*<details\b[^>]*>\s*<summary\b[^>]*>\s*Video explainer\b[\s\S]*<\/details>\s*<!-- \/vs:video -->$/i.test(match[0]))
+  if (!/^<!-- vs:video -->\s*<details\b[^>]*>\s*<summary\b[^>]*>\s*Video explainer\b[\s\S]*<\/details>\s*<!-- \/vs:video -->[ \t]*\r?$/i.test(match[0]))
     explainerReasons.push('Video explainer block must be one collapsed <details> whose <summary> starts "Video explainer"');
   const walkAt = rawBody.search(/<details\b[^>]*>\s*<summary\b[^>]*>\s*(?:<(?:b|strong)>\s*)?Walkthrough\b/i);
   if (walkAt !== -1 && match.index > walkAt) explainerReasons.push('Video explainer block must come before the Walkthrough');

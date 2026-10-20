@@ -166,6 +166,16 @@ describe('pr-video.mjs helpers', () => {
     ],
   };
 
+  it('leaves a marker quoted in prose alone', async () => {
+    const { upsertVideoBlock, videoBlock } = await import('../scripts/pr-video.mjs');
+    const block = videoBlock({ url: 'https://github.com/user-attachments/assets/x', sha: 'abcdef1234', seconds: 50, reviewed: false, wordsChecked: true });
+    const prose = 'It goes in a `<!-- vs:video -->` block.\n\n## Verification\n\n- keep me\n';
+    const out = upsertVideoBlock(prose, block);
+    expect(out.startsWith(prose.trimEnd())).toBe(true);
+    expect(out).toContain('- keep me');
+    expect(upsertVideoBlock(out, block)).toBe(out);
+  });
+
   it('accepts the five roles in order', async () => {
     const { lintScript } = await lib();
     expect(lintScript(good).problems).toEqual([]);

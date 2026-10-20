@@ -89,9 +89,9 @@ const WALKTHROUGH = /<details\b[^>]*>\s*<summary\b[^>]*>\s*(?:<(?:b|strong)>\s*)
 // Replace the marked block, or insert it before the Walkthrough (else at the end).
 // Everything outside the markers stays byte for byte.
 export function upsertVideoBlock(body, block) {
-  const start = body.indexOf(VIDEO_START);
-  const end = body.indexOf(VIDEO_END);
-  if (start !== -1 && end > start) return body.slice(0, start) + block + body.slice(end + VIDEO_END.length);
+  // Markers count only on their own line, so prose that quotes the marker is left alone.
+  const existing = /^<!-- vs:video -->[ \t]*\r?$[\s\S]*?^<!-- \/vs:video -->[ \t]*\r?$/m.exec(body);
+  if (existing) return body.slice(0, existing.index) + block + body.slice(existing.index + existing[0].length);
   const walk = body.search(WALKTHROUGH);
   if (walk !== -1) return `${body.slice(0, walk)}${block}\n\n${body.slice(walk)}`;
   return `${body.replace(/\s*$/, '')}\n\n${block}\n`;
