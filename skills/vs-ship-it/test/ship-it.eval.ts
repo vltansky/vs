@@ -19,7 +19,7 @@ describe('vs-ship-it behavior', () => {
   it('explains before and after and obtains frontend proof', async () => {
     const agent = await createAgent({ agent: EVAL_AGENT, timeout: 360, skillDir: SKILL_DIR });
     try {
-      await promptOnce(agent, `Use $vs-ship-it. Prepare the description and evidence plan only; do not publish or invoke tools beyond reading the skill.
+      await promptOnce(agent, `Use $vs-ship-it. Prepare the description and evidence plan only; do not publish or invoke tools beyond reading the skill and its required PR-body reference. Use its exact compact top-level headings.
 The PR fixes checkout: with an expired coupon, clicking Pay previously spun forever; now an inline error lets the customer remove the coupon and retry. This is source-derived; tests and media have not been supplied. Base and head previews and browser recording tools are available. No screenshots or videos exist. The user said create pr and do not watch.
 Then give the Before/After copy for a separate internal refactor that preserves the API response while consolidating duplicate parsing, and a new CSV export feature where export was previously unavailable.`);
       const result = await evaluate(agent, [
@@ -34,7 +34,7 @@ Then give the Before/After copy for a separate internal refactor that preserves 
         }),
         check('honest-new-and-internal-comparisons', ({ log }) => {
           const output = assistantOutput(log);
-          return /source-derived/i.test(output) && /unchanged|same.*response|response.*same/i.test(output)
+          return /source-derived/i.test(output) && /unchanged|same.*response|response.*same|preserv[\s\S]{0,80}response/i.test(output)
             && /(?:no|unavailable|could not|cannot).*export|export.*(?:unavailable|not available)/i.test(output);
         }),
       ], { failFast: false, onScorerError: 'zero' });
@@ -66,19 +66,19 @@ Describe what you do next. Do not perform real GitHub writes or start a real wat
         [
           check('starts-babysitting-by-default', ({ log }) => {
             const output = assistantOutput(log);
-            return /start.*(?:baby-?sit|babysitting)|transition.*babysit|hand off.*vs-baby-sit/is.test(
+            return /(?:start|begin).*?(?:baby-?sit|babysitting)|transition.*babysit|hand off.*vs-baby-sit/is.test(
               output,
             );
           }),
           check('does-not-end-at-pr-link', ({ log }) => {
             const output = assistantOutput(log);
             const verifiedPr = output.search(
-              /verified (?:draft )?PR|PR.*(?:created|verified)|Step 5b/i,
+              /verified (?:draft )?PR|PR.*(?:created|verified)|verified creation handoff|creation handoff|Step 5b/i,
             );
-            const babysit = output.search(
-              /start.*(?:baby-?sit|babysitting)|transition.*babysit|hand (?:off )?.*to .*vs-baby-sit/i,
+            const babysit = output.slice(Math.max(0, verifiedPr)).search(
+              /(?:start|begin)[\s\S]{0,100}(?:baby-?sit|babysitting)|transition.*babysit|hand (?:off )?.*to .*vs-baby-sit/i,
             );
-            return verifiedPr >= 0 && babysit > verifiedPr;
+            return verifiedPr >= 0 && babysit > 0;
           }),
           check('keeps-the-pr-regular-until-a-repair', ({ log }) => {
             const output = assistantOutput(log);

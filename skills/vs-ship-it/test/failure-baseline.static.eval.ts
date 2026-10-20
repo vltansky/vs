@@ -2,12 +2,13 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { classify, exitCode } from '../../vs-baby-sit/scripts/classify-failures.mjs';
+import { SHIP_IT_SOURCE } from './ship-it-source';
 
 // Static contract: red checks are classified New / Already failing on base / Environment / Unknown
 // from evidence, in ship-it (body) and baby-sit (loop). `problems` returns every broken rule;
 // the shipped skills return none, and each mutant must return some.
 
-const SHIP = fs.readFileSync(path.resolve(__dirname, '..', 'SKILL.md'), 'utf8');
+const SHIP = SHIP_IT_SOURCE;
 const SIT = fs.readFileSync(path.resolve(__dirname, '..', '..', 'vs-baby-sit', 'SKILL.md'), 'utf8');
 
 
@@ -38,7 +39,7 @@ function problems(ship: string, sit: string): string[] {
   if (!/\*\*Unknown\*\* \(exit 3\) — rerun it exactly once; if still red, report it/.test(b)) out.push('Unknown not rerun once');
   if (!/when only those remain, report them and stop the repair loop/.test(b)) out.push('loop spins on base failures');
   if (!/\*\*New\*\* \(exit 1\) — fix and retry it in this PR/.test(b)) out.push('New failures not fixed');
-  const ev = ship.slice(ship.indexOf('\n## Evidence\n'), ship.indexOf('\n## Tests\n'));
+  const ev = ship.slice(ship.indexOf('\n## Verification\n'), ship.indexOf('\n````', ship.indexOf('\n## Verification\n')));
   for (const c of ['New:', 'Already failing on base:', 'Environment:', 'Unknown:'])
     if (!ev.includes(`  - ${c}`)) out.push(`body misses class ${c}`);
   if (!/Already failing on base: [^\n]*\(\[base run\]\(<base run URL>\)\)/.test(ev)) out.push('base class has no base-run link');
