@@ -8,9 +8,11 @@ description: "Use vs-ship-it when the user asks to create or open a PR; says cre
 Create the PR quickly and independently. Ask the user only when a decision is
 both necessary and impossible to infer safely. A missing optional input is a
 reason to omit or mark a gap, not a reason to stop PR creation.
-The [Video explainer check](#video-explainer-check) runs before anything else.
-For a big user-facing change it adds a one-line offer to the opening message
-and then continues: it never ends the turn or waits for an answer.
+The [Video explainer check](#video-explainer-check) runs before anything else,
+also when the user only says "create pr". For a big user-facing change (a new
+screen or multi-step flow counts, even as one uncommitted file) your first
+message carries its one-line offer. Then continue: the offer never ends the
+turn or waits for an answer.
 
 ## Routing precedence
 
