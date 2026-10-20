@@ -8,6 +8,10 @@ description: "Use vs-ship-it when the user asks to create or open a PR; says cre
 Create the PR quickly and independently. Ask the user only when a decision is
 both necessary and impossible to infer safely. A missing optional input is a
 reason to omit or mark a gap, not a reason to stop PR creation.
+The one planned exception is the [Video explainer check](#video-explainer-check):
+it runs before anything else and, only for a big user-facing change, asks one
+yes/no question. "Create pr", "ship it", or "do not watch" is not an answer to
+it.
 
 ## Routing precedence
 
@@ -43,7 +47,8 @@ delays the PR: it starts only after Step 4.
      (UI, Endpoint, Schema, CLI, MCP); a new user-facing feature.
    - Neither list matches: skip silently.
 3. **Offer means one question:** `Want a video explainer for this PR? (yes/no)`.
-   Ask it once, before Step 1, and wait for the answer. Yes: run Step 4b after
+   Ask it once, before Step 1, and wait for the answer: end the turn with the
+   question, before any commit, push, or `gh` call. Yes: run Step 4b after
    the PR is verified. No, or no clear yes: no video, and do not ask again in
    this ship.
 

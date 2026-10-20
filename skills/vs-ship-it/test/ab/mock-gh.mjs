@@ -26,8 +26,24 @@ const flag = (name) => {
 };
 const has = (name) => args.includes(name);
 const git = (...a) => execFileSync('git', a, { encoding: 'utf8' }).trim();
+// The Codex Linux sandbox can refuse to spawn git from this shim (EPERM), so the
+// refs the mock needs are read straight from the git directories as a fallback.
+const readRef = (gitDir, ref) => {
+  const loose = path.join(gitDir, ref);
+  if (fs.existsSync(loose)) return fs.readFileSync(loose, 'utf8').trim();
+  const packed = path.join(gitDir, 'packed-refs');
+  if (!fs.existsSync(packed)) return null;
+  const line = fs.readFileSync(packed, 'utf8').split('\n').find((l) => l.endsWith(` ${ref}`));
+  return line ? line.split(' ')[0] : null;
+};
 const remoteSha = (branch) => {
-  try { return git('--git-dir', REMOTE, 'rev-parse', `refs/heads/${branch}`); } catch { return null; }
+  try { return git('--git-dir', REMOTE, 'rev-parse', `refs/heads/${branch}`); } catch { return readRef(REMOTE, `refs/heads/${branch}`); }
+};
+const currentBranch = () => {
+  try { return git('branch', '--show-current'); } catch {
+    const head = fs.readFileSync(path.join(process.env.GIT_DIR ?? '.git', 'HEAD'), 'utf8').trim();
+    return head.replace(/^ref: refs\/heads\//, '');
+  }
 };
 const fail = (msg, code = 1) => { process.stderr.write(`${msg}\n`); process.exit(code); };
 
@@ -36,6 +52,12 @@ function out(value) {
   const text = typeof value === 'string' ? value : JSON.stringify(value);
   if (jq) {
     const r = spawnSync('jq', ['-r', jq], { input: text, encoding: 'utf8' });
+    if (r.error && /^(\.[A-Za-z_][\w]*)+$/.test(jq)) {
+      // jq could not start (sandbox EPERM): plain .a.b paths are enough for the skills.
+      const v = jq.slice(1).split('.').reduce((o, k) => (o == null ? o : o[k]), JSON.parse(text));
+      process.stdout.write(`${typeof v === 'object' ? JSON.stringify(v) : v}\n`);
+      return;
+    }
     process.stdout.write(r.stdout);
     if (r.status) fail(r.stderr, r.status);
     return;
@@ -49,7 +71,7 @@ function ciDone(pr) {
 
 function currentPr(state, explicit) {
   if (explicit && /^\d+$/.test(explicit)) return state.prs.find((p) => p.number === Number(explicit));
-  const branch = explicit && !explicit.startsWith('-') ? explicit : git('branch', '--show-current');
+  const branch = explicit && !explicit.startsWith('-') ? explicit : currentBranch();
   return state.prs.find((p) => p.headRefName === branch);
 }
 
@@ -64,7 +86,8 @@ function refresh(state, pr) {
 }
 
 function changedFiles(pr) {
-  const files = git('--git-dir', REMOTE, 'diff', '--name-only', `${pr.baseRefName}...${pr.headRefName}`);
+  let files = '';
+  try { files = git('--git-dir', REMOTE, 'diff', '--name-only', `${pr.baseRefName}...${pr.headRefName}`); } catch { return 1; }
   return files ? files.split('\n').length : 0;
 }
 
@@ -112,7 +135,7 @@ else if (cmd === 'auth') {
 } else if (cmd === 'repo' && sub === 'view') {
   out(pick({ nameWithOwner: REPO, name: 'shop', owner: { login: 'acme' }, url: `https://github.com/${REPO}`, defaultBranchRef: { name: 'main' }, isPrivate: true, visibility: 'PRIVATE' }, flag('--json')));
 } else if (cmd === 'pr' && sub === 'create') {
-  const branch = flag('--head') ?? git('branch', '--show-current');
+  const branch = flag('--head') ?? currentBranch();
   const sha = remoteSha(branch);
   if (!sha) fail(`pull request create failed: branch ${branch} is not pushed to origin`);
   if (state.prs.some((p) => p.headRefName === branch)) fail(`a pull request for branch "${branch}" already exists`);
