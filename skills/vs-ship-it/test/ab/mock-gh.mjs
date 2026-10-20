@@ -2,7 +2,7 @@
 // Offline GitHub CLI for the ship-it cost A/B eval. State, the call log, and the
 // bare "origin" live under MOCK_GH_DIR in /tmp because the Codex workspace-write
 // sandbox blocks writes to the sandbox HOME and to any `.git` directory.
-import { execFileSync, spawnSync } from 'node:child_process';
+import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 
@@ -25,9 +25,42 @@ const flag = (name) => {
   return args[i].includes('=') ? args[i].slice(name.length + 1) : args[i + 1];
 };
 const has = (name) => args.includes(name);
-const git = (...a) => execFileSync('git', a, { encoding: 'utf8' }).trim();
+// Child output goes to files, not pipes: the Codex Linux sandbox refuses piped
+// child output (spawnSync EPERM), while file descriptors work there.
+const runToFiles = (cmd, list, input) => {
+  const base = path.join(DIR, `.spawn-${process.pid}-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+  if (input !== undefined) fs.writeFileSync(`${base}.in`, input);
+  const fds = [input !== undefined ? fs.openSync(`${base}.in`, 'r') : 'ignore', fs.openSync(`${base}.out`, 'w'), fs.openSync(`${base}.err`, 'w')];
+  const result = spawnSync(cmd, list, { stdio: fds });
+  fds.filter((fd) => typeof fd === 'number').forEach((fd) => fs.closeSync(fd));
+  const read = (ext) => (fs.existsSync(`${base}.${ext}`) ? fs.readFileSync(`${base}.${ext}`, 'utf8') : '');
+  const out = { status: result.status, stdout: read('out'), stderr: read('err') || (result.error?.message ?? '') };
+  for (const ext of ['in', 'out', 'err']) fs.rmSync(`${base}.${ext}`, { force: true });
+  return out;
+};
+const git = (...a) => {
+  const r = runToFiles('git', a);
+  if (r.status !== 0) throw new Error(`git ${a.join(' ')} failed (${r.status}): ${r.stderr.trim()}`);
+  return r.stdout.trim();
+};
+// The Codex Linux sandbox can refuse to spawn git from this shim (EPERM), so the
+// refs the mock needs are read straight from the git directories as a fallback.
+const readRef = (gitDir, ref) => {
+  const loose = path.join(gitDir, ref);
+  if (fs.existsSync(loose)) return fs.readFileSync(loose, 'utf8').trim();
+  const packed = path.join(gitDir, 'packed-refs');
+  if (!fs.existsSync(packed)) return null;
+  const line = fs.readFileSync(packed, 'utf8').split('\n').find((l) => l.endsWith(` ${ref}`));
+  return line ? line.split(' ')[0] : null;
+};
 const remoteSha = (branch) => {
-  try { return git('--git-dir', REMOTE, 'rev-parse', `refs/heads/${branch}`); } catch { return null; }
+  try { return git('--git-dir', REMOTE, 'rev-parse', `refs/heads/${branch}`); } catch { return readRef(REMOTE, `refs/heads/${branch}`); }
+};
+const currentBranch = () => {
+  try { return git('branch', '--show-current'); } catch {
+    const head = fs.readFileSync(path.join(process.env.GIT_DIR ?? '.git', 'HEAD'), 'utf8').trim();
+    return head.replace(/^ref: refs\/heads\//, '');
+  }
 };
 const fail = (msg, code = 1) => { process.stderr.write(`${msg}\n`); process.exit(code); };
 
@@ -35,12 +68,29 @@ function out(value) {
   const jq = flag('--jq') ?? flag('-q');
   const text = typeof value === 'string' ? value : JSON.stringify(value);
   if (jq) {
-    const r = spawnSync('jq', ['-r', jq], { input: text, encoding: 'utf8' });
+    // Plain .a.b paths are answered here: inside the Codex sandbox a jq child can
+    // fail to start or hang, and the skills' own scripts only ask for such paths.
+    if (/^(\.[A-Za-z_][\w]*)+$/.test(jq)) {
+      const v = jq.slice(1).split('.').reduce((o, k) => (o == null ? o : o[k]), JSON.parse(text));
+      process.stdout.write(`${v == null ? 'null' : typeof v === 'object' ? JSON.stringify(v) : v}\n`);
+      return;
+    }
+    const r = runToFiles('jq', ['-r', jq], text);
     process.stdout.write(r.stdout);
     if (r.status) fail(r.stderr, r.status);
     return;
   }
   process.stdout.write(typeof value === 'string' ? `${value}\n` : `${JSON.stringify(value, null, 2)}\n`);
+}
+
+// Tests simulate a concurrent body edit: state.bodyEditsOnRead maps the Nth REST
+// read of the PR (1-based) to the body someone else saved just before that read.
+function readPrWithEdits(state, pr) {
+  state.prReads = (state.prReads ?? 0) + 1;
+  const edit = state.bodyEditsOnRead?.[String(state.prReads)];
+  if (typeof edit === 'string') pr.body = edit;
+  save(state);
+  return true;
 }
 
 function ciDone(pr) {
@@ -49,7 +99,7 @@ function ciDone(pr) {
 
 function currentPr(state, explicit) {
   if (explicit && /^\d+$/.test(explicit)) return state.prs.find((p) => p.number === Number(explicit));
-  const branch = explicit && !explicit.startsWith('-') ? explicit : git('branch', '--show-current');
+  const branch = explicit && !explicit.startsWith('-') ? explicit : currentBranch();
   return state.prs.find((p) => p.headRefName === branch);
 }
 
@@ -64,7 +114,9 @@ function refresh(state, pr) {
 }
 
 function changedFiles(pr) {
-  const files = git('--git-dir', REMOTE, 'diff', '--name-only', `${pr.baseRefName}...${pr.headRefName}`);
+  let files = '';
+  // No fallback count: a made-up number would hide a broken fixture. Fail loudly.
+  try { files = git('--git-dir', REMOTE, 'diff', '--name-only', `${pr.baseRefName}...${pr.headRefName}`); } catch (error) { fail(`mock gh: cannot count changed files: ${error.message}`, 5); }
   return files ? files.split('\n').length : 0;
 }
 
@@ -112,7 +164,7 @@ else if (cmd === 'auth') {
 } else if (cmd === 'repo' && sub === 'view') {
   out(pick({ nameWithOwner: REPO, name: 'shop', owner: { login: 'acme' }, url: `https://github.com/${REPO}`, defaultBranchRef: { name: 'main' }, isPrivate: true, visibility: 'PRIVATE' }, flag('--json')));
 } else if (cmd === 'pr' && sub === 'create') {
-  const branch = flag('--head') ?? git('branch', '--show-current');
+  const branch = flag('--head') ?? currentBranch();
   const sha = remoteSha(branch);
   if (!sha) fail(`pull request create failed: branch ${branch} is not pushed to origin`);
   if (state.prs.some((p) => p.headRefName === branch)) fail(`a pull request for branch "${branch}" already exists`);
@@ -169,10 +221,21 @@ else if (cmd === 'auth') {
   const pr = state.prs.at(-1);
   if (pr) refresh(state, pr);
   const ep = (endpoint ?? '').replace(/^\//, '').split('?')[0];
-  if (ep === 'graphql') out({ data: { repository: { pullRequest: { reviewDecision: 'REVIEW_REQUIRED', reviewThreads: { nodes: [] } } } } });
+  const method = (flag('-X') ?? flag('--method') ?? 'GET').toUpperCase();
+  if (/^https:\/\/uploads\.github\.com\/user-attachments\/assets$/.test(ep)) {
+    if (method !== 'POST') fail('gh: Bad Request (HTTP 400)');
+    out({ id: Date.now(), name: 'upload', url: `https://github.com/user-attachments/assets/mock-${Date.now()}` });
+  } else if (pr && method === 'PATCH' && ep === `repos/${REPO}/pulls/${pr.number}`) {
+    const input = flag('--input');
+    const payload = input ? JSON.parse(fs.readFileSync(input, 'utf8')) : {};
+    if (typeof payload.body === 'string') pr.body = payload.body;
+    if (typeof payload.title === 'string') pr.title = payload.title;
+    save(state);
+    out({ number: pr.number, body: pr.body, title: pr.title });
+  } else if (ep === 'graphql') out({ data: { repository: { pullRequest: { reviewDecision: 'REVIEW_REQUIRED', reviewThreads: { nodes: [] } } } } });
   else if (ep === `repos/${REPO}`) out({ id: 987654321, full_name: REPO, default_branch: 'main', private: true });
   else if (ep === 'user') out({ login: 'eval-user' });
-  else if (pr && ep === `repos/${REPO}/pulls/${pr.number}`) out({ number: pr.number, state: 'open', merged: false, draft: pr.isDraft, mergeable: true, head: { sha: pr.headRefOid, ref: pr.headRefName }, base: { ref: pr.baseRefName }, requested_reviewers: [{ login: 'alice' }], requested_teams: [], body: pr.body, title: pr.title });
+  else if (pr && ep === `repos/${REPO}/pulls/${pr.number}` && readPrWithEdits(state, pr)) out({ number: pr.number, state: 'open', merged: false, draft: pr.isDraft, mergeable: true, head: { sha: pr.headRefOid, ref: pr.headRefName }, base: { ref: pr.baseRefName }, requested_reviewers: [{ login: 'alice' }], requested_teams: [], body: pr.body, title: pr.title });
   else if (/^repos\/acme\/shop\/commits\/[^/]+\/check-runs$/.test(ep)) {
     const done = pr && ciDone(pr);
     out({ total_count: 1, check_runs: [{ name: 'test', status: done ? 'completed' : 'in_progress', conclusion: done ? 'success' : null, details_url: 'https://github.com/acme/shop/actions/runs/1' }] });

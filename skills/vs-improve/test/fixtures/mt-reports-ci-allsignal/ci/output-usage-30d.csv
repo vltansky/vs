@@ -1,0 +1,41 @@
+workflow,pr,output,looked_at,acted_on
+Preview,#1000,preview channel URL,yes,URL opened in review
+Preview,#1062,preview channel URL,yes,URL opened in review
+Preview,#1069,preview channel URL,no,
+Preview,#1079,preview channel URL,no,
+Preview,#1227,preview channel URL,yes,URL opened in review
+Preview,#1243,preview channel URL,no,
+Preview,#1254,preview channel URL,yes,link quoted in review comment
+Preview,#1263,preview channel URL,no,
+Preview,#1278,preview channel URL,yes,fix pushed after preview feedback
+Preview,#1279,preview channel URL,yes,fix pushed after preview feedback
+Preview,#1285,preview channel URL,yes,fix pushed after preview feedback
+Preview,#1286,preview channel URL,no,
+Preview,#1290,preview channel URL,yes,link quoted in review comment
+Preview,#1294,preview channel URL,yes,link quoted in review comment
+Preview,#1355,preview channel URL,no,
+Preview,#1374,preview channel URL,yes,fix pushed after preview feedback
+Preview,#1425,preview channel URL,yes,URL opened in review
+Preview,#1471,preview channel URL,yes,link quoted in review comment
+Preview,#1511,preview channel URL,no,
+Preview,#1521,preview channel URL,no,
+Preview,#1550,preview channel URL,yes,URL opened in review
+Preview,#1554,preview channel URL,no,
+Preview,#1563,preview channel URL,yes,link quoted in review comment
+Preview,#1572,preview channel URL,yes,fix pushed after preview feedback
+Preview,#1573,preview channel URL,yes,link quoted in review comment
+Preview,#1574,preview channel URL,yes,URL opened in review
+Preview,#1601,preview channel URL,yes,fix pushed after preview feedback
+Preview,#1612,preview channel URL,no,
+Preview,#1627,preview channel URL,yes,link quoted in review comment
+Preview,#1628,preview channel URL,yes,link quoted in review comment
+Preview,#1664,preview channel URL,yes,fix pushed after preview feedback
+Preview,#1675,preview channel URL,yes,fix pushed after preview feedback
+Preview,#1679,preview channel URL,yes,link quoted in review comment
+Preview,#1718,preview channel URL,yes,URL opened in review
+Preview,#1750,preview channel URL,yes,URL opened in review
+Preview,#1764,preview channel URL,no,
+Preview,#1824,preview channel URL,yes,URL opened in review
+Preview,#1827,preview channel URL,yes,fix pushed after preview feedback
+Preview,#1854,preview channel URL,no,
+Preview,#1867,preview channel URL,yes,link quoted in review comment

@@ -45,7 +45,7 @@ Look for the algorithmic and architectural wins, not micro-optimizations.
 - Payload size: over-fetching (select *, full objects where IDs suffice), missing pagination on unbounded lists, large JSON shipped to clients.
 - Frontend (if applicable): bundle composition (heavyweight deps for trivial use), missing code-splitting on rarely-hit routes, unoptimized images/fonts, client-side fetching for data available at render time, render waterfalls. For React/Next.js, defer to the repo's framework conventions and any installed best-practices guidelines.
 - Backend: synchronous work that belongs in a queue, missing indexes implied by query patterns (flag for verification — don't claim without schema evidence), connection-per-request patterns where pooling exists.
-- Build/CI: slow CI from missing caching, redundant pipeline steps, test suites that could parallelize.
+- Build/CI: run [CI & test suite: signal vs cost](#ci--test-suite-signal-vs-cost) first. Slow CI from missing caching, redundant pipeline steps, or suites that could parallelize is a finding only for steps that passed its "is it needed?" row.
 
 ## 4. Test Coverage
 
@@ -56,6 +56,51 @@ The goal is not a percentage — it's *which untested code is dangerous*.
 - Existing test quality: tests that assert nothing meaningful, heavy mocking that tests the mocks, snapshot tests nobody reads, flaky patterns (real timers, real network, order dependence).
 - Missing test layers: unit-only suites with zero integration coverage on API boundaries, or the inverse (slow E2E for what a unit test would catch).
 - Verification infrastructure: is there a one-command way to know the codebase works? If not, that's finding #1 and a prerequisite plan for any risky change.
+
+### CI & test suite: signal vs cost
+
+Run this whenever the audit touches CI, a test suite, or one slow or flaky
+job: "what can be improved", "how can we cut", "make X faster", "fix X so it
+stops eating 30 min". It is the first finding in the reply, before any
+speed-up or hardening idea, because the cheapest minute is the step you stop
+running.
+
+1. **Build the table from run history** for a stated window (default the last
+   30 days: `gh run list` plus `gh api repos/<owner>/<repo>/actions/runs/<id>/jobs`,
+   or an exported runs file). One row per step or job:
+
+   | Step / job | Runs | Real failures caught / output used | Infra / flaky failures | Time per run | Billed min (window) | Verdict |
+
+   A real failure points at a code defect: an assertion, a type error, a lint
+   rule on changed code. Infra (runner disk, emulator boot, download timeouts,
+   cache misses) and flakes that passed on rerun are not signal.
+
+   **A job that does not block merge** (screenshot or preview comments, bundle
+   size reports, coverage bots) cannot "catch" anything, so failures caught is
+   the wrong measure for it. Measure what its output informed: was the comment
+   or link looked at or acted on (a reply or review comment that cites it, the
+   link opened or quoted, a fix pushed or a decision made because of it)? Put
+   that count in the "caught" column and say it is output use. Output nobody
+   looked at in the window is zero signal, even when the job never failed.
+2. **Name the steps that caught nothing** (or whose output nobody used),
+   with their cost, and put the decision to the user per step: cut, path-gate
+   (run only when its inputs change), move to nightly / local, or keep? That call is the user's, not yours: do
+   not mark a zero-signal step "keep" or "harden" on your own. If every step
+   caught something, say "checked, none found" and the window.
+3. **Only steps that passed the "is it needed?" row get speed-ups**
+   (parallelize, cache, faster installs) or hardening (retries, preflights,
+   disk cleanup, timeouts). A zero-signal step gets them only after the user
+   answers "keep". List them after the table, never before it.
+4. **Zero failures is evidence, not proof.** For a step that guards a security
+   or data-loss contract (access rules, deploy guards), recommend path-gating
+   it to the files it protects rather than cutting it, and say why. It still
+   goes in the question; it is not a reason to skip it.
+5. **Same finding, for the tests themselves:** tests that cannot fail
+   (assertion-free probes, source or import greps, mocks that implement the
+   behavior they assert), test-only production seams (an export, flag or
+   wrapper used only by tests), and duplicate coverage of a contract a stronger
+   test already owns. Each delete candidate names the failure it could catch
+   and which test still covers it.
 
 ## 5. Tech Debt & Architecture
 
@@ -78,7 +123,7 @@ The goal is not a percentage — it's *which untested code is dangerous*.
 ## 7. DX & Tooling
 
 - Missing or broken: typecheck script, lint config, formatter, pre-commit hooks, editorconfig.
-- Slow feedback loops: dev-server or test startup measured in minutes, no watch mode, CI without caching.
+- Slow feedback loops: dev-server or test startup measured in minutes, no watch mode. For CI, the signal-vs-cost table above comes before any caching idea.
 - Onboarding friction: README setup steps that are wrong/incomplete, undocumented required env vars, no `.env.example`.
 - Missing `CLAUDE.md`/`AGENTS.md` — for repos where agents will execute the plans, this is high-leverage: recommend one and include its outline as a plan.
 - Error messages/logging: unstructured logs on services, missing request IDs/correlation, debugging requiring code changes.

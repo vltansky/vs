@@ -195,4 +195,4 @@ Direct: emit **Next** only. Composed: return to caller.
 
 **Prev:** user ask, or a `/vs-show-me` page that needs motion
 **Next:** done
-**Relevant:** none
+**Relevant:** `/vs-explain-pr`

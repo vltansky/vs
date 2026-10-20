@@ -4,7 +4,8 @@ import path from 'node:path';
 import { applyEdits, applyMoves, type Variant } from './variants';
 
 const AB_DIR = __dirname;
-const SKILLS_ROOT = path.resolve(AB_DIR, '../../..');
+// SHIPIT_AB_SKILLS_ROOT points a run at another checkout's skills (a master arm).
+const SKILLS_ROOT = process.env.SHIPIT_AB_SKILLS_ROOT ?? path.resolve(AB_DIR, '../../..');
 export const FIXTURE_DIR = path.join(AB_DIR, 'fixtures', 'shop');
 export const MOCK_GH = path.join(AB_DIR, 'mock-gh.mjs');
 const CODEX_TAP = path.join(AB_DIR, 'codex-tap.mjs');
