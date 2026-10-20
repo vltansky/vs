@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 62" role="img" aria-label="Get it on Google Play">
+  <!-- Exported with the store's required clear space: the visible badge is
+       136 x 40 inside a 160 x 62 canvas. -->
+  <rect x="12" y="11" width="136" height="40" rx="7" fill="#000"/>
+  <path d="M24 19l12 12-12 12z" fill="#34a853"/>
+  <path d="M24 19l17 9.5-5 2.5z" fill="#4285f4"/>
+  <path d="M24 43l17-9.5-5-2.5z" fill="#ea4335"/>
+  <path d="M41 28.5l5 2.5-5 2.5-5-2.5z" fill="#fbbc04"/>
+  <text x="54" y="27" font-family="Arial, Helvetica, sans-serif" font-size="7" fill="#fff">GET IT ON</text>
+  <text x="54" y="41" font-family="Arial, Helvetica, sans-serif" font-size="13" font-weight="700" fill="#fff">Google Play</text>
+</svg>

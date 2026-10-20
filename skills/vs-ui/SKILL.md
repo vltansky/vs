@@ -56,23 +56,17 @@ will:
    size", "aligned" or "same font" means visual balance of the whole element
    unless the user gave a number. For logos that is the whole mark (icon plus
    text, visual weight): not the text box, not the icon alone, not one CSS
-   height. A dense wordmark that fills its box reads bigger than an icon +
-   small-text lockup in a box of the same height, so the lockup usually needs
-   the taller box or larger text. Size each mark until they read equal and say
-   the numbers differ on purpose. Matching the wordmark's letters to the icon
-   alone is not balance: if the lockup's text is still much smaller than the
-   wordmark's letters, the lockup reads lighter. Then raise the lockup's text
-   or box; do not grow the wordmark to the lockup's box height. A balanced
-   pair usually ends with the wordmark box shorter than the lockup box and the
-   lockup text larger than before. Tripwire: if your edit leaves both marks on
-   one shared value (`height: 40px` on each, or the wordmark box equal to the
-   icon), you equalized a number, so change it. Without a render you opened,
-   do not write "they read equal"; write what you sized and that it is not yet
+   height. Equal CSS values can still read unequal, so size each element until
+   the render reads equal, and say when the numbers differ on purpose.
+   Tripwire: if your edit leaves both elements on one shared value (`height:
+   40px` on each), you equalized a number. Either show from a render you
+   opened that they read equal, or change it. Without a render you opened, do
+   not write "they read equal"; write what you sized and that it is not yet
    checked by eye.
 4. **Name what you compared, and against what,** in the reply. For example:
-   "Against the previous shot: the two marks now read the same height; the
-   wordmark box is 30px and the icon + text lockup is 44px on purpose." Or:
-   "Font and CTA match the live post (checked against the live shot)."
+   "Against the previous shot, side by side: the two logos now read the same
+   height." Or: "Font and CTA match the live post (checked against the live
+   shot)."
 5. **If you cannot render, say so** and list what is unverified. Still size
    for visual balance, from the assets themselves (viewBox, where the ink sits,
    icon vs text size), never by falling back to one equal number. Never send a

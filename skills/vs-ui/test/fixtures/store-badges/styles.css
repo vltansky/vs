@@ -1,0 +1,12 @@
+:root {
+  --ink: oklch(0.22 0.02 250);
+  --bg: oklch(0.985 0 0);
+}
+* { box-sizing: border-box; }
+body { margin: 0; font-family: Inter, Arial, sans-serif; color: var(--ink); background: var(--bg); }
+.hero { max-width: 720px; margin: 0 auto; padding: 72px 24px; text-align: center; }
+.hero h1 { font-size: clamp(2rem, 4vw, 3rem); line-height: 1.1; margin: 0 0 16px; text-wrap: balance; }
+.hero p { font-size: 1.15rem; margin: 0 0 32px; }
+.stores { display: flex; justify-content: center; align-items: center; gap: 16px; }
+.store { display: block; line-height: 0; }
+.store__badge { display: block; height: 48px; width: auto; }
