@@ -1,0 +1,6 @@
+interface:
+  display_name: "vs-explain-pr"
+  short_description: "Narrated video explainer of an open PR, added to its body."
+
+policy:
+  allow_implicit_invocation: true

@@ -13,17 +13,18 @@
 :root {
   /* One meaning per color for the whole video: acc = the subject/change,
      bad = the problem or cost, ok = the fix or success. Everything else is ink. */
-  --bg: #0b0d11; --ink: #f0eadf; --mute: #7f8590; --line: #262c37;
-  --card: #12161d; --card2: #181d26;
-  --acc: #ffb547; --bad: #ff6b5b; --ok: #7ad58f;
+  --bg: #08090a; --ink: #f1f2ee; --mute: #868a80; --line: #25272a;
+  --card: #0f1011e6; --card2: #17191a;
+  --acc: #c6f432; --bad: #ff5a5f; --ok: #4fe3a1;
+  /* Background dot colour as "r,g,b": motion.js reads it once at boot. */
+  --dots: 120,220,255;
   --sans: Grotesk, "SF Pro Display", "Segoe UI", system-ui, sans-serif;
   --mono: Mono, "SF Mono", Menlo, ui-monospace, monospace;
 }
 * { box-sizing: border-box; }
 html, body { margin: 0; width: 1920px; height: 1080px; overflow: hidden; background: var(--bg); }
 #stage { position: relative; width: 1920px; height: 1080px; overflow: hidden; color: var(--ink); font-family: var(--sans); }
-#grid { position: absolute; inset: 0; background-image: radial-gradient(#ffffff10 1.2px, transparent 1.2px); background-size: 44px 44px; }
-#glow { position: absolute; left: 0; top: 0; width: 1400px; height: 1400px; border-radius: 50%; background: radial-gradient(closest-side, #ffb54716, transparent); }
+#bg { position: absolute; inset: 0; }
 .scene { position: absolute; inset: 0; }
 .abs { position: absolute; }
 svg.ov { position: absolute; inset: 0; width: 1920px; height: 1080px; overflow: visible; pointer-events: none; }
@@ -40,13 +41,17 @@ svg.defs { position: absolute; width: 0; height: 0; }
 .strike { text-decoration: line-through; text-decoration-thickness: 3px; }
 
 /* blocks */
-.card { background: var(--card); border: 1.5px solid var(--line); border-radius: 20px; }
-.card.on { border-color: var(--acc); box-shadow: 0 0 32px #ffb54722; }
+.card { background: var(--card); border: 1.5px solid var(--line); border-radius: 20px; box-shadow: 0 1px 0 #ffffff0a inset, 0 24px 60px #000a; }
+.card.on { border-color: var(--acc); box-shadow: 0 0 0 1px var(--acc), 0 0 40px color-mix(in srgb, var(--acc) 22%, transparent); }
 .pad { padding: 28px 32px; }
 .chip { display: inline-flex; align-items: center; gap: 8px; padding: 7px 14px; border-radius: 999px; border: 1.5px solid var(--line); background: var(--card2); font: 500 21px var(--mono); white-space: nowrap; }
-.chip.acc { border-color: var(--acc); color: var(--acc); background: #251f15; }
-.chip.bad { border-color: var(--bad); color: var(--bad); background: #261718; }
-.chip.ok { border-color: var(--ok); color: var(--ok); background: #16241a; }
+.chip.acc { border-color: var(--acc); color: var(--acc); background: color-mix(in srgb, var(--acc) 14%, var(--card2)); }
+.chip.bad { border-color: var(--bad); color: var(--bad); background: color-mix(in srgb, var(--bad) 14%, var(--card2)); }
+.chip.ok { border-color: var(--ok); color: var(--ok); background: color-mix(in srgb, var(--ok) 14%, var(--card2)); }
+/* words(): each word rises out of its own mask. mark(): highlighter sweep. */
+.kw { display: inline-block; overflow: hidden; vertical-align: bottom; padding-bottom: .08em; margin-bottom: -.08em; }
+.kw > span { display: inline-block; }
+.mark { background-image: linear-gradient(color-mix(in srgb, var(--acc) 32%, transparent), color-mix(in srgb, var(--acc) 32%, transparent)); background-repeat: no-repeat; background-position: 0 88%; background-size: 0 40%; box-decoration-break: clone; -webkit-box-decoration-break: clone; }
 .row { display: flex; align-items: center; gap: 14px; padding: 14px 18px; border-radius: 14px; background: var(--card2); border: 1.5px solid var(--line); font-size: 27px; font-weight: 600; }
 .file { display: inline-flex; align-items: center; gap: 10px; padding: 10px 16px; border-radius: 10px; border: 1.5px solid var(--line); background: var(--card2); font: 500 20px var(--mono); white-space: nowrap; }
 .file::before { content: ""; width: 14px; height: 18px; border: 2px solid var(--mute); border-radius: 3px; }
@@ -60,6 +65,9 @@ svg.defs { position: absolute; width: 0; height: 0; }
 .term .bar i { width: 12px; height: 12px; border-radius: 50%; background: #2b313c; display: block; }
 .term .bar span { margin-left: 12px; font: 500 20px var(--mono); color: var(--mute); }
 .term .body { padding: 22px 28px; font: 500 30px/1.5 var(--mono); white-space: pre; }
+.shot { overflow: hidden; background: #0f1011; }
+.shot img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; }
+.shot.clip { border-radius: 0; box-shadow: 0 0 0 1.5px var(--line), 0 24px 60px #000a; }
 .caret { display: inline-block; width: 15px; height: 30px; background: var(--acc); vertical-align: -5px; margin-left: 2px; }
 
 /* svg strokes */
@@ -80,7 +88,7 @@ path.head { fill: #3a4250; } path.head.acc { fill: var(--acc); } path.head.bad {
 </head>
 <body>
 <div id="stage">
-  <div id="grid"></div><div id="glow"></div>
+  <canvas id="bg" width="1920" height="1080"></canvas>
   <div id="scenes"></div>
   <div id="progress"></div><div id="brand"></div><div id="chap"></div>
   <div id="sub"><span></span></div>

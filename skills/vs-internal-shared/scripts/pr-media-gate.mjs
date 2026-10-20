@@ -37,6 +37,7 @@
 import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import { checkMediaPairs } from './pr-media-pairs.mjs';
+import { findVideoBlocks, stripVideoBlocks, walkthroughOffset } from './video-block.mjs';
 
 const FRONTEND_PATH =
   /\.(?:tsx|jsx|vue|svelte|astro|css|scss|sass|less|styl|html|mdx)$|\/(?:components?|pages|views|layouts|routes|app|ui|styles?|screens?)\/|(?:^|\/)(?:web|client|frontend)\/[^.]*\.[cm]?[jt]s$/i;
@@ -223,7 +224,26 @@ const behaviorFiles = changedFiles.filter(
   (file) => !isTestFile(file) && (SKILL_CONTRACT.test(file) || !NON_BEHAVIOR.test(file)),
 );
 
-const body = fs.readFileSync(bodyPath, 'utf8');
+const rawBody = fs.readFileSync(bodyPath, 'utf8');
+// The PR video explainer (vs-explain-pr) is narration over the PR, not proof: its
+// marked block is cut before every check, so its video never counts as a
+// Before/After or functional video and its words never count as markers.
+// Markers count only on their own line and outside code fences (video-block.mjs).
+const videoSpans = findVideoBlocks(rawBody);
+const videoBlocks = videoSpans.filter((span) => span.kind === 'block');
+const body = stripVideoBlocks(rawBody);
+const explainerReasons = [];
+const walkAt = walkthroughOffset(rawBody);
+for (const span of videoBlocks) {
+  if (!/^<!-- vs:video -->\s*<details\b[^>]*>\s*<summary\b[^>]*>\s*Video explainer\b[\s\S]*<\/details>\s*<!-- \/vs:video -->[ \t]*\r?$/i.test(span.text))
+    explainerReasons.push('Video explainer block must be one collapsed <details> whose <summary> starts "Video explainer"');
+  if (walkAt !== -1 && span.start > walkAt) explainerReasons.push('Video explainer block must come before the Walkthrough');
+}
+if (videoSpans.some((span) => span.kind !== 'block')) explainerReasons.push('a lone video marker (an opener or closer without its pair); attach.mjs replaces it with one whole block');
+if (videoBlocks.length > 1) explainerReasons.push('more than one Video explainer block; attach.mjs keeps exactly one');
+const explainer = videoSpans.length
+  ? { present: true, videos: videoSpans.reduce((n, m) => n + m.text.split('\n').filter((line) => BARE_URL.test(line)).length, 0) }
+  : { present: false, videos: 0 };
 // The label must carry a code block after it: a request/response or schema shape, not a sentence.
 // The Walkthrough's pseudocode fences are not proof, so the search stops where it starts.
 const WALKTHROUGH_OPEN = /<details\b[^>]*>\s*<summary\b[^>]*>\s*(?:<(?:b|strong)>\s*)?Walkthrough\b/i;
@@ -751,15 +771,17 @@ const tldr = (() => {
   return { ok: reasons.length === 0, labeled, lines: content.length, reasons };
 })();
 const tldrOk = tldr.ok;
-const valid = rootCauseOk && tldrOk && mediaOk && beforeAfterOk && mergeDangerOk && contractOk && surfacesOk && testsOk && walkthroughOk && templateOk && problemLinks.ok;
+const explainerOk = explainerReasons.length === 0;
+const valid = rootCauseOk && tldrOk && mediaOk && beforeAfterOk && mergeDangerOk && contractOk && surfacesOk && testsOk && walkthroughOk && templateOk && problemLinks.ok && explainerOk;
 
 process.stdout.write(
-  `${JSON.stringify({ valid, base, frontendFiles, apiFiles, schemaFiles, cliFiles, mcpFiles, infraFiles, images, videos, media, localRefs: localRefs.map((ref) => ref.url), gapStated, beforeAfter, mergeDanger, contract, surfaces, tests, walkthrough, template, problemLinks, rootCause, tldr, warnings: warnings.length }, null, 2)}\n`,
+  `${JSON.stringify({ valid, base, frontendFiles, apiFiles, schemaFiles, cliFiles, mcpFiles, infraFiles, images, videos, media, localRefs: localRefs.map((ref) => ref.url), gapStated, beforeAfter, mergeDanger, contract, surfaces, tests, walkthrough, template, problemLinks, rootCause, tldr, explainer: { ...explainer, ok: explainerOk, reasons: explainerReasons }, warnings: warnings.length }, null, 2)}\n`,
 );
 
 if (warnings.length > 0) process.stderr.write(`${warnings.join('\n')}\n`);
 if (valid) process.exit(0);
 
+if (!explainerOk) process.stderr.write(`pr-media-gate: ${explainerReasons.join('; ')}.\n  Next: rerun vs-explain-pr's attach.mjs; it writes the block in the right shape and place.\n`);
 const missingSides = [!beforeAfter.before && 'Before', !beforeAfter.after && 'After'].filter(Boolean);
 const next = [
   missingSides.length > 0

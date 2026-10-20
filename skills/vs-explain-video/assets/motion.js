@@ -136,8 +136,9 @@ function hide(e, t, s, d = 0.35) {
 function flash(e, t, s, d = 1.2) {
   const k = P(t, s, d, ease.inOut);
   const on = t > s && t < s + d;
-  e.style.borderColor = on ? `rgba(255,181,71,${1 - k})` : '';
-  e.style.boxShadow = on ? `0 0 ${40 * (1 - k)}px rgba(255,181,71,${0.35 * (1 - k)})` : '';
+  const mix = (pct) => `color-mix(in srgb, var(--acc) ${pct}%, transparent)`;
+  e.style.borderColor = on ? mix(100 * (1 - k)) : '';
+  e.style.boxShadow = on ? `0 0 ${40 * (1 - k)}px ${mix(35 * (1 - k))}` : '';
 }
 // Persistent highlight while beat i plays.
 function focus(e, t, B, i) {
@@ -154,6 +155,47 @@ function swap(e, t, s, before, after, d = 0.4) {
   e.textContent = k < 0.5 ? before : after;
   e.style.transform = `translateY(${(k < 0.5 ? -k : 1 - k) * 24}px)`;
   e.style.opacity = 1 - Math.sin(k * Math.PI) * 0.8;
+}
+
+// ---------- kinetic text
+// Words rise one by one out of their own mask. Splits e's text into words on
+// the first call; the split is the same for every t, so frames stay pure.
+function words(e, t, s, { gap = 0.06, preset = 'heavy' } = {}) {
+  if (!e._words) {
+    const walk = document.createTreeWalker(e, NodeFilter.SHOW_TEXT);
+    const nodes = [];
+    while (walk.nextNode()) if (walk.currentNode.textContent.trim()) nodes.push(walk.currentNode);
+    for (const n of nodes) {
+      const frag = document.createDocumentFragment();
+      for (const part of n.textContent.split(/(\s+)/)) {
+        if (!part) continue;
+        if (/^\s+$/.test(part)) { frag.appendChild(document.createTextNode(part)); continue; }
+        const outer = document.createElement('span');
+        outer.className = 'kw';
+        outer.appendChild(document.createElement('span')).textContent = part;
+        frag.appendChild(outer);
+      }
+      n.replaceWith(frag);
+    }
+    e._words = [...e.querySelectorAll('.kw > span')];
+  }
+  e._words.forEach((w, i) => {
+    const k = spring(t, s + i * gap, preset);
+    w.style.transform = `translateY(${(1 - k) * 110}%)`;
+  });
+  e._o = t >= s ? 1 : 0;
+  e.style.opacity = e._o;
+  return spring(t, s + (e._words.length - 1) * gap, preset);
+}
+// Highlighter sweep behind inline text: add class "mark" to a span, then call.
+function mark(e, t, s, d = 0.5) {
+  const k = P(t, s, d, ease.inOut);
+  e.style.backgroundSize = `${k * 100}% 40%`;
+  return k;
+}
+// Run fn(e, t, start) for each item, start spaced gap seconds apart.
+function stagger(list, t, s, gap, fn) {
+  list.forEach((e, i) => fn(e, t, s + i * gap));
 }
 
 // ---------- SVG: arrows that draw on, dots that travel
@@ -238,6 +280,46 @@ function type(body, lines, t, s, cps = 28) {
   body.innerHTML = html;
 }
 
+// ---------- real media: screenshots and recordings (used by vs-explain-pr)
+// A screenshot in a card: the image is fitted inside w x h, never cropped.
+// Animate the returned element like any block (rise, pop, dim).
+function still(root, src, x, y, w, h, { cls = 'card shot' } = {}) {
+  const e = box(root, x, y, w, h, cls);
+  const img = document.createElement('img');
+  img.src = src;
+  img.alt = '';
+  e.appendChild(img);
+  return e;
+}
+// A slot for a screen recording. The stage cannot seek a <video> frame by
+// frame, so it draws the clip's first frame (src with .first.png) until the
+// window opens and its last frame (.last.png) after it closes; vs-explain-pr's
+// finish.mjs plays the real recording over the slot for the window. Times are
+// seconds into the scene; a negative `to` counts back from the scene end. The
+// scene holds its camera still, so the slot stays where ffmpeg draws the clip.
+const CLIP_DEFS = [];
+function clip(root, src, x, y, w, h, { from = 0.7, to = -0.45 } = {}) {
+  const e = box(root, x, y, w, h, 'shot clip');
+  const base = src.replace(/\.[a-z0-9]+$/i, '');
+  const first = document.createElement('img');
+  const last = document.createElement('img');
+  first.src = `${base}.first.png`;
+  last.src = `${base}.last.png`;
+  first.alt = '';
+  last.alt = '';
+  e.append(first, last);
+  root.dataset.fixed = '1';
+  CLIP_DEFS.push({ root, src, x, y, w, h, from, to });
+  return {
+    el: e,
+    update(t, D) {
+      const end = to < 0 ? D + to : to;
+      first.style.opacity = t < end ? 1 : 0;
+      last.style.opacity = t < end ? 0 : 1;
+    },
+  };
+}
+
 // ---------- registry, chrome, and the seek driver
 const SCENES = {};
 function scene(id, build) {
@@ -265,11 +347,23 @@ const VS = {
       return { ...s, i, root, update, B: s.beats.map((b) => b.t) };
     });
     window.TOTAL = TL.total;
+    this.bg = document.getElementById('bg').getContext('2d');
+    this.dots = getComputedStyle(document.documentElement).getPropertyValue('--dots').trim() || '255,255,255';
     window.seek = (T) => this.seek(T);
-    document.fonts.ready.then(() => {
+    // Screenshots must be decoded before the first frame, or early frames draw blank.
+    const images = [...document.images].map((img) => img.decode().catch(() => console.error(`image did not load: ${img.getAttribute('src')}`)));
+    Promise.all([document.fonts.ready, ...images]).then(() => {
       const q = new URLSearchParams(location.search).get('t');
       this.seek(q ? Number(q) : 0);
       window.READY = true;
+    });
+  },
+
+  // Clip slots in stage pixels and absolute seconds, for vs-explain-pr's finish.mjs.
+  clipSlots() {
+    return CLIP_DEFS.map(({ root, src, x, y, w, h, from, to }) => {
+      const s = this.scenes.find((sc) => sc.root === root);
+      return { scene: s.id, src, x, y, w, h, from: s.start + from, to: s.start + (to < 0 ? s.dur + to : to) };
     });
   },
 
@@ -281,21 +375,49 @@ const VS = {
       const visible = t >= -0.001 && t <= s.dur;
       s.root.style.display = visible ? 'block' : 'none';
       if (!visible) continue;
-      // Crossfade: each scene fades in over 0.45 s and out over its last 0.4 s.
-      const fadeIn = s.i === 0 ? 1 : P(t, 0, 0.45);
-      const fadeOut = s.i === this.scenes.length - 1 ? 1 : 1 - P(t, s.dur - 0.4, 0.4, ease.inOut);
-      s.root.style.opacity = Math.min(fadeIn, fadeOut);
+      // Handoff: each scene fades in over 0.45 s while it springs up from 97%,
+      // and over its last 0.4 s fades out while it grows and lifts away.
+      const first = s.i === 0;
+      const last = s.i === this.scenes.length - 1;
+      const fadeIn = first ? 1 : P(t, 0, 0.45);
+      const out = last ? 0 : P(t, s.dur - 0.4, 0.4, ease.inOut);
+      s.root.style.opacity = Math.min(fadeIn, 1 - out);
+      const enter = first ? 1 : spring(t, 0, 'camera');
+      // Camera push: 1% slower than the eye notices, so a held frame still lives.
+      // check.mjs sets VS_CALM so it measures scene builds, not the camera.
+      const push = window.VS_CALM || s.root.dataset.fixed ? 0 : 0.01 * ease.inOut(clamp(t / s.dur));
+      const scale = (0.97 + 0.03 * enter) * (1 + push) * (1 + 0.03 * out);
+      s.root.style.transform = `translateY(${40 * (1 - enter) - 24 * out}px) scale(${scale})`;
       s.update(t, s.B, s.dur);
       chap.innerHTML = `${String(s.i + 1).padStart(2, '0')} / ${String(this.scenes.length).padStart(2, '0')} &nbsp;<b>${esc(s.title ?? s.id)}</b>`;
     }
     document.getElementById('progress').style.width = `${(W * T) / TL.total}px`;
-    document.getElementById('glow').style.transform =
-      `translate(${300 + Math.sin(T * 0.11) * 500}px,${-300 + Math.cos(T * 0.07) * 260}px)`;
+    this.drawBg(T);
     const sub = document.querySelector('#sub span');
     // Word captions (captions.js) draw the page with the spoken word marked.
     if (window.VSCaptions && window.VSCaptions.draw(sub, TL, T)) return;
     const cue = TL.subs.find(([from, to]) => T >= from && T < to + 0.15);
     sub.textContent = cue ? cue[2] : '';
+  },
+
+  // Dot field: a slow ring wave spreads from a drifting centre. Canvas, drawn
+  // from T alone; no blur or filters, which slow every screenshot.
+  drawBg(T) {
+    const g = this.bg;
+    g.clearRect(0, 0, W, H);
+    const cx = 1300 + Math.sin(T * 0.13) * 380;
+    const cy = 380 + Math.cos(T * 0.09) * 200;
+    const S = 36;
+    for (let y = S / 2; y < H; y += S) {
+      for (let x = S / 2; x < W; x += S) {
+        const d = Math.hypot(x - cx, y - cy);
+        const k = Math.max(0, Math.sin(d * 0.012 - T * 1.6)) ** 6 * Math.max(0, 1 - d / 1500);
+        g.fillStyle = `rgba(${this.dots},${0.07 + 0.55 * k})`;
+        g.beginPath();
+        g.arc(x, y, 1.4 + 1.8 * k, 0, 6.283);
+        g.fill();
+      }
+    }
   },
 
   // Layout audit of the frame on screen, run by render.mjs --stills. Flags the

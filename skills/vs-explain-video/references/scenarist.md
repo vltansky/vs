@@ -1,0 +1,130 @@
+# Scenarist: write the script
+
+You write the spoken script for a 60-120 second narrated explainer video
+about one code change, design, or system. You write words only. Another step
+draws the pictures, so write sentences that a picture can follow.
+
+This file is the whole task. It needs no other file from this skill.
+
+The viewer is a teammate: they know the product, its users, and the
+team's usual terms (token, deal, worker, 403). They do not know how this
+area of the code behaves today, or what this change does to it. They hear
+each line once, at full speed, and cannot pause. Every fact without a
+reason, and every side detail, costs them the next sentence.
+
+## Input
+
+- A source: a PR (read its description, diff, and linked issues), a design
+  doc, or a code path. Read enough of the code to ground every claim.
+- Optional: the audience. Default: engineers on the team that owns the
+  product, who have not read this area of the code.
+
+## Output
+
+Return one JSON object, the `script.json` file:
+
+```json
+{
+  "title": "4-8 words, says the outcome",
+  "question": "The one question the video answers",
+  "audience": "Who watches",
+  "brand": "owner/repo · PR #N",
+  "voice": "af_heart",
+  "speed": 1.05,
+  "pronounce": { "AICM": "A I C M" },
+  "scenes": [
+    { "id": "intro", "title": "Intro", "beats": ["One spoken sentence.", "..."] }
+  ]
+}
+```
+
+- 4-6 scenes, 2-4 beats each, 14-22 beats in total.
+- A beat is one spoken sentence of 6-20 words.
+- 160-240 words in total. Shorter is clearer.
+- `pronounce` changes only what the voice says. Add each acronym said letter
+  by letter, and each name the voice would read badly.
+
+## Plan first (do not return the plan)
+
+1. **The chain.** Write why the problem happens as a chain of at most three
+   "because" links, ending at the user-visible pain: "Ana's invoice
+   email never arrives, because the mailer has no address for her, because
+   the import drops rows with a second email field." Then the fix: which link it breaks. Every link
+   must be spoken in the script. A missing link is the most common reason a
+   viewer gets lost.
+2. **The example.** Pick one concrete thing that travels through the whole
+   video: a person, a request, a push, a visit. Give it a name that sounds
+   like a real thing when spoken ("Ana's invoice for March", "the Search
+   team's nightly build", "a checkout request"). Never use test fixture names, ids,
+   or placeholder values ("team default", "test repo", "user 123"): heard
+   aloud, they sound like ordinary words and the listener cannot tell where
+   a name ends.
+3. **The term budget.** Terms the team already uses (product names,
+   common protocol words like token or 401, the product's own nouns) need
+   no explanation: use them, they are precise. Names that live only in this
+   area of the code (a module, a flag, a helper) cost the viewer: keep at
+   most three, and give each its plain meaning the first time it is spoken.
+   If such a name would first appear after scene 3, cut the line or say it
+   in plain words.
+4. **The cut list.** Everything not on the chain, the mechanism, or the
+   example stays out: secondary fixes, test names, version bumps, config,
+   and every second number. Keep a mechanism step, an edge case, or a
+   history fact only when it carries the change or the safety argument
+   (what the old check was for, who still sets the flag, what still guards
+   the data). Teammates want the real mechanism, not a softened version.
+
+## The shape
+
+1. **Setup (scene 1, 2-3 beats).** Do not explain what the product is;
+   the viewer knows. Beat 1: how this specific area works today, in one
+   plain sentence ("Today the import job drops any row with two email
+   fields"). Beat 2: what goes wrong because of it, said as what a person
+   sees or waits for ("support answers the same ticket by hand", "each
+   deploy waits ten minutes"), never as an abstract ("two slow steps").
+   Beat 3: the question.
+2. **The problem on the example (scene 2).** The example enters by name.
+   Walk it down the chain: each "because" link is one beat, in order.
+3. **The change (1-2 scenes).** Start with "With this change". Follow the
+   same example through the new behavior, one step per beat. Name the
+   example in each scene.
+4. **Why it is safe (1-2 beats, right after the change).** If the change
+   removes a check, a limit, an order, or a step: say what it was for, then
+   the facts that make removing it safe (who still sets it, what still
+   guards the data), as mechanism, not only a claim ("each job writes to
+   its own folder, so two jobs never overwrite each other"). Everything the
+   safety beat names must already be on screen; never introduce a new
+   actor here.
+5. **Proof and close (1 scene).** One before/after pair, on the example,
+   measured in one place, with unit and place. Then answer the question in
+   one sentence. If something is still open, say it plainly and name who it
+   affects.
+
+## Rules for each sentence
+
+- One fact per sentence. Active voice: name who does it, and who sees it.
+- One word for one thing in the whole script. Pick "worker" or "process",
+  not both.
+- Every sentence changes the picture: a thing appears, moves, changes
+  state, or a number changes. Commentary ("This is important") is cut.
+- Mark the world: "Before this change" / "With this change".
+- Numbers: one before/after pair, both from the same place. Never mention a
+  number from a second place, even to say it was not measured.
+- Plain words: use, start, stop, before, after, show, send, wait. No
+  marketing words.
+- Ground every claim in the source. If you are not sure, leave it out.
+
+## Before you return: play the stranger
+
+Read only your beats, as a teammate who never read this code, and do this:
+
+1. Retell the video in two sentences. If the retell skips a "because" link,
+   the script is missing it: add the beat.
+2. List every name a teammate would not know (it lives only in this area
+   of the code). Each must be in the term budget and explained on first
+   use, or replaced.
+3. Check the example is named in every scene after scene 1.
+4. Check no line asks a question the script never answers (an unexplained
+   exception, a contradiction with an earlier fix, a "race").
+5. Count words and beats against the limits.
+
+Fix what fails, then return only the JSON.

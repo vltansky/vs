@@ -8,6 +8,11 @@ description: "Use vs-ship-it when the user asks to create or open a PR; says cre
 Create the PR quickly and independently. Ask the user only when a decision is
 both necessary and impossible to infer safely. A missing optional input is a
 reason to omit or mark a gap, not a reason to stop PR creation.
+The [Video explainer check](#video-explainer-check) runs before anything else,
+also when the user only says "create pr". For a big user-facing change (a new
+screen or multi-step flow counts, even as one uncommitted file) your first
+message carries its one-line offer. Then continue: the offer never ends the
+turn or waits for an answer.
 
 ## Routing precedence
 
@@ -20,6 +25,42 @@ skill is unavailable.
 
 Compose `/vs-eval` only when the PR is a skill/eval contract. Skip it for
 ordinary product PRs.
+
+## Video explainer check
+
+Run this first, before Nothing built yet, Direct-push, or Step 1. It decides
+once whether to offer a narrated PR video (`vs-explain-pr`). The offer never
+blocks: the PR work continues in the same turn, and the video starts only
+after Step 4.
+
+1. **User words win.** "with video", "make a video", or `--video` means yes:
+   no offer, and Step 4b runs after the PR is verified. "no video", "skip the
+   video", or `--no-video` means no: no offer. An explicit word overrides the
+   rubric. Direct-push mode never makes a video.
+2. **Else classify** from `git diff --shortstat origin/<default>...HEAD`, the
+   working-tree diff, and untracked files (`git status --porcelain`; count the
+   lines of each new file, because `--shortstat` does not see them), plus the
+   changed paths (the same paths that decide Surfaces):
+   - **Skip silently** when any is true: only docs, skill text, comments, tests,
+     config, or dependency files changed; a typo, rename, format, or version
+     bump; fewer than 150 changed lines and no user-facing flow; a refactor
+     with the same visible behavior. Do not ask, and do not mention the video.
+   - **Offer** when any is true: a user-facing flow changed (frontend paths
+     with a click, form, navigation, or multi-step change, or a new screen);
+     300 or more changed lines outside tests and docs; two or more Surfaces
+     (UI, Endpoint, Schema, CLI, MCP); a new user-facing feature or screen,
+     also when it is one new uncommitted file.
+   - Neither list matches: skip silently.
+3. **Offer means one line, then keep going.** Put this line in your opening
+   message: `Want a narrated video of this PR? Reply yes and I'll add it.`
+   Then continue at once with commit, push, `gh pr create`, the gate, and
+   babysitting. Do not end the turn, wait, or ask again. Missing capture tools
+   (no preview, browser, or Playwright) do not cancel the offer: the explainer
+   is narrated from the PR body, with stills only when they exist. Unattended
+   runs and the `vs-build-it` handoff keep the line and never stall on it.
+4. **The answer can come at any time.** A yes before the PR exists: run Step
+   4b after the PR is verified. A yes after the PR is open: run Step 4b on the
+   open PR at its current head. No answer, or no: no video.
 
 ## Nothing built yet
 
@@ -316,10 +357,29 @@ mismatch, and stop. Do not switch branches before this succeeds.
 
 Re-open the PR description read-only and verify every uploaded image renders and
 every video exposes a player. If rendering fails, remove or correct only the
-broken embed with `gh pr edit --body-file`; do not claim the proof is attached.
+broken embed in `$BODY_FILE`, then carry the live video block into it and
+update the body over REST, as in Step 5 (`video-block.mjs keep`, then
+`gh api -X PATCH repos/<owner/name>/pulls/<N> --input <payload>`). Never
+`gh pr edit`. Do not claim the proof is attached.
 
 Apply only explicitly requested PR modifiers. Do not suggest reviewers or run broad QA by default. Preview startup is
 limited to the focused evidence capture in Step 3.
+
+### Step 4b: Start the video explainer
+
+Only on a yes: the user's words, or a yes to the offer at any time. Right
+after the PR is verified, or when a late yes arrives on the open PR, start one fresh-context background agent that reads and follows
+`vs-explain-pr`. Give it only: repo, PR number, the head SHA, the base ref,
+the final body file path, the record-flow manifest paths (or media files with
+their captions), and the gate flags used in Step 3. No transcript. Do not wait
+for it. Start babysitting in the same turn. The agent renders, uploads, and
+patches only the `<!-- vs:video -->` block of the body through REST. The
+video's upload and body edit go only through
+`node <vs-explain-pr>/scripts/attach.mjs --repo <owner/name> --pr <N> --sha <head SHA> --video <final.mp4> --base origin/<base>`,
+also when a finished mp4 already exists or the host has no subagents and you
+run it yourself. Never the Step 3 curl upload, `gh pr edit`, or a whole-body
+rewrite for it. When it returns, report its status in one line. A failed
+video is a note, not a PR blocker.
 
 ### Step 5: Start babysitting
 
@@ -327,7 +387,19 @@ Hand the verified PR to `vs-baby-sit` immediately. Babysit owns its single
 watcher and the draft-around-repair transition back to ready for review;
 ship-it does not duplicate that skill's CI or automated-review loop. At
 every handoff where a repair push moved the head, refresh the Walkthrough links
-to that head and rerun `pr-media-gate.mjs` before updating the body.
+to that head and rerun `pr-media-gate.mjs` before updating the body. The
+local body file has no video block, because the video lands after the PR
+opens. So before every body update after `gh pr create`, carry the live
+block into the file:
+
+```bash
+node <vs-internal-shared>/scripts/video-block.mjs keep --repo <owner/name> --pr <N> "$BODY_FILE"
+```
+
+It reads the live body over REST and copies its `<!-- vs:video -->` block
+into the file unchanged. Then run the gate on that file and update the body
+over REST (`gh api -X PATCH repos/<owner/name>/pulls/<N> --input <payload>`).
+If the live body does not read, do not update it.
 
 When the composed babysitter reaches `reason: review-approval`, return its
 concise `Review needed: @<user-or-team>` handoff and end the workflow turn. Do
@@ -352,6 +424,7 @@ PR created and verified: [#<N> — <title>](<PR_URL>)
   review only when the new head is green.
 - Merge risk: <two-way | one-way> door, <blast radius in a few words>
 - Media: <N screenshots, N videos attached | none available | exact upload gap>
+- Video: <rendering in the background | offered, reply yes to add it | none>
 - Checks: <fresh results reused or repository-required checks run>
 ```
 
@@ -437,6 +510,11 @@ separate `vs-baby-sit` goal only when the user explicitly requested a Codex goal
       reran `pr-media-gate.mjs`.
 - [ ] No brief, broad verify, reviewer lookup, or broad QA ran without an
       explicit request or repository requirement.
+- [ ] The Video explainer check ran first: user words win; skip silently when
+      the rubric says skip; at most one offer line in the opening message, and
+      the PR work continued in the same turn.
+- [ ] A yes started one background `vs-explain-pr` agent only after PR
+      verification; ship-it did not wait for it.
 - [ ] `vs-baby-sit` started after PR verification unless the user explicitly opted out.
 - [ ] The handoff reports PR URL, head, media, and checks.
 - [ ] The final message ends with the bare full PR URL on its own last line.

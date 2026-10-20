@@ -3,13 +3,15 @@
 // t and the beat starts B. Helpers come from motion.js.
 
 scene('intro', (R) => {
-  const title = box(R, 160, 300, 0, 0, 'h1', 'Why does search<br><span class="acc">miss the cache?</span>');
+  const title = box(R, 160, 300, 0, 0, 'h1', 'Why does search<br><span class="acc mark">miss the cache?</span>');
+  const hi = title.querySelector('.mark');
   const example = box(R, 1260, 560, 500, 260, 'card pad',
     '<div class="lbl">example request</div>' +
     '<div class="h3 mono" style="margin:26px 0 22px">GET /search?q=nile</div>' +
     '<span class="chip">840 ms</span> <span class="chip">every time</span>');
   return (t, B) => {
-    rise(title, t, 0.15, { dy: 60, d: 0.8 });
+    words(title, t, 0.15);
+    mark(hi, t, B[0] + 1.2);
     dim(title, t, B[1] + 0.6);
     pop(example, t, B[1]);
   };
@@ -38,9 +40,9 @@ scene('miss', (R) => {
     along(packet, wire, P(t, B[1] + 0.3, 0.9, ease.inOut));
     rise(key, t, B[1] + 1.2, { dx: -20, dy: 0, d: 0.5 });
     focus(cdn, t, B, 1);
-    rows.forEach((r, i) => {
-      rise(r, t, B[2] + i * 0.45, { dx: -20, dy: 0, d: 0.4 });
-      flash(r, t, B[2] + i * 0.45);
+    stagger(rows, t, B[2], 0.45, (r, t, s) => {
+      rise(r, t, s, { dx: -20, dy: 0, d: 0.4 });
+      flash(r, t, s);
     });
     pop(miss, t, B[2] + 2.2);
   };

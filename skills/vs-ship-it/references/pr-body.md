@@ -453,6 +453,28 @@ include AI-session narration, or add a file-by-file changelog.
 Write Markdown to a temporary body file and use `--body-file`; never pass
 backtick-heavy Markdown through inline `--body` or `gh pr edit --body`.
 
+### Video explainer block
+
+Only `vs-explain-pr` writes it, after the PR is open:
+
+```markdown
+<!-- vs:video -->
+<details>
+<summary>Video explainer (61 s)</summary>
+
+Narrated walkthrough of this PR: problem, example, change, risk. made for `abc1234`; not reviewed by fresh eyes. The proof is in Change and proof above.
+
+https://github.com/user-attachments/assets/<id>
+
+</details>
+<!-- /vs:video -->
+```
+
+It sits after Verification and before the Walkthrough. `pr-media-gate.mjs`
+cuts it before every check: its video is not Before/After proof and never
+counts toward the screenshot or video pairs. Do not write it by hand, and keep
+it as it is when you refresh the body.
+
 ### Walkthrough
 
 Only include a Walkthrough when the change crosses multiple architectural areas.

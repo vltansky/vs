@@ -34,7 +34,7 @@ stills + check.mjs (over time) --> mp4 --pack.mjs--> new reviewer --RETURN--> sc
 
 One 1920x1080 page. Each scene is a function of time: `render.mjs` calls
 `window.seek(t)` and screenshots, so every frame is exact and repeatable. The
-stage draws the chapter bar, progress line, scene crossfades, and word captions
+stage draws the chrome, dot field, scene handoffs, camera push, and word captions
 ([references/captions.md](references/captions.md)). You write only `script.json` and `scenes.js`.
 
 ## 1. Check the tools
@@ -81,10 +81,10 @@ meaning. Rules and examples:
 Pointer only; do not copy those rules here. Ground every claim in the code,
 PR, or source you read.
 
-Carry one concrete example through every scene: a named plugin, request, or
-value the viewer can follow from start to end. Abstract boxes with generic
-labels read as slides. If no real example exists, invent a small one and say
-so in the first scene.
+Write the beats with [references/scenarist.md](references/scenarist.md); a
+subagent can take that file alone. Open slowly: scene one says how this area
+works today, what is wrong, and the question, before any example (motion-craft
+rule 0). Carry one concrete example through every scene.
 
 `pronounce` changes only what the voice says; subtitles and the screen keep
 the written form. Add every acronym said letter by letter (`"AICM": "A I C M"`)
@@ -195,4 +195,4 @@ Direct: emit **Next** only. Composed: return to caller.
 
 **Prev:** user ask, or a `/vs-show-me` page that needs motion
 **Next:** done
-**Relevant:** none
+**Relevant:** `/vs-explain-pr`
