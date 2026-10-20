@@ -104,6 +104,17 @@ function problems(lib: Lib): string[] {
 
   const ok = lib.checkResults(steps, true, 30);
   if (!ok.pass) out.push('passing run reported as fail');
+  if (ok.failed?.length !== 0) out.push('passing run lists failed checks');
+  const bad = lib.checkResults(steps.filter((s) => s.kind !== 'measure'), false, 12);
+  if (bad.failed?.join(',') !== 'measured,mp4,length') out.push(`failed checks named ${bad.failed}, want measured,mp4,length`);
+
+  const failRun = { ...runRow(10000, 5000, false), checks: { pass: false, failed: ['length'] }, videoSec: 12 };
+  const mixed = lib.aggregate([runRow(100000, 50000), runRow(110000, 52000), runRow(120000, 54000), failRun]);
+  if (mixed.metrics.wallMs.median !== 110000 || mixed.metrics.wallMs.n !== 3) out.push(`failed run in the medians: wall median ${mixed.metrics.wallMs.median}, n ${mixed.metrics.wallMs.n}`);
+  if (mixed.passed !== 3 || mixed.n !== 4) out.push('pass count wrong with a failed run');
+  if (mixed.failedRuns?.length !== 1 || mixed.failedRuns[0].run !== 4 || mixed.failedRuns[0].failed.join() !== 'length') out.push('failed run not listed apart with its checks');
+  const failSummary = lib.renderSummary({ gitSha: 'x', date: 'd', agent: 'codex', model: 'm', costSource: 'c', runsPerBrief: 4, briefs: { a: mixed } }, null);
+  if (!/run 4: failed length/.test(failSummary)) out.push('summary does not show the failed run and its checks');
   if (ok.review !== 'pass') out.push(`review ${ok.review}, want the last verdict (pass)`);
   if (lib.checkResults(steps.filter((s) => s.kind !== 'measure'), true, 30).pass) out.push('run without check.mjs still passes');
   if (lib.checkResults(steps.filter((s) => s.kind !== 'verdict'), true, 30).review !== 'not-run') out.push('no verdict not reported as not-run');
@@ -167,6 +178,12 @@ function problems(lib: Lib): string[] {
   if (!nd.warnings.some((w) => /tokens\.total no data/.test(w))) out.push('missing token data reads as no regression');
   if (!nd.rows.some((r: { noData?: boolean }) => r.noData)) out.push('missing data not marked in rows');
   if (!/\| tokens\.total \| no data \|/.test(lib.renderSummary(blind, null))) out.push('summary hides a metric with no data');
+  const five = rowOf([100000, 110000, 120000, 130000, 400000].map((w) => runRow(w, 50000)), { baseline: true });
+  if (five.briefs.a.metrics.wallMs.second !== 130000) out.push('stats do not store the second-highest run');
+  if (!lib.compare(five, rowOf([runRow(200000, 50000)])).warnings.some((w) => w.includes('wallMs'))) out.push('n=5: an outlier max hides a regression above the second-highest run');
+  if (!lib.compare(five, rowOf([runRow(200000, 50000)])).warnings.some((w) => w.includes('2nd-highest 130000'))) out.push('n=5 warning does not name the 2nd-highest bound');
+  const three = rowOf([100000, 110000, 400000].map((w) => runRow(w, 50000)), { baseline: true });
+  if (lib.compare(three, rowOf([runRow(200000, 50000)])).warnings.some((w) => w.includes('wallMs'))) out.push('n=3: compared against the second-highest instead of the max');
   const faster = lib.compare(base, rowOf([runRow(60000, 30000)]));
   if (faster.warnings.length) out.push('improvements flagged as regressions');
 
@@ -198,6 +215,10 @@ const mutants: Record<string, (l: Lib) => Lib> = {
   'ste exit 2 passes': (l) => ({ ...l, checkResults: (s: never[], ...a: unknown[]) => l.checkResults((s as { kind: string; exit: number }[]).map((x) => (x.kind === 'ste' && x.exit === 2 ? { ...x, exit: 0 } : x)) as never, ...(a as [never, never])) }),
   'messages counted as tools': (l) => ({ ...l, parseCodexTap: (t: string) => { const r = l.parseCodexTap(t); return { ...r, toolCalls: r.toolCalls + 2 }; } }),
   'cached tokens priced as input': (l) => ({ ...l, priceTokens: (tok: never, m: string, p: never) => l.priceTokens({ ...(tok as object), cachedInput: 0, cacheWrite: 0 } as never, m, p) }),
+  'failed checks not named': (l) => ({ ...l, checkResults: (...a: unknown[]) => ({ ...(l.checkResults as (...x: unknown[]) => object)(...a), failed: [] }) }),
+  'failed runs in medians': (l) => ({ ...l, aggregate: (runs: { checks?: object }[]) => ({ ...l.aggregate(runs), metrics: l.aggregate(runs.map((r) => ({ ...r, checks: { ...r.checks, pass: true } }))).metrics }) }),
+  'failed runs not listed': (l) => ({ ...l, aggregate: (runs: never[]) => ({ ...l.aggregate(runs), failedRuns: [] }) }),
+  'max even at n>=5': (l) => ({ ...l, compare: (b: { briefs: Record<string, { metrics: Record<string, object> }> }, c: never, t = {}) => l.compare({ ...b, briefs: Object.fromEntries(Object.entries(b.briefs).map(([k, v]) => [k, { ...v, metrics: Object.fromEntries(Object.entries(v.metrics).map(([m, x]) => [m, { ...x, second: undefined }])) }])) }, c, t) }),
   'length unchecked': (l) => ({ ...l, checkResults: (s: never, m: boolean) => l.checkResults(s, m, 30) }),
   'range ignored (percent only)': (l) => ({ ...l, compare: (b: { briefs: Record<string, { metrics: Record<string, { n: number }> }> }, c: never, t = {}) => l.compare({ ...b, briefs: Object.fromEntries(Object.entries(b.briefs).map(([k, v]) => [k, { ...v, metrics: Object.fromEntries(Object.entries(v.metrics).map(([m, x]) => [m, { ...x, n: 1 }])) }])) }, c, t) }),
   'percent ignored (range only)': (l) => ({ ...l, compare: (b: never, c: never, t = {}) => l.compare(b, c, { ...t, time: 0, tokens: 0, cost: 0, tools: 0 }) }),

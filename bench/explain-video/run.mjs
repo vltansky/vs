@@ -216,7 +216,7 @@ const runOne = async (brief, i, tooling, fixture, createAgent) => {
       checks: checkResults(steps, Boolean(mp4 && existsSync(mp4)), videoSec),
     };
     writeFileSync(path.join(runDir, 'run.json'), `${JSON.stringify(run, null, 2)}\n`);
-    log(`${brief.id} #${i}: ${(run.wallMs / 1000).toFixed(0)}s, ${tokens?.total ?? '?'} tokens, $${costUsd ?? '?'}, video ${videoSec?.toFixed(1) ?? '?'}s, ${run.checks.pass ? 'pass' : 'FAIL'}${error ? ` (${error})` : ''}`);
+    log(`${brief.id} #${i}: ${(run.wallMs / 1000).toFixed(0)}s, ${tokens?.total ?? '?'} tokens, $${costUsd ?? '?'}, video ${videoSec?.toFixed(1) ?? '?'}s, ${run.checks.pass ? 'pass' : `FAIL (${run.checks.failed.join(', ')})`}${error ? ` (${error})` : ''}`);
     return run;
   } finally {
     await agent.dispose();

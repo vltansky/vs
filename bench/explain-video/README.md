@@ -12,7 +12,8 @@ npm run bench:explain-video:compare -- --time 0.3 --tokens 0.1
 ```
 
 It is opt-in. `eval:static`, `npm run eval`, and CI never run it. One full run
-(6 videos) takes about 20 minutes and costs cents with the default model.
+(10 videos) takes about 35-40 minutes and costs about $0.73 with the default
+model.
 
 ## What one run does
 
@@ -43,7 +44,9 @@ first real narrate), `narrate`, `scenes` (to the first `--stills`), `checks`
 verdict), `handoff`.
 
 Each brief runs N times (default 5). The row stores every run plus, per
-metric, the median, min, max, and spread ((max - min) / median).
+metric, the median, min, max, second-highest, and spread ((max - min) /
+median). Medians use passing runs only. Failed runs are listed apart with the
+checks they failed, and the run log names them too.
 
 ## History and compare
 
@@ -56,8 +59,9 @@ Compare uses the medians. Agent runs vary a lot: one run can start a
 fresh-review agent and take twice as long. So a metric is a regression only
 when both are true:
 
-1. The latest median is above the baseline's max. No baseline run went that
-   high, so it is not run-to-run noise. A one-run baseline has no range, so
+1. The latest median is above the top of the baseline range. That is the
+   max, or the second-highest run when the baseline has 5 or more runs, so
+   one outlier run does not widen it. A one-run baseline has no range, so
    only rule 2 applies.
 2. It grew by more than its limit: time +20%, tokens +15%, cost +15%, tool
    calls +25%.

@@ -112,7 +112,8 @@ export const checkResults = (steps, mp4Exists, videoSec = null) => {
   };
   const verdict = lastExit('verdict');
   const review = verdict === 0 ? 'pass' : verdict === 1 ? 'return' : verdict === null ? 'not-run' : 'blocked';
-  return { ...checks, pass: Object.values(checks).every(Boolean), review };
+  const failed = Object.entries(checks).filter(([, ok]) => !ok).map(([name]) => name);
+  return { ...checks, pass: failed.length === 0, failed, review };
 };
 
 // The mp4 the last full render wrote (its --out argument), or null.
@@ -195,8 +196,15 @@ export const stats = (values) => {
   if (med === null) return { n: 0, median: null, min: null, max: null, spread: null };
   const min = Math.min(...xs);
   const max = Math.max(...xs);
-  return { n: xs.length, median: med, min, max, spread: med === 0 ? 0 : Math.round(((max - min) / med) * 1000) / 1000 };
+  const second = xs.length > 1 ? [...xs].sort((a, b) => b - a)[1] : max;
+  return { n: xs.length, median: med, min, max, second, spread: med === 0 ? 0 : Math.round(((max - min) / med) * 1000) / 1000 };
 };
+
+// The top of the baseline range compare uses. With 5 or more runs, one
+// outlier run (a box-load spike) should not widen it, so use the
+// second-highest run; with fewer, the max. Rows from before "second" was
+// stored fall back to the max.
+export const rangeTop = (s) => ((s?.n ?? 0) >= 5 && Number.isFinite(s?.second) ? s.second : s?.max);
 
 // Flat metric names a run reports. Compare and the summary use the same list.
 export const METRICS = [
@@ -227,13 +235,26 @@ export const flatten = (run) => {
   return out;
 };
 
+// Medians come from passing runs only: a run that broke early is fast and
+// cheap, and would pull the medians down. Failed runs are listed apart with
+// the checks they failed.
 export const aggregate = (runs) => {
-  const flat = runs.map(flatten);
+  const ok = runs.filter((r) => r.checks?.pass);
+  const flat = ok.map(flatten);
   const metrics = {};
   for (const name of METRICS) metrics[name] = stats(flat.map((f) => f[name]));
   const reviews = runs.map((r) => r.checks?.review ?? 'not-run');
   const review = [...new Set(reviews)].map((v) => `${v} ${reviews.filter((x) => x === v).length}`).join(', ');
-  return { n: runs.length, passed: runs.filter((r) => r.checks?.pass).length, review, metrics };
+  const failedRuns = runs.flatMap((r, i) => (r.checks?.pass ? [] : [{
+    run: i + 1,
+    failed: r.checks?.failed ?? Object.entries(r.checks ?? {}).filter(([k, v]) => v === false && k !== 'pass').map(([k]) => k),
+    wallMs: r.wallMs ?? null,
+    tokens: r.tokens?.total ?? null,
+    costUsd: r.costUsd ?? null,
+    videoSec: r.videoSec ?? null,
+    error: r.error ?? null,
+  }]));
+  return { n: runs.length, passed: ok.length, review, metrics, failedRuns };
 };
 
 // ---------- compare
@@ -243,8 +264,9 @@ export const DEFAULT_THRESHOLDS = { time: 0.2, tokens: 0.15, cost: 0.15, tools: 
 // Latest vs baseline, brief by brief, on the medians. Agent runs vary a lot
 // (the first baseline spread 60-90%), so a metric is a regression only when
 // both hold:
-//   1. the latest median is above the baseline's max: no baseline run was
-//      that high, so it is not run-to-run noise;
+//   1. the latest median is above the top of the baseline range (the max, or
+//      the second-highest run when n >= 5; see rangeTop), so it is not
+//      run-to-run noise;
 //   2. it grew by more than its kind's limit (time +20%, tokens +15%, ...).
 // A baseline with one run has no range; then the limit alone decides. Time
 // metrics whose baseline median is under minTimeMs never flag. A metric the
@@ -276,12 +298,13 @@ export const compare = (baseline, latest, thresholds = {}) => {
       const delta = b === 0 ? (c === 0 ? 0 : Infinity) : (c - b) / b;
       const limit = t[kind];
       const tooSmall = kind === 'time' && b < t.minTimeMs;
-      const hasRange = (bs.n ?? 0) > 1 && Number.isFinite(bs.max);
-      const aboveRange = hasRange ? c > bs.max : true;
+      const top = rangeTop(bs);
+      const hasRange = (bs.n ?? 0) > 1 && Number.isFinite(top);
+      const aboveRange = hasRange ? c > top : true;
       const regressed = limit !== undefined && !tooSmall && aboveRange && delta > limit;
       rows.push({ brief, metric: name, baseline: b, latest: c, delta, aboveRange, regressed, base: bs, cur: cs });
       if (regressed) {
-        warnings.push(`${brief}: ${name} ${fmtDelta(delta)} (limit +${Math.round(limit * 100)}%, above baseline max ${bs.max ?? b}; ${spreadNote(bs, cs)})`);
+        warnings.push(`${brief}: ${name} ${fmtDelta(delta)} (limit +${Math.round(limit * 100)}%, above baseline ${(bs.n ?? 0) >= 5 && Number.isFinite(bs.second) ? '2nd-highest' : 'max'} ${top ?? b}; ${spreadNote(bs, cs)})`);
       }
     }
     const bRate = base.n ? base.passed / base.n : null;
@@ -341,7 +364,7 @@ export const renderSummary = (row, cmp) => {
     '',
   ];
   for (const [brief, agg] of Object.entries(row.briefs)) {
-    lines.push(`## ${brief}`, '', `Passed ${agg.passed}/${agg.n} runs (check-ste, stills audit, check.mjs, render duration check, mp4, 20-40 s length). Fresh review: ${agg.review ?? '—'}.`, '');
+    lines.push(`## ${brief}`, '', `Passed ${agg.passed}/${agg.n} runs; medians use passing runs only (check-ste, stills audit, check.mjs, render duration check, mp4, 20-40 s length). Fresh review: ${agg.review ?? '—'}.`, '');
     lines.push('| Metric | Median | Min | Max | Spread |', '| --- | --- | --- | --- | --- |');
     for (const name of METRICS) {
       const s = agg.metrics[name];
@@ -351,13 +374,19 @@ export const renderSummary = (row, cmp) => {
       }
       lines.push(`| ${name} | ${fmt(name, s.median)} | ${fmt(name, s.min)} | ${fmt(name, s.max)} | ${Math.round((s.spread ?? 0) * 100)}% |`);
     }
+    if (agg.failedRuns?.length) {
+      lines.push('', 'Failed runs, kept out of the medians:', '');
+      for (const f of agg.failedRuns) {
+        lines.push(`- run ${f.run}: failed ${f.failed.join(', ') || '?'} · ${fmt('wallMs', f.wallMs)} · ${fmt('tokens.total', f.tokens)} tokens · ${fmt('costUsd', f.costUsd)} · video ${fmt('videoSec', f.videoSec)}${f.error ? ` · ${f.error}` : ''}`);
+      }
+    }
     lines.push('');
   }
   lines.push('## Compared with baseline', '');
   if (!cmp) {
     lines.push(row.baseline ? 'This row is the baseline. The next run compares against it.' : 'No baseline row yet for this agent and model.');
   } else {
-    lines.push(`Baseline: \`${String(cmp.baseline.gitSha).slice(0, 7)}\` · ${cmp.baseline.date}. A metric flags when its median is above the baseline max and past its limit: time +${Math.round(cmp.result.thresholds.time * 100)}%, tokens +${Math.round(cmp.result.thresholds.tokens * 100)}%, cost +${Math.round(cmp.result.thresholds.cost * 100)}%. Warn only.`, '');
+    lines.push(`Baseline: \`${String(cmp.baseline.gitSha).slice(0, 7)}\` · ${cmp.baseline.date}. A metric flags when its median is above the baseline range (max, or 2nd-highest run when n ≥ 5) and past its limit: time +${Math.round(cmp.result.thresholds.time * 100)}%, tokens +${Math.round(cmp.result.thresholds.tokens * 100)}%, cost +${Math.round(cmp.result.thresholds.cost * 100)}%. Warn only.`, '');
     lines.push(cmp.result.warnings.length ? cmp.result.warnings.map((w) => `- ⚠️ ${w}`).join('\n') : '- No regressions.');
   }
   lines.push('');
