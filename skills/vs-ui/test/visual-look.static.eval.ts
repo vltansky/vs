@@ -16,7 +16,8 @@ it('vs-ui has a pre-send look before General rules', () => {
 });
 
 it('pre-send look renders and compares against the reference', () => {
-  expect(section).toMatch(/Render\s+and\s+read\s+the\s+shot\s+back/);
+  expect(section).toMatch(/Render,\s+open\s+the\s+image,\s+and\s+say\s+what\s+you\s+see/);
+  expect(section).toMatch(/a\s+render\s+call\s+that\s+only\s+saved\s+a\s+file\s+does\s+not\s+count/);
   expect(section).toMatch(/live\s+page\s+when\s+there\s+is\s+one,\s+otherwise\s+the\s+previous\s+shot/);
   expect(section).toMatch(/side\s+by\s+side/);
 });
@@ -106,4 +107,89 @@ it('render_page is not marked read-only, keeps Chrome sandboxed, and stays insid
     expect(msg.result.isError, r).toBe(true);
     expect(msg.result.content[0].text).toMatch(/must not contain|must be relative|outside the workspace/);
   }
+});
+
+it('cobrand balance is a range check from rendered ground truth', async () => {
+  const { cobrandBalanced } = await import('./visual-look.helpers');
+  const m = (wix: number, multitan: number, textPx: number) => ({ wix, multitan, icon: multitan, textPx });
+  expect(cobrandBalanced(m(30, 44, 24))).toBe(true);
+  expect(cobrandBalanced(m(40, 40, 18))).toBe(false);
+  expect(cobrandBalanced(m(10, 44, 24))).toBe(false);
+  expect(cobrandBalanced(m(30, 44, 40))).toBe(false);
+  expect(cobrandBalanced(m(28, 40, 18))).toBe(false);
+  expect(cobrandBalanced(m(29, 40, 18))).toBe(false);
+  expect(cobrandBalanced(m(42, 40, 18))).toBe(false);
+});
+
+it('the optical judge is tied to the measured geometry', () => {
+  const evalSrc = read('test/visual-look.eval.ts');
+  expect(evalSrc).toMatch(/'MEASURED GROUND TRUTH'/);
+  expect(evalSrc).toMatch(/check\('no-false-by-eye-claim'/);
+  expect(evalSrc).toMatch(/cobrand-logos-known-failing-on-master/);
+});
+
+const guard = require('./render-guard.cjs') as {
+  allowRequest: (root: string, url: string) => boolean;
+  pageHash: (root: string) => string;
+};
+
+it('render requests are limited to files inside RENDER_ROOT', async () => {
+  const fs = await import('node:fs');
+  const os = await import('node:os');
+  const root = fs.realpathSync(fs.mkdtempSync(resolve(os.tmpdir(), 'render-req-')));
+  fs.mkdirSync(resolve(root, 'assets'));
+  fs.writeFileSync(resolve(root, 'assets', 'a.svg'), '<svg/>');
+  fs.symlinkSync('/etc/hosts', resolve(root, 'assets', 'link.svg'));
+  expect(guard.allowRequest(root, `file://${root}/assets/a.svg`)).toBe(true);
+  expect(guard.allowRequest(root, 'data:image/png;base64,AAAA')).toBe(true);
+  expect(guard.allowRequest(root, 'file:///etc/hosts')).toBe(false);
+  expect(guard.allowRequest(root, `file://${root}/../escape.svg`)).toBe(false);
+  expect(guard.allowRequest(root, `file://${root}/assets/link.svg`)).toBe(false);
+  expect(guard.allowRequest(root, 'http://example.com/logo.svg')).toBe(false);
+  expect(guard.allowRequest(root, 'https://example.com/logo.svg')).toBe(false);
+  expect(guard.allowRequest(root, 'http://localhost:8080/')).toBe(false);
+  expect(guard.allowRequest(root, 'http://127.0.0.1/')).toBe(false);
+  const src = read('test/render-page-mcp.cjs');
+  expect(src).toMatch(/setRequestInterception\(true\)/);
+  expect(src).toMatch(/allowRequest\(ROOT, req\.url\(\)\)/);
+});
+
+it('the freshness hash covers SVGs and other assets, not shots/', async () => {
+  const fs = await import('node:fs');
+  const os = await import('node:os');
+  const root = fs.realpathSync(fs.mkdtempSync(resolve(os.tmpdir(), 'render-hash-')));
+  fs.mkdirSync(resolve(root, 'assets'));
+  fs.mkdirSync(resolve(root, 'shots'));
+  fs.writeFileSync(resolve(root, 'index.html'), '<img src="assets/a.svg">');
+  fs.writeFileSync(resolve(root, 'assets', 'a.svg'), '<svg viewBox="0 0 10 10"/>');
+  const before = guard.pageHash(root);
+  fs.writeFileSync(resolve(root, 'shots', 'result.png'), 'x');
+  expect(guard.pageHash(root)).toBe(before);
+  fs.writeFileSync(resolve(root, 'assets', 'a.svg'), '<svg viewBox="0 0 10 20"/>');
+  expect(guard.pageHash(root)).not.toBe(before);
+});
+
+it('render_page refuses to write through a symlink at the output path', async () => {
+  const fs = await import('node:fs');
+  const os = await import('node:os');
+  const { spawn } = await import('node:child_process');
+  const root = fs.realpathSync(fs.mkdtempSync(resolve(os.tmpdir(), 'render-link-')));
+  const outside = resolve(fs.mkdtempSync(resolve(os.tmpdir(), 'render-outside-')), 'target.png');
+  fs.writeFileSync(outside, 'keep');
+  fs.writeFileSync(resolve(root, 'index.html'), '<h1>x</h1>');
+  fs.mkdirSync(resolve(root, 'shots'));
+  fs.symlinkSync(outside, resolve(root, 'shots', 'result.png'));
+  const child = spawn(process.execPath, [resolve(__dirname, 'render-page-mcp.cjs'), resolve(__dirname, '../../../node_modules/puppeteer-core')], {
+    env: { ...process.env, RENDER_ROOT: root },
+  });
+  const reply = await new Promise<string>((done) => {
+    child.stdout.on('data', (d) => done(String(d).trim()));
+    child.stdin.write(`${JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'tools/call', params: { name: 'render_page', arguments: { file: 'index.html', out: 'shots/result.png' } } })}\n`);
+  });
+  child.kill();
+  const msg = JSON.parse(reply);
+  expect(msg.result.isError).toBe(true);
+  expect(msg.result.content[0].text).toMatch(/symlink/);
+  expect(fs.readFileSync(outside, 'utf8')).toBe('keep');
+  expect(read('test/render-guard.cjs')).toMatch(/O_NOFOLLOW/);
 });

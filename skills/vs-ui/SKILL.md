@@ -48,8 +48,11 @@ Before you report any visual change as done (`craft`, `polish`, or a freeform
 tweak like "make the logos the same height"), look at it the way the user
 will:
 
-1. **Render and read the shot back.** A screenshot you did not open does not
-   count.
+1. **Render, open the image, and say what you see.** Look at the PNG itself
+   (view or open the image file); a render call that only saved a file does
+   not count. Before you claim anything about balance, write one or two plain
+   sentences of what you see: which element looks bigger, heavier or higher,
+   and roughly by how much. If anything looks off, change it and render again.
 2. **Put it next to the reference.** Use the live page when there is one,
    otherwise the previous shot you sent (or master). Compare them side by side.
 3. **Judge the user's words by eye, not by one number.** "Same height", "same
@@ -60,9 +63,10 @@ will:
    the render reads equal, and say when the numbers differ on purpose.
    Tripwire: if your edit leaves both elements on one shared value (`height:
    40px` on each), you equalized a number. Either show from a render you
-   opened that they read equal, or change it. Without a render you opened, do
-   not write "they read equal"; write what you sized and that it is not yet
-   checked by eye.
+   opened that they read equal, or change it. If what you saw says one element
+   looks bigger or heavier, they do not read equal yet: change the sizes and
+   look again. Without a render you opened, do not write "they read equal";
+   write what you sized and that it is not yet checked by eye.
 4. **Name what you compared, and against what,** in the reply. For example:
    "Against the previous shot, side by side: the two logos now read the same
    height." Or: "Font and CTA match the live post (checked against the live

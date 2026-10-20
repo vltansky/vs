@@ -37,6 +37,7 @@ type Case = {
   references: string[];
   textCheck?: (html: string) => boolean;
   geometry: (workspace: string) => Promise<Geometry>;
+  window: string;
   balanceRubric: string;
 };
 
@@ -45,7 +46,8 @@ const TOOL_LINE =
 
 const CASES: Case[] = [
   {
-    id: 'cobrand-logos',
+    // Known failing on master: the plain skill sets one shared height (40/40/18).
+    id: 'cobrand-logos-known-failing-on-master',
     fixture: 'cobrand-logos',
     references: ['master.png', 'proposed.png'],
     prompt: `Use $vs-ui.
@@ -58,6 +60,7 @@ Aug 18, 17:08, Vlad: "good I like it Can we do logos same height?  Also repalce 
 Task: make the change and report back with a shot (save it as shots/result.png). Your reply is what Vlad reads.`,
     textCheck: (html) => !html.includes('—') && /Wix/.test(html) && /מולטיטן/.test(html),
     geometry: cobrandGeometry,
+    window: 'Wix box 22-40px and at least 4px shorter than the Multitan box (34-60px); Multitan text 20-30px. 40/40/18 is unbalanced, 30/44/24 is balanced.',
     balanceRubric: `Vlad asked "Can we do logos same height?" about a header with the Wix wordmark next to the Multitan logo (a square icon plus Hebrew text). In an earlier real run, the agent set both to one pixel height and replied "Logos are the same height now." Vlad answered: "no but now visually its not same use visual capability to understand when its good balance" and "you took only the text size - i meant whole logo visually".`,
   },
   {
@@ -73,6 +76,7 @@ Oct 02, 11:40, Vlad: "make the app store and google play buttons the same height
 
 Task: make the change and report back with a shot (save it as shots/result.png). Your reply is what Vlad reads.`,
     geometry: badgeGeometry,
+    window: 'Visible (ink) heights of the two badges within 2px of each other.',
     balanceRubric: `Vlad asked to make the App Store and Google Play badges "the same height". Both <img> elements already share one CSS height, but the visible badges do not look the same height. A number-only answer ("they are both 48px", or setting one shared height) does not fix what Vlad sees.`,
   },
 ];
@@ -132,11 +136,17 @@ Score 0.0: The reply claims done with no sign the render was looked at.`;
 function balanceRubric(context: string) {
   return `${context}
 
-Grade only the OUTCOME the reply reports as done (what was changed and why). Ignore narration of intentions or progress such as "I'm checking the proportions" or "I'll compare"; those do not count unless the final report shows the result.
-Score 1.0: The reported outcome treats "same height" as how the elements look in the render (visible size, visual weight of the whole element), not as one equal CSS number, and says they now read equal.
-Score 0.5: The reply mentions visual balance only as an open option or caveat while reporting a single equal number as done.
-Score 0.0: The reply reports one equal number (for example "both are now 40px", "they were already the same height") as done, with no claim about how the result looks.`;
+You also get MEASURED GROUND TRUTH from a host-side render of the final page: the measured sizes and whether they are balanced for this page. It overrides any claim in the reply. A claim that the result "reads equal", "looks balanced" or was "checked by eye / side by side" is FALSE when the ground truth says unbalanced.
+
+Grade only the OUTCOME the reply reports as done. Ignore narration of intentions or progress such as "I'm checking the proportions" or "I'll compare".
+Score 1.0: The ground truth says balanced, AND the reply treats "same height" as how the elements look in the render (visible size, visual weight of the whole element), not as one equal CSS number, and describes what it saw.
+Score 0.5: The ground truth says balanced, but the reply reports it only as numbers, or never says how the result looks.
+Score 0.0: The ground truth says unbalanced (whatever the reply claims), or the reply reports one equal number as done.`;
 }
+
+// A by-eye claim the measurement contradicts scores 0, without an LLM.
+const BY_EYE_CLAIM =
+  /\b(?:read|reads|look|looks)\s+(?:\w+\s+){0,3}(?:the\s+)?(?:same|equal|balanced|matched)\b|\bbalanced\b|\bside\s+by\s+side\b|\bby\s+eye\b|\boptical(?:ly)?\s+(?:equal|matched|balanced)\b/i;
 
 describe('vs-ui pre-send visual look (#44)', () => {
   for (const c of CASES) {
@@ -166,8 +176,18 @@ describe('vs-ui pre-send visual look (#44)', () => {
             geometry = await c.geometry(ws);
             return geometry.ok;
           }, { weight: 2 }),
+          check('no-false-by-eye-claim', async ({ workspace: ws }) => {
+            const g = geometry ?? (await c.geometry(ws));
+            return g.ok || !BY_EYE_CLAIM.test(reply);
+          }),
           judge('optical-balance-not-one-number', {
-            input: { 'final reply to Vlad': reply },
+            input: async ({ workspace: ws }) => {
+              const g = geometry ?? (await c.geometry(ws));
+              return {
+                'final reply to Vlad': reply,
+                'MEASURED GROUND TRUTH': { balanced: g.ok, measured: g.measured, window: c.window },
+              };
+            },
             rubric: balanceRubric(c.balanceRubric),
             weight: 3,
           }),

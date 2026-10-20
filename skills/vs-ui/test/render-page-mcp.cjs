@@ -23,6 +23,7 @@ const crypto = require('node:crypto');
 const fs = require('node:fs');
 const path = require('node:path');
 const readline = require('node:readline');
+const { insideRoot, assertNotSymlink, writeNoFollow, allowRequest, pageHash } = require('./render-guard.cjs');
 
 const puppeteer = require(process.argv[2] || 'puppeteer-core');
 
@@ -63,37 +64,19 @@ const TOOL = {
   annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false },
 };
 
-// Relative paths only, no "..", and the resolved path (after symlinks for the
-// existing parts) must stay inside RENDER_ROOT.
-function insideRoot(p, label) {
-  if (!ROOT) throw new Error('RENDER_ROOT is not set');
-  if (typeof p !== 'string' || !p) throw new Error(`${label} is required`);
-  if (path.isAbsolute(p)) throw new Error(`${label} must be relative to the workspace`);
-  if (p.split(/[\\/]/).includes('..')) throw new Error(`${label} must not contain ".."`);
-  const abs = path.resolve(ROOT, p);
-  let probe = abs;
-  while (!fs.existsSync(probe)) probe = path.dirname(probe);
-  const real = path.join(fs.realpathSync(probe), path.relative(probe, abs));
-  if (real !== ROOT && !real.startsWith(ROOT + path.sep)) throw new Error(`${label} is outside the workspace`);
-  return real;
-}
-
-function hashFiles(files) {
-  const h = crypto.createHash('sha256');
-  for (const f of files.sort()) h.update(f).update(fs.readFileSync(f));
-  return h.digest('hex');
-}
-
 async function render({ file, out, width = 1200, height = 640 }) {
-  const src = insideRoot(file, 'file');
-  const dest = insideRoot(out, 'out');
+  const src = insideRoot(ROOT, file, 'file');
+  // Reject a symlink planted at the output path before resolving it.
+  if (ROOT && typeof out === 'string' && !path.isAbsolute(out) && !out.split(/[\\/]/).includes('..')) {
+    assertNotSymlink(path.join(ROOT, out), 'out');
+  }
+  const dest = insideRoot(ROOT, out, 'out');
   if (!/\.html?$/i.test(src)) throw new Error('file must be an .html file');
   if (!/\.png$/i.test(dest)) throw new Error('out must be a .png file');
-  // Hash the page and its stylesheets as rendered, so the eval can check the
-  // shot shows the final edit.
-  const dir = path.dirname(src);
-  const inputs = [src, ...fs.readdirSync(dir).filter((f) => f.endsWith('.css')).map((f) => path.join(dir, f))];
-  const sourceHash = hashFiles(inputs);
+  assertNotSymlink(dest, 'out');
+  // Hash the workspace as rendered, so the eval can check the shot shows the
+  // final edit.
+  const sourceHash = pageHash(ROOT);
   fs.mkdirSync(path.dirname(dest), { recursive: true });
   const browser = await puppeteer.launch({
     executablePath: resolveChrome(),
@@ -102,10 +85,15 @@ async function render({ file, out, width = 1200, height = 640 }) {
   });
   try {
     const page = await browser.newPage();
+    // Only files inside RENDER_ROOT and data: URLs load; other local files,
+    // http(s) and localhost are blocked.
+    await page.setRequestInterception(true);
+    page.on('request', (req) => (allowRequest(ROOT, req.url()) ? req.continue() : req.abort('accessdenied')));
     await page.setViewport({ width: Math.min(width, 2400), height: Math.min(height, 2400) });
     await page.goto(`file://${src}`, { waitUntil: 'load' });
     const png = Buffer.from(await page.screenshot());
-    fs.writeFileSync(dest, png);
+    assertNotSymlink(dest, 'out');
+    writeNoFollow(dest, png);
     if (process.env.RENDER_LOG) {
       fs.appendFileSync(
         process.env.RENDER_LOG,

@@ -1,6 +1,12 @@
 import * as crypto from 'node:crypto';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
+import { createRequire } from 'node:module';
+
+const guard = createRequire(__filename)('./render-guard.cjs') as {
+  pageHash: (root: string) => string;
+  allowRequest: (root: string, url: string) => boolean;
+};
 
 // Host-side helpers for visual-look.eval.ts: Chrome lookup, the geometry
 // checks for each case, and the check that shots/result.png is a render_page
@@ -79,12 +85,31 @@ export async function inkHeight(page: import('puppeteer-core').Page, selector: s
 
 export type Geometry = { ok: boolean; measured: Record<string, number | null> };
 
-// cobrand-logos starts at wix 28 / multitan 40 / icon 40 / Hebrew text 18px.
-// Fails: unchanged or a token tweak (no box moves 3px or more and the text
-// grows less than 2px); one height copied onto both marks; or the Wix
-// wordmark box at or above the lockup box with the text left at 18px or
-// smaller (a rendered check showed Wix 40px outweighs the 40px icon + 18px
-// text).
+export type LogoBoxes = { wix: number | null; multitan: number | null; icon: number | null; textPx: number | null };
+
+// Balanced window for cobrand-logos. This is fixture ground truth from renders,
+// not a general rule: at 40/40/18 (Wix box / Multitan box / Hebrew text px) the
+// dense Wix wordmark reads bigger than the icon + small-text lockup; at
+// 30/44/24 the two read as equal partners (agreed in review 5584741988).
+// Window: the Wix box clearly shorter than the lockup box (at least 4px) but not
+// tiny (22-40px), the lockup box 34-60px, and the lockup text in a sane band
+// (20-30px) and not taller than the lockup box allows. The fixture starts at
+// 28/40/18, which fails on the text band.
+export function cobrandBalanced(m: LogoBoxes): boolean {
+  const { wix, multitan, textPx } = m;
+  if (wix === null || multitan === null || textPx === null) return false;
+  return (
+    wix >= 22 &&
+    wix <= 40 &&
+    wix <= multitan - 4 &&
+    multitan >= 34 &&
+    multitan <= 60 &&
+    textPx >= 20 &&
+    textPx <= 30 &&
+    textPx <= multitan * 0.7
+  );
+}
+
 export async function cobrandGeometry(workspace: string): Promise<Geometry> {
   const m = await withPage(workspace, (page) =>
     page.evaluate(() => {
@@ -98,14 +123,7 @@ export async function cobrandGeometry(workspace: string): Promise<Geometry> {
       return { wix: h(wix), multitan: h(mt), icon: h(icon), textPx: text ? parseFloat(getComputedStyle(text).fontSize) : null };
     }),
   );
-  const { wix, multitan, icon, textPx } = m;
-  if (wix === null || multitan === null) return { ok: false, measured: m };
-  const text = textPx ?? 18;
-  const moved = Math.abs(wix - 28) >= 3 || Math.abs(multitan - 40) >= 3 || text - 18 >= 2;
-  const near = (a: number | null, b: number | null) => a !== null && b !== null && Math.abs(a - b) <= 1;
-  const equalized = near(wix, multitan) && near(wix, icon) && text <= 18;
-  const wordmarkOutweighs = wix >= multitan - 1 && text <= 18;
-  return { ok: moved && !equalized && !wordmarkOutweighs, measured: m };
+  return { ok: cobrandBalanced(m), measured: m };
 }
 
 // store-badges starts at 48px CSS height on both; visible: App Store 48px,
@@ -119,15 +137,10 @@ export async function badgeGeometry(workspace: string): Promise<Geometry> {
   return { ok, measured: m };
 }
 
-// Same hash as render-page-mcp.cjs: the HTML file plus the stylesheets next
-// to it, sorted by path.
+// Same hash as render-page-mcp.cjs (render-guard.cjs): every workspace file
+// the page can load, including SVGs and other assets.
 export function sourceHash(dir: string): string {
-  const workspace = fs.realpathSync(dir);
-  const html = path.join(workspace, 'index.html');
-  const files = [html, ...fs.readdirSync(workspace).filter((f) => f.endsWith('.css')).map((f) => path.join(workspace, f))].sort();
-  const h = crypto.createHash('sha256');
-  for (const f of files) h.update(f).update(fs.readFileSync(f));
-  return h.digest('hex');
+  return guard.pageHash(fs.realpathSync(dir));
 }
 
 export type RenderEntry = { out: string; pngSha: string; sourceHash: string };
