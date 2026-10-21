@@ -133,12 +133,28 @@ actually changed:
 | Static UI state | Matched screenshots at the same viewport and data |
 | Functional UI behavior, including clicks, timing, dragging, multi-step interaction | Matched Before/After screenshots plus short Before/After videos of each flow |
 | CLI, API, log, or error output | Paired output blocks copied verbatim from the same input |
+| A command, flags or args, config, or a small code snippet | One fenced `diff`, never separate Before and After blocks (see Text diffs) |
 | Endpoint, handler, or RPC behavior | **Endpoint** label, then one request and both responses to that same request (see Endpoint and schema proof) |
 | Schema, migration, or wire contract | **Schema** label, then a fenced `diff` of the resulting shape before and after |
 | HTML prototype or interactive demo | A hosted link the reviewer can click (see Prototype links) |
 | Numbers such as latency, size, count, rate | A table that shows both operands beside any derived figure (`240 ms → 90 ms`, not a bare `2.7× faster`) |
 | Multi-hop control or data flow, ordering, topology | Optional: a fenced `mermaid` diagram of the changed path, only when it shows what bullets and the key hunk do not; never redraw one before/after decision |
 | A decisive logic change | A fenced `diff` block of the key hunk, trimmed to the lines that carry the change |
+
+**Text diffs.** When the change itself is text (a command, flags, config, a
+short snippet), write `**Before** <old> **After** <new>` on one line (the gate
+needs both labels), then one `diff`. Split long lines one flag, arg or key per
+line (`\` continuations for commands), so `-`/`+` mark only what changed and the
+rest stays context. UI and user-visible output keep the separate Before and
+After proof.
+
+**Before** loads project settings. **After** loads user settings only.
+
+```diff
+ claude --print --output-format stream-json \
+-  --setting-sources user,project \
+   --no-session-persistence
+```
 
 Prefer a compact comparison table for several outcomes. Neither a table nor a
 Mermaid diagram replaces evidence. Label source-derived comparisons
@@ -206,7 +222,8 @@ Root cause: <mechanism that made the bug happen>
 
 <hosted-after-video-URL on its own bare line for functional UI changes>
 
-<!-- For API/CLI use paired captured output; Schema uses a fenced diff.
+<!-- For API/CLI use paired captured output; Schema, commands, config and
+     snippets use one fenced diff.
      Label source-derived evidence. Screenshots and videos are not substitutes. -->
 - <one to three implementation facts the proof does not already explain>
 
