@@ -23,7 +23,7 @@ describe('vs-ship-it text before/after', () => {
 The PR changes how the eval runner spawns Claude. Source-derived from the diff of src/runner.ts:
 Old command: claude --print --output-format stream-json --verbose --no-session-persistence --setting-sources user,project --model sonnet --max-turns 30 -p "$PROMPT"
 New command: claude --print --output-format stream-json --verbose --no-session-persistence --model sonnet --max-turns 30 -p "$PROMPT"
-Effect: runs no longer load the repo's project settings and hooks, so eval sandboxes match a clean user install. No UI change.`);
+Effect: with no --setting-sources flag, Claude loads every settings source (user, project, and local), so eval runs now also pick up .claude/settings.local.json, the same as a developer's own Claude session. No UI change.`);
       const result = await evaluate(agent, [
         check('one-diff-block-marks-the-flag', ({ log }) => {
           const blocks = fences(assistantOutput(log)).filter((b) => b.lang === 'diff');
@@ -43,6 +43,41 @@ Effect: runs no longer load the repo's project settings and hooks, so eval sandb
           const cmdBlocks = fences(assistantOutput(log)).filter((b) => b.lang !== 'diff' && /claude --print/.test(b.body));
           return cmdBlocks.length === 0;
         }),
+      ], { failFast: false, onScorerError: 'zero' });
+      expect(result.score).toBe(1);
+    } finally {
+      await agent.dispose();
+    }
+  });
+
+  it('renders a JSON key removal as one diff and marks the moved comma', async () => {
+    const agent = await createAgent({ agent: EVAL_AGENT, timeout: 360, skillDir: SKILL_DIR });
+    try {
+      await promptOnce(agent, `${ASK}
+The PR turns off Renovate automerge. Source-derived from the diff of renovate.json:
+Old: {"extends": ["config:recommended"], "labels": ["deps"], "schedule": ["before 6am on monday"], "automerge": true}
+New: {"extends": ["config:recommended"], "labels": ["deps"], "schedule": ["before 6am on monday"]}
+Effect: dependency PRs now wait for a human merge instead of merging on green CI. No UI change.`);
+      const result = await evaluate(agent, [
+        check('one-diff-marks-key-and-comma', ({ log }) => {
+          const blocks = fences(assistantOutput(log)).filter((b) => b.lang === 'diff');
+          return blocks.some((b) => {
+            const lines = b.body.split('\n');
+            const changed = lines.filter((l) => /^[-+]/.test(l));
+            return changed.some((l) => /^-.*"automerge"/.test(l))
+              && !changed.some((l) => /^\+.*"automerge"/.test(l))
+              && changed.some((l) => /^-.*"schedule".*,\s*$/.test(l))
+              && changed.some((l) => /^\+.*"schedule".*[^,\s]\s*$/.test(l))
+              && changed.length <= 3
+              && lines.some((l) => /^ .*"(?:extends|labels)"/.test(l));
+          });
+        }),
+        check('gate-labels-present', ({ log }) => {
+          const out = assistantOutput(log);
+          return /\*\*[ \t]*Before\b/.test(out) && /\*\*[ \t]*After\b/.test(out);
+        }),
+        check('no-separate-before-after-json-blocks', ({ log }) =>
+          fences(assistantOutput(log)).filter((b) => b.lang !== 'diff' && /"automerge"|"schedule"/.test(b.body)).length === 0),
       ], { failFast: false, onScorerError: 'zero' });
       expect(result.score).toBe(1);
     } finally {

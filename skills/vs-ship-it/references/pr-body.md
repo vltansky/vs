@@ -144,17 +144,21 @@ actually changed:
 **Text diffs.** When the change itself is text (a command, flags, config, a
 short snippet), write `**Before** <old> **After** <new>` on one line (the gate
 needs both labels), then one `diff`. Split long lines one flag, arg or key per
-line (`\` continuations for commands), so `-`/`+` mark only what changed and the
-rest stays context. UI and user-visible output keep the separate Before and
-After proof.
+line, flag and value together (`\` continuations for commands), so `-`/`+` mark
+only what changed and the rest stays context. When an edit moves a trailing
+`\` or JSON comma, mark that neighbor line too. UI and user-visible output keep
+the separate Before and After proof.
 
-**Before** loads project settings. **After** loads user settings only.
+**Before** loads user and project settings. **After** loads user settings only.
 
 ```diff
  claude --print --output-format stream-json \
 -  --setting-sources user,project \
++  --setting-sources user \
    --no-session-persistence
 ```
+
+Put **Source-derived** after the diff, never inside the Before/After label.
 
 Prefer a compact comparison table for several outcomes. Neither a table nor a
 Mermaid diagram replaces evidence. Label source-derived comparisons
