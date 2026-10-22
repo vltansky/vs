@@ -253,6 +253,22 @@ describe.skipIf(!hasFfmpeg)('finish.mjs on a real file', () => {
     expect(outside.stdout[0]).toBeLessThan(40);
   });
 
+  it('does not splice again when fframes already played the clips in frame', () => {
+    const work = fs.mkdtempSync(path.join(os.tmpdir(), 'vs-explain-pr-ff-'));
+    const raw = path.join(work, 'raw.mp4');
+    expect(spawnSync('ffmpeg', ['-y', '-v', 'error', '-f', 'lavfi', '-i', 'color=c=black:size=1280x720:rate=30:duration=4', '-f', 'lavfi', '-i', 'sine=d=4',
+      '-pix_fmt', 'yuv420p', '-shortest', raw]).status).toBe(0);
+    // No clips.json and no Playwright needed: the sidecar says the clips are in the frames.
+    fs.writeFileSync(path.join(work, 'raw.fframes.json'), JSON.stringify({ engine: 'fframes', output: raw, size: 720,
+      clipsInFrame: [{ src: 'apply.mp4', scene: 'after', window: 3, clipSeconds: 1.5, rate: 0.5, heldSeconds: 0, trimmed: false }] }));
+    const out = path.join(work, 'final.mp4');
+    const run = spawnSync(process.execPath, [path.join(SCRIPTS, 'finish.mjs'), work, raw, '--out', out], { encoding: 'utf8', env: { ...process.env, NODE_PATH: '/nonexistent' } });
+    expect(run.status, run.stderr + run.stdout).toBe(0);
+    const res = JSON.parse(run.stdout);
+    expect([res.width, res.height]).toEqual([1280, 720]);
+    expect(res.clips).toEqual([expect.objectContaining({ src: 'apply.mp4', rate: 0.5, inFrame: true })]);
+  });
+
   it('refuses a video over 75 seconds', () => {
     const work = fs.mkdtempSync(path.join(os.tmpdir(), 'vs-explain-pr-'));
     const raw = path.join(work, 'raw.mp4');
@@ -260,6 +276,29 @@ describe.skipIf(!hasFfmpeg)('finish.mjs on a real file', () => {
     const run = spawnSync(process.execPath, [path.join(SCRIPTS, 'finish.mjs'), work, raw, '--out', path.join(work, 'f.mp4')], { encoding: 'utf8' });
     expect(run.status).toBe(1);
     expect(run.stdout + run.stderr).toMatch(/75/);
+  });
+});
+
+describe('explain-pr on the fframes renderer', () => {
+  it('writes Rust scenes, checks with fframes, and falls back loudly', () => {
+    expect(SKILL).toContain('../vs-explain-video/scripts/fframes.mjs init');
+    expect(SKILL).toMatch(/fframes\.mjs check "\$WORK" --pr/);
+    expect(SKILL).toMatch(/fframes\.mjs render "\$WORK" --out "\$WORK\/raw\.mp4" --size 720/);
+    expect(SKILL).toMatch(/s\.clip\("media\/<name>\.mp4"/);
+    expect(SKILL).toMatch(/FALLBACK warning/);
+  });
+
+  it('lint.mjs leaves the page checks to fframes check --pr when the crate exists', () => {
+    const work = fs.mkdtempSync(path.join(os.tmpdir(), 'vs-explain-pr-lint-'));
+    fs.copyFileSync(path.join(ROOT, 'skills', 'vs-explain-video', 'assets', 'script.example.json'), path.join(work, 'script.json'));
+    for (const f of ['index.html', 'timeline.js', 'scenes.js']) fs.writeFileSync(path.join(work, f), '');
+    fs.mkdirSync(path.join(work, 'ff', 'src'), { recursive: true });
+    fs.writeFileSync(path.join(work, 'ff', 'src', 'main.rs'), 'fn main() {}');
+    const run = spawnSync(process.execPath, [path.join(SCRIPTS, 'lint.mjs'), work], { encoding: 'utf8' });
+    expect([0, 1]).toContain(run.status);
+    const res = JSON.parse(run.stdout);
+    expect(res.renderer).toBe('fframes');
+    expect(res.pageChecked).toBe(false);
   });
 });
 

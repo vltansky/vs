@@ -1,0 +1,28 @@
+# One explainer video on the vs fframes kit. `fframes.mjs init` copies this crate
+# to <work>/ff/ and fills in the kit path and the binary name; the heavy deps
+# (fframes, ffmpeg, Skia) are already built in the shared target dir, so this
+# crate compiles in seconds. Not part of any project: it lives in the work dir.
+[package]
+name = "vs-video"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[[bin]]
+name = "@BIN@"
+path = "src/main.rs"
+
+[dependencies]
+vs_fframes_kit = { path = "@KIT@" }
+# The svgr! macro looks for fframes in this file; the kit sets its features.
+fframes = "=1.3.0"
+
+# Its own workspace, so the kit's pinned Cargo.lock decides every dep version.
+[workspace]
+
+[profile.dev]
+opt-level = 1
+debug = false
+
+[profile.dev.package."*"]
+opt-level = 3

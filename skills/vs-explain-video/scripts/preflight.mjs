@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 // Reports whether this machine can run the explain-video pipeline (ffmpeg,
-// Playwright, a TTS engine), as JSON on stdout.
+// Playwright, a TTS engine), as JSON on stdout, and which renderer it uses:
+// fframes (the default, see fframes.mjs doctor) or, when fframes cannot run
+// here, the Playwright renderer, with a FALLBACK warning to pass on.
 //
 //   node preflight.mjs [<work-dir>]
 //
@@ -17,7 +19,22 @@ import { existsSync } from 'node:fs';
 import { homedir } from 'node:os';
 import path from 'node:path';
 
+import { fileURLToPath } from 'node:url';
+
 import { ensurePlaywright, run, which } from './media.mjs';
+
+const here = path.dirname(fileURLToPath(import.meta.url));
+// fframes doctor without --warm only looks; it never builds.
+const doctor = (() => {
+  const r = run(process.execPath, [path.join(here, 'fframes.mjs'), 'doctor']);
+  try {
+    return JSON.parse(r.stdout);
+  } catch {
+    return { ok: false, problems: [`fframes doctor did not answer: ${String(r.stderr).slice(0, 300)}`], next: 'FALLBACK: use the Playwright renderer (render.mjs).' };
+  }
+})();
+// Only the shared cache missing: still fframes, after one `fframes.mjs doctor --warm`.
+const renderer = doctor.ok || doctor.warmable ? 'fframes' : 'playwright';
 
 const pythonHas = (module) =>
   which('python3') !== null && run('python3', ['-c', `import ${module}`]).status === 0;
@@ -70,15 +87,19 @@ const ok = missing.length === 0;
 const report = {
   ok,
   ttsEngine,
+  renderer,
+  fframes: { ok: doctor.ok, warmable: Boolean(doctor.warmable), rust: doctor.rust ?? null, cache: doctor.cache ?? null, problems: doctor.problems ?? [], next: doctor.next },
+  ...(renderer === 'fframes' ? {} : { warning: `FALLBACK: fframes is not available (${(doctor.problems ?? []).join('; ')}). This video renders with Playwright (render.mjs, scenes.js); say so in the handoff.` }),
   tools,
   tts,
   missing,
   next: ok
-    ? `Pipeline ready with ${ttsEngine} narration. Run init.mjs <work-dir> next.`
+    ? `Pipeline ready with ${ttsEngine} narration and the ${renderer} renderer. Run init.mjs <work-dir> next.${doctor.ok ? '' : ` ${doctor.next}`}`
     : `Blocked on ${missing.map((item) => item.tool).join(', ')}. Run: ${missing
         .map((item) => item.install)
         .join(' ; ')}. Then rerun preflight.mjs. Until then, offer the storyboard as a /vs-show-me page instead.`,
 };
 
+if (report.warning) process.stderr.write(`\n*** ${report.warning} ***\n\n`);
 process.stdout.write(`${JSON.stringify(report, null, 2)}\n`);
 process.exit(ok ? 0 : 2);

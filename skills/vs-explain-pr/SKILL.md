@@ -31,12 +31,16 @@ Run every step yourself in this agent. Do not start more agents.
 
 `node <skill-dir>/../vs-explain-video/scripts/preflight.mjs "$WORK"`. Exit 2:
 report `BLOCKED_TOOLING` with its `next` text and stop. The PR stays as it is.
+The renderer is fframes, as in explain-video: with `fframes.warmable`, run
+`fframes.mjs doctor --warm` once; when `renderer` is `playwright`, use the
+fallback steps (`scenes.js`) and carry the FALLBACK warning to the handoff.
 
 ## 2. Scaffold and bring the media in
 
 ```bash
 WORK="$HOME/.vs/$PROJECT_ID/videos/pr-<N>"
 node <skill-dir>/../vs-explain-video/scripts/init.mjs "$WORK"
+node <skill-dir>/../vs-explain-video/scripts/fframes.mjs init "$WORK"
 node <skill-dir>/scripts/prep.mjs "$WORK" --manifest before=<before manifest.json> --manifest after=<after manifest.json>
 ```
 
@@ -83,18 +87,21 @@ the handoff and pass `--words-unchecked` to `attach.mjs`. Never drop it.
 
 ## 5. Write the scenes
 
-`scenes.js` follows the explain-video rules
+`ff/src/main.rs` follows the explain-video rules
 ([../vs-explain-video/references/motion-craft.md](../vs-explain-video/references/motion-craft.md)).
 Two kit helpers show the PR's media:
 
-- `still(root, 'media/<name>.png', x, y, w, h)` returns a card with the
-  screenshot fitted inside. Animate it like any block (`rise`, `pop`, `dim`).
-- `clip(root, 'media/<name>.mp4', x, y, w, h)` returns `{ el, update }`; call
-  `slot.update(t, D)` in your `update`. The stage shows the clip's first frame,
-  then its last; `finish.mjs` plays the real recording over the slot from 0.7 s
-  into the scene to 0.45 s before its end. Size the slot to the clip's aspect
+- `s.still("media/<name>.png", x, y, w, h, tf)` draws a card with the screenshot
+  fitted inside. Animate it like any block (`s.rise`, `s.pop`, `.dim`).
+- `s.clip("media/<name>.mp4", x, y, w, h, tf)` plays the recording in its slot from
+  0.7 s into the scene to 0.45 s before its end: its first frame before, its
+  last frame after. Draw chips after it to put them on top. Size the slot to the clip's aspect
   ratio (`media.json` has width and height). Keep the slot static. Change the
   label or chips next to it on each beat, so each beat still builds.
+
+Fallback (`scenes.js`): `still(root, 'media/<name>.png', x, y, w, h)` and
+`clip(root, 'media/<name>.mp4', x, y, w, h)`, whose `slot.update(t, D)` you
+call in `update`; `finish.mjs` then plays the recording over the slot.
 
 Show media at least 900 px wide, above the bottom 150 px (captions live there).
 
@@ -102,22 +109,21 @@ Show media at least 900 px wide, above the bottom 150 px (captions live there).
 
 ```bash
 node <skill-dir>/scripts/lint.mjs "$WORK"
-node <skill-dir>/../vs-explain-video/scripts/render.mjs "$WORK" --stills
-node <skill-dir>/../vs-explain-video/scripts/check.mjs "$WORK"
-```
-
-`lint.mjs` now also loads the page: text of 4 or more words under 24 px
-(`PHONE`), more than 40 words on screen (`DENSE`), or media under 900 px wide.
-Exit 1 on any of the three: fix and rerun. Open one still per scene (its `-end`
-still), not every still.
-
-```bash
-node <skill-dir>/../vs-explain-video/scripts/render.mjs "$WORK" --out "$WORK/raw.mp4"
+node <skill-dir>/../vs-explain-video/scripts/fframes.mjs check "$WORK" --pr
+node <skill-dir>/../vs-explain-video/scripts/fframes.mjs render "$WORK" --out "$WORK/raw.mp4" --size 720
 node <skill-dir>/scripts/finish.mjs "$WORK" "$WORK/raw.mp4" --out "$WORK/final.mp4"
 ```
 
-`finish.mjs` splices the clips in, scales to 1280x720, and keeps the file
-under 10 MB. A clip shorter than its slot plays slower, never under half
+`check --pr` adds the phone checks: text of 4 or more words under 24 px
+(`PHONE`), more than 40 words on screen (`DENSE`), or media under 900 px wide.
+Exit 1 on any: fix and rerun. Open one still per scene (its `-end` still), not
+every still. Fallback (Playwright): `lint.mjs` runs those page checks, then
+`../vs-explain-video/scripts/render.mjs "$WORK" --stills`,
+`../vs-explain-video/scripts/check.mjs "$WORK"`, and `render.mjs "$WORK" --out
+"$WORK/raw.mp4"` before `finish.mjs`.
+
+`finish.mjs` splices the clips in (fframes already played them in frame), scales
+to 1280x720, and keeps the file under 10 MB. A clip shorter than its slot plays slower, never under half
 speed. Say "slowed" in that scene's on-screen label. Exit 1 over 75 seconds:
 cut beats.
 
@@ -147,7 +153,7 @@ copy. `GATE_FAILED`: do not patch; report the gate's text.
 ## 9. Handoff
 
 Return to the caller: status, the PR URL, the `file://` path of
-`final.mp4`, length, size, which clips play slowed, "not reviewed by fresh
+`final.mp4`, length, size, the renderer (and any FALLBACK warning), which clips play slowed, "not reviewed by fresh
 eyes" (or the verdict), and "words not checked" when whisper was missing.
 Listen-check is not possible for the agent; say so.
 

@@ -10,6 +10,9 @@
 // each scene, every visible text of more than 3 words is at least 24 px (it
 // must read on a phone at 720p; short labels keep the stage's 20 px floor), at most 40 words are on screen besides the caption, and every still
 // or clip is at least 900 px wide.
+// With fframes (the default renderer: <work>/ff/src/main.rs exists) the page
+// is Rust, not scenes.js: the same three checks run in
+// `fframes.mjs check <work> --pr`, so lint.mjs checks the script only.
 //
 // Exit codes: 0 pass; 1 problems (fix script.json or scenes.js); 2 blocked.
 import { existsSync, readFileSync } from 'node:fs';
@@ -34,7 +37,8 @@ const MIN_PX = 24;
 const MAX_WORDS = 40;
 const MIN_MEDIA_W = 900;
 const pageIssues = [];
-const canPage = !args.includes('--no-page') && ['index.html', 'timeline.js', 'scenes.js'].every((f) => existsSync(path.join(work, f)));
+const fframes = existsSync(path.join(work, 'ff', 'src', 'main.rs'));
+const canPage = !fframes && !args.includes('--no-page') && ['index.html', 'timeline.js', 'scenes.js'].every((f) => existsSync(path.join(work, f)));
 if (canPage) {
   const { entry, error } = ensurePlaywright([work]);
   if (!entry) fail(`Playwright is not available: ${error}. Rerun with --no-page to check the script only.`);
@@ -93,7 +97,8 @@ const all = [...problems, ...pageIssues];
 process.stdout.write(`${JSON.stringify({
   estimatedSeconds: seconds,
   pageChecked: canPage,
+  renderer: fframes ? 'fframes' : 'playwright',
   problems: all,
-  next: all.length ? 'Fix each problem in script.json or scenes.js, then rerun lint.mjs.' : canPage ? 'Lint passed. Run render.mjs --stills and check.mjs.' : 'Script passed. Narrate, write scenes.js, then rerun lint.mjs for the page checks.',
+  next: all.length ? 'Fix each problem in script.json or scenes.js, then rerun lint.mjs.' : fframes ? 'Script passed. The page checks (PHONE, DENSE, media width) run in fframes.mjs check <work-dir> --pr.' : canPage ? 'Lint passed. Run render.mjs --stills and check.mjs.' : 'Script passed. Narrate, write scenes.js, then rerun lint.mjs for the page checks.',
 }, null, 2)}\n`);
 process.exit(all.length ? 1 : 0);

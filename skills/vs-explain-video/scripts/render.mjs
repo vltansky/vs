@@ -136,6 +136,8 @@ try {
     const seconds = to - from;
     const frames = Math.ceil(seconds * fps);
     const out = path.resolve(outArg);
+    // A sidecar from an earlier fframes render would tell finish.mjs the clips are in frame.
+    rmSync(`${out.replace(/\.mp4$/i, '')}.fframes.json`, { force: true });
     mkdirSync(path.dirname(out), { recursive: true });
     const pieces = planPieces(frames, workersArg ? Number(workersArg) : defaultWorkers(cpus().length));
     const scratch = mkdtempSync(path.join(tmpdir(), 'vs-render-'));

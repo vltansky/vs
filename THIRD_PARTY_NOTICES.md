@@ -157,7 +157,8 @@ MIT license notice is included at `skills/vs-ui/LICENSE.emil-design-eng`.
 - Authors: Tal Siach (take-one); Raphael Aubry (claude-motion-design)
 - Projects: https://github.com/talsiach/take-one and
   https://github.com/howseen-ai/claude-motion-design
-- Used in: `skills/vs-explain-video/assets/motion.js` (the springs)
+- Used in: `skills/vs-explain-video/assets/motion.js` and
+  `skills/vs-explain-video/fframes/kit/src/motion.rs` (the springs)
 - Source: take-one's `scripts/springs.js` at
   https://github.com/talsiach/take-one/tree/b81bdafa4ed2bc0a483407cf160e60f7634d4ef2
 - License: MIT
