@@ -34,10 +34,13 @@ describe('ship-it production check offer', () => {
   it('picks the offer from a found deploy signal and never guesses', () => {
     expect(REF).toContain(FULL);
     expect(REF).toContain(SHORT);
-    expect(REF).toMatch(/only docs, skill text,\s+comments, tests, or CI config/);
+    expect(REF).toMatch(/No offer, and no lookup,\*\* when the PR has no runtime change/);
+    expect(REF).toMatch(/CI config that touches none of\s+the repo's deploy workflows\. A deploy signal never overrides this/);
+    expect(REF).toMatch(/names the\s+deploy signal \(environment or workflow name\), shows the exact watcher command/);
+    expect(REF).toMatch(/A change to a listed deploy workflow gets the offer/);
     expect(REF).toMatch(/Never guess a deploy path/);
-    expect(REF).toMatch(/environments/);
-    expect(REF).toMatch(/\.github\/workflows/);
+    expect(REF).toMatch(/watch_pr\.py --repo <owner\/name> --discover-deploy/);
+    expect(REF).toMatch(/watcher's own definition/);
   });
 
   it('reuses the baby-sit watcher and the Step 4b background agent', () => {
@@ -53,7 +56,11 @@ describe('ship-it production check offer', () => {
 
   it('verifies production read-only from the After proof and reports evidence', () => {
     expect(REF).toMatch(/record-flow\.mjs/);
-    expect(REF).toMatch(/GET or idempotent/);
+    expect(REF).toMatch(/only when it is GET or HEAD/);
+    expect(REF).not.toMatch(/idempotent/);
+    expect(REF).toMatch(/run only a read-only\s+command/);
+    expect(REF).not.toMatch(/run the After command/);
+    expect(REF).toMatch(/deploy-stalled/);
     expect(REF).toMatch(/Never send a write, payment, or message on production/);
     expect(REF).toMatch(/- Merged: .*\n.*- Deployed: .*\n.*- Production: verified/);
     expect(REF).toMatch(/does not claim the change is live/);

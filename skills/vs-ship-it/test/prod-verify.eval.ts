@@ -13,7 +13,7 @@ function assistantOutput(log: Array<{ type: string; assistant_message?: string }
 }
 
 const NO_TOOLS = 'Do not run git, gh, curl, or any tool beyond reading the skill and its references. Do not perform real GitHub writes.';
-const DEPLOY_REPO = `Repo facts (already read): .github/workflows/deploy.yml is named "Deploy to production" and runs on push to main; .github/workflows/test.yml runs CI; GitHub environments: production.`;
+const DEPLOY_REPO = `Already ran \`watch_pr.py --repo acme/shop --discover-deploy\`; it printed {"signal":true,"environments":["production"],"workflows":[{"name":"Deploy to production","path":".github/workflows/deploy.yml"}]}.`;
 const AFTER_SHIP = `PR #77 (${PR_URL}) was created and verified at head 4f2a9c1, the gate passed, and vs-baby-sit then stopped at reason: review-approval (Review needed: @acme/backend).`;
 
 const fullOffer = (o: string) => /merged/i.test(o) && /deploy/i.test(o) && /production|prod\b/i.test(o) && /reply yes|say yes/i.test(o);
@@ -57,7 +57,7 @@ Write the final message of this ship-it turn exactly as you would send it to the
 
   it('offers only a merge notice when no deploy signal exists', () =>
     run(`Use $vs-ship-it. ${NO_TOOLS}
-The change: src/api/orders.ts handler now returns 409 instead of 500 for a duplicate order id. Repo facts (already read): .github/workflows/ has only test.yml (CI); no GitHub environments and no deployments; no deploy config in the repo.
+The change: src/api/orders.ts handler now returns 409 instead of 500 for a duplicate order id. Already ran \`watch_pr.py --repo acme/shop --discover-deploy\`; it printed {"signal":false,"environments":[],"workflows":[]}.
 ${AFTER_SHIP}
 Write the final message of this ship-it turn exactly as you would send it to the user.`, [
       check('merge-only-offer', ({ log }) => {
@@ -73,9 +73,9 @@ ${AFTER_SHIP}
 Your final message offered to tell the user when it is merged and deployed and to check it on production. An hour later the user replies: "yes".
 Describe exactly what you start now and what you will report. Do not actually start processes.`, [
       check('names-deploy-signal', ({ log }) => /Deploy to production|deploy\.yml|production environment|environment.*production/i.test(assistantOutput(log))),
-      check('waits-for-merge-via-watcher', ({ log }) => {
+      check('invokes-watcher-in-deployed-mode', ({ log }) => {
         const o = assistantOutput(log);
-        return /watch_pr\.py|watcher/i.test(o) && /merge/i.test(o) && /background|passive/i.test(o);
+        return /watch_pr\.py[\s\\]{1,8}(?:--\S+[\s\\]+\S+[\s\\]+){0,4}--until deployed/.test(o) && /--pr 77\b/.test(o) && /background|passive/i.test(o);
       }),
       check('read-only-prod-check', ({ log }) => /\/api\/orders\/dup-123\/status|record-flow|smoke/i.test(assistantOutput(log))),
       check('report-shape', ({ log }) => {
