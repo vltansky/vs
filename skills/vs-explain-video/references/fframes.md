@@ -20,14 +20,17 @@ background, transitions, audio) is the kit's.
 | After a kit update | `doctor --warm` again (doctor says so) | ~15 s |
 | New video | `node scripts/fframes.mjs init "$WORK"` | instant |
 
-doctor needs Rust 1.88 or newer (rustup), ffmpeg and ffprobe, and on Linux the
-freetype and fontconfig dev libraries and `pkg-config`. It never installs system
+doctor needs Rust 1.88 or newer (rustup), ffmpeg and ffprobe, libclang (the
+ffmpeg bindings are generated at build time), and on Linux the freetype and
+fontconfig dev libraries, x264 (the bundled ffmpeg links it) and `pkg-config`
+(Debian/Ubuntu: `sudo apt-get install -y libfreetype-dev libfontconfig-dev
+libx264-dev libclang-dev pkg-config`). It never installs system
 tools. When something is missing it prints `*** FALLBACK ... ***`: render
 with the Playwright renderer (`render.mjs`, `scenes.js`) and say so in the
 handoff.
 
-macOS: `brew install rustup ffmpeg pkg-config` and `rustup default stable`
-give everything; fonts come from the work dir, not the system. The kit asks
+macOS: `xcode-select --install` (libclang), `brew install rustup ffmpeg
+pkg-config` and `rustup default stable` give everything; fonts come from the work dir, not the system. The kit asks
 Skia for its Metal build on macOS and Vulkan on Linux only because those are the
 prebuilt Skia binaries; frames still render on the CPU (`--renderer skia-cpu`).
 

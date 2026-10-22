@@ -128,14 +128,19 @@ export const doctor = ({ warm = false, quiet = false } = {}) => {
   if (!mac && process.platform === 'linux') {
     const pc = which('pkg-config');
     const has = (lib, header) => (pc ? run(pc, ['--exists', lib]).status === 0 : existsSync(header));
-    const libs = [['freetype2', '/usr/include/freetype2', 'libfreetype-dev'], ['fontconfig', '/usr/include/fontconfig', 'libfontconfig-dev']];
+    const libs = [['freetype2', '/usr/include/freetype2', 'libfreetype-dev'], ['fontconfig', '/usr/include/fontconfig', 'libfontconfig-dev'], ['x264', '/usr/include/x264.h', 'libx264-dev']];
     const missing = libs.filter(([lib, header]) => !has(lib, header));
     if (missing.length) {
       problems.push(`dev libraries missing: ${missing.map((m) => m[0]).join(', ')}`);
       next.push(`sudo apt-get install -y ${missing.map((m) => m[2]).join(' ')} pkg-config`);
     }
-    if (!which('make')) notes.push('make is missing: needed only if prebuilt ffmpeg does not link (sudo apt-get install -y make)');
+    for (const tool of ['make', 'nasm']) if (!which(tool)) notes.push(`${tool} is missing: needed only if prebuilt ffmpeg does not link and warm builds it (sudo apt-get install -y make nasm)`);
     if (!process.env.XDG_RUNTIME_DIR) notes.push('XDG_RUNTIME_DIR is unset: fine for the default Skia CPU renderer; --renderer gpu (Vulkan) needs it');
+  }
+  // ffmpeg-sys runs bindgen, which loads libclang at build time; a clean box often has none.
+  if (!hasLibclang(mac)) {
+    problems.push('libclang missing (the ffmpeg bindings are generated with it)');
+    next.push(mac ? 'xcode-select --install' : 'sudo apt-get install -y libclang-dev  (or set LIBCLANG_PATH)');
   }
   if (mac && !which('pkg-config')) notes.push('pkg-config missing: needed only if prebuilt ffmpeg fails (brew install pkg-config nasm x264)');
   const env = readEnv();
@@ -197,6 +202,9 @@ const warmCache = (env) => {
   writeFileSync(log, `${res.stdout ?? ''}${res.stderr ?? ''}`);
   if (res.status !== 0 && !used.ffmpegForceBuild && /x264|ffmpeg|libav|avcodec|undefined reference|linking with/i.test(res.stderr ?? '')) {
     used = { ...used, ffmpegForceBuild: true };
+    // ffmpeg-sys skips its build when an earlier prebuilt libavutil.a is in its out dir, so
+    // FFMPEG_FORCE_BUILD alone would relink the same prebuilt (e.g. built against another x264).
+    clearFfmpegOut();
     res = attempt(used);
     writeFileSync(log, `${res.stdout ?? ''}${res.stderr ?? ''}`);
   }
@@ -238,6 +246,22 @@ const prune = (kit) => {
     for (const p of g.paths) { rmSync(p, { recursive: true, force: true }); removed++; }
   }
   return removed;
+};
+const clearFfmpegOut = () => {
+  const dir = path.join(TARGET, 'debug', 'build');
+  if (!existsSync(dir)) return;
+  for (const d of readdirSync(dir)) if (/^ffmpeg-sys-fframes-/.test(d)) rmSync(path.join(dir, d, 'out'), { recursive: true, force: true });
+};
+const hasLibclang = (mac) => {
+  const named = (dir) => {
+    try { return readdirSync(dir).some((f) => /^libclang(-[\d.]+)?\.(so|dylib)/.test(f)); } catch { return false; }
+  };
+  if (process.env.LIBCLANG_PATH && named(process.env.LIBCLANG_PATH)) return true;
+  const dirs = mac
+    ? ['/Library/Developer/CommandLineTools/usr/lib', '/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib', '/opt/homebrew/opt/llvm/lib', '/usr/local/opt/llvm/lib']
+    : ['/usr/lib', '/usr/lib64', '/usr/local/lib', '/usr/lib/x86_64-linux-gnu', '/usr/lib/aarch64-linux-gnu',
+      ...(() => { try { return readdirSync('/usr/lib').filter((d) => /^llvm-\d+$/.test(d)).map((d) => `/usr/lib/${d}/lib`); } catch { return []; } })()];
+  return dirs.some(named);
 };
 const WARM_TL = { title: 'warm', brand: 'vs', fps: 30, total: 1, scenes: [{ id: 'intro', title: 'Intro', start: 0, dur: 1, beats: [0.1, 0.5] }], subs: [], captions: { style: 'pill' } };
 

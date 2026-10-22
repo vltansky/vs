@@ -209,6 +209,22 @@ describe('preflight picks the renderer', () => {
     expect(src).toMatch(/sort\(\(a, b\) => b\[1\]\.newest - a\[1\]\.newest\)/);
   });
 
+  it('doctor checks libclang (bindgen) and names the install on each OS', () => {
+    const src = read('scripts', 'fframes.mjs');
+    expect(src).toMatch(/libclang missing/);
+    expect(src).toMatch(/sudo apt-get install -y libclang-dev/);
+    expect(src).toMatch(/xcode-select --install/);
+    expect(src).toMatch(/LIBCLANG_PATH/);
+    expect(src).toMatch(/\['x264', '\/usr\/include\/x264\.h', 'libx264-dev'\]/);
+  });
+
+  it('clears the prebuilt ffmpeg before the FFMPEG_FORCE_BUILD retry', () => {
+    const src = read('scripts', 'fframes.mjs');
+    const retry = src.slice(src.indexOf('ffmpegForceBuild: true };'), src.indexOf('res = attempt(used);', src.indexOf('ffmpegForceBuild: true };')));
+    expect(retry).toMatch(/clearFfmpegOut\(\)/);
+    expect(src).toMatch(/ffmpeg-sys-fframes-\/\.test\(d\)\) rmSync\(path\.join\(dir, d, 'out'\)/);
+  });
+
   it('tells a sandboxed build to ask for write access, not to fall back', () => {
     const src = read('scripts', 'fframes.mjs');
     expect(src).toMatch(/sandboxed: ?true/);
