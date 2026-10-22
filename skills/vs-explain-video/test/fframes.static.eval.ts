@@ -198,6 +198,7 @@ describe('preflight picks the renderer', () => {
     expect(report.fframes.ok).toBe(false);
     expect(report.warning).toMatch(/^FALLBACK: fframes is not available/);
     expect(res.stderr).toMatch(/\*\*\* FALLBACK/);
+    if (!report.tools.playwright) expect(report.missing.map((m: { tool: string }) => m.tool)).toContain('playwright');
   });
 
   it('reports fframes when only the shared cache is missing', () => {
@@ -212,6 +213,8 @@ describe('preflight picks the renderer', () => {
     expect(report.renderer).toBe('fframes');
     expect(report.warning).toBeUndefined();
     expect(report.fframes.next).toMatch(/doctor --warm/);
+    // fframes draws the frames: a machine without Playwright is not blocked.
+    expect(report.missing.map((m: { tool: string }) => m.tool)).not.toContain('playwright');
   });
 });
 

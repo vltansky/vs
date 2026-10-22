@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import os from 'node:os';
+import { createRequire } from 'node:module';
 import path from 'node:path';
 import { check, evaluate } from '@wix/pathgrade';
 import { describe, expect, it } from 'vitest';
@@ -22,6 +23,13 @@ const LIVE = process.env.EXPLAIN_VIDEO_LIVE === '1';
 const CASES = (process.env.EXPLAIN_VIDEO_CASES ?? 'fframes-default,fallback-loud').split(',');
 const WARM_CACHE = process.env.VS_FF_CACHE ?? path.join(os.homedir(), '.cache', 'vs', 'fframes');
 const CARGO = process.env.VS_FF_CARGO ?? path.join(os.homedir(), '.cargo', 'bin', 'cargo');
+// The agent runs with a sandboxed HOME: point it at this machine's voice and Playwright
+// (the fallback case needs a browser; neither case may block on a missing voice).
+const TOOLS: Record<string, string> = Object.fromEntries(Object.entries({
+  KOKORO_DIR: process.env.KOKORO_DIR ?? path.join(os.homedir(), '.cache', 'kokoro'),
+  PLAYWRIGHT_MODULE: process.env.PLAYWRIGHT_MODULE ?? (() => { try { return path.dirname(createRequire(__filename).resolve('playwright-core')); } catch { return undefined; } })(),
+  PLAYWRIGHT_BROWSERS_PATH: process.env.PLAYWRIGHT_BROWSERS_PATH ?? path.join(os.homedir(), '.cache', 'ms-playwright'),
+}).filter((e): e is [string, string] => typeof e[1] === 'string' && fs.existsSync(e[1])));
 
 const TOPIC = `Use $vs-explain-video. Make a short explainer (about 20 seconds, 2 scenes) on why a debounce waits for the user to stop typing before it searches. Use the default voice. Stop after the stills check passes (step 7 checks); skip the final mp4 render, and give the handoff with the renderer you used.`;
 
@@ -42,7 +50,7 @@ type Case = { id: string; env: () => Record<string, string>; checks: ReturnType<
 const CASE_LIST: Case[] = [
   {
     id: 'fframes-default',
-    env: () => ({ VS_FF_CACHE: WARM_CACHE, VS_FF_CARGO: CARGO }),
+    env: () => ({ ...TOOLS, VS_FF_CACHE: WARM_CACHE, VS_FF_CARGO: CARGO }),
     checks: [
       check('wrote-crate-from-template', ({ workspace }) => {
         const all = files(path.dirname(workspace));
@@ -60,7 +68,7 @@ const CASE_LIST: Case[] = [
   },
   {
     id: 'fallback-loud',
-    env: () => ({ VS_FF_CACHE: fs.mkdtempSync(path.join(os.tmpdir(), 'vs-ff-empty-')), VS_FF_CARGO: '/nonexistent/cargo' }),
+    env: () => ({ ...TOOLS, VS_FF_CACHE: fs.mkdtempSync(path.join(os.tmpdir(), 'vs-ff-empty-')), VS_FF_CARGO: '/nonexistent/cargo' }),
     checks: [
       check('says-fallback', ({ transcript }) => /FALLBACK/.test(transcript) && /playwright/i.test(transcript)),
       check('wrote-scenes-js', ({ workspace }) => {

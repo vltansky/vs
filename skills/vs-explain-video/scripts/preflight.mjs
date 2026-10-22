@@ -80,7 +80,8 @@ const INSTALL = {
 const missing = [];
 if (!tools.ffmpeg) missing.push({ tool: 'ffmpeg', install: INSTALL.ffmpeg });
 if (!tools.ffprobe) missing.push({ tool: 'ffprobe', install: INSTALL.ffprobe });
-if (!tools.playwright) missing.push({ tool: 'playwright', install: INSTALL.playwright });
+// fframes draws every frame itself: Playwright is needed only to render the fallback.
+if (!tools.playwright && renderer === 'playwright') missing.push({ tool: 'playwright', install: INSTALL.playwright });
 if (!ttsEngine) missing.push({ tool: 'tts', install: INSTALL.tts });
 
 const ok = missing.length === 0;
