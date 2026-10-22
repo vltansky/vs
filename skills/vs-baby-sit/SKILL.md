@@ -151,6 +151,10 @@ Use `merge-ready` as the default target. Use `merged` only when the user says
 to wait until merged or otherwise names that terminal state. Waiting until
 merged does not authorize merging the PR.
 
+`--until deployed` and `--passive` are for the ship-it production check only
+(`../vs-ship-it/references/prod-verify.md`): they report and never stop for
+CI, review, or approval. Babysitting itself never uses them.
+
 ## 2. Start the watcher
 
 Do not run the watcher until the done-predicate is written.

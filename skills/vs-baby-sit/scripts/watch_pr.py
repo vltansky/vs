@@ -57,7 +57,16 @@ def is_merge_ready(snapshot: Snapshot) -> bool:
     )
 
 
+DEPLOY_TERMINAL = {"success": "deployed", "failure": "deploy-failed", "timeout": "no-deploy-signal"}
+DEPLOY_WORKFLOW = re.compile(r"deploy|release|publish|production", re.IGNORECASE)
+DEPLOY_WORKFLOW_OVERRIDE: re.Pattern[str] | None = None
+PRODUCTION_ENV = re.compile(r"prod", re.IGNORECASE)
+PREVIEW_ENV = re.compile(r"preview|staging|\bdev\b|\bpr[- _]?\d+", re.IGNORECASE)
+
+
 def terminal_reason(snapshot: Snapshot, until: str) -> str | None:
+    if until == "deployed" and snapshot.get("merged"):
+        return DEPLOY_TERMINAL.get(str((snapshot.get("deploy") or {}).get("state")))
     if snapshot.get("merged"):
         return "merged"
     if snapshot.get("state") == "closed":
@@ -91,8 +100,10 @@ def attention_reason(snapshot: Snapshot) -> str | None:
     return None
 
 
-def watch(snapshots: Iterable[Snapshot], until: str) -> int:
+def watch(snapshots: Iterable[Snapshot], until: str, passive: bool = False) -> int:
     previous: Snapshot | None = None
+    # A passive watch only reports: it never stops for CI, review, or approval.
+    passive = passive or until == "deployed"
 
     for snapshot in snapshots:
         reason = terminal_reason(snapshot, until)
@@ -100,7 +111,7 @@ def watch(snapshots: Iterable[Snapshot], until: str) -> int:
             emit("terminal", snapshot, reason=reason)
             return 0
 
-        reason = attention_reason(snapshot)
+        reason = None if passive else attention_reason(snapshot)
         if reason:
             emit("attention", snapshot, reason=reason)
             return 10
@@ -273,6 +284,93 @@ def fetch_preview_urls(repo: str, head_sha: str) -> list[str]:
     return preview_urls
 
 
+def deploy_from_deployment(deployment: Snapshot, sha: str) -> Snapshot | None:
+    statuses_endpoint = urlparse(str(deployment["statuses_url"])).path.lstrip("/")
+    try:
+        statuses = gh_json("api", statuses_endpoint, attempts=1)
+    except subprocess.CalledProcessError:
+        return None
+    latest = statuses[0] if statuses else {}
+    state = {"success": "success", "failure": "failure", "error": "failure"}.get(
+        str(latest.get("state")), "pending"
+    )
+    return {
+        "state": state,
+        "source": "deployment",
+        "environment": deployment.get("environment"),
+        "sha": deployment.get("sha") or sha,
+        "at": latest.get("created_at") or deployment.get("created_at"),
+        "url": latest.get("environment_url"),
+    }
+
+
+def contains_commit(repo: str, base: str, head: str) -> bool:
+    if base == head:
+        return True
+    try:
+        compare = gh_json("api", f"repos/{repo}/compare/{base}...{head}", attempts=1)
+    except subprocess.CalledProcessError:
+        return False
+    return compare.get("status") in ("ahead", "identical")
+
+
+def fetch_production_deploy(
+    repo: str, sha: str, merged_at: str | None = None, workflow: re.Pattern[str] = DEPLOY_WORKFLOW
+) -> Snapshot:
+    """Find the production deploy of the merge commit: a GitHub production
+    deployment of that sha or a later one, else the deploy workflow runs on it."""
+    try:
+        deployments = gh_json("api", f"repos/{repo}/deployments?per_page=30", attempts=1)
+    except subprocess.CalledProcessError:
+        deployments = []
+    for deployment in deployments:
+        if merged_at and str(deployment.get("created_at") or "") < merged_at:
+            break
+        environment = str(deployment.get("environment") or "")
+        if deployment.get("transient_environment") is True or PREVIEW_ENV.search(environment) or not (
+            deployment.get("production_environment") is True or PRODUCTION_ENV.search(environment)
+        ):
+            continue
+        if not contains_commit(repo, sha, str(deployment.get("sha") or "")):
+            continue
+        found = deploy_from_deployment(deployment, sha)
+        if found:
+            return found
+    try:
+        runs = gh_json("api", f"repos/{repo}/actions/runs?head_sha={sha}&per_page=100", attempts=1)
+    except subprocess.CalledProcessError:
+        runs = {}
+    latest: dict[str, Snapshot] = {}
+    for run in runs.get("workflow_runs", []):
+        label = f"{run.get('name', '')} {run.get('path', '')}"
+        if not workflow.search(label) or PREVIEW_ENV.search(label) or run.get("conclusion") == "skipped":
+            continue
+        key = str(run.get("path") or run.get("name"))
+        if key not in latest or str(run.get("created_at")) > str(latest[key].get("created_at")):
+            latest[key] = run
+    if not latest:
+        return {"state": "none", "sha": sha}
+    items = [
+        {
+            "name": run.get("name"),
+            "state": "pending" if run.get("status") != "completed"
+            else ("success" if run.get("conclusion") == "success" else "failure"),
+            "at": run.get("updated_at"),
+            "url": run.get("html_url"),
+        }
+        for run in latest.values()
+    ]
+    states = {item["state"] for item in items}
+    state = "pending" if "pending" in states else ("failure" if "failure" in states else "success")
+    return {
+        "state": state,
+        "source": "workflow",
+        "sha": sha,
+        "at": max(str(item["at"]) for item in items),
+        "runs": items,
+    }
+
+
 def extract_preview_candidates(body: str) -> list[str]:
     decoded = html.unescape(body)
     matches: list[tuple[int, str]] = []
@@ -314,8 +412,21 @@ def fetch_preview_candidates(repo: str, pr: int) -> list[str]:
     return candidates
 
 
-def fetch_snapshot(repo: str, pr: int, previous: Snapshot | None) -> Snapshot:
+def fetch_snapshot(
+    repo: str, pr: int, previous: Snapshot | None, until: str = "merge-ready"
+) -> Snapshot:
     pull_request = gh_json("api", f"repos/{repo}/pulls/{pr}")
+    if until == "deployed" and pull_request.get("merged"):
+        merge_sha = str(pull_request.get("merge_commit_sha"))
+        return {
+            "state": pull_request["state"],
+            "merged": True,
+            "mergeSha": merge_sha,
+            "mergedAt": pull_request.get("merged_at"),
+            "deploy": fetch_production_deploy(
+                repo, merge_sha, pull_request.get("merged_at"), DEPLOY_WORKFLOW_OVERRIDE or DEPLOY_WORKFLOW
+            ),
+        }
     head_sha = pull_request["head"]["sha"]
     checks = gh_json("api", f"repos/{repo}/commits/{head_sha}/check-runs?per_page=100")
     combined = gh_json("api", f"repos/{repo}/commits/{head_sha}/status")
@@ -373,12 +484,20 @@ def poll_github(
     interval: float,
     ready_interval: float,
     max_polls: int | None,
+    until: str = "merge-ready",
+    deploy_wait: float = 3600,
 ) -> Iterable[Snapshot]:
     previous: Snapshot | None = None
     poll_count = 0
+    merged_seen: float | None = None
 
     while max_polls is None or poll_count < max_polls:
-        snapshot = fetch_snapshot(repo, pr, previous)
+        snapshot = fetch_snapshot(repo, pr, previous, until)
+        deploy = snapshot.get("deploy")
+        if deploy is not None:
+            merged_seen = merged_seen or time.monotonic()
+            if deploy.get("state") == "none" and time.monotonic() - merged_seen >= deploy_wait:
+                deploy["state"] = "timeout"
         yield snapshot
         previous = snapshot
         poll_count += 1
@@ -392,7 +511,10 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--replay", type=Path)
     parser.add_argument("--repo")
     parser.add_argument("--pr", type=int)
-    parser.add_argument("--until", choices=("merge-ready", "merged"), default="merge-ready")
+    parser.add_argument("--until", choices=("merge-ready", "merged", "deployed"), default="merge-ready")
+    parser.add_argument("--passive", action="store_true", help="report only; never stop for CI, review, or approval")
+    parser.add_argument("--deploy-workflow", help="regex for the repo's production deploy workflow names or paths")
+    parser.add_argument("--deploy-wait", type=float, default=3600, help="seconds after merge with no deploy signal before no-deploy-signal")
     parser.add_argument("--interval", type=float, default=60)
     parser.add_argument("--ready-interval", type=float, default=300)
     parser.add_argument("--max-polls", type=int)
@@ -400,7 +522,10 @@ def parse_args() -> argparse.Namespace:
 
 
 def main() -> None:
+    global DEPLOY_WORKFLOW_OVERRIDE
     args = parse_args()
+    if args.deploy_workflow:
+        DEPLOY_WORKFLOW_OVERRIDE = re.compile(args.deploy_workflow, re.IGNORECASE)
     if args.replay:
         snapshots = replay(args.replay)
     else:
@@ -412,8 +537,10 @@ def main() -> None:
             args.interval,
             args.ready_interval,
             args.max_polls,
+            args.until,
+            args.deploy_wait,
         )
-    raise SystemExit(watch(snapshots, args.until))
+    raise SystemExit(watch(snapshots, args.until, args.passive))
 
 
 if __name__ == "__main__":

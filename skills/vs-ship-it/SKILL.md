@@ -405,7 +405,8 @@ When the composed babysitter reaches `reason: review-approval`, return its
 concise `Review needed: @<user-or-team>` handoff and end the workflow turn. Do
 not resume watching because auto-merge is armed or because merge, deployment,
 or production verification is planned afterward. Those phases require a new
-user turn after the human review gate clears.
+user turn after the human review gate clears, or a yes to the production check
+offer, which starts the separate passive watch, not more babysitting.
 
 ## Handoff
 
@@ -425,6 +426,7 @@ PR created and verified: [#<N> — <title>](<PR_URL>)
 - Merge risk: <two-way | one-way> door, <blast radius in a few words>
 - Media: <N screenshots, N videos attached | none available | exact upload gap>
 - Video: <rendering in the background | offered, reply yes to add it | none>
+- Production check: <offered | merge-only offer | watching | none>
 - Checks: <fresh results reused or repository-required checks run>
 ```
 
@@ -446,6 +448,16 @@ silently replaced by PR-creation success.
 
 If the change altered skill or plugin content, add the exact re-install command
 to the handoff; the installed behavior remains stale until reinstalled.
+
+### Production check offer
+
+Before the closing link, the turn's final message carries one offer line,
+copied word for word (it ends with `Reply yes.`), picked by
+[Merge, deploy, and production check](references/prod-verify.md):
+the full offer when a deploy signal exists, the merge-only offer when none
+does, and nothing for a PR with no runtime change. The offer never blocks or
+waits. A yes, now or later in the thread, starts the watch in that file; the
+merge watch is passive and never merges.
 
 ### Closing link
 
@@ -516,6 +528,9 @@ separate `vs-baby-sit` goal only when the user explicitly requested a Codex goal
 - [ ] A yes started one background `vs-explain-pr` agent only after PR
       verification; ship-it did not wait for it.
 - [ ] `vs-baby-sit` started after PR verification unless the user explicitly opted out.
+- [ ] The final message has at most one production-check offer, picked from a
+      found deploy signal; a yes started the passive watch in
+      `references/prod-verify.md` without blocking.
 - [ ] The handoff reports PR URL, head, media, and checks.
 - [ ] The final message ends with the bare full PR URL on its own last line.
 
