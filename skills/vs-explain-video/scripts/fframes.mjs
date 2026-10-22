@@ -36,7 +36,7 @@
 // Exit codes: 0 ok; 1 problems to fix (check findings, build errors in main.rs,
 // duration mismatch); 2 blocked or FALLBACK (use render.mjs and say so).
 import { createHash } from 'node:crypto';
-import { copyFileSync, cpSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
+import { copyFileSync, cpSync, existsSync, mkdirSync, readdirSync, readFileSync, realpathSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -99,19 +99,24 @@ const cargoEnv = (env) => {
   return vars;
 };
 
-const doctor = ({ warm }) => {
+export const doctor = ({ warm = false, quiet = false } = {}) => {
   const problems = [];
   const notes = [];
   const next = [];
   const mac = process.platform === 'darwin';
   const cargo = cargoBin();
   const rustc = rustcFor(cargo);
-  const rustVersion = rustc ? parseRustVersion(run(rustc, ['--version']).stdout) : null;
+  const rustProbe = rustc ? run(rustc, ['--version']) : null;
+  const rustVersion = rustProbe ? parseRustVersion(rustProbe.stdout) : null;
   if (!cargo || !rustc) {
     problems.push('no Rust toolchain (cargo, rustc)');
     next.push("curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y");
+  } else if (!rustVersion) {
+    // A rustup proxy with no toolchain under $RUSTUP_HOME answers with an error, not a version.
+    problems.push(`${rustc} --version gave no version (${String(rustProbe?.stderr ?? '').trim().split('\n')[0].slice(0, 160) || 'no output'})`);
+    next.push('rustup default stable  (if HOME moved, set RUSTUP_HOME and CARGO_HOME to the real ~/.rustup and ~/.cargo)');
   } else if (!versionAtLeast(rustVersion)) {
-    problems.push(`Rust ${rustVersion ? rustVersion.join('.') : '?'} is older than ${MIN_RUST.join('.')}`);
+    problems.push(`Rust ${rustVersion.join('.')} is older than ${MIN_RUST.join('.')}`);
     next.push('rustup update stable  (or install rustup: a distro rustc is usually too old)');
   }
   for (const tool of ['ffmpeg', 'ffprobe']) {
@@ -169,7 +174,7 @@ const doctor = ({ warm }) => {
         ? `fframes is installable here: run \`node ${path.join(here, 'fframes.mjs')} doctor --warm\` once (builds into ${CACHE}: ~5 min, ~4 GB, no system installs; later videos compile in seconds). If --warm fails, FALLBACK to the Playwright renderer (render.mjs, scenes.js) and say so in the handoff.`
         : `FALLBACK: fframes cannot render on this machine (${problems.join('; ')}). Use the Playwright renderer (render.mjs, scenes.js) for this video, and say in the handoff that it fell back and why. To enable fframes: ${next.join(' ; ')}`,
   };
-  if (!ok && !warmable) process.stderr.write(`\n*** FALLBACK: fframes is not available (${problems.join('; ')}). Rendering with Playwright instead. ***\n\n`);
+  if (!ok && !warmable && !quiet) process.stderr.write(`\n*** FALLBACK: fframes is not available (${problems.join('; ')}). Rendering with Playwright instead. ***\n\n`);
   return report;
 };
 
@@ -202,7 +207,37 @@ const warmCache = (env) => {
   if (probe.status !== 0) return { ok: false, error: `the warm binary did not render a frame: ${String(probe.stderr).slice(-600)}`, seconds: Math.round((Date.now() - started) / 1000) };
   const out = { ...used, kitHash: hash, fframes: FFRAMES_VERSION, warmedAt: new Date().toISOString(), platform: `${process.platform}-${process.arch}` };
   writeFileSync(ENV_FILE, JSON.stringify(out, null, 2));
-  return { ok: true, seconds: Math.round((Date.now() - started) / 1000), env: out, log };
+  return { ok: true, seconds: Math.round((Date.now() - started) / 1000), env: out, log, pruned: prune(kit) };
+};
+// Each kit update leaves the old kit's sources and build behind; cargo never collects them.
+// Keep the current kit dir and the newest kit build (the one the warm build just used or
+// confirmed fresh); drop older kit dirs and the other kit builds.
+const prune = (kit) => {
+  let removed = 0;
+  for (const d of readdirSync(CACHE)) {
+    const p = path.join(CACHE, d);
+    if (/^kit-[0-9a-f]+$/.test(d) && p !== kit) { rmSync(p, { recursive: true, force: true }); removed++; }
+  }
+  const groups = new Map();
+  for (const sub of ['deps', 'incremental', '.fingerprint']) {
+    const dir = path.join(TARGET, 'debug', sub);
+    if (!existsSync(dir)) continue;
+    for (const f of readdirSync(dir)) {
+      const m = /vs_fframes_kit-([0-9a-f]+)/.exec(f);
+      if (!m) continue;
+      const p = path.join(dir, f);
+      const g = groups.get(m[1]) ?? { paths: [], newest: 0 };
+      g.paths.push(p);
+      g.newest = Math.max(g.newest, statSync(p).mtimeMs);
+      groups.set(m[1], g);
+    }
+  }
+  const keep = [...groups.entries()].sort((a, b) => b[1].newest - a[1].newest)[0]?.[0];
+  for (const [id, g] of groups) {
+    if (id === keep) continue;
+    for (const p of g.paths) { rmSync(p, { recursive: true, force: true }); removed++; }
+  }
+  return removed;
 };
 const WARM_TL = { title: 'warm', brand: 'vs', fps: 30, total: 1, scenes: [{ id: 'intro', title: 'Intro', start: 0, dur: 1, beats: [0.1, 0.5] }], subs: [], captions: { style: 'pill' } };
 
@@ -315,7 +350,13 @@ const build = (work, ff) => {
   const seconds = Number(((Date.now() - started) / 1000).toFixed(1));
   if (res.status !== 0) {
     const errors = String(res.stderr).split('\n').filter((l) => /(^|: )error/.test(l)).slice(0, 12);
-    print({ ok: false, stage: 'build', seconds, errors: errors.length ? errors : String(res.stderr).split('\n').slice(-20), next: 'Fix these errors in ff/src/main.rs and rerun.' });
+    // A sandboxed agent (writes limited to the project and /tmp) cannot take the shared
+    // build lock: that is a permission, not a bug in the scenes.
+    const blocked = errors.some((l) => l.includes(TARGET) && /failed to open|Permission denied|Read-only file system|Operation not permitted/i.test(l));
+    const next = blocked
+      ? `The shared build dir ${TARGET} is not writable here (a sandbox?). Rerun this command with write access to ${CACHE} (approve the escalation, or add it as a writable root). Do not fall back for this.`
+      : 'Fix these errors in ff/src/main.rs and rerun.';
+    print({ ok: false, stage: 'build', seconds, errors: errors.length ? errors : String(res.stderr).split('\n').slice(-20), ...(blocked ? { sandboxed: true } : {}), next });
     process.exit(1);
   }
   const toml = readFileSync(path.join(ff, 'Cargo.toml'), 'utf8');
@@ -461,7 +502,11 @@ const render = (work) => {
   process.exit(okDuration ? 0 : 1);
 };
 
-if (cmd === 'doctor') {
+// preflight.mjs imports doctor() in-process: some agent sandboxes drop a child node's piped stdout.
+const isMain = (() => { try { return realpathSync(process.argv[1] ?? '') === realpathSync(fileURLToPath(import.meta.url)); } catch { return false; } })();
+if (!isMain) {
+  // imported: no CLI
+} else if (cmd === 'doctor') {
   const report = doctor({ warm: args.includes('--warm') });
   print(report);
   process.exit(report.ok ? 0 : 2);

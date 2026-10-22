@@ -167,6 +167,17 @@ describe('fframes.mjs doctor', () => {
     expect(stderr).toMatch(/FALLBACK/);
   });
 
+  it('names a rustup proxy that answers with no version instead of calling it old', () => {
+    const bin = tmp('vs-ff-rust-');
+    for (const tool of ['cargo', 'rustc']) fs.writeFileSync(path.join(bin, tool), '#!/bin/sh\necho "error: rustup could not choose a version of rustc to run" >&2\nexit 1\n', { mode: 0o755 });
+    const { status, report, stderr } = doctor({ VS_FF_CARGO: path.join(bin, 'cargo') });
+    expect(status).toBe(2);
+    expect(report.problems.join(' ')).toMatch(/gave no version \(error: rustup could not choose/);
+    expect(report.problems.join(' ')).not.toMatch(/older than/);
+    expect(report.next).toMatch(/RUSTUP_HOME/);
+    expect(stderr).toMatch(/FALLBACK/);
+  });
+
   it('with a new enough Rust and an empty cache, says to warm it (no silent fallback)', () => {
     const { status, report, stderr } = doctor({ VS_FF_CARGO: fakeRust('1.90.0') });
     expect(status).toBe(2);
@@ -185,6 +196,25 @@ describe('fframes.mjs doctor', () => {
 });
 
 describe('preflight picks the renderer', () => {
+  it('asks the doctor in-process (a sandbox can drop a child node\'s piped stdout)', () => {
+    const src = read('scripts', 'preflight.mjs');
+    expect(src).toMatch(/import \{ doctor as ffDoctor \} from '\.\/fframes\.mjs'/);
+    expect(src).not.toMatch(/fframes\.mjs'\), 'doctor'\]/);
+  });
+
+  it('prunes old kits on warm and keeps the newest kit build', () => {
+    const src = read('scripts', 'fframes.mjs');
+    expect(src).toMatch(/pruned: prune\(kit\)/);
+    expect(src).toMatch(/\^kit-\[0-9a-f\]\+\$/);
+    expect(src).toMatch(/sort\(\(a, b\) => b\[1\]\.newest - a\[1\]\.newest\)/);
+  });
+
+  it('tells a sandboxed build to ask for write access, not to fall back', () => {
+    const src = read('scripts', 'fframes.mjs');
+    expect(src).toMatch(/sandboxed: ?true/);
+    expect(src).toMatch(/Do not fall back for this/);
+  });
+
   it('reports playwright with a FALLBACK warning when fframes cannot run', () => {
     const home = tmp('vs-ff-pre-');
     const res = spawnSync(process.execPath, [script('preflight.mjs')], {

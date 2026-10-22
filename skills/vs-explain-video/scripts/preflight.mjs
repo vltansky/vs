@@ -19,18 +19,17 @@ import { existsSync } from 'node:fs';
 import { homedir } from 'node:os';
 import path from 'node:path';
 
-import { fileURLToPath } from 'node:url';
 
+import { doctor as ffDoctor } from './fframes.mjs';
 import { ensurePlaywright, run, which } from './media.mjs';
 
-const here = path.dirname(fileURLToPath(import.meta.url));
-// fframes doctor without --warm only looks; it never builds.
+// fframes doctor without --warm only looks; it never builds. It runs in-process:
+// some agent sandboxes drop the piped stdout of a child node process.
 const doctor = (() => {
-  const r = run(process.execPath, [path.join(here, 'fframes.mjs'), 'doctor']);
   try {
-    return JSON.parse(r.stdout);
-  } catch {
-    return { ok: false, problems: [`fframes doctor did not answer: ${String(r.stderr).slice(0, 300)}`], next: 'FALLBACK: use the Playwright renderer (render.mjs).' };
+    return ffDoctor({ quiet: true });
+  } catch (error) {
+    return { ok: false, problems: [`fframes doctor failed: ${String(error?.message ?? error).slice(0, 300)}`], next: 'FALLBACK: use the Playwright renderer (render.mjs).' };
   }
 })();
 // Only the shared cache missing: still fframes, after one `fframes.mjs doctor --warm`.

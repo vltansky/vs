@@ -132,6 +132,8 @@ more than 0.15 s.
 | doctor: kit changed, cache not warm | `doctor --warm` (about 15 s) |
 | `cannot find value` / borrow errors | a computed string must be `&'a str`: `S::own(format!(..))` |
 | a text overlaps on purpose | `s.allow_overlap();` before it |
+| check: `sandboxed: true` (build lock not writable) | a sandbox blocks writes to the cache: rerun with write access to `~/.cache/vs/fframes` (approve it); not a reason to fall back |
+| doctor: `--version gave no version` | rustup has no default toolchain for this HOME: `rustup default stable`, or set `RUSTUP_HOME`/`CARGO_HOME` |
 | ffmpeg link errors on warm | warm retries with `FFMPEG_FORCE_BUILD=1` by itself; check `warm.log` in the cache |
 | CLIP-MISSING | the clip did not decode; rerun `prep.mjs`, then `check` |
 | anything else you cannot fix in 2 tries | FALLBACK to `render.mjs` + `scenes.js`, and say so |

@@ -29,6 +29,11 @@ const TOOLS: Record<string, string> = Object.fromEntries(Object.entries({
   KOKORO_DIR: process.env.KOKORO_DIR ?? path.join(os.homedir(), '.cache', 'kokoro'),
   PLAYWRIGHT_MODULE: process.env.PLAYWRIGHT_MODULE ?? (() => { try { return path.dirname(createRequire(__filename).resolve('playwright-core')); } catch { return undefined; } })(),
   PLAYWRIGHT_BROWSERS_PATH: process.env.PLAYWRIGHT_BROWSERS_PATH ?? path.join(os.homedir(), '.cache', 'ms-playwright'),
+  // rustup's cargo proxy and uv's Python resolve from HOME; keep the machine's toolchains.
+  RUSTUP_HOME: process.env.RUSTUP_HOME ?? path.join(os.homedir(), '.rustup'),
+  CARGO_HOME: process.env.CARGO_HOME ?? path.join(os.homedir(), '.cargo'),
+  UV_CACHE_DIR: process.env.UV_CACHE_DIR ?? path.join(os.homedir(), '.cache', 'uv'),
+  UV_PYTHON_INSTALL_DIR: process.env.UV_PYTHON_INSTALL_DIR ?? path.join(os.homedir(), '.local', 'share', 'uv', 'python'),
 }).filter((e): e is [string, string] => typeof e[1] === 'string' && fs.existsSync(e[1])));
 
 const TOPIC = `Use $vs-explain-video. Make a short explainer (about 20 seconds, 2 scenes) on why a debounce waits for the user to stop typing before it searches. Use the default voice. Stop after the stills check passes (step 7 checks); skip the final mp4 render, and give the handoff with the renderer you used.`;
@@ -46,11 +51,19 @@ function files(root: string, out: string[] = [], depth = 0): string[] {
 }
 const sceneArms = (main: string) => (main.match(/^\s*"[a-z0-9-]+"\s*=>/gm) ?? []).length;
 
+const CLEANUP: string[] = [];
 type Case = { id: string; env: () => Record<string, string>; checks: ReturnType<typeof check>[] };
 const CASE_LIST: Case[] = [
   {
     id: 'fframes-default',
-    env: () => ({ ...TOOLS, VS_FF_CACHE: WARM_CACHE, VS_FF_CARGO: CARGO }),
+    // A sandboxed agent writes only under the workspace and /tmp, and the per-video build
+    // takes the shared build lock: give it a private copy of the warm cache there.
+    env: () => {
+      const copy = fs.mkdtempSync(path.join(os.tmpdir(), 'vs-ff-cache-'));
+      fs.cpSync(WARM_CACHE, copy, { recursive: true, preserveTimestamps: true });
+      CLEANUP.push(copy);
+      return { ...TOOLS, VS_FF_CACHE: copy, VS_FF_CARGO: CARGO };
+    },
     checks: [
       check('wrote-crate-from-template', ({ workspace }) => {
         const all = files(path.dirname(workspace));
@@ -70,7 +83,8 @@ const CASE_LIST: Case[] = [
     id: 'fallback-loud',
     env: () => ({ ...TOOLS, VS_FF_CACHE: fs.mkdtempSync(path.join(os.tmpdir(), 'vs-ff-empty-')), VS_FF_CARGO: '/nonexistent/cargo' }),
     checks: [
-      check('says-fallback', ({ transcript }) => /FALLBACK/.test(transcript) && /playwright/i.test(transcript)),
+      // Loud: the handoff names the fallback, the renderer it used, and that fframes could not run.
+      check('says-fallback', ({ transcript }) => /\bfallback\b|fell back/i.test(transcript) && /playwright/i.test(transcript) && /fframes[^.\n]{0,60}(?:unavailable|not available|cannot|could not)/i.test(transcript)),
       check('wrote-scenes-js', ({ workspace }) => {
         const js = files(path.dirname(workspace)).find((f) => f.endsWith(`${path.sep}scenes.js`) && !f.includes(`${path.sep}assets${path.sep}`));
         return !!js && (fs.readFileSync(js, 'utf8').match(/\bscene\(/g) ?? []).length >= 2;
@@ -96,9 +110,11 @@ describe.skipIf(!LIVE)('vs-explain-video renderer choice', () => {
         fs.mkdirSync('/tmp/explain-video-live', { recursive: true });
         fs.appendFileSync('/tmp/explain-video-live/runs.jsonl', `${JSON.stringify({ case: c.id, score: result.score, at: new Date().toISOString() })}\n`);
         fs.writeFileSync(`/tmp/explain-video-live/${c.id}.transcript.txt`, agent.transcript());
+        fs.writeFileSync(`/tmp/explain-video-live/${c.id}.log.json`, JSON.stringify(agent.log, null, 1));
         expect(result.score).toBe(1);
       } finally {
         await agent.dispose();
+        for (const dir of CLEANUP.splice(0)) fs.rmSync(dir, { recursive: true, force: true });
       }
     }, 2_000_000);
   }
