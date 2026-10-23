@@ -162,12 +162,13 @@ more than 0.15 s.
 until `doctor --warm` has run, or `playwright`); `lint.mjs` picks its page checks
 from it. Every FALLBACK records `playwright` there: `fframes.mjs fallback`, a
 step past its time limit, and `check`/`render` when doctor says fframes cannot
-run (a failed `--warm` counts until a `--warm` succeeds). The marker is one-way: a
-later `init` or a passing `check` keeps `playwright`, and `check`/`render` refuse
-the video. To try fframes again on purpose, run
+run. A failed `doctor --warm` records nothing machine-wide (another video may warm
+and succeed): the agent whose warm failed runs `fframes.mjs fallback` itself. The
+marker is one-way: a later `init` or a passing `check` keeps `playwright`, and
+`check`/`render` refuse the video. To try fframes again on purpose, run
 `fframes.mjs init "$WORK" --fframes`. A step killed by the system (SIGKILL that is
-not our time limit, usually out of memory) is reported as such and records
-nothing: rerun it, and fall back if it is killed again.
+not our time limit, usually out of memory), `--warm` included, is reported as such
+and records nothing: rerun it, and fall back if it is killed again.
 
 ## Trouble
 

@@ -32,7 +32,7 @@ const WARM_CACHE = process.env.VS_FF_CACHE ?? path.join(os.homedir(), '.cache', 
 const CARGO = process.env.VS_FF_CARGO ?? path.join(os.homedir(), '.cargo', 'bin', 'cargo');
 // The agent runs with a sandboxed HOME: point it at this machine's voice and Playwright
 // (the fallback case needs a browser; neither case may block on a missing voice).
-const TOOLS: Record<string, string> = Object.fromEntries(Object.entries({
+const HOST_TOOLS: Record<string, string> = Object.fromEntries(Object.entries({
   KOKORO_DIR: process.env.KOKORO_DIR ?? path.join(os.homedir(), '.cache', 'kokoro'),
   PLAYWRIGHT_MODULE: process.env.PLAYWRIGHT_MODULE ?? (() => { try { return path.dirname(createRequire(__filename).resolve('playwright-core')); } catch { return undefined; } })(),
   PLAYWRIGHT_BROWSERS_PATH: process.env.PLAYWRIGHT_BROWSERS_PATH ?? path.join(os.homedir(), '.cache', 'ms-playwright'),
@@ -42,10 +42,32 @@ const TOOLS: Record<string, string> = Object.fromEntries(Object.entries({
   UV_CACHE_DIR: process.env.UV_CACHE_DIR ?? path.join(os.homedir(), '.cache', 'uv'),
   UV_PYTHON_INSTALL_DIR: process.env.UV_PYTHON_INSTALL_DIR ?? path.join(os.homedir(), '.local', 'share', 'uv', 'python'),
 }).filter((e): e is [string, string] => typeof e[1] === 'string' && fs.existsSync(e[1])));
+// Kokoro and uv take a lock inside their cache, and the host's caches are read-only to a
+// sandboxed agent: give each run its own writable copy under /tmp (removed after the run).
+const WRITABLE = ['KOKORO_DIR', 'UV_CACHE_DIR'];
+const tools = (): Record<string, string> => {
+  const scratch = fs.mkdtempSync(path.join(os.tmpdir(), 'vs-ev-tools-'));
+  CLEANUP.push(scratch);
+  return Object.fromEntries(Object.entries(HOST_TOOLS).map(([k, v]) => {
+    if (!WRITABLE.includes(k)) return [k, v];
+    const copy = path.join(scratch, k.toLowerCase());
+    fs.cpSync(v, copy, { recursive: true });
+    return [k, copy];
+  }));
+};
 
 const TOPIC = `Use $vs-explain-video. Make a short explainer (about 20 seconds, 2 scenes) on why a debounce waits for the user to stop typing before it searches. Use the default voice. Stop after the stills check passes (step 7 checks); skip the final mp4 render, and give the handoff with the renderer you used.`;
 
-// Every file under the run's root (workspace and the sandboxed home), so the work dir is found wherever $HOME/.vs puts it.
+// Where the agent may write. Pathgrade gives it HOME=<run>/home and TMPDIR=<run>/tmp, both
+// writable (the run root is under /tmp), so $HOME/.vs lands inside the run. Codex can also
+// write anywhere in /tmp, and an agent has picked /tmp/.vs instead: what a run creates there
+// is searched too and removed after the run, so one run never scores another's files.
+const STRAY = path.join(os.tmpdir(), '.vs');
+let strayBefore = new Set<string>();
+const strays = () => (fs.existsSync(STRAY) ? fs.readdirSync(STRAY).map((e) => path.join(STRAY, e)) : []);
+const newStrays = () => strays().filter((p) => !strayBefore.has(p));
+// Every file the run wrote: its root (workspace, sandboxed home and tmp) and its new /tmp/.vs entries.
+const runFiles = (workspace: string) => [path.dirname(workspace), ...newStrays()].flatMap((r) => files(r));
 function files(root: string, out: string[] = [], depth = 0): string[] {
   if (depth > 9 || !fs.existsSync(root)) return out;
   for (const e of fs.readdirSync(root, { withFileTypes: true })) {
@@ -66,12 +88,12 @@ const saysFallback = check('says-fallback', ({ transcript }) => {
     && /because|unavailable|not available|missing|fail|cannot|can't|could not|couldn't|error|not installed|not found|blocked/i.test(said);
 });
 const wroteScenesJs = check('wrote-scenes-js', ({ workspace }) => {
-  const js = files(path.dirname(workspace)).find((f) => f.endsWith(`${path.sep}scenes.js`) && !f.includes(`${path.sep}assets${path.sep}`));
+  const js = runFiles(workspace).find((f) => f.endsWith(`${path.sep}scenes.js`) && !f.includes(`${path.sep}assets${path.sep}`));
   return !!js && (fs.readFileSync(js, 'utf8').match(/\bscene\(/g) ?? []).length >= 2;
 });
 // The fallback is recorded where lint.mjs reads it: the video's renderer.json ends as playwright.
 const markerPlaywright = check('marker-playwright', ({ workspace }) => {
-  const markers = files(path.dirname(workspace)).filter((f) => f.endsWith(`${path.sep}renderer.json`));
+  const markers = runFiles(workspace).filter((f) => f.endsWith(`${path.sep}renderer.json`));
   return markers.length > 0 && markers.every((f) => {
     try { return JSON.parse(fs.readFileSync(f, 'utf8')).renderer === 'playwright'; } catch { return false; }
   });
@@ -90,11 +112,11 @@ const CASE_LIST: Case[] = [
       const copy = fs.mkdtempSync(path.join(os.tmpdir(), 'vs-ff-cache-'));
       fs.cpSync(WARM_CACHE, copy, { recursive: true, preserveTimestamps: true });
       CLEANUP.push(copy);
-      return { ...TOOLS, VS_FF_CACHE: copy, VS_FF_CARGO: CARGO };
+      return { ...tools(), VS_FF_CACHE: copy, VS_FF_CARGO: CARGO };
     },
     checks: [
       check('wrote-crate-from-template', ({ workspace }) => {
-        const all = files(path.dirname(workspace));
+        const all = runFiles(workspace);
         const main = all.find((f) => f.endsWith(path.join('ff', 'src', 'main.rs')));
         if (!main) return false;
         const src = fs.readFileSync(main, 'utf8');
@@ -102,14 +124,14 @@ const CASE_LIST: Case[] = [
         return /vs_fframes_kit/.test(toml) && sceneArms(src) >= 2 && !/todo!\(|unimplemented!\(/.test(src);
       }),
       check('checked-with-fframes', ({ workspace }) =>
-        files(path.dirname(workspace)).some((f) => /[\\/]stills[\\/][^\\/]+\.png$/.test(f))),
+        runFiles(workspace).some((f) => /[\\/]stills[\\/][^\\/]+\.png$/.test(f))),
       check('handoff-names-fframes', ({ transcript }) => /fframes/i.test(transcript)),
       check('no-silent-playwright', ({ transcript }) => !/rendered with playwright|playwright renderer/i.test(transcript) || /FALLBACK/.test(transcript)),
     ],
   },
   {
     id: 'fallback-loud',
-    env: () => ({ ...TOOLS, VS_FF_CACHE: fs.mkdtempSync(path.join(os.tmpdir(), 'vs-ff-empty-')), VS_FF_CARGO: '/nonexistent/cargo' }),
+    env: () => ({ ...tools(), VS_FF_CACHE: fs.mkdtempSync(path.join(os.tmpdir(), 'vs-ff-empty-')), VS_FF_CARGO: '/nonexistent/cargo' }),
     checks: [saysFallback, wroteScenesJs, noFframesClaim, markerPlaywright],
   },
   {
@@ -122,7 +144,7 @@ const CASE_LIST: Case[] = [
       fs.writeFileSync(path.join(bin, 'cargo'), `#!/bin/sh\nif [ "$1" = "--version" ]; then echo "cargo 1.99.1 (fake 2026-01-01)"; exit 0; fi\necho "$*" >> '${bin}/calls'\necho "error: could not compile fframes (lib) due to 1 previous error" >&2\nexit 101\n`, { mode: 0o755 });
       CLEANUP.push(bin);
       WARM_FAILS_BIN = bin;
-      return { ...TOOLS, VS_FF_CACHE: fs.mkdtempSync(path.join(os.tmpdir(), 'vs-ff-empty-')), VS_FF_CARGO: path.join(bin, 'cargo') };
+      return { ...tools(), VS_FF_CACHE: fs.mkdtempSync(path.join(os.tmpdir(), 'vs-ff-empty-')), VS_FF_CARGO: path.join(bin, 'cargo') };
     },
     checks: [
       check('tried-warm', () => fs.existsSync(path.join(WARM_FAILS_BIN, 'calls')) && /build/.test(fs.readFileSync(path.join(WARM_FAILS_BIN, 'calls'), 'utf8'))),
@@ -137,6 +159,7 @@ const CASE_LIST: Case[] = [
 describe.skipIf(!LIVE)('vs-explain-video renderer choice', () => {
   for (const c of CASE_LIST.filter((x) => CASES.includes(x.id))) for (let run = 1; run <= RUNS; run++) {
     it(`${c.id} #${run}`, async () => {
+      strayBefore = new Set(strays());
       const agent = await createAgent({
         agent: EVAL_AGENT,
         timeout: 1800,
@@ -154,7 +177,7 @@ describe.skipIf(!LIVE)('vs-explain-video renderer choice', () => {
         expect(result.score).toBe(1);
       } finally {
         await agent.dispose();
-        for (const dir of CLEANUP.splice(0)) fs.rmSync(dir, { recursive: true, force: true });
+        for (const dir of [...CLEANUP.splice(0), ...newStrays()]) fs.rmSync(dir, { recursive: true, force: true });
       }
     }, 2_000_000);
   }

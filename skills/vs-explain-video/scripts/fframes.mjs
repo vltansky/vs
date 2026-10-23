@@ -67,8 +67,6 @@ const TARGET = path.join(CACHE, 'target');
 // without evicting each other.
 const MACHINE_FILE = path.join(CACHE, 'machine.json');
 const readyFile = (hash) => path.join(CACHE, `ready-${hash}.json`);
-// The last --warm of this kit version failed: doctor says FALLBACK until a --warm succeeds.
-const failedFile = (hash) => path.join(CACHE, `failed-${hash}.json`);
 const DAY = 24 * 3600 * 1000;
 const KEEP_DAYS = 14;
 // Hard caps so a hung build or render cannot block the agent forever (minutes).
@@ -217,12 +215,12 @@ export const doctor = ({ warm = false, quiet = false } = {}) => {
   if (warm && problems.length === 0) {
     warmInfo = warmCache(env);
     if (warmInfo.ok) warmed = true;
-    else problems.push(`shared build failed: ${warmInfo.error}`);
-  }
-  const failed = !warm && !warmed ? readJson(failedFile(hash)) : null;
-  if (failed && problems.length === 0) {
-    problems.push(`the last doctor --warm failed (${String(failed.error).slice(0, 300)})`);
-    next.push(`fix that, then: node ${path.join(here, 'fframes.mjs')} doctor --warm`);
+    else {
+      // Nothing machine-wide is recorded: another video's agent may warm again and succeed.
+      // The agent whose warm failed records its own fallback.
+      problems.push(`shared build failed: ${warmInfo.error}`);
+      next.push(`fix that and rerun doctor --warm, or FALLBACK: node ${path.join(here, 'fframes.mjs')} fallback <work-dir> --reason "doctor --warm failed"`);
+    }
   }
   let warmable = false;
   if (problems.length === 0 && !warmed) {
@@ -276,8 +274,6 @@ export const warmCache = (env = readEnv()) => {
   const log = path.join(CACHE, `warm-${hash}.log`);
   const done = (result) => {
     rmSync(warmCrate, { recursive: true, force: true });
-    if (result.ok) rmSync(failedFile(hash), { force: true });
-    else writeJsonAtomic(failedFile(hash), { error: result.error, at: new Date().toISOString(), log });
     return { ...result, seconds: secs(), log };
   };
   let used = { ...env };
@@ -479,8 +475,9 @@ const init = (work) => {
     return { ok: true, renderer: 'playwright', fallback: true, crate: ff, reason: prior.reason, next: `This video already fell back to Playwright (${prior.reason ?? 'see renderer.json'}): keep using scenes.js and render.mjs. To switch it back to fframes on purpose, run fframes.mjs init <work-dir> --fframes.` };
   }
   if (renderer === 'playwright') {
+    const earlier = prior?.renderer === 'playwright' ? `This video already fell back to Playwright (${prior.reason ?? 'see renderer.json'}); once fframes is available, switch it back on purpose with fframes.mjs init <work-dir> --fframes. ` : '';
     process.stderr.write(`\n*** FALLBACK: fframes is not available (${state.problems.join('; ')}). Rendering with Playwright instead. ***\n\n`);
-    return { ok: true, renderer, fallback: true, problems: state.problems, next: `FALLBACK: write scenes.js and use the Playwright steps (lint.mjs runs the page checks); say in the handoff that it fell back and why. ${state.next}` };
+    return { ok: true, renderer, fallback: true, problems: state.problems, ...(prior?.renderer === 'playwright' ? { reason: prior.reason } : {}), next: `FALLBACK: write scenes.js and use the Playwright steps (lint.mjs runs the page checks); say in the handoff that it fell back and why. ${earlier}${state.next}` };
   }
   return { ok: true, renderer, crate: ff, main: path.join(ff, 'src', 'main.rs'), kept: had ? ['src/main.rs'] : [], pruned, example: path.join(TEMPLATE, 'src', 'main.rs'), reference: path.join(SKILL, 'references', 'fframes.md'), next: `${state.ok ? '' : 'The shared build is not warm yet: run fframes.mjs doctor --warm before check. '}Write one arm per scene in ff/src/main.rs (copy the patterns from the example), then run fframes.mjs check <work-dir>.` };
 };
@@ -544,7 +541,7 @@ export const classifyBuildError = (stderr, { target = TARGET, cache = CACHE } = 
   if (lines.some((l) => kitRef(l) && /^\S+\.rs:\d+:\d+: error/.test(l))) return 'kit';
   return 'scenes';
 };
-const build = (work, ff) => {
+export const buildCrate = (work, ff) => {
   const env = readEnv();
   const started = Date.now();
   const res = run(cargoBin(), ['build', '--locked', '--message-format=short', '--manifest-path', path.join(ff, 'Cargo.toml')], { env: cargoEnv(env), cwd: ff, ...limit('build') });
@@ -623,7 +620,7 @@ const check = (work) => {
   const only = opt('--scene');
   const at = opt('--at') ? opt('--at').split(',').map(Number) : null;
   const { ff, TL } = prep(work);
-  const { bin, seconds: buildSeconds } = build(work, ff);
+  const { bin, seconds: buildSeconds } = buildCrate(work, ff);
   writeRenderer(work, 'fframes');
   const clips = prepClips(bin, ff, TL);
   const moments = at ? at.map((t) => ({ t, name: `t${t.toFixed(2)}` })) : stillMoments(TL, only);
@@ -689,7 +686,7 @@ const render = (work) => {
   const narration = path.join(work, 'narration.wav');
   if (!existsSync(narration)) die(`${narration} is missing. Run narrate.mjs first.`);
   const { ff, TL } = prep(work);
-  const { bin, seconds: buildSeconds } = build(work, ff);
+  const { bin, seconds: buildSeconds } = buildCrate(work, ff);
   const clips = prepClips(bin, ff, TL);
   const silent = path.join(ff, '.silent.mp4');
   const started = Date.now();

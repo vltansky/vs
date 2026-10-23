@@ -252,13 +252,10 @@ describe('the shared cache', () => {
     expect(fs.existsSync(path.join(cache, `kit-${hash}`, 'junk'))).toBe(false);
     expect(fs.readdirSync(cache).filter((d) => /^warm-\d+$/.test(d))).toEqual([]);
     expect(fs.existsSync(path.join(cache, `ready-${hash}.json`))).toBe(false);
-    // Until a --warm succeeds, doctor says FALLBACK instead of "warm it" again.
-    if (WARMABLE) {
-      const after = doctor({ VS_FF_CARGO: fakeRust('1.90.0'), VS_FF_CACHE: cache });
-      expect(after.report.warmable).toBe(false);
-      expect(after.report.problems.join(' ')).toMatch(/last doctor --warm failed/);
-      expect(after.stderr).toMatch(/FALLBACK/);
-    }
+    // Nothing machine-wide records the failure: another agent may warm and succeed. Only
+    // the agent whose warm failed falls back, and the report names the command.
+    expect(fs.readdirSync(cache).filter((f) => f.startsWith('failed-'))).toEqual([]);
+    expect(read('scripts', 'fframes.mjs')).toMatch(/or FALLBACK: node \$\{path\.join\(here, 'fframes\.mjs'\)\} fallback <work-dir>/);
     // A complete kit copy is never replaced (another install may be using it).
     fs.writeFileSync(path.join(cache, `kit-${hash}`, 'in-use'), '');
     inChild('console.log(JSON.stringify(m.warmCache({})));', { VS_FF_CACHE: cache, VS_FF_CARGO: path.join(bin, 'cargo') });
@@ -323,43 +320,37 @@ describe('the shared cache', () => {
     expect(at()).toBe(WARMABLE ? 'pending' : 'playwright');
   });
 
-  // A ready cache and a cargo that hangs: needs a machine doctor accepts (ffmpeg, dev libraries).
-  it.skipIf(!WARMABLE)('a build past its time limit exits FALLBACK and records it; a SIGKILL from elsewhere is not called a timeout (skipped without ffmpeg or the fframes dev libraries)', () => {
-    const cache = tmp('vs-ff-timeout-');
-    const hash = inChild('console.log(JSON.stringify(m.kitHash()));', { VS_FF_CACHE: cache });
-    fs.mkdirSync(path.join(cache, `kit-${hash}`), { recursive: true });
-    fs.writeFileSync(path.join(cache, `kit-${hash}`, '.complete'), '');
-    fs.writeFileSync(path.join(cache, `ready-${hash}.json`), JSON.stringify({ kitHash: hash }));
+  // The build step itself, with a cargo that hangs or is killed: no ffmpeg or dev libraries needed.
+  it('a build past its time limit exits FALLBACK and records it; a SIGKILL from elsewhere is not called a timeout', () => {
     const fake = (body: string) => {
       const bin = tmp('vs-ff-cargo-');
-      fs.writeFileSync(path.join(bin, 'rustc'), '#!/bin/sh\necho "rustc 1.90.0 (fake 2026-01-01)"\n', { mode: 0o755 });
-      fs.writeFileSync(path.join(bin, 'cargo'), `#!/bin/sh\nif [ "$1" = "--version" ]; then echo "cargo 1.90.0 (fake 2026-01-01)"; exit 0; fi\n${body}\n`, { mode: 0o755 });
+      fs.writeFileSync(path.join(bin, 'cargo'), `#!/bin/sh\n${body}\n`, { mode: 0o755 });
       return path.join(bin, 'cargo');
     };
     const work = tmp('vs-ff-timeout-work-');
-    fs.copyFileSync(path.join(DIR, 'assets', 'script.example.json'), path.join(work, 'script.json'));
-    fs.writeFileSync(path.join(work, 'timeline.js'), 'window.TL = { total: 4, scenes: [{ id: "intro", start: 0, dur: 4, beats: [] }] };');
-    const env = (cargo: string) => ({ PATH: process.env.PATH ?? '', HOME: tmp('vs-ff-home-'), VS_FF_CACHE: cache, VS_FF_CARGO: cargo, VS_FF_TIMEOUT_BUILD: '0.02' });
-    const ffm = (cargo: string, ...a: string[]) => spawnSync(process.execPath, [script('fframes.mjs'), ...a], { encoding: 'utf8', env: env(cargo) });
+    fs.mkdirSync(path.join(work, 'ff'));
+    const env = (cargo: string) => ({ PATH: process.env.PATH ?? '', HOME: tmp('vs-ff-home-'), VS_FF_CACHE: tmp('vs-ff-c-'), VS_FF_CARGO: cargo, VS_FF_TIMEOUT_BUILD: '0.02' });
+    const buildWith = (cargo: string) => spawnSync(process.execPath, ['--input-type=module', '-e',
+      `const m = await import(${JSON.stringify(pathToFileURL(script('fframes.mjs')).href)});\nm.writeRenderer(${JSON.stringify(work)}, 'fframes');\nm.buildCrate(${JSON.stringify(work)}, ${JSON.stringify(path.join(work, 'ff'))});`],
+      { encoding: 'utf8', cwd: tmpdir(), env: env(cargo) });
     const at = () => JSON.parse(fs.readFileSync(path.join(work, 'renderer.json'), 'utf8'));
-    const killedCargo = fake('kill -9 $$');
-    expect(ffm(killedCargo, 'init', work).status).toBe(0);
-    expect(at().renderer).toBe('fframes');
     // Killed by something else (OOM): rerun advice, no timeout claim, nothing recorded.
-    const k = ffm(killedCargo, 'check', work);
+    const k = buildWith(fake('kill -9 $$'));
     expect(k.status).toBe(2);
     expect(k.stdout).toMatch(/killed by the system \(SIGKILL, not our time limit/);
-    expect(k.stdout + k.stderr).not.toMatch(/timed out|FALLBACK/);
+    expect(k.stdout + k.stderr).not.toMatch(/timed out|FALLBACK:/);
     expect(at().renderer).toBe('fframes');
     // Past our 1.2 s limit: FALLBACK, recorded, and a later init keeps it.
     const started = Date.now();
-    const t = ffm(fake('sleep 20'), 'check', work);
+    const t = buildWith(fake('sleep 20'));
     expect(Date.now() - started).toBeLessThan(15_000);
     expect(t.status).toBe(2);
     expect(t.stderr).toMatch(/\*\*\* FALLBACK: The video build timed out after 0\.02 min/);
     expect(at()).toMatchObject({ renderer: 'playwright', reason: expect.stringMatching(/timed out/) });
-    ffm(killedCargo, 'init', work);
+    const again = spawnSync(process.execPath, [script('fframes.mjs'), 'init', work], { encoding: 'utf8', env: { ...env(fakeRust('1.90.0')), VS_FF_TIMEOUT_BUILD: '' } });
+    expect(again.status).toBe(0);
     expect(at().renderer).toBe('playwright');
+    expect(JSON.parse(again.stdout).next).toMatch(/init <work-dir> --fframes/);
   });
 
   it('records the renderer per video, so lint never guesses from leftover files', async () => {
