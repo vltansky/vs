@@ -281,8 +281,14 @@ export const warmCache = (env = readEnv()) => {
   let used = { ...env };
   let res = attempt(used);
   writeFileSync(log, `${res.stdout ?? ''}${res.stderr ?? ''}`);
-  if (timedOut(res)) return done({ ok: false, error: `cargo build timed out after ${limit('warm').timeout / 60_000} min` });
-  if (killed(res)) return done({ ok: false, killed: true, error: 'cargo build was killed by the system (SIGKILL, often out of memory): close other heavy work and rerun --warm' });
+  // A time limit or a system kill ends the warm with its own advice, on every attempt.
+  const stopped = (r, what, name) => {
+    if (timedOut(r)) return done({ ok: false, timedOut: true, error: `${what} timed out after ${limit(name).timeout / 60_000} min` });
+    if (killed(r)) return done({ ok: false, killed: true, error: `${what} was killed by the system (SIGKILL, often out of memory): close other heavy work and rerun --warm` });
+    return null;
+  };
+  let stop = stopped(res, 'cargo build', 'warm');
+  if (stop) return stop;
   if (res.status !== 0 && !used.ffmpegForceBuild && /x264|ffmpeg|libav|avcodec|undefined reference|linking with/i.test(res.stderr ?? '')) {
     used = { ...used, ffmpegForceBuild: true };
     // ffmpeg-sys skips its build when an earlier prebuilt libavutil.a is in its out dir, so
@@ -290,10 +296,14 @@ export const warmCache = (env = readEnv()) => {
     clearFfmpegOut();
     res = attempt(used);
     writeFileSync(log, `${res.stdout ?? ''}${res.stderr ?? ''}`);
+    stop = stopped(res, 'cargo build (ffmpeg from source)', 'warm');
+    if (stop) return stop;
   }
   if (res.status !== 0) return done({ ok: false, error: `cargo build failed, see ${log}: ${lastErrors(res.stderr)}` });
   // One frame proves Skia, fonts and the media loader work here.
   const probe = run(path.join(TARGET, 'debug', bin), ['frame', '0.5s', '-o', path.join(warmCrate, 'frames'), '--json'], { env: { ...process.env, VS_FF_DIR: warmCrate }, ...limit('frame') });
+  stop = stopped(probe, 'the warm probe frame', 'frame');
+  if (stop) return stop;
   if (probe.status !== 0) return done({ ok: false, error: `the warm binary did not render a frame: ${String(probe.stderr).slice(-600)}` });
   writeJsonAtomic(MACHINE_FILE, { ffmpegForceBuild: Boolean(used.ffmpegForceBuild), platform: `${process.platform}-${process.arch}` });
   const out = { kitHash: hash, fframes: FFRAMES_VERSION, ffmpegForceBuild: Boolean(used.ffmpegForceBuild), warmedAt: new Date().toISOString(), platform: `${process.platform}-${process.arch}` };

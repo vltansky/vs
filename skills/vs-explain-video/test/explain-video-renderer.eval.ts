@@ -6,7 +6,7 @@ import { check, evaluate } from '@wix/pathgrade';
 import { describe, expect, it } from 'vitest';
 import { createAgent } from '../../vs-internal-shared/test/pathgrade-agent';
 import { promptOnce } from '../../vs-internal-shared/test/pathgrade-v1';
-import { findRunWorkDirs, removeRunWorkDirs } from './run-dirs';
+import { findRunWorkDirs } from './run-dirs';
 
 // Live explain-video runs on the renderer choice:
 //   fframes-default   a warm shared build: the agent writes the per-video Rust crate from the
@@ -63,7 +63,8 @@ const TOPIC = `Use $vs-explain-video. Make a short explainer (about 20 seconds, 
 // writable (the run root is under /tmp), so $HOME/.vs lands inside the run. Codex can also
 // write anywhere in /tmp, and an agent has picked /tmp/.vs instead. /tmp is shared, so a
 // work dir there counts as this run's only when its crate names this run's own
-// VS_FF_CACHE (run-dirs.ts); only those dirs are searched and removed after the run.
+// VS_FF_CACHE (run-dirs.ts). Those dirs are scored read-only and their paths logged;
+// nothing under /tmp/.vs is ever deleted (only the run's own temp caches are).
 const STRAY = path.join(os.tmpdir(), '.vs');
 let RUN_CACHE = '';
 // Every file the run wrote: its root (workspace, sandboxed home and tmp) and its own work dirs under /tmp/.vs.
@@ -175,10 +176,15 @@ describe.skipIf(!LIVE)('vs-explain-video renderer choice', () => {
         fs.appendFileSync(path.join(OUT, 'runs.jsonl'), `${JSON.stringify({ case: c.id, run, score: result.score, checks: Object.fromEntries(result.scorers.map((x) => [x.name, x.score])), at: new Date().toISOString() })}\n`);
         fs.writeFileSync(path.join(OUT, `${c.id}-${run}.transcript.txt`), agent.transcript());
         fs.writeFileSync(path.join(OUT, `${c.id}-${run}.log.json`), JSON.stringify(agent.log, null, 1));
+        // Work dirs scored outside the run root (left in place).
+        const outside = findRunWorkDirs(STRAY, RUN_CACHE);
+        if (outside.length) {
+          console.log(`[${c.id} #${run}] scored work dirs outside the run root (not deleted): ${outside.join(', ')}`);
+          fs.appendFileSync(path.join(OUT, 'outside-dirs.log'), `${c.id} #${run}: ${outside.join(', ')}\n`);
+        }
         expect(result.score).toBe(1);
       } finally {
         await agent.dispose();
-        removeRunWorkDirs(STRAY, RUN_CACHE);
         for (const dir of CLEANUP.splice(0)) fs.rmSync(dir, { recursive: true, force: true });
       }
     }, 2_000_000);

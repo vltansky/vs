@@ -3,7 +3,7 @@ import * as fs from 'node:fs';
 import { tmpdir } from 'node:os';
 import * as path from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { findRunWorkDirs, removeRunWorkDirs } from './run-dirs';
+import { findRunWorkDirs } from './run-dirs';
 import { afterAll, describe, expect, it } from 'vitest';
 
 // Static evals for the default renderer: fframes (Rust + SVG, Skia on the CPU).
@@ -273,6 +273,18 @@ describe('the shared cache', () => {
     expect(fs.readdirSync(cache).filter((f) => f.startsWith('failed-') || f.startsWith('ready-'))).toEqual([]);
   });
 
+  it('a warm killed during the ffmpeg-from-source retry still says rerun, not fall back now', () => {
+    const cache = tmp('vs-ff-warmretry-');
+    const bin = tmp('vs-ff-cargo-');
+    const n = path.join(bin, 'n');
+    // First build: a linker error (triggers the from-source retry). Second: killed by the system.
+    fs.writeFileSync(path.join(bin, 'cargo'), `#!/bin/sh\necho x >> '${n}'\nif [ "$(wc -l < '${n}')" -ge 2 ]; then kill -9 $$; fi\necho "error: linking with cc failed: undefined reference to x264_encoder_open_164" >&2\nexit 101\n`, { mode: 0o755 });
+    const { res, next } = inChild('const res = m.warmCache({}); console.log(JSON.stringify({ res, next: m.warmFailedNext(res) }));', { VS_FF_CACHE: cache, VS_FF_CARGO: path.join(bin, 'cargo') });
+    expect(fs.readFileSync(n, 'utf8').trim().split('\n')).toHaveLength(2);
+    expect(res).toMatchObject({ ok: false, killed: true, error: expect.stringMatching(/ffmpeg from source\) was killed by the system/) });
+    expect(next).toMatch(/^rerun doctor --warm .*if it is killed again, FALLBACK/);
+  });
+
   // The whole doctor --warm report: needs a machine doctor accepts (ffmpeg, dev libraries).
   it.skipIf(!WARMABLE)('doctor --warm prints the failed-warm advice in its next steps (skipped without ffmpeg or the fframes dev libraries)', () => {
     const bin = path.dirname(fakeRust('1.90.0'));
@@ -373,28 +385,34 @@ describe('the shared cache', () => {
     expect(JSON.parse(again.stdout).next).toMatch(/init <work-dir> --fframes/);
   });
 
-  it('the live eval finds and removes only its own work dirs under a shared /tmp/.vs', () => {
+  it('the live eval scores only its own work dirs under a shared /tmp/.vs, and deletes nothing there', () => {
     const stray = path.join(tmp('vs-ff-stray-'), '.vs');
     const ours = tmp('vs-ff-ours-');
-    const theirs = `${ours}x`; // shares our cache path as a prefix
-    const crate = (dir: string, cache: string) => {
+    const crate = (dir: string, kit: string) => {
       fs.mkdirSync(path.join(dir, 'ff'), { recursive: true });
-      fs.writeFileSync(path.join(dir, 'ff', 'Cargo.toml'), `[dependencies]\nvs_fframes_kit = { path = "${cache}/kit-0123456789ab" }\n`);
+      fs.writeFileSync(path.join(dir, 'ff', 'Cargo.toml'), `[dependencies]\nvs_fframes_kit = { path = "${kit}" }\n`);
       fs.writeFileSync(path.join(dir, 'scenes.js'), '');
     };
-    // Another agent's project, and a sibling video in the same pre-existing project dir.
-    crate(path.join(stray, 'other-project', 'videos', 'theirs'), theirs);
-    crate(path.join(stray, 'workspace', 'videos', 'sibling'), tmp('vs-ff-other-'));
-    fs.mkdirSync(path.join(stray, 'workspace', 'videos', 'no-crate'), { recursive: true });
-    // This run's video, inside the already existing /tmp/.vs/workspace.
-    crate(path.join(stray, 'workspace', 'videos', 'mine'), ours);
+    crate(path.join(stray, 'other-project', 'videos', 'theirs'), `${ours}x/kit-0123456789ab`); // our cache as a prefix
+    crate(path.join(stray, 'workspace', 'videos', 'sibling'), `${tmp('vs-ff-other-')}/kit-0123456789ab`);
+    crate(path.join(stray, 'workspace', 'videos', 'deep'), `${ours}/sub/kit-0123456789ab`); // not directly in our cache
+    fs.writeFileSync(path.join(stray, 'workspace', 'videos', 'notes.txt'), `${ours}/kit-0123456789ab`); // names it, not a crate
+    // This run's video sits inside a dir that is itself a (mis-made) match: the deepest wins.
+    crate(path.join(stray, 'workspace'), `${ours}/kit-0123456789ab`);
+    crate(path.join(stray, 'workspace', 'videos', 'mine'), `${ours}/kit-0123456789ab`);
+    const snapshot = () => fs.readdirSync(stray, { recursive: true }).map(String).sort();
+    const before = snapshot();
     expect(findRunWorkDirs(stray, ours)).toEqual([path.join(stray, 'workspace', 'videos', 'mine')]);
+    expect(findRunWorkDirs(stray, `${ours}/`)).toEqual([path.join(stray, 'workspace', 'videos', 'mine')]);
     expect(findRunWorkDirs(stray, '')).toEqual([]);
-    removeRunWorkDirs(stray, ours);
-    expect(fs.existsSync(path.join(stray, 'workspace', 'videos', 'mine'))).toBe(false);
-    for (const kept of ['other-project/videos/theirs/scenes.js', 'workspace/videos/sibling/scenes.js', 'workspace/videos/no-crate']) {
-      expect(fs.existsSync(path.join(stray, kept))).toBe(true);
-    }
+    // Scoring is read-only: every file under /tmp/.vs, ours and the foreign sibling, is still there.
+    expect(snapshot()).toEqual(before);
+    expect(fs.existsSync(path.join(stray, 'workspace', 'videos', 'sibling', 'scenes.js'))).toBe(true);
+    // And the eval never deletes under /tmp/.vs: its only rmSync is the run's own CLEANUP list.
+    const evalSrc = read('test', 'explain-video-renderer.eval.ts');
+    expect(evalSrc.match(/rmSync\(/g)?.length).toBe(1);
+    expect(evalSrc).toMatch(/for \(const dir of CLEANUP\.splice\(0\)\) fs\.rmSync\(dir/);
+    expect(read('test', 'run-dirs.ts')).not.toMatch(/rmSync|unlink|rmdir/);
   });
 
   it('records the renderer per video, so lint never guesses from leftover files', async () => {

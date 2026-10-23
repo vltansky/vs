@@ -3,23 +3,28 @@ import path from 'node:path';
 
 // A live eval run may write its video work dir outside its sandbox root (an agent has
 // picked /tmp/.vs). /tmp is shared with other agents and parallel evals, so a dir there
-// counts as this run's only when its crate names this run's own VS_FF_CACHE (every run
-// gets a fresh one, and fframes.mjs init writes it into ff/Cargo.toml). Read-only search.
-export function findRunWorkDirs(root: string, cache: string, depth = 0): string[] {
-  if (!cache || depth > 6 || !fs.existsSync(root)) return [];
-  const toml = path.join(root, 'ff', 'Cargo.toml');
-  try {
-    if (fs.readFileSync(toml, 'utf8').includes(`${cache.replace(/\/+$/, '')}/`)) return [root];
-  } catch { /* not a work dir */ }
-  return fs.readdirSync(root, { withFileTypes: true })
-    .filter((e) => e.isDirectory() && !e.isSymbolicLink() && !['node_modules', 'target', '.git', 'ff'].includes(e.name))
-    .flatMap((e) => findRunWorkDirs(path.join(root, e.name), cache, depth + 1));
-}
+// counts as this run's only when its crate's vs_fframes_kit path is a kit inside this
+// run's own VS_FF_CACHE (every run gets a fresh one; fframes.mjs init writes the path).
+// Read-only: nothing under /tmp/.vs is ever deleted; the caller logs what it scored.
+const kitPath = (toml: string) => /^\s*vs_fframes_kit\s*=\s*\{[^}]*\bpath\s*=\s*"([^"]+)"/m.exec(toml)?.[1];
 
-// Remove only the work dirs findRunWorkDirs attributes to this run; parents and every
-// other entry stay.
-export function removeRunWorkDirs(root: string, cache: string): string[] {
-  const dirs = findRunWorkDirs(root, cache);
-  for (const dir of dirs) fs.rmSync(dir, { recursive: true, force: true });
-  return dirs;
+export function findRunWorkDirs(root: string, cache: string): string[] {
+  if (!cache) return [];
+  const want = path.resolve(cache);
+  const found: string[] = [];
+  const walk = (dir: string, depth: number) => {
+    if (depth > 8) return;
+    try {
+      const kit = kitPath(fs.readFileSync(path.join(dir, 'ff', 'Cargo.toml'), 'utf8'));
+      if (kit && path.dirname(path.resolve(kit)) === want) found.push(dir);
+    } catch { /* not a work dir */ }
+    let entries: fs.Dirent[] = [];
+    try { entries = fs.readdirSync(dir, { withFileTypes: true }); } catch { return; }
+    for (const e of entries) {
+      if (e.isDirectory() && !['node_modules', 'target', '.git', 'ff'].includes(e.name)) walk(path.join(dir, e.name), depth + 1);
+    }
+  };
+  walk(root, 0);
+  // The deepest match is the video dir: drop any match that only contains another one.
+  return found.filter((d) => !found.some((o) => o !== d && o.startsWith(d + path.sep)));
 }
