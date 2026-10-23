@@ -318,6 +318,32 @@ describe('explain-pr on the fframes renderer', () => {
     expect(res.renderer).toBe('playwright');
   });
 
+  it('lint.mjs names the next step for the marked renderer: pending goes the fframes way, playwright to render.mjs', () => {
+    const noFf = { VS_FF_CARGO: '/nonexistent/cargo', VS_FF_CACHE: fs.mkdtempSync(path.join(os.tmpdir(), 'vs-ff-c-')) };
+    // A script that passes, so `next` is the renderer's next step, not "fix each problem".
+    const clean = (marker: string) => {
+      const work = lintWork(marker);
+      const s = JSON.parse(fs.readFileSync(path.join(work, 'script.json'), 'utf8'));
+      s.scenes = ['problem', 'before', 'change', 'after', 'risk'].map((role, i) => ({ ...s.scenes[i % s.scenes.length], id: `s${i}`, role }));
+      fs.writeFileSync(path.join(work, 'script.json'), JSON.stringify(s));
+      return work;
+    };
+    const pending = lint(clean('{"renderer":"pending"}'), [], noFf);
+    expect(pending.problems).toEqual([]);
+    expect(pending.renderer).toBe('pending');
+    expect(pending.pageChecked).toBe(false);
+    expect(pending.next).toMatch(/fframes\.mjs check <work-dir> --pr/);
+    expect(pending.next).toMatch(/doctor --warm/);
+    expect(pending.next).toMatch(/fframes\.mjs fallback <work-dir> --reason/);
+    expect(pending.next).not.toMatch(/^Lint passed\. Run render\.mjs/);
+    const ff = lint(clean('{"renderer":"fframes"}'), [], noFf);
+    expect(ff.next).toMatch(/fframes\.mjs check <work-dir> --pr/);
+    expect(ff.next).not.toMatch(/render\.mjs/);
+    const pw = lint(clean('{"renderer":"playwright","reason":"warm failed"}'), ['--no-page'], noFf);
+    expect(pw.problems).toEqual([]);
+    expect(pw.next).not.toMatch(/fframes\.mjs/);
+  });
+
   it('lint.mjs without a marker treats a leftover crate as fframes only when fframes can run', () => {
     const res = lint(lintWork(null), ['--no-page'], { VS_FF_CARGO: '/nonexistent/cargo', VS_FF_CACHE: fs.mkdtempSync(path.join(os.tmpdir(), 'vs-ff-c-')) });
     expect(res.renderer).toBe('playwright');

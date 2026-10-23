@@ -164,9 +164,12 @@ from it. Every FALLBACK records `playwright` there: `fframes.mjs fallback`, a
 step past its time limit, and `check`/`render` when doctor says fframes cannot
 run. The Playwright path also records itself, so it never depends on the agent
 remembering: `init.mjs` records `playwright` on a fresh work dir when doctor says
-fframes cannot run here (not when it is only not warm yet), and every `render.mjs`
-run records it too. On a video marked `fframes` or `pending`, `render.mjs` still
-records `playwright`, with the reason, and prints a `*** FALLBACK` banner. A failed `doctor --warm` records nothing machine-wide (another video may warm
+fframes cannot run here (not when it is only not warm yet), and `render.mjs` records
+it on a work dir with no marker, once ffmpeg and Playwright are found. On a video
+marked `fframes` or `pending`, `render.mjs` refuses (exit 2) and changes nothing:
+to switch that video to Playwright, run `fframes.mjs fallback "$WORK" --reason
+"<why>"` first. `narrate.mjs` and `lint.mjs` name the next step for the marked
+renderer (`fframes.mjs check` or `render.mjs --stills`). A failed `doctor --warm` records nothing machine-wide (another video may warm
 and succeed): the agent whose warm failed runs `fframes.mjs fallback` itself. The
 marker is one-way: a later `init` or a passing `check` keeps `playwright`, and
 `check`/`render` refuse the video. To try fframes again on purpose, run

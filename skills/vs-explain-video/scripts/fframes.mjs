@@ -460,9 +460,10 @@ export const writeRenderer = (work, renderer, reason = null, { force = false } =
   return true;
 };
 // The Playwright path records itself, so the marker never depends on the agent running
-// `fframes.mjs fallback`: render.mjs calls this on every run, init.mjs when doctor says
-// FALLBACK. No marker: record playwright. fframes/pending: a Playwright render on a video
-// marked fframes is a fallback too, so record it and say so loudly (never silently).
+// `fframes.mjs fallback`: init.mjs calls this when doctor says FALLBACK, render.mjs once
+// ffmpeg and Playwright are there. Both call it only with no marker (render.mjs refuses a
+// video marked fframes or pending and points to `fframes.mjs fallback`); should a caller
+// pass one anyway, the switch is still recorded loudly, never silently.
 export const recordPlaywright = (work, reason) => {
   const prior = readJson(path.join(work, MARKER))?.renderer;
   if (prior === 'playwright') return { renderer: 'playwright', changed: false };
@@ -476,6 +477,17 @@ export const rendererFor = (work, { ready = () => doctor({ quiet: true }).ok } =
   // No marker (older work dir) or pending: fframes only with a crate and a ready build.
   if (!existsSync(path.join(work, 'ff', 'src', 'main.rs'))) return 'playwright';
   return ready() ? 'fframes' : 'playwright';
+};
+
+// What narrate.mjs says to do next, by the marked renderer: fframes and pending animate
+// main.rs and run fframes.mjs check; playwright animates scenes.js and runs render.mjs.
+export const animateStep = (work) => {
+  const marked = readJson(path.join(work, MARKER))?.renderer ?? null;
+  if (marked === 'fframes' || marked === 'pending' || (!marked && rendererFor(work) === 'fframes')) {
+    const warm = marked === 'pending' ? ' (after fframes.mjs doctor --warm finishes)' : '';
+    return { renderer: marked ?? 'fframes', step: `animate the scene arms in ff/src/main.rs on these beat starts, then run fframes.mjs check ${work}${warm}` };
+  }
+  return { renderer: 'playwright', step: 'animate scenes.js on these beat starts, then run render.mjs --stills' };
 };
 
 // The crate is plain files: init writes it even before the shared build is warm

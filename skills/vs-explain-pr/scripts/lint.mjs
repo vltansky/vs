@@ -14,14 +14,15 @@
 // fallback write it), never from leftover files: a fallback work dir still has
 // ff/src/main.rs. With fframes the page is Rust, not scenes.js: the same three
 // checks run in `fframes.mjs check <work> --pr`, so lint.mjs checks the script
-// only. With no marker, fframes needs ff/src/main.rs and a ready shared build.
+// only; `pending` (fframes once doctor --warm is done) counts as fframes. With no
+// marker, fframes needs ff/src/main.rs and a ready shared build.
 //
 // Exit codes: 0 pass; 1 problems (fix script.json or scenes.js); 2 blocked.
 import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 
-import { rendererFor } from '../../vs-explain-video/scripts/fframes.mjs';
+import { readJson, rendererFor } from '../../vs-explain-video/scripts/fframes.mjs';
 import { ensurePlaywright, fail } from '../../vs-explain-video/scripts/media.mjs';
 import { lintScript } from './pr-video.mjs';
 
@@ -40,7 +41,9 @@ const MIN_PX = 24;
 const MAX_WORDS = 40;
 const MIN_MEDIA_W = 900;
 const pageIssues = [];
-const fframes = rendererFor(work) === 'fframes';
+// pending: fframes once doctor --warm is done, so its page checks are fframes' too.
+const pending = readJson(path.join(work, 'renderer.json'))?.renderer === 'pending';
+const fframes = pending || rendererFor(work) === 'fframes';
 const canPage = !fframes && !args.includes('--no-page') && ['index.html', 'timeline.js', 'scenes.js'].every((f) => existsSync(path.join(work, f)));
 if (canPage) {
   const { entry, error } = ensurePlaywright([work]);
@@ -100,8 +103,8 @@ const all = [...problems, ...pageIssues];
 process.stdout.write(`${JSON.stringify({
   estimatedSeconds: seconds,
   pageChecked: canPage,
-  renderer: fframes ? 'fframes' : 'playwright',
+  renderer: pending ? 'pending' : fframes ? 'fframes' : 'playwright',
   problems: all,
-  next: all.length ? 'Fix each problem in script.json or scenes.js, then rerun lint.mjs.' : fframes ? 'Script passed. The page checks (PHONE, DENSE, media width) run in fframes.mjs check <work-dir> --pr.' : canPage ? 'Lint passed. Run render.mjs --stills and check.mjs.' : 'Script passed. Narrate, write scenes.js, then rerun lint.mjs for the page checks.',
+  next: all.length ? 'Fix each problem in script.json or scenes.js, then rerun lint.mjs.' : fframes ? `Script passed. The page checks (PHONE, DENSE, media width) run in fframes.mjs check <work-dir> --pr${pending ? ' (after fframes.mjs doctor --warm finishes; if fframes cannot run, fframes.mjs fallback <work-dir> --reason "<why>", then render.mjs --stills)' : ''}.` : canPage ? 'Lint passed. Run render.mjs --stills and check.mjs.' : 'Script passed. Narrate, write scenes.js, then rerun lint.mjs for the page checks.',
 }, null, 2)}\n`);
 process.exit(all.length ? 1 : 0);

@@ -424,7 +424,7 @@ describe('the shared cache', () => {
   });
 
   it('the Playwright path records the marker itself: render.mjs and init.mjs (no ffmpeg needed)', () => {
-    // render.mjs with only node on PATH: it records the marker, then stops at the missing ffmpeg.
+    // render.mjs with only node on PATH: it stops at the missing ffmpeg before recording anything.
     const nodeOnly = tmp('vs-ff-nodebin-');
     fs.symlinkSync(process.execPath, path.join(nodeOnly, 'node'));
     const work = (marker?: object) => {
@@ -434,17 +434,32 @@ describe('the shared cache', () => {
       return dir;
     };
     const render = (dir: string) => spawnSync(process.execPath, [script('render.mjs'), dir, '--stills'], { encoding: 'utf8', env: { PATH: nodeOnly, HOME: tmp('vs-ff-home-') } });
-    const at = (dir: string) => JSON.parse(fs.readFileSync(path.join(dir, 'renderer.json'), 'utf8'));
+    const raw = (dir: string) => fs.readFileSync(path.join(dir, 'renderer.json'), 'utf8');
+    const at = (dir: string) => JSON.parse(raw(dir));
+    // No marker, no ffmpeg: blocked before the record (the record comes after the ffmpeg/Playwright checks).
     const none = work();
     const r1 = render(none);
     expect(r1.status).toBe(2);
-    expect(at(none)).toMatchObject({ renderer: 'playwright', reason: expect.stringMatching(/render\.mjs --stills/) });
-    expect(r1.stderr).not.toMatch(/\*\*\* FALLBACK/);
-    // A video marked fframes: recorded as a fallback, loudly, never silently.
-    const ff = work({ renderer: 'fframes' });
-    const r2 = render(ff);
-    expect(at(ff).renderer).toBe('playwright');
-    expect(r2.stderr).toMatch(/\*\*\* FALLBACK: renderer\.json said fframes, but the Playwright renderer/);
+    expect(r1.stderr).toMatch(/ffmpeg\/ffprobe missing/);
+    expect(fs.existsSync(path.join(none, 'renderer.json'))).toBe(false);
+    const src = read('scripts', 'render.mjs');
+    expect(src.indexOf('recordPlaywright(work')).toBeGreaterThan(src.indexOf("if (!entry) fail(`Playwright is not available"));
+    // A video marked fframes or pending: render.mjs refuses, exit 2, marker byte-for-byte unchanged,
+    // and points to fframes.mjs check / fallback; fframes.mjs check still accepts it afterwards.
+    for (const marker of ['fframes', 'pending']) {
+      const dir = work({ renderer: marker, at: '2026-01-01T00:00:00.000Z' });
+      const before = raw(dir);
+      const r = render(dir);
+      expect(r.status).toBe(2);
+      expect(r.stderr).toMatch(new RegExp(`renders with fframes \\(renderer\\.json: ${marker}\\)`));
+      expect(r.stderr).toMatch(/fframes\.mjs check /);
+      expect(r.stderr).toMatch(/fframes\.mjs fallback .* --reason/);
+      expect(r.stderr).not.toMatch(/ffmpeg\/ffprobe missing/);
+      expect(r.stderr).not.toMatch(/\*\*\* FALLBACK/);
+      expect(raw(dir)).toBe(before);
+      const c = spawnSync(process.execPath, [script('fframes.mjs'), 'check', dir], { encoding: 'utf8', env: { PATH: nodeOnly, HOME: tmp('vs-ff-home-'), VS_FF_CACHE: tmp('vs-ff-c-') } });
+      expect(c.stderr + c.stdout).not.toMatch(/fell back to Playwright/);
+    }
     // Already playwright: kept as it was, reason included.
     const pw = work({ renderer: 'playwright', reason: 'warm failed' });
     render(pw);
@@ -466,6 +481,43 @@ describe('the shared cache', () => {
     fs.writeFileSync(path.join(marked, 'renderer.json'), JSON.stringify({ renderer: 'fframes' }));
     init(marked);
     expect(at(marked).renderer).toBe('fframes');
+  });
+
+  it('init.mjs on an un-warmed machine (Rust present, empty shared cache) writes no renderer.json', () => {
+    const home = tmp('vs-ff-home-');
+    const fonts = path.join(home, '.cache', 'vs-explain-video', 'fonts');
+    fs.mkdirSync(fonts, { recursive: true });
+    for (const f of ['SpaceGrotesk.ttf', 'JetBrainsMono.ttf']) fs.writeFileSync(path.join(fonts, f), '');
+    const cache = tmp('vs-ff-c-');
+    const fresh = tmp('vs-ff-init-');
+    const r = spawnSync(process.execPath, [script('init.mjs'), fresh], { encoding: 'utf8', env: { PATH: process.env.PATH ?? '', HOME: home, VS_FF_CACHE: cache, VS_FF_CARGO: fakeRust('1.90.0') } });
+    expect(r.status, r.stderr).toBe(0);
+    if (WARMABLE) {
+      // Only the warm is missing: fframes.mjs init writes pending later; init.mjs records nothing.
+      expect(fs.existsSync(path.join(fresh, 'renderer.json'))).toBe(false);
+      expect(JSON.parse(r.stdout).renderer).toBeUndefined();
+    } else {
+      // This box also lacks ffmpeg or dev libraries: a real FALLBACK, recorded.
+      expect(JSON.parse(fs.readFileSync(path.join(fresh, 'renderer.json'), 'utf8')).renderer).toBe('playwright');
+    }
+    expect(fs.readdirSync(cache)).toEqual([]);
+  });
+
+  it('narrate.mjs names the next step for the marked renderer', async () => {
+    const { animateStep, writeRenderer } = await ff();
+    const dir = tmp('vs-ff-next-');
+    writeRenderer(dir, 'fframes');
+    expect(animateStep(dir).step).toMatch(/ff\/src\/main\.rs .* fframes\.mjs check /);
+    expect(animateStep(dir).step).not.toMatch(/render\.mjs/);
+    writeRenderer(dir, 'pending');
+    expect(animateStep(dir).step).toMatch(/fframes\.mjs check .*doctor --warm/);
+    writeRenderer(dir, 'playwright', 'warm failed');
+    expect(animateStep(dir).step).toMatch(/scenes\.js .* render\.mjs --stills/);
+    fs.rmSync(path.join(dir, 'renderer.json'));
+    expect(animateStep(dir).renderer).toBe('playwright');
+    const src = read('scripts', 'narrate.mjs');
+    expect(src).not.toMatch(/'Animate scenes\.js on these beat starts, then run render\.mjs --stills\.'/);
+    expect(src).toMatch(/animateStep\(dir\)/);
   });
 
   it("doctor's FALLBACK names the fframes.mjs fallback command", () => {
