@@ -3,6 +3,7 @@ import * as fs from 'node:fs';
 import { tmpdir } from 'node:os';
 import * as path from 'node:path';
 import { pathToFileURL } from 'node:url';
+import { findRunWorkDirs, removeRunWorkDirs } from './run-dirs';
 import { afterAll, describe, expect, it } from 'vitest';
 
 // Static evals for the default renderer: fframes (Rust + SVG, Skia on the CPU).
@@ -31,9 +32,9 @@ const fakeRust = (version: string) => {
   for (const tool of ['cargo', 'rustc']) fs.writeFileSync(path.join(bin, tool), `#!/bin/sh\necho "${tool} ${version} (fake 2026-01-01)"\n`, { mode: 0o755 });
   return path.join(bin, 'cargo');
 };
-const doctor = (env: Record<string, string>) => {
+const doctor = (env: Record<string, string>, ...args: string[]) => {
   const home = tmp('vs-ff-home-');
-  const res = spawnSync(process.execPath, [script('fframes.mjs'), 'doctor'], {
+  const res = spawnSync(process.execPath, [script('fframes.mjs'), 'doctor', ...args], {
     encoding: 'utf8',
     cwd: tmpdir(),
     env: { PATH: process.env.PATH ?? '', HOME: home, VS_FF_CACHE: path.join(home, 'cache'), ...env },
@@ -244,7 +245,7 @@ describe('the shared cache', () => {
     const bin = tmp('vs-ff-cargo-');
     const log = path.join(bin, 'calls.log');
     fs.writeFileSync(path.join(bin, 'cargo'), `#!/bin/sh\necho "force=$FFMPEG_FORCE_BUILD out=$([ -e '${out}/libavutil.a' ] && echo yes || echo no)" >> '${log}'\necho "error: linking with cc failed: undefined reference to x264_encoder_open_164" >&2\nexit 101\n`, { mode: 0o755 });
-    const res = inChild('console.log(JSON.stringify(m.warmCache({})));', { VS_FF_CACHE: cache, VS_FF_CARGO: path.join(bin, 'cargo') });
+    const { res, next } = inChild('const res = m.warmCache({}); console.log(JSON.stringify({ res, next: m.warmFailedNext(res) }));', { VS_FF_CACHE: cache, VS_FF_CARGO: path.join(bin, 'cargo') });
     expect(res.ok).toBe(false);
     expect(res.error).toMatch(/cargo build failed/);
     expect(fs.readFileSync(log, 'utf8').trim().split('\n')).toEqual(['force= out=yes', 'force=1 out=no']);
@@ -255,11 +256,30 @@ describe('the shared cache', () => {
     // Nothing machine-wide records the failure: another agent may warm and succeed. Only
     // the agent whose warm failed falls back, and the report names the command.
     expect(fs.readdirSync(cache).filter((f) => f.startsWith('failed-'))).toEqual([]);
-    expect(read('scripts', 'fframes.mjs')).toMatch(/or FALLBACK: node \$\{path\.join\(here, 'fframes\.mjs'\)\} fallback <work-dir>/);
+    expect(next).toMatch(/^fix that and rerun doctor --warm, or FALLBACK: node \S+fframes\.mjs fallback <work-dir> --reason/);
     // A complete kit copy is never replaced (another install may be using it).
     fs.writeFileSync(path.join(cache, `kit-${hash}`, 'in-use'), '');
     inChild('console.log(JSON.stringify(m.warmCache({})));', { VS_FF_CACHE: cache, VS_FF_CARGO: path.join(bin, 'cargo') });
     expect(fs.existsSync(path.join(cache, `kit-${hash}`, 'in-use'))).toBe(true);
+  });
+
+  it('after a warm killed by the system, says rerun first and fall back only if killed again', () => {
+    const cache = tmp('vs-ff-warmkill-');
+    const bin = tmp('vs-ff-cargo-');
+    fs.writeFileSync(path.join(bin, 'cargo'), '#!/bin/sh\nkill -9 $$\n', { mode: 0o755 });
+    const { res, next } = inChild('const res = m.warmCache({}); console.log(JSON.stringify({ res, next: m.warmFailedNext(res) }));', { VS_FF_CACHE: cache, VS_FF_CARGO: path.join(bin, 'cargo') });
+    expect(res).toMatchObject({ ok: false, killed: true });
+    expect(next).toMatch(/^rerun doctor --warm .*; if it is killed again, FALLBACK: node \S+fframes\.mjs fallback <work-dir>/);
+    expect(fs.readdirSync(cache).filter((f) => f.startsWith('failed-') || f.startsWith('ready-'))).toEqual([]);
+  });
+
+  // The whole doctor --warm report: needs a machine doctor accepts (ffmpeg, dev libraries).
+  it.skipIf(!WARMABLE)('doctor --warm prints the failed-warm advice in its next steps (skipped without ffmpeg or the fframes dev libraries)', () => {
+    const bin = path.dirname(fakeRust('1.90.0'));
+    fs.writeFileSync(path.join(bin, 'cargo'), '#!/bin/sh\nif [ "$1" = "--version" ]; then echo "cargo 1.90.0 (fake 2026-01-01)"; exit 0; fi\necho "error: could not compile fframes" >&2\nexit 101\n', { mode: 0o755 });
+    const { status, report } = doctor({ VS_FF_CARGO: path.join(bin, 'cargo'), VS_FF_CACHE: tmp('vs-ff-warmcli-') }, '--warm');
+    expect(status).toBe(2);
+    expect(report.next).toMatch(/fix that and rerun doctor --warm, or FALLBACK: node \S+fframes\.mjs fallback <work-dir>/);
   });
 
   it('tells the agent who must act on a failed build: the scenes, the kit (re-warm), or the sandbox', async () => {
@@ -351,6 +371,30 @@ describe('the shared cache', () => {
     expect(again.status).toBe(0);
     expect(at().renderer).toBe('playwright');
     expect(JSON.parse(again.stdout).next).toMatch(/init <work-dir> --fframes/);
+  });
+
+  it('the live eval finds and removes only its own work dirs under a shared /tmp/.vs', () => {
+    const stray = path.join(tmp('vs-ff-stray-'), '.vs');
+    const ours = tmp('vs-ff-ours-');
+    const theirs = `${ours}x`; // shares our cache path as a prefix
+    const crate = (dir: string, cache: string) => {
+      fs.mkdirSync(path.join(dir, 'ff'), { recursive: true });
+      fs.writeFileSync(path.join(dir, 'ff', 'Cargo.toml'), `[dependencies]\nvs_fframes_kit = { path = "${cache}/kit-0123456789ab" }\n`);
+      fs.writeFileSync(path.join(dir, 'scenes.js'), '');
+    };
+    // Another agent's project, and a sibling video in the same pre-existing project dir.
+    crate(path.join(stray, 'other-project', 'videos', 'theirs'), theirs);
+    crate(path.join(stray, 'workspace', 'videos', 'sibling'), tmp('vs-ff-other-'));
+    fs.mkdirSync(path.join(stray, 'workspace', 'videos', 'no-crate'), { recursive: true });
+    // This run's video, inside the already existing /tmp/.vs/workspace.
+    crate(path.join(stray, 'workspace', 'videos', 'mine'), ours);
+    expect(findRunWorkDirs(stray, ours)).toEqual([path.join(stray, 'workspace', 'videos', 'mine')]);
+    expect(findRunWorkDirs(stray, '')).toEqual([]);
+    removeRunWorkDirs(stray, ours);
+    expect(fs.existsSync(path.join(stray, 'workspace', 'videos', 'mine'))).toBe(false);
+    for (const kept of ['other-project/videos/theirs/scenes.js', 'workspace/videos/sibling/scenes.js', 'workspace/videos/no-crate']) {
+      expect(fs.existsSync(path.join(stray, kept))).toBe(true);
+    }
   });
 
   it('records the renderer per video, so lint never guesses from leftover files', async () => {

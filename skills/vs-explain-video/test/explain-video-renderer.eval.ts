@@ -6,6 +6,7 @@ import { check, evaluate } from '@wix/pathgrade';
 import { describe, expect, it } from 'vitest';
 import { createAgent } from '../../vs-internal-shared/test/pathgrade-agent';
 import { promptOnce } from '../../vs-internal-shared/test/pathgrade-v1';
+import { findRunWorkDirs, removeRunWorkDirs } from './run-dirs';
 
 // Live explain-video runs on the renderer choice:
 //   fframes-default   a warm shared build: the agent writes the per-video Rust crate from the
@@ -60,14 +61,13 @@ const TOPIC = `Use $vs-explain-video. Make a short explainer (about 20 seconds, 
 
 // Where the agent may write. Pathgrade gives it HOME=<run>/home and TMPDIR=<run>/tmp, both
 // writable (the run root is under /tmp), so $HOME/.vs lands inside the run. Codex can also
-// write anywhere in /tmp, and an agent has picked /tmp/.vs instead: what a run creates there
-// is searched too and removed after the run, so one run never scores another's files.
+// write anywhere in /tmp, and an agent has picked /tmp/.vs instead. /tmp is shared, so a
+// work dir there counts as this run's only when its crate names this run's own
+// VS_FF_CACHE (run-dirs.ts); only those dirs are searched and removed after the run.
 const STRAY = path.join(os.tmpdir(), '.vs');
-let strayBefore = new Set<string>();
-const strays = () => (fs.existsSync(STRAY) ? fs.readdirSync(STRAY).map((e) => path.join(STRAY, e)) : []);
-const newStrays = () => strays().filter((p) => !strayBefore.has(p));
-// Every file the run wrote: its root (workspace, sandboxed home and tmp) and its new /tmp/.vs entries.
-const runFiles = (workspace: string) => [path.dirname(workspace), ...newStrays()].flatMap((r) => files(r));
+let RUN_CACHE = '';
+// Every file the run wrote: its root (workspace, sandboxed home and tmp) and its own work dirs under /tmp/.vs.
+const runFiles = (workspace: string) => [path.dirname(workspace), ...findRunWorkDirs(STRAY, RUN_CACHE)].flatMap((r) => files(r));
 function files(root: string, out: string[] = [], depth = 0): string[] {
   if (depth > 9 || !fs.existsSync(root)) return out;
   for (const e of fs.readdirSync(root, { withFileTypes: true })) {
@@ -159,12 +159,13 @@ const CASE_LIST: Case[] = [
 describe.skipIf(!LIVE)('vs-explain-video renderer choice', () => {
   for (const c of CASE_LIST.filter((x) => CASES.includes(x.id))) for (let run = 1; run <= RUNS; run++) {
     it(`${c.id} #${run}`, async () => {
-      strayBefore = new Set(strays());
+      const runEnv = c.env();
+      RUN_CACHE = runEnv.VS_FF_CACHE;
       const agent = await createAgent({
         agent: EVAL_AGENT,
         timeout: 1800,
         skillDir: SKILL_DIR,
-        env: c.env(),
+        env: runEnv,
         copyFromHome: EVAL_AGENT === 'codex' ? ['.codex/auth.json'] : undefined,
       });
       try {
@@ -177,7 +178,8 @@ describe.skipIf(!LIVE)('vs-explain-video renderer choice', () => {
         expect(result.score).toBe(1);
       } finally {
         await agent.dispose();
-        for (const dir of [...CLEANUP.splice(0), ...newStrays()]) fs.rmSync(dir, { recursive: true, force: true });
+        removeRunWorkDirs(STRAY, RUN_CACHE);
+        for (const dir of CLEANUP.splice(0)) fs.rmSync(dir, { recursive: true, force: true });
       }
     }, 2_000_000);
   }

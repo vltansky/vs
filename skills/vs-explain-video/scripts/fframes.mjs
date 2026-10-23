@@ -219,7 +219,7 @@ export const doctor = ({ warm = false, quiet = false } = {}) => {
       // Nothing machine-wide is recorded: another video's agent may warm again and succeed.
       // The agent whose warm failed records its own fallback.
       problems.push(`shared build failed: ${warmInfo.error}`);
-      next.push(`fix that and rerun doctor --warm, or FALLBACK: node ${path.join(here, 'fframes.mjs')} fallback <work-dir> --reason "doctor --warm failed"`);
+      next.push(warmFailedNext(warmInfo));
     }
   }
   let warmable = false;
@@ -249,9 +249,11 @@ export const doctor = ({ warm = false, quiet = false } = {}) => {
       ? 'fframes is ready. Run fframes.mjs init <work-dir>, write the scenes in <work>/ff/src/main.rs, then fframes.mjs check.'
       : warmable
         ? `fframes is installable here: run \`node ${path.join(here, 'fframes.mjs')} doctor --warm\` once (builds into ${CACHE}: ~5 min, ~4 GB, no system installs; later videos compile in seconds). If --warm fails, FALLBACK to the Playwright renderer (render.mjs, scenes.js) and say so in the handoff.`
-        : `FALLBACK: fframes cannot render on this machine (${problems.join('; ')}). Use the Playwright renderer (render.mjs, scenes.js) for this video, and say in the handoff that it fell back and why. To enable fframes: ${next.join(' ; ')}`,
+        : warmInfo?.killed
+          ? `The shared build was killed by the system (SIGKILL, not a build error; often out of memory): ${warmFailedNext(warmInfo)}`
+          : `FALLBACK: fframes cannot render on this machine (${problems.join('; ')}). Use the Playwright renderer (render.mjs, scenes.js) for this video, and say in the handoff that it fell back and why. To enable fframes: ${next.join(' ; ')}`,
   };
-  if (!ok && !warmable && !quiet) process.stderr.write(`\n*** FALLBACK: fframes is not available (${problems.join('; ')}). Rendering with Playwright instead. ***\n\n`);
+  if (!ok && !warmable && !quiet && !warmInfo?.killed) process.stderr.write(`\n*** FALLBACK: fframes is not available (${problems.join('; ')}). Rendering with Playwright instead. ***\n\n`);
   return report;
 };
 
@@ -280,7 +282,7 @@ export const warmCache = (env = readEnv()) => {
   let res = attempt(used);
   writeFileSync(log, `${res.stdout ?? ''}${res.stderr ?? ''}`);
   if (timedOut(res)) return done({ ok: false, error: `cargo build timed out after ${limit('warm').timeout / 60_000} min` });
-  if (killed(res)) return done({ ok: false, error: 'cargo build was killed by the system (SIGKILL, often out of memory): close other heavy work and rerun --warm' });
+  if (killed(res)) return done({ ok: false, killed: true, error: 'cargo build was killed by the system (SIGKILL, often out of memory): close other heavy work and rerun --warm' });
   if (res.status !== 0 && !used.ffmpegForceBuild && /x264|ffmpeg|libav|avcodec|undefined reference|linking with/i.test(res.stderr ?? '')) {
     used = { ...used, ffmpegForceBuild: true };
     // ffmpeg-sys skips its build when an earlier prebuilt libavutil.a is in its out dir, so
@@ -540,6 +542,14 @@ export const classifyBuildError = (stderr, { target = TARGET, cache = CACHE } = 
   // Errors inside the kit's own sources: a broken or half-written kit copy.
   if (lines.some((l) => kitRef(l) && /^\S+\.rs:\d+:\d+: error/.test(l))) return 'kit';
   return 'scenes';
+};
+// What doctor --warm tells the agent after a failed warm. A system kill (often out of
+// memory) is worth one rerun before falling back; a build error is not.
+export const warmFailedNext = (info) => {
+  const fallbackCmd = `node ${path.join(here, 'fframes.mjs')} fallback <work-dir> --reason "doctor --warm failed"`;
+  return info.killed
+    ? `rerun doctor --warm (close other heavy work first); if it is killed again, FALLBACK: ${fallbackCmd}`
+    : `fix that and rerun doctor --warm, or FALLBACK: ${fallbackCmd}`;
 };
 export const buildCrate = (work, ff) => {
   const env = readEnv();
