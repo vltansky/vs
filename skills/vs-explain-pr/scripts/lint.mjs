@@ -28,7 +28,10 @@ if (!existsSync(scriptPath)) fail(`${scriptPath} is missing. Run init.mjs and wr
 const script = JSON.parse(readFileSync(scriptPath, 'utf8'));
 const mediaPath = path.join(work, 'media.json');
 const media = existsSync(mediaPath) ? JSON.parse(readFileSync(mediaPath, 'utf8')).map((m) => m.file) : [];
-const { seconds, problems } = lintScript(script, { media });
+// diff.json (diff.mjs) is required: the beats start from the base...head diff.
+const diffPath = path.join(work, 'diff.json');
+const diff = existsSync(diffPath) ? JSON.parse(readFileSync(diffPath, 'utf8')) : undefined;
+const { seconds, problems } = lintScript(script, { media, diff, requireDiff: true });
 
 const MIN_PX = 24;
 const MAX_WORDS = 40;

@@ -121,7 +121,8 @@ describe('the explain-pr skill', () => {
   it('orders the scenes problem, before, change, after, risk', () => {
     expect(SKILL).toMatch(/`problem` → `before` → `change` → `after` → `risk`/);
     expect(SKILL).toMatch(/1-2 beats/);
-    expect(SKILL).toMatch(/not from the diff/i);
+    expect(SKILL).toMatch(/Write the beats from the diff, then the PR body/);
+    expect(SKILL).not.toMatch(/not from the diff/i);
   });
 
   it('caps length and size, and says when nobody reviewed it', () => {
