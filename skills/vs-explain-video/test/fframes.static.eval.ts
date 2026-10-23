@@ -252,6 +252,17 @@ describe('the shared cache', () => {
     expect(fs.existsSync(path.join(cache, `kit-${hash}`, 'junk'))).toBe(false);
     expect(fs.readdirSync(cache).filter((d) => /^warm-\d+$/.test(d))).toEqual([]);
     expect(fs.existsSync(path.join(cache, `ready-${hash}.json`))).toBe(false);
+    // Until a --warm succeeds, doctor says FALLBACK instead of "warm it" again.
+    if (WARMABLE) {
+      const after = doctor({ VS_FF_CARGO: fakeRust('1.90.0'), VS_FF_CACHE: cache });
+      expect(after.report.warmable).toBe(false);
+      expect(after.report.problems.join(' ')).toMatch(/last doctor --warm failed/);
+      expect(after.stderr).toMatch(/FALLBACK/);
+    }
+    // A complete kit copy is never replaced (another install may be using it).
+    fs.writeFileSync(path.join(cache, `kit-${hash}`, 'in-use'), '');
+    inChild('console.log(JSON.stringify(m.warmCache({})));', { VS_FF_CACHE: cache, VS_FF_CARGO: path.join(bin, 'cargo') });
+    expect(fs.existsSync(path.join(cache, `kit-${hash}`, 'in-use'))).toBe(true);
   });
 
   it('tells the agent who must act on a failed build: the scenes, the kit (re-warm), or the sandbox', async () => {
@@ -262,6 +273,8 @@ describe('the shared cache', () => {
     expect(classifyBuildError('/h/.cache/vs/fframes/kit-0123abcd/src/lib.rs:12:5: error: expected item, found `}`', at)).toBe('kit');
     expect(classifyBuildError('src/main.rs:40:9: error[E0425]: cannot find value `x` in this scope\n/h/.cache/vs/fframes/kit-0123abcd/src/lib.rs:500:12: note: method defined here', at)).toBe('scenes');
     expect(classifyBuildError('src/main.rs:3:1: error: expected one of `!` or `::`', at)).toBe('scenes');
+    // A wrong name in main.rs that mentions the kit is still the author's to fix.
+    expect(classifyBuildError('src/main.rs:2:5: error[E0432]: unresolved import `vs_fframes_kit::Clipx`: could not find `Clipx` in `vs_fframes_kit`', at)).toBe('scenes');
     const src = read('scripts', 'fframes.mjs');
     expect(src).toMatch(/Do not fall back for this/);
     expect(src).toMatch(/run node .*doctor --warm, then rerun this command\. Do not edit main\.rs for this\./);
@@ -270,8 +283,83 @@ describe('the shared cache', () => {
   it('caps builds, frames and renders with a time limit that says FALLBACK', () => {
     const src = read('scripts', 'fframes.mjs');
     for (const name of ['warm', 'build', 'frame', 'render', 'ffmpeg']) expect(src).toContain(`limit('${name}')`);
-    expect(src).toMatch(/timed out after .* FALLBACK to the Playwright renderer/);
+    expect(src).toMatch(/timed out after \$\{limit\(name\)/);
+    expect(src).toMatch(/FALLBACK recorded in/);
+    // Every timed-out step records the fallback; none is reported with a bare die.
+    expect(src.match(/guard\(\w+, [^,]+, [^,]+, '(build|frame|render|ffmpeg)'\)/g)?.length).toBeGreaterThanOrEqual(5);
+    expect(src).not.toMatch(/if \(timedOut\(\w+\)\) die\(/);
     expect(read('scripts', 'media.mjs')).toMatch(/timeout: CMD_TIMEOUT_MS/);
+  });
+
+  it('keeps a fallback one-way: init -> fallback -> init stays playwright until init --fframes', async () => {
+    const { writeRenderer, readJson } = await ff();
+    const work = tmp('vs-ff-oneway-');
+    const marker = () => readJson(path.join(work, 'renderer.json'))?.renderer;
+    writeRenderer(work, 'playwright', 'warm failed');
+    expect(writeRenderer(work, 'fframes')).toBe(false);
+    expect(marker()).toBe('playwright');
+    expect(writeRenderer(work, 'fframes', null, { force: true })).toBe(true);
+    expect(marker()).toBe('fframes');
+    // Through the CLI, as an agent runs it.
+    const cli = tmp('vs-ff-oneway-cli-');
+    fs.copyFileSync(path.join(DIR, 'assets', 'script.example.json'), path.join(cli, 'script.json'));
+    const env = { PATH: process.env.PATH ?? '', HOME: tmp('vs-ff-home-'), VS_FF_CACHE: tmp('vs-ff-c-'), VS_FF_CARGO: fakeRust('1.90.0') };
+    const ffm = (...a: string[]) => spawnSync(process.execPath, [script('fframes.mjs'), ...a], { encoding: 'utf8', env });
+    const at = () => JSON.parse(fs.readFileSync(path.join(cli, 'renderer.json'), 'utf8')).renderer;
+    expect(ffm('init', cli).status).toBe(0);
+    expect(at()).toBe(WARMABLE ? 'pending' : 'playwright');
+    const fb = ffm('fallback', cli, '--reason', 'warm failed');
+    expect(fb.stderr).toMatch(/\*\*\* FALLBACK: warm failed/);
+    expect(at()).toBe('playwright');
+    const again = ffm('init', cli);
+    expect(again.status).toBe(0);
+    expect(at()).toBe('playwright');
+    expect(JSON.parse(again.stdout).next).toMatch(/init <work-dir> --fframes/);
+    // check refuses a video that fell back, instead of quietly rendering it with fframes.
+    const chk = ffm('check', cli);
+    expect(chk.status).toBe(2);
+    expect(chk.stderr + chk.stdout).toMatch(/fell back to Playwright/);
+    ffm('init', cli, '--fframes');
+    expect(at()).toBe(WARMABLE ? 'pending' : 'playwright');
+  });
+
+  // A ready cache and a cargo that hangs: needs a machine doctor accepts (ffmpeg, dev libraries).
+  it.skipIf(!WARMABLE)('a build past its time limit exits FALLBACK and records it; a SIGKILL from elsewhere is not called a timeout (skipped without ffmpeg or the fframes dev libraries)', () => {
+    const cache = tmp('vs-ff-timeout-');
+    const hash = inChild('console.log(JSON.stringify(m.kitHash()));', { VS_FF_CACHE: cache });
+    fs.mkdirSync(path.join(cache, `kit-${hash}`), { recursive: true });
+    fs.writeFileSync(path.join(cache, `kit-${hash}`, '.complete'), '');
+    fs.writeFileSync(path.join(cache, `ready-${hash}.json`), JSON.stringify({ kitHash: hash }));
+    const fake = (body: string) => {
+      const bin = tmp('vs-ff-cargo-');
+      fs.writeFileSync(path.join(bin, 'rustc'), '#!/bin/sh\necho "rustc 1.90.0 (fake 2026-01-01)"\n', { mode: 0o755 });
+      fs.writeFileSync(path.join(bin, 'cargo'), `#!/bin/sh\nif [ "$1" = "--version" ]; then echo "cargo 1.90.0 (fake 2026-01-01)"; exit 0; fi\n${body}\n`, { mode: 0o755 });
+      return path.join(bin, 'cargo');
+    };
+    const work = tmp('vs-ff-timeout-work-');
+    fs.copyFileSync(path.join(DIR, 'assets', 'script.example.json'), path.join(work, 'script.json'));
+    fs.writeFileSync(path.join(work, 'timeline.js'), 'window.TL = { total: 4, scenes: [{ id: "intro", start: 0, dur: 4, beats: [] }] };');
+    const env = (cargo: string) => ({ PATH: process.env.PATH ?? '', HOME: tmp('vs-ff-home-'), VS_FF_CACHE: cache, VS_FF_CARGO: cargo, VS_FF_TIMEOUT_BUILD: '0.02' });
+    const ffm = (cargo: string, ...a: string[]) => spawnSync(process.execPath, [script('fframes.mjs'), ...a], { encoding: 'utf8', env: env(cargo) });
+    const at = () => JSON.parse(fs.readFileSync(path.join(work, 'renderer.json'), 'utf8'));
+    const killedCargo = fake('kill -9 $$');
+    expect(ffm(killedCargo, 'init', work).status).toBe(0);
+    expect(at().renderer).toBe('fframes');
+    // Killed by something else (OOM): rerun advice, no timeout claim, nothing recorded.
+    const k = ffm(killedCargo, 'check', work);
+    expect(k.status).toBe(2);
+    expect(k.stdout).toMatch(/killed by the system \(SIGKILL, not our time limit/);
+    expect(k.stdout + k.stderr).not.toMatch(/timed out|FALLBACK/);
+    expect(at().renderer).toBe('fframes');
+    // Past our 1.2 s limit: FALLBACK, recorded, and a later init keeps it.
+    const started = Date.now();
+    const t = ffm(fake('sleep 20'), 'check', work);
+    expect(Date.now() - started).toBeLessThan(15_000);
+    expect(t.status).toBe(2);
+    expect(t.stderr).toMatch(/\*\*\* FALLBACK: The video build timed out after 0\.02 min/);
+    expect(at()).toMatchObject({ renderer: 'playwright', reason: expect.stringMatching(/timed out/) });
+    ffm(killedCargo, 'init', work);
+    expect(at().renderer).toBe('playwright');
   });
 
   it('records the renderer per video, so lint never guesses from leftover files', async () => {
@@ -281,13 +369,13 @@ describe('the shared cache', () => {
     fs.writeFileSync(path.join(work, 'ff', 'src', 'main.rs'), '');
     fs.writeFileSync(path.join(work, 'scenes.js'), '');
     const ready = () => true;
-    writeRenderer(work, 'playwright', 'warm failed');
-    expect(rendererFor(work, { ready })).toBe('playwright');
     writeRenderer(work, 'fframes');
     expect(rendererFor(work, { ready: () => false })).toBe('fframes');
     writeRenderer(work, 'pending');
     expect(rendererFor(work, { ready })).toBe('fframes');
     expect(rendererFor(work, { ready: () => false })).toBe('playwright');
+    writeRenderer(work, 'playwright', 'warm failed');
+    expect(rendererFor(work, { ready })).toBe('playwright');
     fs.rmSync(path.join(work, 'renderer.json'));
     expect(rendererFor(work, { ready: () => false })).toBe('playwright');
   });

@@ -15,7 +15,7 @@ import { promptOnce } from '../../vs-internal-shared/test/pathgrade-v1';
 //   warm-fails        Rust looks fine but the shared build fails (a cargo that exits 101): the
 //                     agent tries doctor --warm, then falls back loudly
 // The fallback checks score behaviour, not wording: the agent's own text says it fell back,
-// names Playwright, and gives a reason.
+// names Playwright, and gives a reason; and the video's renderer.json records playwright.
 // Opt-in (each run is a full agent session with narration and stills):
 //   EXPLAIN_VIDEO_LIVE=1 [EXPLAIN_VIDEO_CASES=fframes-default,fallback-loud,warm-fails]
 //   [EXPLAIN_VIDEO_RUNS=3] [EXPLAIN_VIDEO_OUT=/tmp/explain-video-live]
@@ -69,6 +69,13 @@ const wroteScenesJs = check('wrote-scenes-js', ({ workspace }) => {
   const js = files(path.dirname(workspace)).find((f) => f.endsWith(`${path.sep}scenes.js`) && !f.includes(`${path.sep}assets${path.sep}`));
   return !!js && (fs.readFileSync(js, 'utf8').match(/\bscene\(/g) ?? []).length >= 2;
 });
+// The fallback is recorded where lint.mjs reads it: the video's renderer.json ends as playwright.
+const markerPlaywright = check('marker-playwright', ({ workspace }) => {
+  const markers = files(path.dirname(workspace)).filter((f) => f.endsWith(`${path.sep}renderer.json`));
+  return markers.length > 0 && markers.every((f) => {
+    try { return JSON.parse(fs.readFileSync(f, 'utf8')).renderer === 'playwright'; } catch { return false; }
+  });
+});
 const noFframesClaim = check('no-fframes-claim', ({ transcript }) => !/rendered (?:it )?with fframes|renderer: fframes/i.test(agentText(transcript)));
 
 const CLEANUP: string[] = [];
@@ -103,7 +110,7 @@ const CASE_LIST: Case[] = [
   {
     id: 'fallback-loud',
     env: () => ({ ...TOOLS, VS_FF_CACHE: fs.mkdtempSync(path.join(os.tmpdir(), 'vs-ff-empty-')), VS_FF_CARGO: '/nonexistent/cargo' }),
-    checks: [saysFallback, wroteScenesJs, noFframesClaim],
+    checks: [saysFallback, wroteScenesJs, noFframesClaim, markerPlaywright],
   },
   {
     id: 'warm-fails',
@@ -122,6 +129,7 @@ const CASE_LIST: Case[] = [
       saysFallback,
       wroteScenesJs,
       noFframesClaim,
+      markerPlaywright,
     ],
   },
 ];

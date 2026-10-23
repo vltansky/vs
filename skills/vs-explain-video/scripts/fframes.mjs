@@ -3,7 +3,8 @@
 // build per machine and a small Rust crate per video.
 //
 //   node fframes.mjs doctor [--warm]           can this machine render? (--warm: build the shared cache once)
-//   node fframes.mjs init <work-dir>            write <work>/ff/, the video crate, from the template
+//   node fframes.mjs init <work-dir> [--fframes]  write <work>/ff/, the video crate, from the template
+//                                               (--fframes: switch a video that fell back back to fframes)
 //   node fframes.mjs check <work-dir> [--pr] [--scene <id>] [--at 12.5,30]
 //   node fframes.mjs render <work-dir> --out <video.mp4> [--size 1080|720] [--draft]
 //   node fframes.mjs fallback <work-dir> --reason "..."   give up on fframes for this video (loudly)
@@ -66,13 +67,29 @@ const TARGET = path.join(CACHE, 'target');
 // without evicting each other.
 const MACHINE_FILE = path.join(CACHE, 'machine.json');
 const readyFile = (hash) => path.join(CACHE, `ready-${hash}.json`);
+// The last --warm of this kit version failed: doctor says FALLBACK until a --warm succeeds.
+const failedFile = (hash) => path.join(CACHE, `failed-${hash}.json`);
 const DAY = 24 * 3600 * 1000;
 const KEEP_DAYS = 14;
 // Hard caps so a hung build or render cannot block the agent forever (minutes).
 const LIMIT = { warm: 60, build: 15, frame: 10, render: 30, ffmpeg: 10 };
 const limit = (name) => ({ timeout: Number(process.env[`VS_FF_TIMEOUT_${name.toUpperCase()}`] ?? LIMIT[name]) * 60_000, killSignal: 'SIGKILL' });
-const timedOut = (res) => res?.error?.code === 'ETIMEDOUT' || res?.signal === 'SIGKILL';
-const dieTimeout = (what, name) => die(`${what} timed out after ${limit(name).timeout / 60_000} min. If the machine was busy, rerun; otherwise FALLBACK to the Playwright renderer (render.mjs, scenes.js) and say so in the handoff.`, 2, { timedOut: true });
+// Our own time limit (spawnSync sets ETIMEDOUT) vs a SIGKILL from elsewhere (the OOM
+// killer, a user): different causes, different advice.
+const timedOut = (res) => res?.error?.code === 'ETIMEDOUT';
+const killed = (res) => !timedOut(res) && res?.signal === 'SIGKILL';
+// A timeout is a FALLBACK: record it, so lint and a rerun of init agree with the handoff.
+const dieTimeout = (work, what, name) => {
+  const reason = `${what} timed out after ${limit(name).timeout / 60_000} min`;
+  writeRenderer(work, 'playwright', reason);
+  process.stderr.write(`\n*** FALLBACK: ${reason}. Rendering with Playwright instead. ***\n\n`);
+  die(`${reason}. FALLBACK recorded in ${path.join(work, 'renderer.json')}: render with Playwright (render.mjs, scenes.js) and say so in the handoff. To try fframes again later: fframes.mjs init <work-dir> --fframes.`, 2, { timedOut: true, renderer: 'playwright' });
+};
+const dieKilled = (what) => die(`${what} was killed by the system (SIGKILL, not our time limit; often out of memory). Close other heavy work and rerun; if it is killed again, run fframes.mjs fallback <work-dir> --reason "${what} was killed" and use Playwright.`, 2, { killed: true });
+const guard = (res, work, what, name) => {
+  if (timedOut(res)) dieTimeout(work, what, name);
+  if (killed(res)) dieKilled(what);
+};
 
 const args = process.argv.slice(2);
 const cmd = args[0];
@@ -113,13 +130,17 @@ const isReady = (hash) => {
 // marker, so an interrupted copy is redone instead of trusted.
 const ensureKit = (hash) => {
   const kit = path.join(CACHE, `kit-${hash}`);
-  if (existsSync(path.join(kit, '.complete'))) return kit;
-  rmSync(kit, { recursive: true, force: true });
+  const complete = () => existsSync(path.join(kit, '.complete'));
+  if (complete()) return kit;
   const tmp = `${kit}.tmp-${process.pid}`;
   rmSync(tmp, { recursive: true, force: true });
   cpSync(KIT_SRC, tmp, { recursive: true, filter: (src) => path.basename(src) !== 'target' });
   writeFileSync(path.join(tmp, '.complete'), new Date().toISOString());
-  try { renameSync(tmp, kit); } catch { rmSync(tmp, { recursive: true, force: true }); }
+  // Replace only a copy that is still incomplete: another warm may have finished one
+  // while this copy ran, and that one is in use.
+  if (!complete()) rmSync(kit, { recursive: true, force: true });
+  try { renameSync(tmp, kit); } catch { /* another warm placed a complete kit first */ }
+  rmSync(tmp, { recursive: true, force: true });
   return kit;
 };
 const hashDir = (dir) => {
@@ -198,6 +219,11 @@ export const doctor = ({ warm = false, quiet = false } = {}) => {
     if (warmInfo.ok) warmed = true;
     else problems.push(`shared build failed: ${warmInfo.error}`);
   }
+  const failed = !warm && !warmed ? readJson(failedFile(hash)) : null;
+  if (failed && problems.length === 0) {
+    problems.push(`the last doctor --warm failed (${String(failed.error).slice(0, 300)})`);
+    next.push(`fix that, then: node ${path.join(here, 'fframes.mjs')} doctor --warm`);
+  }
   let warmable = false;
   if (problems.length === 0 && !warmed) {
     warmable = true;
@@ -248,11 +274,17 @@ export const warmCache = (env = readEnv()) => {
   mkdirSync(path.join(warmCrate, 'media'), { recursive: true });
   const attempt = (e) => run(cargoBin(), ['build', '--locked', '--manifest-path', path.join(warmCrate, 'Cargo.toml')], { env: cargoEnv(e), cwd: warmCrate, ...limit('warm') });
   const log = path.join(CACHE, `warm-${hash}.log`);
-  const done = (result) => { rmSync(warmCrate, { recursive: true, force: true }); return { ...result, seconds: secs(), log }; };
+  const done = (result) => {
+    rmSync(warmCrate, { recursive: true, force: true });
+    if (result.ok) rmSync(failedFile(hash), { force: true });
+    else writeJsonAtomic(failedFile(hash), { error: result.error, at: new Date().toISOString(), log });
+    return { ...result, seconds: secs(), log };
+  };
   let used = { ...env };
   let res = attempt(used);
   writeFileSync(log, `${res.stdout ?? ''}${res.stderr ?? ''}`);
   if (timedOut(res)) return done({ ok: false, error: `cargo build timed out after ${limit('warm').timeout / 60_000} min` });
+  if (killed(res)) return done({ ok: false, error: 'cargo build was killed by the system (SIGKILL, often out of memory): close other heavy work and rerun --warm' });
   if (res.status !== 0 && !used.ffmpegForceBuild && /x264|ffmpeg|libav|avcodec|undefined reference|linking with/i.test(res.stderr ?? '')) {
     used = { ...used, ffmpegForceBuild: true };
     // ffmpeg-sys skips its build when an earlier prebuilt libavutil.a is in its out dir, so
@@ -393,9 +425,13 @@ const needWork = () => {
   if (!existsSync(work)) die(`${work} does not exist. Run init.mjs <work-dir> first.`);
   return work;
 };
-const needReady = () => {
+const needReady = (work) => {
+  const marked = readJson(path.join(work, MARKER));
+  if (marked?.renderer === 'playwright') die(`This video fell back to Playwright (${marked.reason ?? 'recorded in renderer.json'}). Use render.mjs and scenes.js; to switch back to fframes, run fframes.mjs init <work-dir> --fframes first.`, 2, { renderer: 'playwright' });
   const report = doctor({ warm: false });
   if (!report.ok) {
+    // A FALLBACK exit records it; "not warm yet" is not a fallback.
+    if (!report.warmable) writeRenderer(work, 'playwright', report.problems.join('; '));
     print(report);
     process.exit(2);
   }
@@ -405,10 +441,15 @@ const needReady = () => {
 // <work>/renderer.json records which renderer this video uses, so the checks that
 // differ (lint.mjs page checks) never guess from leftover files: init writes it from
 // doctor (fframes, or pending while --warm still has to run), a passing check writes
-// fframes, and `fframes.mjs fallback` writes playwright.
+// fframes, and every FALLBACK exit (fallback, a timeout, doctor failing in check or
+// render) writes playwright. It is one-way: once playwright, only `init --fframes`
+// switches the video back.
 const MARKER = 'renderer.json';
-export const writeRenderer = (work, renderer, reason = null) => {
-  writeJsonAtomic(path.join(work, MARKER), { renderer, ...(reason ? { reason } : {}), at: new Date().toISOString() });
+export const writeRenderer = (work, renderer, reason = null, { force = false } = {}) => {
+  const file = path.join(work, MARKER);
+  if (renderer !== 'playwright' && !force && readJson(file)?.renderer === 'playwright') return false;
+  writeJsonAtomic(file, { renderer, ...(reason ? { reason } : {}), at: new Date().toISOString() });
+  return true;
 };
 export const rendererFor = (work, { ready = () => doctor({ quiet: true }).ok } = {}) => {
   const marked = readJson(path.join(work, MARKER))?.renderer;
@@ -431,7 +472,12 @@ const init = (work) => {
   const had = existsSync(path.join(ff, 'src', 'main.rs'));
   writeCrate(ff, binName(work), kitDir().replaceAll('\\', '/'), skeleton(script));
   mkdirSync(path.join(ff, 'media'), { recursive: true });
-  writeRenderer(work, renderer, renderer === 'playwright' ? state.problems.join('; ') : null);
+  const force = args.includes('--fframes');
+  const prior = readJson(path.join(work, MARKER));
+  writeRenderer(work, renderer, renderer === 'playwright' ? state.problems.join('; ') : null, { force });
+  if (renderer !== 'playwright' && prior?.renderer === 'playwright' && !force) {
+    return { ok: true, renderer: 'playwright', fallback: true, crate: ff, reason: prior.reason, next: `This video already fell back to Playwright (${prior.reason ?? 'see renderer.json'}): keep using scenes.js and render.mjs. To switch it back to fframes on purpose, run fframes.mjs init <work-dir> --fframes.` };
+  }
   if (renderer === 'playwright') {
     process.stderr.write(`\n*** FALLBACK: fframes is not available (${state.problems.join('; ')}). Rendering with Playwright instead. ***\n\n`);
     return { ok: true, renderer, fallback: true, problems: state.problems, next: `FALLBACK: write scenes.js and use the Playwright steps (lint.mjs runs the page checks); say in the handoff that it fell back and why. ${state.next}` };
@@ -487,10 +533,13 @@ export const classifyBuildError = (stderr, { target = TARGET, cache = CACHE } = 
   const lines = text.split('\n');
   if (lines.some((l) => l.includes(target) && /failed to open|Permission denied|Read-only file system|Operation not permitted/i.test(l))) return 'sandboxed';
   const kitRef = (l) => l.includes(cache) || /vs_fframes_kit|kit-[0-9a-f]{8,}/.test(l);
+  const inMain = (l) => /^(\S*\/)?src\/main\.rs:\d+:\d+:/.test(l);
   // The kit dir or its manifest is gone (pruned by another install, interrupted copy).
-  if (lines.some((l) => kitRef(l) && /failed to (load|read|get|select)|No such file|could not find|does not exist/i.test(l))) return 'kit';
-  // Errors in main.rs are the author's, even when a note points into the kit.
-  if (lines.some((l) => /^(\S*\/)?src\/main\.rs:\d+:\d+: error/.test(l))) return 'scenes';
+  // Only cargo's own manifest/IO errors count: `could not find X in vs_fframes_kit` in
+  // main.rs is the author's (a wrong name), not a missing kit.
+  if (lines.some((l) => !inMain(l) && kitRef(l) && /failed to (load|read|get|select)|No such file|does not exist/i.test(l))) return 'kit';
+  // Errors in main.rs are the author's, even when they name the kit or a note points into it.
+  if (lines.some((l) => inMain(l) && / error/.test(l))) return 'scenes';
   // Errors inside the kit's own sources: a broken or half-written kit copy.
   if (lines.some((l) => kitRef(l) && /^\S+\.rs:\d+:\d+: error/.test(l))) return 'kit';
   return 'scenes';
@@ -499,7 +548,7 @@ const build = (work, ff) => {
   const env = readEnv();
   const started = Date.now();
   const res = run(cargoBin(), ['build', '--locked', '--message-format=short', '--manifest-path', path.join(ff, 'Cargo.toml')], { env: cargoEnv(env), cwd: ff, ...limit('build') });
-  if (timedOut(res)) dieTimeout('The video build', 'build');
+  guard(res, work, 'The video build', 'build');
   const seconds = Number(((Date.now() - started) / 1000).toFixed(1));
   if (res.status !== 0) {
     const errors = String(res.stderr).split('\n').filter((l) => /(^|: )error/.test(l)).slice(0, 12);
@@ -508,7 +557,7 @@ const build = (work, ff) => {
       // A sandboxed agent (writes limited to the project and /tmp) cannot take the shared build lock.
       sandboxed: `The shared build dir ${TARGET} is not writable here (a sandbox?). Rerun this command with write access to ${CACHE} (approve the escalation, or add it as a writable root). Do not fall back for this.`,
       // The kit dir went away or is broken (another install pruned it, an interrupted warm).
-      kit: `The shared kit build is missing or broken, not your scenes: run node ${path.join(here, 'fframes.mjs')} doctor --warm, then rerun this command. Do not edit main.rs for this.`,
+      kit: `The shared kit build is missing or broken, not your scenes: run node ${path.join(here, 'fframes.mjs')} doctor --warm, then rerun this command. Do not edit main.rs for this. If --warm fails, run fframes.mjs fallback <work-dir> --reason "shared kit broken" and use Playwright (FALLBACK).`,
       scenes: 'Fix these errors in ff/src/main.rs and rerun.',
     }[kind];
     print({ ok: false, stage: 'build', cause: kind, seconds, errors: errors.length ? errors : String(res.stderr).split('\n').slice(-20), ...(kind === 'sandboxed' ? { sandboxed: true } : {}), next });
@@ -522,7 +571,7 @@ const build = (work, ff) => {
 const frames = (bin, ff, specs, outDir, extraEnv = {}) => {
   const lint = path.join(ff, `.lint-${process.pid}-${Date.now()}.jsonl`);
   const res = run(bin, ['frame', ...specs, '-o', outDir, '--json'], { env: { ...process.env, VS_FF_DIR: ff, VS_FF_LINT: lint, ...extraEnv }, ...limit('frame') });
-  if (timedOut(res)) dieTimeout('fframes frame', 'frame');
+  guard(res, path.dirname(ff), 'fframes frame', 'frame');
   if (res.status !== 0) die(`fframes frame failed: ${String(res.stderr).slice(-1500)}`, 1);
   const json = JSON.parse(res.stdout);
   const records = existsSync(lint) ? readFileSync(lint, 'utf8').split('\n').filter(Boolean).map((l) => JSON.parse(l)) : [];
@@ -553,6 +602,7 @@ const prepClips = (bin, ff, TL) => {
       const w = Math.round(slot.w / 2) * 2;
       const h = Math.round(slot.h / 2) * 2;
       const r = run('ffmpeg', ['-y', '-v', 'error', '-i', src, '-an', '-vf', `setpts=(PTS-STARTPTS)/${rate.toFixed(4)},fps=30,scale=${w}:${h}:force_original_aspect_ratio=decrease:flags=lanczos,format=yuv420p`, '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '16', dst], limit('ffmpeg'));
+      guard(r, path.dirname(ff), `ffmpeg pre-slowing ${slot.file}`, 'ffmpeg');
       if (r.status !== 0) die(`ffmpeg could not pre-slow ${slot.file}: ${String(r.stderr).slice(0, 600)}`, 1);
     }
     clips[key] = { file: slow, played: Number(played.toFixed(3)), rate };
@@ -568,7 +618,7 @@ const grey = (png) => {
 };
 
 const check = (work) => {
-  needReady();
+  needReady(work);
   const pr = args.includes('--pr');
   const only = opt('--scene');
   const at = opt('--at') ? opt('--at').split(',').map(Number) : null;
@@ -630,7 +680,7 @@ const check = (work) => {
 };
 
 const render = (work) => {
-  needReady();
+  needReady(work);
   const outArg = opt('--out');
   if (!outArg) die('Usage: node fframes.mjs render <work-dir> --out <video.mp4> [--size 1080|720]');
   const out = path.resolve(outArg);
@@ -645,11 +695,12 @@ const render = (work) => {
   const started = Date.now();
   const flags = ['render', '-o', silent, '--renderer', process.env.VS_FF_RENDERER ?? 'skia-cpu', ...(size === 720 ? ['--scale', '0.6666667'] : []), ...(args.includes('--draft') ? ['--draft'] : [])];
   const r = run(bin, flags, { env: { ...process.env, VS_FF_DIR: ff }, ...limit('render') });
-  if (timedOut(r)) dieTimeout('fframes render', 'render');
+  guard(r, work, 'fframes render', 'render');
   if (r.status !== 0) die(`fframes render failed: ${String(r.stderr).slice(-1500)}`, 1);
   const renderSeconds = Number(((Date.now() - started) / 1000).toFixed(1));
   mkdirSync(path.dirname(out), { recursive: true });
   const mux = run('ffmpeg', ['-y', '-v', 'error', '-i', silent, '-i', narration, '-map', '0:v', '-map', '1:a', '-c:v', 'copy', '-c:a', 'aac', '-b:a', '192k', '-ar', '48000', '-shortest', '-movflags', '+faststart', out], limit('ffmpeg'));
+  guard(mux, work, 'ffmpeg muxing the narration', 'ffmpeg');
   if (mux.status !== 0) die(`ffmpeg could not mux the narration: ${String(mux.stderr).slice(0, 800)}`, 1);
   rmSync(silent, { force: true });
   const seconds = probeDuration(out);
@@ -672,4 +723,4 @@ if (!isMain) {
 else if (cmd === 'check') check(needWork());
 else if (cmd === 'fallback') print(fallback(needWork()));
 else if (cmd === 'render') render(needWork());
-else die('Usage: node fframes.mjs doctor [--warm] | init <work> | check <work> [--pr] | fallback <work> --reason "..." | render <work> --out <mp4> [--size 720]');
+else die('Usage: node fframes.mjs doctor [--warm] | init <work> [--fframes] | check <work> [--pr] | fallback <work> --reason "..." | render <work> --out <mp4> [--size 720]');

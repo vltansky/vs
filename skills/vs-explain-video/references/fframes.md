@@ -156,6 +156,19 @@ comes back as JSON with the compiler's lines and a `cause`: `scenes` (fix
 set) and `<out>.fframes.json`, and fails if the length is off the timeline by
 more than 0.15 s.
 
+## The renderer marker
+
+`$WORK/renderer.json` says which renderer this video uses (`fframes`, `pending`
+until `doctor --warm` has run, or `playwright`); `lint.mjs` picks its page checks
+from it. Every FALLBACK records `playwright` there: `fframes.mjs fallback`, a
+step past its time limit, and `check`/`render` when doctor says fframes cannot
+run (a failed `--warm` counts until a `--warm` succeeds). The marker is one-way: a
+later `init` or a passing `check` keeps `playwright`, and `check`/`render` refuse
+the video. To try fframes again on purpose, run
+`fframes.mjs init "$WORK" --fframes`. A step killed by the system (SIGKILL that is
+not our time limit, usually out of memory) is reported as such and records
+nothing: rerun it, and fall back if it is killed again.
+
 ## Trouble
 
 | Symptom | Fix |

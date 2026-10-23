@@ -36,7 +36,8 @@ The renderer is fframes, as in explain-video: with `fframes.warmable`, run
 fallback steps (`scenes.js`) and carry the FALLBACK warning to the handoff.
 `fframes.mjs init` records the renderer in `$WORK/renderer.json`; if fframes
 fails later, run `fframes.mjs fallback "$WORK" --reason "<why>"` first, so
-`lint.mjs` runs the fallback's page checks.
+`lint.mjs` runs the fallback's page checks. A fallback sticks: a later `init`
+keeps it, and only `init --fframes` switches back.
 
 ## 2. Scaffold and bring the media in
 

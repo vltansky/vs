@@ -74,7 +74,7 @@ node <skill-dir>/scripts/fframes.mjs init "$WORK"
 `init.mjs` copies fonts, a script, and the fallback stage; `fframes.mjs init`
 writes the crate `$WORK/ff/` (read the example it names) and `renderer.json`.
 If fframes fails later, run `fframes.mjs fallback "$WORK" --reason "<why>"`
-first. Never commit videos, audio, or frames, or write them into the project.
+first; a fallback sticks (only `init --fframes` undoes it). Never commit videos, audio, or frames, or write them into the project.
 
 ## 4. Write the beats
 
