@@ -251,7 +251,7 @@ export const doctor = ({ warm = false, quiet = false } = {}) => {
         ? `fframes is installable here: run \`node ${path.join(here, 'fframes.mjs')} doctor --warm\` once (builds into ${CACHE}: ~5 min, ~4 GB, no system installs; later videos compile in seconds). If --warm fails, FALLBACK to the Playwright renderer (render.mjs, scenes.js) and say so in the handoff.`
         : warmInfo?.killed
           ? `The shared build was killed by the system (SIGKILL, not a build error; often out of memory): ${warmFailedNext(warmInfo)}`
-          : `FALLBACK: fframes cannot render on this machine (${problems.join('; ')}). Use the Playwright renderer (render.mjs, scenes.js) for this video, and say in the handoff that it fell back and why. To enable fframes: ${next.join(' ; ')}`,
+          : `FALLBACK: fframes cannot render on this machine (${problems.join('; ')}). Use the Playwright renderer (render.mjs, scenes.js) for this video, record it with node ${path.join(here, 'fframes.mjs')} fallback <work-dir> --reason "<why>", and say in the handoff that it fell back and why. To enable fframes: ${next.join(' ; ')}`,
   };
   if (!ok && !warmable && !quiet && !warmInfo?.killed) process.stderr.write(`\n*** FALLBACK: fframes is not available (${problems.join('; ')}). Rendering with Playwright instead. ***\n\n`);
   return report;
@@ -458,6 +458,17 @@ export const writeRenderer = (work, renderer, reason = null, { force = false } =
   if (renderer !== 'playwright' && !force && readJson(file)?.renderer === 'playwright') return false;
   writeJsonAtomic(file, { renderer, ...(reason ? { reason } : {}), at: new Date().toISOString() });
   return true;
+};
+// The Playwright path records itself, so the marker never depends on the agent running
+// `fframes.mjs fallback`: render.mjs calls this on every run, init.mjs when doctor says
+// FALLBACK. No marker: record playwright. fframes/pending: a Playwright render on a video
+// marked fframes is a fallback too, so record it and say so loudly (never silently).
+export const recordPlaywright = (work, reason) => {
+  const prior = readJson(path.join(work, MARKER))?.renderer;
+  if (prior === 'playwright') return { renderer: 'playwright', changed: false };
+  writeRenderer(work, 'playwright', reason);
+  if (prior) process.stderr.write(`\n*** FALLBACK: renderer.json said ${prior}, but ${reason}. Recorded playwright; say FALLBACK and why in the handoff (fframes.mjs init <work-dir> --fframes switches back). ***\n\n`);
+  return { renderer: 'playwright', changed: true, prior: prior ?? null };
 };
 export const rendererFor = (work, { ready = () => doctor({ quiet: true }).ok } = {}) => {
   const marked = readJson(path.join(work, MARKER))?.renderer;

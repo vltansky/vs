@@ -16,6 +16,7 @@ import { homedir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { doctor, readJson, recordPlaywright } from './fframes.mjs';
 import { fail } from './media.mjs';
 
 const dir = process.argv[2];
@@ -56,9 +57,18 @@ for (const [file, url] of Object.entries(FONTS)) {
   fonts[file] = 'ok';
 }
 
+// A machine where fframes cannot run (not just "not warm yet") renders this video with
+// Playwright: record that now, so the marker does not depend on a later step.
+let renderer = readJson(path.join(work, 'renderer.json'))?.renderer ?? null;
+if (!renderer) {
+  const state = doctor({ warm: false, quiet: true });
+  if (!state.ok && !state.warmable) renderer = recordPlaywright(work, `fframes is not available (${state.problems.join('; ')})`).renderer;
+}
+
 process.stdout.write(`${JSON.stringify({
   workDir: work,
   kept,
+  ...(renderer ? { renderer } : {}),
   fonts,
   next: 'Write script.json (beats) and scenes.js, then run narrate.mjs --dry-run.',
 }, null, 2)}\n`);

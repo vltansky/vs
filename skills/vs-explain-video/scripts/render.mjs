@@ -33,6 +33,7 @@ import { cpus, tmpdir } from 'node:os';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 
+import { recordPlaywright } from './fframes.mjs';
 import { ensurePlaywright, fail, probeDuration, run, which } from './media.mjs';
 import { boundaryParity, changedPixels, defaultWorkers, frameParity, planPieces } from './pieces.mjs';
 
@@ -54,6 +55,8 @@ for (const file of ['index.html', 'timeline.js', 'scenes.js', 'motion.js', 'capt
     fail(`${path.join(work, file)} is missing. ${file === 'timeline.js' ? 'Run narrate.mjs first.' : 'Run init.mjs first.'}`);
   }
 }
+// This is the Playwright renderer: record it in renderer.json (a no-op when already playwright).
+recordPlaywright(work, `the Playwright renderer (render.mjs ${stillsMode ? '--stills' : '--out'}) ran`);
 if (!which('ffmpeg') || !which('ffprobe')) fail('ffmpeg/ffprobe missing. Run: brew install ffmpeg. Then rerun render.mjs.');
 const { entry, error: playwrightError } = ensurePlaywright([work]);
 if (!entry) fail(`Playwright is not available: ${playwrightError}. Fix that and rerun render.mjs, or set PLAYWRIGHT_MODULE=/abs/path/node_modules/playwright-core.`);

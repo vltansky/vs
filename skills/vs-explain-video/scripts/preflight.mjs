@@ -89,7 +89,7 @@ const report = {
   ttsEngine,
   renderer,
   fframes: { ok: doctor.ok, warmable: Boolean(doctor.warmable), rust: doctor.rust ?? null, cache: doctor.cache ?? null, problems: doctor.problems ?? [], next: doctor.next },
-  ...(renderer === 'fframes' ? {} : { warning: `FALLBACK: fframes is not available (${(doctor.problems ?? []).join('; ')}). This video renders with Playwright (render.mjs, scenes.js); say so in the handoff.` }),
+  ...(renderer === 'fframes' ? {} : { warning: `FALLBACK: fframes is not available (${(doctor.problems ?? []).join('; ')}). This video renders with Playwright (render.mjs, scenes.js); init.mjs records it in renderer.json (or run fframes.mjs fallback <work-dir> --reason "<why>"); say so in the handoff.` }),
   tools,
   tts,
   missing,

@@ -3,7 +3,7 @@ import * as fs from 'node:fs';
 import { tmpdir } from 'node:os';
 import * as path from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { findRunWorkDirs } from './run-dirs';
+import { findRunWorkDirs, namesOtherCache } from './run-dirs';
 import { afterAll, describe, expect, it } from 'vitest';
 
 // Static evals for the default renderer: fframes (Rust + SVG, Skia on the CPU).
@@ -408,11 +408,69 @@ describe('the shared cache', () => {
     // Scoring is read-only: every file under /tmp/.vs, ours and the foreign sibling, is still there.
     expect(snapshot()).toEqual(before);
     expect(fs.existsSync(path.join(stray, 'workspace', 'videos', 'sibling', 'scenes.js'))).toBe(true);
+    // Inside the run root, a work dir whose crate names another cache is skipped.
+    expect(namesOtherCache(path.join(stray, 'workspace', 'videos', 'sibling'), ours)).toBe(true);
+    expect(namesOtherCache(path.join(stray, 'workspace', 'videos', 'mine'), ours)).toBe(false);
+    expect(namesOtherCache(path.join(stray, 'workspace', 'videos', 'no-crate'), ours)).toBe(false);
     // And the eval never deletes under /tmp/.vs: its only rmSync is the run's own CLEANUP list.
     const evalSrc = read('test', 'explain-video-renderer.eval.ts');
     expect(evalSrc.match(/rmSync\(/g)?.length).toBe(1);
     expect(evalSrc).toMatch(/for \(const dir of CLEANUP\.splice\(0\)\) fs\.rmSync\(dir/);
     expect(read('test', 'run-dirs.ts')).not.toMatch(/rmSync|unlink|rmdir/);
+    expect(evalSrc).toMatch(/if \(!namesOtherCache\(p, RUN_CACHE\)\) files\(/);
+    // The empty temp caches the fallback cases make are the run's own and cleaned with it.
+    expect(evalSrc).toMatch(/mkdtempSync\(path\.join\(os\.tmpdir\(\), 'vs-ff-empty-'\)\); CLEANUP\.push\(dir\)/);
+    expect(evalSrc.match(/mkdtempSync\(path\.join\(os\.tmpdir\(\), 'vs-ff-empty-'\)\)/g)?.length).toBe(1);
+  });
+
+  it('the Playwright path records the marker itself: render.mjs and init.mjs (no ffmpeg needed)', () => {
+    // render.mjs with only node on PATH: it records the marker, then stops at the missing ffmpeg.
+    const nodeOnly = tmp('vs-ff-nodebin-');
+    fs.symlinkSync(process.execPath, path.join(nodeOnly, 'node'));
+    const work = (marker?: object) => {
+      const dir = tmp('vs-ff-pw-');
+      for (const f of ['index.html', 'timeline.js', 'scenes.js', 'motion.js', 'captions.js']) fs.writeFileSync(path.join(dir, f), '');
+      if (marker) fs.writeFileSync(path.join(dir, 'renderer.json'), JSON.stringify(marker));
+      return dir;
+    };
+    const render = (dir: string) => spawnSync(process.execPath, [script('render.mjs'), dir, '--stills'], { encoding: 'utf8', env: { PATH: nodeOnly, HOME: tmp('vs-ff-home-') } });
+    const at = (dir: string) => JSON.parse(fs.readFileSync(path.join(dir, 'renderer.json'), 'utf8'));
+    const none = work();
+    const r1 = render(none);
+    expect(r1.status).toBe(2);
+    expect(at(none)).toMatchObject({ renderer: 'playwright', reason: expect.stringMatching(/render\.mjs --stills/) });
+    expect(r1.stderr).not.toMatch(/\*\*\* FALLBACK/);
+    // A video marked fframes: recorded as a fallback, loudly, never silently.
+    const ff = work({ renderer: 'fframes' });
+    const r2 = render(ff);
+    expect(at(ff).renderer).toBe('playwright');
+    expect(r2.stderr).toMatch(/\*\*\* FALLBACK: renderer\.json said fframes, but the Playwright renderer/);
+    // Already playwright: kept as it was, reason included.
+    const pw = work({ renderer: 'playwright', reason: 'warm failed' });
+    render(pw);
+    expect(at(pw)).toMatchObject({ renderer: 'playwright', reason: 'warm failed' });
+
+    // init.mjs on a machine with no Rust: doctor says FALLBACK, so init.mjs records it.
+    const home = tmp('vs-ff-home-');
+    const fonts = path.join(home, '.cache', 'vs-explain-video', 'fonts');
+    fs.mkdirSync(fonts, { recursive: true });
+    for (const f of ['SpaceGrotesk.ttf', 'JetBrainsMono.ttf']) fs.writeFileSync(path.join(fonts, f), '');
+    const init = (dir: string) => spawnSync(process.execPath, [script('init.mjs'), dir], { encoding: 'utf8', env: { PATH: process.env.PATH ?? '', HOME: home, VS_FF_CACHE: tmp('vs-ff-c-'), VS_FF_CARGO: '/nonexistent/cargo' } });
+    const fresh = tmp('vs-ff-init-');
+    const i1 = init(fresh);
+    expect(i1.status).toBe(0);
+    expect(JSON.parse(i1.stdout).renderer).toBe('playwright');
+    expect(at(fresh)).toMatchObject({ renderer: 'playwright', reason: expect.stringMatching(/no Rust toolchain/) });
+    // An existing marker is left to fframes.mjs (init.mjs never overwrites it).
+    const marked = tmp('vs-ff-init-');
+    fs.writeFileSync(path.join(marked, 'renderer.json'), JSON.stringify({ renderer: 'fframes' }));
+    init(marked);
+    expect(at(marked).renderer).toBe('fframes');
+  });
+
+  it("doctor's FALLBACK names the fframes.mjs fallback command", () => {
+    const { report } = doctor({ VS_FF_CARGO: '/nonexistent/cargo' });
+    expect(report.next).toMatch(/^FALLBACK: .*fframes\.mjs fallback <work-dir> --reason/);
   });
 
   it('records the renderer per video, so lint never guesses from leftover files', async () => {

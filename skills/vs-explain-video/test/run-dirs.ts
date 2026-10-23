@@ -8,16 +8,25 @@ import path from 'node:path';
 // Read-only: nothing under /tmp/.vs is ever deleted; the caller logs what it scored.
 const kitPath = (toml: string) => /^\s*vs_fframes_kit\s*=\s*\{[^}]*\bpath\s*=\s*"([^"]+)"/m.exec(toml)?.[1];
 
+const kitDirOf = (dir: string) => {
+  try { return kitPath(fs.readFileSync(path.join(dir, 'ff', 'Cargo.toml'), 'utf8')); } catch { return undefined; }
+};
+const inCache = (kit: string, cache: string) => path.dirname(path.resolve(kit)) === path.resolve(cache);
+
+// A work dir whose crate names another cache: another run's video, never this run's.
+export function namesOtherCache(dir: string, cache: string): boolean {
+  const kit = kitDirOf(dir);
+  return !!kit && !!cache && !inCache(kit, cache);
+}
+
 export function findRunWorkDirs(root: string, cache: string): string[] {
   if (!cache) return [];
   const want = path.resolve(cache);
   const found: string[] = [];
   const walk = (dir: string, depth: number) => {
     if (depth > 8) return;
-    try {
-      const kit = kitPath(fs.readFileSync(path.join(dir, 'ff', 'Cargo.toml'), 'utf8'));
-      if (kit && path.dirname(path.resolve(kit)) === want) found.push(dir);
-    } catch { /* not a work dir */ }
+    const kit = kitDirOf(dir);
+    if (kit && inCache(kit, want)) found.push(dir);
     let entries: fs.Dirent[] = [];
     try { entries = fs.readdirSync(dir, { withFileTypes: true }); } catch { return; }
     for (const e of entries) {

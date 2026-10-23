@@ -6,7 +6,7 @@ import { check, evaluate } from '@wix/pathgrade';
 import { describe, expect, it } from 'vitest';
 import { createAgent } from '../../vs-internal-shared/test/pathgrade-agent';
 import { promptOnce } from '../../vs-internal-shared/test/pathgrade-v1';
-import { findRunWorkDirs } from './run-dirs';
+import { findRunWorkDirs, namesOtherCache } from './run-dirs';
 
 // Live explain-video runs on the renderer choice:
 //   fframes-default   a warm shared build: the agent writes the per-video Rust crate from the
@@ -67,14 +67,15 @@ const TOPIC = `Use $vs-explain-video. Make a short explainer (about 20 seconds, 
 // nothing under /tmp/.vs is ever deleted (only the run's own temp caches are).
 const STRAY = path.join(os.tmpdir(), '.vs');
 let RUN_CACHE = '';
-// Every file the run wrote: its root (workspace, sandboxed home and tmp) and its own work dirs under /tmp/.vs.
+// Every file the run wrote: its root (workspace, sandboxed home and tmp) and its own work
+// dirs under /tmp/.vs. A work dir anywhere whose crate names another run's cache is skipped.
 const runFiles = (workspace: string) => [path.dirname(workspace), ...findRunWorkDirs(STRAY, RUN_CACHE)].flatMap((r) => files(r));
 function files(root: string, out: string[] = [], depth = 0): string[] {
   if (depth > 9 || !fs.existsSync(root)) return out;
   for (const e of fs.readdirSync(root, { withFileTypes: true })) {
     if (e.name === 'node_modules' || e.name === 'target' || e.name === '.git') continue;
     const p = path.join(root, e.name);
-    if (e.isDirectory()) files(p, out, depth + 1);
+    if (e.isDirectory()) { if (!namesOtherCache(p, RUN_CACHE)) files(p, out, depth + 1); }
     else out.push(p);
   }
   return out;
@@ -102,6 +103,8 @@ const markerPlaywright = check('marker-playwright', ({ workspace }) => {
 const noFframesClaim = check('no-fframes-claim', ({ transcript }) => !/rendered (?:it )?with fframes|renderer: fframes/i.test(agentText(transcript)));
 
 const CLEANUP: string[] = [];
+// An empty shared cache for this run, removed with the run's other temp dirs.
+const emptyCache = () => { const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'vs-ff-empty-')); CLEANUP.push(dir); return dir; };
 let WARM_FAILS_BIN = '';
 type Case = { id: string; env: () => Record<string, string>; checks: ReturnType<typeof check>[] };
 const CASE_LIST: Case[] = [
@@ -132,7 +135,7 @@ const CASE_LIST: Case[] = [
   },
   {
     id: 'fallback-loud',
-    env: () => ({ ...tools(), VS_FF_CACHE: fs.mkdtempSync(path.join(os.tmpdir(), 'vs-ff-empty-')), VS_FF_CARGO: '/nonexistent/cargo' }),
+    env: () => ({ ...tools(), VS_FF_CACHE: emptyCache(), VS_FF_CARGO: '/nonexistent/cargo' }),
     checks: [saysFallback, wroteScenesJs, noFframesClaim, markerPlaywright],
   },
   {
@@ -145,7 +148,7 @@ const CASE_LIST: Case[] = [
       fs.writeFileSync(path.join(bin, 'cargo'), `#!/bin/sh\nif [ "$1" = "--version" ]; then echo "cargo 1.99.1 (fake 2026-01-01)"; exit 0; fi\necho "$*" >> '${bin}/calls'\necho "error: could not compile fframes (lib) due to 1 previous error" >&2\nexit 101\n`, { mode: 0o755 });
       CLEANUP.push(bin);
       WARM_FAILS_BIN = bin;
-      return { ...tools(), VS_FF_CACHE: fs.mkdtempSync(path.join(os.tmpdir(), 'vs-ff-empty-')), VS_FF_CARGO: path.join(bin, 'cargo') };
+      return { ...tools(), VS_FF_CACHE: emptyCache(), VS_FF_CARGO: path.join(bin, 'cargo') };
     },
     checks: [
       check('tried-warm', () => fs.existsSync(path.join(WARM_FAILS_BIN, 'calls')) && /build/.test(fs.readFileSync(path.join(WARM_FAILS_BIN, 'calls'), 'utf8'))),
