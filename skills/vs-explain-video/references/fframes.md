@@ -16,7 +16,7 @@ background, transitions, audio) is the kit's.
 | Step | Command | Cost |
 |---|---|---|
 | Check | `node scripts/fframes.mjs doctor` | instant |
-| First time on a machine | `node scripts/fframes.mjs doctor --warm` | ~5 min, ~4 GB |
+| First time on a machine | `node scripts/fframes.mjs doctor --warm` | ~5 min, ~4 GB (+~50 MB per video) |
 | After a kit update | `doctor --warm` again (doctor says so) | ~15 s |
 | New video | `node scripts/fframes.mjs init "$WORK"` | instant |
 
@@ -33,6 +33,31 @@ macOS: `xcode-select --install` (libclang), `brew install rustup ffmpeg
 pkg-config` and `rustup default stable` give everything; fonts come from the work dir, not the system. The kit asks
 Skia for its Metal build on macOS and Vulkan on Linux only because those are the
 prebuilt Skia binaries; frames still render on the CPU (`--renderer skia-cpu`).
+
+### The shared cache
+
+`~/.cache/vs/fframes` (`VS_FF_CACHE`) holds one `kit-<hash>` copy per kit
+version (used only once its `.complete` marker is written, so an interrupted
+copy is redone), a `ready-<hash>.json` per warmed version, `machine.json`
+(whether ffmpeg had to be built from source), and the cargo `target/`. Installs
+at different plugin versions share it without evicting each other; two warms at
+once each build in their own `warm-<pid>` crate. Disk: about 4 GB after the
+first warm, plus about 50 MB per video binary and about 0.5 GB per other kit
+version. `--warm` and `init` delete only what nothing used for 14 days (old kit
+copies, old kit builds, `vs-video-*` binaries); a deleted build is rebuilt on
+next use (a video in about a second). To reset or reclaim everything:
+`rm -rf ~/.cache/vs/fframes`, then `doctor --warm`.
+
+What the first warm downloads, unpinned by checksum: the ffmpeg prebuilt from
+`github.com/dmtrKovalenko/rust-ffmpeg-sys/releases` (ffmpeg-sys-fframes has no
+checksum for it) and Skia's prebuilt binaries (skia-bindings, from its GitHub
+releases). With `FFMPEG_FORCE_BUILD=1` (the x264 retry) ffmpeg-sys instead
+git-clones ffmpeg's `release/<version>` branch, which is not pinned to a commit.
+The crates themselves come from crates.io and are pinned by `Cargo.lock`. On a
+machine that must not fetch unverified binaries, use the Playwright renderer.
+
+Builds, frames and renders have hard limits (minutes: `VS_FF_TIMEOUT_WARM` 60,
+`_BUILD` 15, `_FRAME` 10, `_RENDER` 30, `_FFMPEG` 10). A timeout says FALLBACK.
 
 ## The scene function
 
@@ -121,8 +146,11 @@ node scripts/fframes.mjs render "$WORK" --out "$WORK/video.mp4"   # --size 720, 
 names as `render.mjs --stills`) and reports what `check.mjs` and the stage audit
 report: overlap, outside the safe area, under the chapter bar or the subtitles,
 text past its card, SMALL, NO-BUILD, plus fframes' own text-clipping
-diagnostics and CLIP-MISSING. A build error comes back as JSON with the
-compiler's lines: fix `main.rs` and rerun.
+diagnostics, CLIP-MISSING, and CLIP-UNPREPARED (a clip drawn only outside its
+scene's midpoint is not pre-slowed and would play as a still). A build error
+comes back as JSON with the compiler's lines and a `cause`: `scenes` (fix
+`main.rs` and rerun), `kit` (the shared kit is missing or broken: rerun
+`doctor --warm`, do not edit `main.rs`), or `sandboxed`.
 
 `render` writes the MP4 (H.264, AAC 48 kHz, the narration level narrate.mjs
 set) and `<out>.fframes.json`, and fails if the length is off the timeline by
@@ -137,6 +165,9 @@ more than 0.15 s.
 | a text overlaps on purpose | `s.allow_overlap();` before it |
 | check: `sandboxed: true` (build lock not writable) | a sandbox blocks writes to the cache: rerun with write access to `~/.cache/vs/fframes` (approve it); not a reason to fall back |
 | doctor: `--version gave no version` | rustup has no default toolchain for this HOME: `rustup default stable`, or set `RUSTUP_HOME`/`CARGO_HOME` |
-| ffmpeg link errors on warm | warm retries with `FFMPEG_FORCE_BUILD=1` by itself; check `warm.log` in the cache |
+| ffmpeg link errors on warm | warm retries with `FFMPEG_FORCE_BUILD=1` by itself; check `warm-<hash>.log` in the cache |
 | CLIP-MISSING | the clip did not decode; rerun `prep.mjs`, then `check` |
-| anything else you cannot fix in 2 tries | FALLBACK to `render.mjs` + `scenes.js`, and say so |
+| CLIP-UNPREPARED | draw the clip at its scene's midpoint too (or widen its window), then `check` |
+| build `cause: kit` | `doctor --warm`, then rerun; if it repeats, `rm -rf ~/.cache/vs/fframes` and warm again |
+| doctor or warm looks stuck or corrupt | `rm -rf ~/.cache/vs/fframes`, then `doctor --warm` |
+| anything else you cannot fix in 2 tries | `fframes.mjs fallback "$WORK" --reason "<why>"`, then `render.mjs` + `scenes.js`, and say FALLBACK in the handoff |

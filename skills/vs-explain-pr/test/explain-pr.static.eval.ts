@@ -286,19 +286,44 @@ describe('explain-pr on the fframes renderer', () => {
     expect(SKILL).toMatch(/fframes\.mjs render "\$WORK" --out "\$WORK\/raw\.mp4" --size 720/);
     expect(SKILL).toMatch(/s\.clip\("media\/<name>\.mp4"/);
     expect(SKILL).toMatch(/FALLBACK warning/);
+    expect(SKILL).toMatch(/fframes\.mjs fallback "\$WORK" --reason/);
+    expect(SKILL).toContain('renderer.json');
   });
 
-  it('lint.mjs leaves the page checks to fframes check --pr when the crate exists', () => {
+  // A Playwright fallback work dir still has ff/src/main.rs (init wrote it) next to
+  // scenes.js: the renderer must come from renderer.json, not from leftover files.
+  const lintWork = (marker: string | null) => {
     const work = fs.mkdtempSync(path.join(os.tmpdir(), 'vs-explain-pr-lint-'));
     fs.copyFileSync(path.join(ROOT, 'skills', 'vs-explain-video', 'assets', 'script.example.json'), path.join(work, 'script.json'));
     for (const f of ['index.html', 'timeline.js', 'scenes.js']) fs.writeFileSync(path.join(work, f), '');
     fs.mkdirSync(path.join(work, 'ff', 'src'), { recursive: true });
     fs.writeFileSync(path.join(work, 'ff', 'src', 'main.rs'), 'fn main() {}');
-    const run = spawnSync(process.execPath, [path.join(SCRIPTS, 'lint.mjs'), work], { encoding: 'utf8' });
-    expect([0, 1]).toContain(run.status);
-    const res = JSON.parse(run.stdout);
+    if (marker) fs.writeFileSync(path.join(work, 'renderer.json'), marker);
+    return work;
+  };
+  const lint = (work: string, extra: string[] = [], env: Record<string, string> = {}) => {
+    const run = spawnSync(process.execPath, [path.join(SCRIPTS, 'lint.mjs'), work, ...extra], { encoding: 'utf8', env: { ...process.env, ...env } });
+    expect([0, 1], run.stderr).toContain(run.status);
+    return JSON.parse(run.stdout);
+  };
+
+  it('lint.mjs leaves the page checks to fframes check --pr when renderer.json says fframes', () => {
+    const res = lint(lintWork('{"renderer":"fframes"}'));
     expect(res.renderer).toBe('fframes');
     expect(res.pageChecked).toBe(false);
+  });
+
+  it('lint.mjs runs the fallback page checks when renderer.json says playwright, even with ff/src/main.rs', () => {
+    const res = lint(lintWork('{"renderer":"playwright","reason":"warm failed"}'), ['--no-page']);
+    expect(res.renderer).toBe('playwright');
+  });
+
+  it('lint.mjs without a marker treats a leftover crate as fframes only when fframes can run', () => {
+    const res = lint(lintWork(null), ['--no-page'], { VS_FF_CARGO: '/nonexistent/cargo', VS_FF_CACHE: fs.mkdtempSync(path.join(os.tmpdir(), 'vs-ff-c-')) });
+    expect(res.renderer).toBe('playwright');
+    // A corrupt marker reads as no marker, not a crash.
+    const bad = lint(lintWork('{"renderer":'), ['--no-page'], { VS_FF_CARGO: '/nonexistent/cargo', VS_FF_CACHE: fs.mkdtempSync(path.join(os.tmpdir(), 'vs-ff-c-')) });
+    expect(bad.renderer).toBe('playwright');
   });
 });
 

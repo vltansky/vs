@@ -12,15 +12,22 @@ import { promptOnce } from '../../vs-internal-shared/test/pathgrade-v1';
 //                     template (ff/src/main.rs, one arm per scene) and checks it with fframes.mjs
 //   fallback-loud     no usable Rust and no shared build: the agent falls back to Playwright
 //                     (scenes.js) and says FALLBACK out loud instead of degrading silently
+//   warm-fails        Rust looks fine but the shared build fails (a cargo that exits 101): the
+//                     agent tries doctor --warm, then falls back loudly
+// The fallback checks score behaviour, not wording: the agent's own text says it fell back,
+// names Playwright, and gives a reason.
 // Opt-in (each run is a full agent session with narration and stills):
-//   EXPLAIN_VIDEO_LIVE=1 [EXPLAIN_VIDEO_CASES=fframes-default,fallback-loud]
+//   EXPLAIN_VIDEO_LIVE=1 [EXPLAIN_VIDEO_CASES=fframes-default,fallback-loud,warm-fails]
+//   [EXPLAIN_VIDEO_RUNS=3] [EXPLAIN_VIDEO_OUT=/tmp/explain-video-live]
 //   [VS_FF_CACHE=<warm cache>] [VS_FF_CARGO=<cargo>] npx vitest run skills/vs-explain-video/test/explain-video-renderer.eval.ts
 // fframes-default needs the shared build warmed once (fframes.mjs doctor --warm).
 
 const SKILL_DIR = path.resolve(__dirname, '..');
 const EVAL_AGENT = (process.env.PATHGRADE_AGENT ?? 'codex') as 'claude' | 'codex';
 const LIVE = process.env.EXPLAIN_VIDEO_LIVE === '1';
-const CASES = (process.env.EXPLAIN_VIDEO_CASES ?? 'fframes-default,fallback-loud').split(',');
+const CASES = (process.env.EXPLAIN_VIDEO_CASES ?? 'fframes-default,fallback-loud,warm-fails').split(',');
+const RUNS = Number(process.env.EXPLAIN_VIDEO_RUNS ?? 1);
+const OUT = process.env.EXPLAIN_VIDEO_OUT ?? '/tmp/explain-video-live';
 const WARM_CACHE = process.env.VS_FF_CACHE ?? path.join(os.homedir(), '.cache', 'vs', 'fframes');
 const CARGO = process.env.VS_FF_CARGO ?? path.join(os.homedir(), '.cargo', 'bin', 'cargo');
 // The agent runs with a sandboxed HOME: point it at this machine's voice and Playwright
@@ -50,8 +57,22 @@ function files(root: string, out: string[] = [], depth = 0): string[] {
   return out;
 }
 const sceneArms = (main: string) => (main.match(/^\s*"[a-z0-9-]+"\s*=>/gm) ?? []).length;
+// What the agent itself said (the prompt is excluded).
+const agentText = (transcript: string) => transcript.split(/^\[User\]$/m).map((b) => b.replace(/^[\s\S]*?^\[Agent\]$/m, '')).join('\n');
+// Loud fallback, by behaviour: it says it fell back, to Playwright, and why.
+const saysFallback = check('says-fallback', ({ transcript }) => {
+  const said = agentText(transcript);
+  return /fall(?:ing|s)? ?back|fell back/i.test(said) && /playwright/i.test(said)
+    && /because|unavailable|not available|missing|fail|cannot|can't|could not|couldn't|error|not installed|not found|blocked/i.test(said);
+});
+const wroteScenesJs = check('wrote-scenes-js', ({ workspace }) => {
+  const js = files(path.dirname(workspace)).find((f) => f.endsWith(`${path.sep}scenes.js`) && !f.includes(`${path.sep}assets${path.sep}`));
+  return !!js && (fs.readFileSync(js, 'utf8').match(/\bscene\(/g) ?? []).length >= 2;
+});
+const noFframesClaim = check('no-fframes-claim', ({ transcript }) => !/rendered (?:it )?with fframes|renderer: fframes/i.test(agentText(transcript)));
 
 const CLEANUP: string[] = [];
+let WARM_FAILS_BIN = '';
 type Case = { id: string; env: () => Record<string, string>; checks: ReturnType<typeof check>[] };
 const CASE_LIST: Case[] = [
   {
@@ -82,21 +103,32 @@ const CASE_LIST: Case[] = [
   {
     id: 'fallback-loud',
     env: () => ({ ...TOOLS, VS_FF_CACHE: fs.mkdtempSync(path.join(os.tmpdir(), 'vs-ff-empty-')), VS_FF_CARGO: '/nonexistent/cargo' }),
+    checks: [saysFallback, wroteScenesJs, noFframesClaim],
+  },
+  {
+    id: 'warm-fails',
+    // A Rust that passes the version check but cannot build: --warm fails, so the agent
+    // must fall back. The fake cargo logs each call, which proves the warm was tried.
+    env: () => {
+      const bin = fs.mkdtempSync(path.join(os.tmpdir(), 'vs-ff-badcargo-'));
+      fs.writeFileSync(path.join(bin, 'rustc'), '#!/bin/sh\necho "rustc 1.99.1 (fake 2026-01-01)"\n', { mode: 0o755 });
+      fs.writeFileSync(path.join(bin, 'cargo'), `#!/bin/sh\nif [ "$1" = "--version" ]; then echo "cargo 1.99.1 (fake 2026-01-01)"; exit 0; fi\necho "$*" >> '${bin}/calls'\necho "error: could not compile fframes (lib) due to 1 previous error" >&2\nexit 101\n`, { mode: 0o755 });
+      CLEANUP.push(bin);
+      WARM_FAILS_BIN = bin;
+      return { ...TOOLS, VS_FF_CACHE: fs.mkdtempSync(path.join(os.tmpdir(), 'vs-ff-empty-')), VS_FF_CARGO: path.join(bin, 'cargo') };
+    },
     checks: [
-      // Loud: the handoff names the fallback, the renderer it used, and that fframes could not run.
-      check('says-fallback', ({ transcript }) => /\bfallback\b|fell back/i.test(transcript) && /playwright/i.test(transcript) && /fframes[^.\n]{0,60}(?:unavailable|not available|cannot|could not)/i.test(transcript)),
-      check('wrote-scenes-js', ({ workspace }) => {
-        const js = files(path.dirname(workspace)).find((f) => f.endsWith(`${path.sep}scenes.js`) && !f.includes(`${path.sep}assets${path.sep}`));
-        return !!js && (fs.readFileSync(js, 'utf8').match(/\bscene\(/g) ?? []).length >= 2;
-      }),
-      check('no-fframes-claim', ({ transcript }) => !/rendered (?:it )?with fframes|renderer: fframes/i.test(transcript)),
+      check('tried-warm', () => fs.existsSync(path.join(WARM_FAILS_BIN, 'calls')) && /build/.test(fs.readFileSync(path.join(WARM_FAILS_BIN, 'calls'), 'utf8'))),
+      saysFallback,
+      wroteScenesJs,
+      noFframesClaim,
     ],
   },
 ];
 
 describe.skipIf(!LIVE)('vs-explain-video renderer choice', () => {
-  for (const c of CASE_LIST.filter((x) => CASES.includes(x.id))) {
-    it(c.id, async () => {
+  for (const c of CASE_LIST.filter((x) => CASES.includes(x.id))) for (let run = 1; run <= RUNS; run++) {
+    it(`${c.id} #${run}`, async () => {
       const agent = await createAgent({
         agent: EVAL_AGENT,
         timeout: 1800,
@@ -107,10 +139,10 @@ describe.skipIf(!LIVE)('vs-explain-video renderer choice', () => {
       try {
         await promptOnce(agent, TOPIC);
         const result = await evaluate(agent, c.checks);
-        fs.mkdirSync('/tmp/explain-video-live', { recursive: true });
-        fs.appendFileSync('/tmp/explain-video-live/runs.jsonl', `${JSON.stringify({ case: c.id, score: result.score, at: new Date().toISOString() })}\n`);
-        fs.writeFileSync(`/tmp/explain-video-live/${c.id}.transcript.txt`, agent.transcript());
-        fs.writeFileSync(`/tmp/explain-video-live/${c.id}.log.json`, JSON.stringify(agent.log, null, 1));
+        fs.mkdirSync(OUT, { recursive: true });
+        fs.appendFileSync(path.join(OUT, 'runs.jsonl'), `${JSON.stringify({ case: c.id, run, score: result.score, checks: Object.fromEntries(result.scorers.map((x) => [x.name, x.score])), at: new Date().toISOString() })}\n`);
+        fs.writeFileSync(path.join(OUT, `${c.id}-${run}.transcript.txt`), agent.transcript());
+        fs.writeFileSync(path.join(OUT, `${c.id}-${run}.log.json`), JSON.stringify(agent.log, null, 1));
         expect(result.score).toBe(1);
       } finally {
         await agent.dispose();

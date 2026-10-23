@@ -34,6 +34,9 @@ report `BLOCKED_TOOLING` with its `next` text and stop. The PR stays as it is.
 The renderer is fframes, as in explain-video: with `fframes.warmable`, run
 `fframes.mjs doctor --warm` once; when `renderer` is `playwright`, use the
 fallback steps (`scenes.js`) and carry the FALLBACK warning to the handoff.
+`fframes.mjs init` records the renderer in `$WORK/renderer.json`; if fframes
+fails later, run `fframes.mjs fallback "$WORK" --reason "<why>"` first, so
+`lint.mjs` runs the fallback's page checks.
 
 ## 2. Scaffold and bring the media in
 

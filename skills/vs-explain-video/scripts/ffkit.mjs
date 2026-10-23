@@ -127,6 +127,9 @@ export const auditFrame = (records, { pr = false } = {}) => {
   for (const r of records) {
     if (r.kind === 'missing-media') issues.push({ kind: 'missing-media', block: `still at ${Math.round(r.x)},${Math.round(r.y)}: file not in media/` });
     if (r.kind === 'clip-missing') issues.push({ kind: 'CLIP-MISSING', block: `${r.file} decoded no frame inside its window` });
+    // check pre-slows the clips it sees at each scene's midpoint; a clip drawn only in a
+    // narrower window is never prepared and renders as a still.
+    if (r.kind === 'clip' && r.prepared === false) issues.push({ kind: 'CLIP-UNPREPARED', block: `${r.file} was not prepared (not on screen at its scene's midpoint), so it would play as a still; show it at the midpoint too, or widen its window` });
   }
   const seen = new Set();
   return issues.filter((i) => {

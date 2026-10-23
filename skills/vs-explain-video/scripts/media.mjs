@@ -12,8 +12,12 @@ export const which = (name) => {
   return found || null;
 };
 
+// Every command has a hard cap (VS_CMD_TIMEOUT_MIN, 60 by default) so a hung tool fails
+// instead of blocking the agent; callers pass tighter `timeout`s. On a timeout the result
+// has error.code ETIMEDOUT and a non-zero status path, like any other failure.
+const CMD_TIMEOUT_MS = Number(process.env.VS_CMD_TIMEOUT_MIN ?? 60) * 60_000;
 export const run = (cmd, args, options = {}) =>
-  spawnSync(cmd, args, { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024, ...options });
+  spawnSync(cmd, args, { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024, timeout: CMD_TIMEOUT_MS, killSignal: 'SIGKILL', ...options });
 
 // Seconds as a float, or null when ffprobe cannot read the file.
 export const probeDuration = (file) => {

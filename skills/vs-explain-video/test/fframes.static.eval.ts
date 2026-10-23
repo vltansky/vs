@@ -136,12 +136,170 @@ describe('ffkit.mjs helpers', () => {
     expect(kinds([{ kind: 'media', frame: 0, x: 200, y: 200, w: 800, h: 450, o: 1, block: 1 }], true)).toContain('PHONE');
     expect(kinds([{ kind: 'missing-media', frame: 0, x: 1, y: 1, w: 1, h: 1, o: 1, block: 1 }])).toContain('missing-media');
     expect(kinds([{ kind: 'clip-missing', frame: 0, scene: 'after', file: 'apply.r0500.mp4' }])).toContain('CLIP-MISSING');
+    // A clip check never prepared plays as a still: say so instead of shipping it.
+    const clip = { kind: 'clip', frame: 0, scene: 'after', file: 'apply.mp4', x: 200, y: 200, w: 1200, h: 675, o: 1, block: 1, from: 30, to: 34 };
+    expect(kinds([{ ...clip, prepared: false }])).toContain('CLIP-UNPREPARED');
+    expect(kinds([{ ...clip, prepared: true }])).not.toContain('CLIP-UNPREPARED');
   });
 
   it('keeps only fframes diagnostics worth a fix', async () => {
     const { frameDiagnostics } = await ffkit();
     const found = frameDiagnostics([{ seconds: 1, diagnostics: [{ severity: 'info', kind: 'text_off_canvas' }, { severity: 'warning', kind: 'text_overflow', text: 'Long' }] }]);
     expect(found).toEqual([expect.objectContaining({ kind: 'text_overflow', block: 'Long', seconds: 1 })]);
+  });
+});
+
+// Would doctor accept this machine with a new enough Rust? (ffmpeg, dev libraries, libclang)
+const WARMABLE = doctor({ VS_FF_CARGO: fakeRust('1.90.0') }).report.warmable === true;
+const ff = async () => import(pathToFileURL(script('fframes.mjs')).href);
+// Run fframes.mjs exports in a child, so VS_FF_CACHE is read at import.
+const inChild = (code: string, env: Record<string, string>) => {
+  const res = spawnSync(process.execPath, ['--input-type=module', '-e', `const m = await import(${JSON.stringify(pathToFileURL(script('fframes.mjs')).href)});\n${code}`], {
+    encoding: 'utf8',
+    cwd: tmpdir(),
+    env: { PATH: process.env.PATH ?? '', HOME: tmp('vs-ff-home-'), ...env },
+  });
+  if (res.status !== 0) throw new Error(res.stderr);
+  return JSON.parse(res.stdout);
+};
+const age = (p: string, days: number) => {
+  const t = new Date(Date.now() - days * 24 * 3600 * 1000);
+  fs.utimesSync(p, t, t);
+};
+
+describe('the shared cache', () => {
+  it('prunes only kits, kit builds and video binaries unused for 14 days', async () => {
+    const { prune } = await ff();
+    const cache = tmp('vs-ff-prune-');
+    const debug = path.join(cache, 'target', 'debug');
+    for (const d of ['deps', 'incremental', '.fingerprint']) fs.mkdirSync(path.join(debug, d), { recursive: true });
+    const put = (p: string, days: number, dir = false) => {
+      if (dir) fs.mkdirSync(p, { recursive: true });
+      else fs.writeFileSync(p, 'x');
+      age(p, days);
+    };
+    // Another install's kit, used yesterday: kept. One last used 20 days ago: removed.
+    put(path.join(cache, 'kit-aaaaaaaa'), 30, true);
+    put(path.join(cache, 'ready-aaaaaaaa.json'), 1);
+    put(path.join(cache, 'kit-bbbbbbbb'), 30, true);
+    put(path.join(cache, 'ready-bbbbbbbb.json'), 20);
+    put(path.join(cache, 'kit-cccccccc'), 20, true); // never warmed: its own age counts
+    put(path.join(cache, 'kit-dddddddd'), 40, true); // the current kit: always kept
+    put(path.join(cache, 'kit-eeeeeeee.tmp-123'), 3, true); // an abandoned copy
+    // Kit builds: the newest group is kept even when old; another old group goes.
+    put(path.join(debug, 'deps', 'libvs_fframes_kit-1111.rlib'), 30);
+    put(path.join(debug, 'deps', 'libvs_fframes_kit-2222.rlib'), 20);
+    put(path.join(debug, 'deps', 'libvs_fframes_kit-3333.rlib'), 2);
+    put(path.join(debug, 'deps', 'libvs_fframes_kit-4444.rlib'), 25);
+    // Per-video binaries (~50 MB each): only old ones go.
+    put(path.join(debug, 'vs-video-old-abc123'), 20);
+    put(path.join(debug, 'vs-video-new-def456'), 2);
+    put(path.join(debug, 'deps', 'vs_video_old_abc123-99'), 20);
+    put(path.join(debug, 'vs-video-warm-dddddddd'), 40);
+    const gone = prune({ cache, keep: 'dddddddd' });
+    const has = (...p: string[]) => fs.existsSync(path.join(cache, ...p));
+    expect(has('kit-aaaaaaaa')).toBe(true);
+    expect(has('kit-bbbbbbbb') || has('ready-bbbbbbbb.json')).toBe(false);
+    expect(has('kit-cccccccc')).toBe(false);
+    expect(has('kit-dddddddd')).toBe(true);
+    expect(has('kit-eeeeeeee.tmp-123')).toBe(false);
+    expect(has('target', 'debug', 'deps', 'libvs_fframes_kit-3333.rlib')).toBe(true);
+    expect(has('target', 'debug', 'deps', 'libvs_fframes_kit-1111.rlib')).toBe(false);
+    expect(has('target', 'debug', 'deps', 'libvs_fframes_kit-4444.rlib')).toBe(false);
+    expect(has('target', 'debug', 'vs-video-old-abc123')).toBe(false);
+    expect(has('target', 'debug', 'deps', 'vs_video_old_abc123-99')).toBe(false);
+    expect(has('target', 'debug', 'vs-video-new-def456')).toBe(true);
+    expect(has('target', 'debug', 'vs-video-warm-dddddddd')).toBe(true);
+    expect(gone).toMatchObject({ kits: 2, videos: 1 });
+  });
+
+  it('reads a corrupt state file as not warm instead of crashing', async () => {
+    const { readJson } = await ff();
+    const dir = tmp('vs-ff-json-');
+    fs.writeFileSync(path.join(dir, 'bad.json'), '{"kitHash": "ab');
+    expect(readJson(path.join(dir, 'bad.json'))).toBeNull();
+    expect(readJson(path.join(dir, 'none.json'))).toBeNull();
+    // doctor with a corrupt machine.json and ready file still answers in JSON.
+    const cache = tmp('vs-ff-corrupt-');
+    const hash = inChild('console.log(JSON.stringify(m.kitHash()));', { VS_FF_CACHE: cache });
+    fs.writeFileSync(path.join(cache, 'machine.json'), '{oops');
+    fs.writeFileSync(path.join(cache, `ready-${hash}.json`), '');
+    fs.mkdirSync(path.join(cache, `kit-${hash}`));
+    fs.writeFileSync(path.join(cache, `kit-${hash}`, '.complete'), '');
+    const { status, report } = doctor({ VS_FF_CARGO: fakeRust('1.90.0'), VS_FF_CACHE: cache });
+    expect(status).toBe(2);
+    expect(report.ok).toBe(false);
+  });
+
+  it('a failing warm redoes a half-copied kit, cleans its own crate, retries ffmpeg from source, and records nothing as ready', () => {
+    const cache = tmp('vs-ff-warm-');
+    const hash = inChild('console.log(JSON.stringify(m.kitHash()));', { VS_FF_CACHE: cache });
+    // An interrupted copy: the kit dir exists without .complete.
+    fs.mkdirSync(path.join(cache, `kit-${hash}`), { recursive: true });
+    fs.writeFileSync(path.join(cache, `kit-${hash}`, 'junk'), '');
+    // A prebuilt ffmpeg from an earlier warm that links the wrong x264.
+    const out = path.join(cache, 'target', 'debug', 'build', 'ffmpeg-sys-fframes-0abc', 'out');
+    fs.mkdirSync(out, { recursive: true });
+    fs.writeFileSync(path.join(out, 'libavutil.a'), '');
+    const bin = tmp('vs-ff-cargo-');
+    const log = path.join(bin, 'calls.log');
+    fs.writeFileSync(path.join(bin, 'cargo'), `#!/bin/sh\necho "force=$FFMPEG_FORCE_BUILD out=$([ -e '${out}/libavutil.a' ] && echo yes || echo no)" >> '${log}'\necho "error: linking with cc failed: undefined reference to x264_encoder_open_164" >&2\nexit 101\n`, { mode: 0o755 });
+    const res = inChild('console.log(JSON.stringify(m.warmCache({})));', { VS_FF_CACHE: cache, VS_FF_CARGO: path.join(bin, 'cargo') });
+    expect(res.ok).toBe(false);
+    expect(res.error).toMatch(/cargo build failed/);
+    expect(fs.readFileSync(log, 'utf8').trim().split('\n')).toEqual(['force= out=yes', 'force=1 out=no']);
+    expect(fs.existsSync(path.join(cache, `kit-${hash}`, '.complete'))).toBe(true);
+    expect(fs.existsSync(path.join(cache, `kit-${hash}`, 'junk'))).toBe(false);
+    expect(fs.readdirSync(cache).filter((d) => /^warm-\d+$/.test(d))).toEqual([]);
+    expect(fs.existsSync(path.join(cache, `ready-${hash}.json`))).toBe(false);
+  });
+
+  it('tells the agent who must act on a failed build: the scenes, the kit (re-warm), or the sandbox', async () => {
+    const { classifyBuildError } = await ff();
+    const at = { target: '/h/.cache/vs/fframes/target', cache: '/h/.cache/vs/fframes' };
+    expect(classifyBuildError('error: failed to open: /h/.cache/vs/fframes/target/debug/.cargo-lock\n\nCaused by:\n  Read-only file system (os error 30)', at)).toBe('sandboxed');
+    expect(classifyBuildError('error: failed to get `vs_fframes_kit` as a dependency of package `vs-video v0.1.0 (/w/ff)`\n\nCaused by:\n  failed to load source for dependency `vs_fframes_kit`\n\nCaused by:\n  failed to read `/h/.cache/vs/fframes/kit-0123abcd/Cargo.toml`\n\nCaused by:\n  No such file or directory (os error 2)', at)).toBe('kit');
+    expect(classifyBuildError('/h/.cache/vs/fframes/kit-0123abcd/src/lib.rs:12:5: error: expected item, found `}`', at)).toBe('kit');
+    expect(classifyBuildError('src/main.rs:40:9: error[E0425]: cannot find value `x` in this scope\n/h/.cache/vs/fframes/kit-0123abcd/src/lib.rs:500:12: note: method defined here', at)).toBe('scenes');
+    expect(classifyBuildError('src/main.rs:3:1: error: expected one of `!` or `::`', at)).toBe('scenes');
+    const src = read('scripts', 'fframes.mjs');
+    expect(src).toMatch(/Do not fall back for this/);
+    expect(src).toMatch(/run node .*doctor --warm, then rerun this command\. Do not edit main\.rs for this\./);
+  });
+
+  it('caps builds, frames and renders with a time limit that says FALLBACK', () => {
+    const src = read('scripts', 'fframes.mjs');
+    for (const name of ['warm', 'build', 'frame', 'render', 'ffmpeg']) expect(src).toContain(`limit('${name}')`);
+    expect(src).toMatch(/timed out after .* FALLBACK to the Playwright renderer/);
+    expect(read('scripts', 'media.mjs')).toMatch(/timeout: CMD_TIMEOUT_MS/);
+  });
+
+  it('records the renderer per video, so lint never guesses from leftover files', async () => {
+    const { rendererFor, writeRenderer } = await ff();
+    const work = tmp('vs-ff-marker-');
+    fs.mkdirSync(path.join(work, 'ff', 'src'), { recursive: true });
+    fs.writeFileSync(path.join(work, 'ff', 'src', 'main.rs'), '');
+    fs.writeFileSync(path.join(work, 'scenes.js'), '');
+    const ready = () => true;
+    writeRenderer(work, 'playwright', 'warm failed');
+    expect(rendererFor(work, { ready })).toBe('playwright');
+    writeRenderer(work, 'fframes');
+    expect(rendererFor(work, { ready: () => false })).toBe('fframes');
+    writeRenderer(work, 'pending');
+    expect(rendererFor(work, { ready })).toBe('fframes');
+    expect(rendererFor(work, { ready: () => false })).toBe('playwright');
+    fs.rmSync(path.join(work, 'renderer.json'));
+    expect(rendererFor(work, { ready: () => false })).toBe('playwright');
+  });
+
+  it('documents the cache layout, the 14-day prune, the reset, and the unchecksummed downloads', () => {
+    const REF = flat(read('references', 'fframes.md'));
+    expect(REF).toContain('rm -rf ~/.cache/vs/fframes');
+    expect(REF).toMatch(/14 days/);
+    expect(REF).toMatch(/about 50 MB per video binary/);
+    expect(REF).toMatch(/github\.com\/dmtrKovalenko\/rust-ffmpeg-sys\/releases/);
+    expect(REF).toMatch(/release\/<version>. branch, which is not pinned/);
+    expect(REF).toMatch(/CLIP-UNPREPARED/);
   });
 });
 
@@ -202,13 +360,6 @@ describe('preflight picks the renderer', () => {
     expect(src).not.toMatch(/fframes\.mjs'\), 'doctor'\]/);
   });
 
-  it('prunes old kits on warm and keeps the newest kit build', () => {
-    const src = read('scripts', 'fframes.mjs');
-    expect(src).toMatch(/pruned: prune\(kit\)/);
-    expect(src).toMatch(/\^kit-\[0-9a-f\]\+\$/);
-    expect(src).toMatch(/sort\(\(a, b\) => b\[1\]\.newest - a\[1\]\.newest\)/);
-  });
-
   it('doctor checks libclang (bindgen) and names the install on each OS', () => {
     const src = read('scripts', 'fframes.mjs');
     expect(src).toMatch(/libclang missing/);
@@ -216,19 +367,6 @@ describe('preflight picks the renderer', () => {
     expect(src).toMatch(/xcode-select --install/);
     expect(src).toMatch(/LIBCLANG_PATH/);
     expect(src).toMatch(/\['x264', '\/usr\/include\/x264\.h', 'libx264-dev'\]/);
-  });
-
-  it('clears the prebuilt ffmpeg before the FFMPEG_FORCE_BUILD retry', () => {
-    const src = read('scripts', 'fframes.mjs');
-    const retry = src.slice(src.indexOf('ffmpegForceBuild: true };'), src.indexOf('res = attempt(used);', src.indexOf('ffmpegForceBuild: true };')));
-    expect(retry).toMatch(/clearFfmpegOut\(\)/);
-    expect(src).toMatch(/ffmpeg-sys-fframes-\/\.test\(d\)\) rmSync\(path\.join\(dir, d, 'out'\)/);
-  });
-
-  it('tells a sandboxed build to ask for write access, not to fall back', () => {
-    const src = read('scripts', 'fframes.mjs');
-    expect(src).toMatch(/sandboxed: ?true/);
-    expect(src).toMatch(/Do not fall back for this/);
   });
 
   it('reports playwright with a FALLBACK warning when fframes cannot run', () => {
@@ -247,7 +385,8 @@ describe('preflight picks the renderer', () => {
     if (!report.tools.playwright) expect(report.missing.map((m: { tool: string }) => m.tool)).toContain('playwright');
   });
 
-  it('reports fframes when only the shared cache is missing', () => {
+  // Needs ffmpeg and the dev libraries: without them the doctor falls back (covered above).
+  it.skipIf(!WARMABLE)('reports fframes when only the shared cache is missing (skipped without ffmpeg or the fframes dev libraries)', () => {
     const home = tmp('vs-ff-pre-');
     const res = spawnSync(process.execPath, [script('preflight.mjs')], {
       encoding: 'utf8',
@@ -255,7 +394,7 @@ describe('preflight picks the renderer', () => {
       env: { PATH: process.env.PATH ?? '', HOME: home, VS_FF_CACHE: path.join(home, 'c'), VS_FF_CARGO: fakeRust('1.90.0'), VS_EXPLAIN_VIDEO_NO_INSTALL: '1' },
     });
     const report = JSON.parse(res.stdout);
-    if (!report.fframes.warmable) return; // no ffmpeg or dev libraries here: covered above
+    expect(report.fframes.warmable).toBe(true);
     expect(report.renderer).toBe('fframes');
     expect(report.warning).toBeUndefined();
     expect(report.fframes.next).toMatch(/doctor --warm/);
@@ -277,6 +416,7 @@ describe('fframes.mjs init', () => {
     const main = fs.readFileSync(path.join(work, 'ff', 'src', 'main.rs'), 'utf8');
     for (const id of ['"intro"', '"miss"', '"fix"']) expect(main).toContain(id);
     expect(main).toMatch(/const HOLDS: &\[&str\] = &\[\];/);
+    expect(['fframes', 'pending', 'playwright']).toContain(JSON.parse(fs.readFileSync(path.join(work, 'renderer.json'), 'utf8')).renderer);
     // A second init keeps the scenes already written.
     fs.writeFileSync(path.join(work, 'ff', 'src', 'main.rs'), '// mine');
     spawnSync(process.execPath, [script('fframes.mjs'), 'init', work], { encoding: 'utf8' });
