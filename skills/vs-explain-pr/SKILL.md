@@ -79,8 +79,9 @@ this order, and set `"role"` on each:
 
 A change the diff shows and the body does not name gets a beat in `change`,
 or in `risk` as "also changes" when it is small. Set `"covers"` on each scene
-to the files it explains (a path, or a directory that ends in `/`). Put each
-file you leave out in the top-level `"skip"`, with a reason.
+to the files it explains, by the exact path in `diff.json` (no directories).
+Put each file you leave out in the top-level `"skip"`, with a reason of 3 or
+more words. An empty diff blocks (exit 2): get the right head, never go on.
 
 Start with the problem, then lead with the example: from `before` on, the same
 user, report, or request moves through every scene. 75 seconds or less in
@@ -91,7 +92,7 @@ not show. Carry `Still unverified` into `risk`.
 
 Run `node <skill-dir>/scripts/lint.mjs "$WORK" --no-page`. It also checks
 `diff.json`: a changed file that no scene covers or skips, or a `covers` entry
-the diff does not change. Exit 1: fix the named problems first.
+that is not a changed file. Exit 1: fix the named problems first.
 
 ## 4. Narrate
 

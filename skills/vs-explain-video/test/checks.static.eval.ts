@@ -600,6 +600,8 @@ describe('explain-video quiz.mjs', () => {
   it('writes a brief with the beats and questions, never the answers, once', () => {
     const work = fakeWork();
     const script = JSON.parse(fs.readFileSync(path.join(work, 'script.json'), 'utf8'));
+    // A topic with no branch: no diff.json, so script.json says why (diff.mjs).
+    fs.writeFileSync(path.join(work, 'script.json'), JSON.stringify({ ...script, diff: { none: 'a demo topic, not a change' } }));
     const { status, report } = quiz(work);
     expect(status).toBe(0);
     expect(report.expected).toEqual(script.quiz);

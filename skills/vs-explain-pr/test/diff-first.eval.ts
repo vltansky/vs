@@ -1,10 +1,10 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
-import { execFileSync } from 'node:child_process';
 import { check, evaluate } from '@wix/pathgrade';
 import { describe, expect, it } from 'vitest';
 import { createAgent } from '../../vs-internal-shared/test/pathgrade-agent';
 import { promptOnce } from '../../vs-internal-shared/test/pathgrade-v1';
+import { buildRepo } from '../../vs-explain-video/test/diff-repo';
 
 // Diff first, live: the PR body names one change (coupons work on their last
 // day) and leaves out a second one the diff shows (login locks after 5 failed
@@ -17,62 +17,6 @@ import { promptOnce } from '../../vs-internal-shared/test/pathgrade-v1';
 const EVAL_AGENT = (process.env.PATHGRADE_AGENT ?? 'codex') as 'claude' | 'codex';
 const ROOT = path.resolve(process.env.EXPLAIN_PR_SKILLS_ROOT ?? path.resolve(__dirname, '..', '..'));
 const RUNS = Number(process.env.EXPLAIN_PR_DIFF_RUNS ?? 3);
-
-const BASE_FILES: Record<string, string> = {
-  'package.json': '{\n  "name": "shop",\n  "version": "1.4.0",\n  "type": "module"\n}\n',
-  'src/coupon.js': [
-    '// A coupon is valid until its expiry time.',
-    'export function isValid(coupon, now = Date.now()) {',
-    '  return coupon.active && coupon.expiresAt > now;',
-    '}',
-    '',
-  ].join('\n'),
-  'src/login.js': [
-    "import { checkPassword } from './passwords.js';",
-    '',
-    'export function login(user, password) {',
-    "  if (!checkPassword(user, password)) return { ok: false, error: 'bad password' };",
-    '  return { ok: true };',
-    '}',
-    '',
-  ].join('\n'),
-  'src/passwords.js': 'export const checkPassword = (user, pw) => user.password === pw;\n',
-};
-
-const HEAD_FILES: Record<string, string> = {
-  'package.json': BASE_FILES['package.json'].replace('1.4.0', '1.5.0'),
-  'src/coupon.js': [
-    '// A coupon is valid through the end of its expiry day.',
-    'export function isValid(coupon, now = Date.now()) {',
-    '  const endOfDay = new Date(coupon.expiresAt);',
-    '  endOfDay.setHours(23, 59, 59, 999);',
-    '  return coupon.active && now <= endOfDay.getTime();',
-    '}',
-    '',
-  ].join('\n'),
-  'src/login.js': [
-    "import { checkPassword } from './passwords.js';",
-    '',
-    'const MAX_ATTEMPTS = 5;',
-    'const LOCK_MS = 15 * 60 * 1000;',
-    'const failures = new Map();',
-    '',
-    'export function login(user, password, now = Date.now()) {',
-    '  const entry = failures.get(user.id) ?? { count: 0, lockedUntil: 0 };',
-    "  if (entry.lockedUntil > now) return { ok: false, error: 'locked', retryAt: entry.lockedUntil };",
-    '  if (!checkPassword(user, password)) {',
-    '    entry.count += 1;',
-    '    if (entry.count >= MAX_ATTEMPTS) entry.lockedUntil = now + LOCK_MS;',
-    '    failures.set(user.id, entry);',
-    "    return { ok: false, error: 'bad password' };",
-    '  }',
-    '  failures.delete(user.id);',
-    '  return { ok: true };',
-    '}',
-    '',
-  ].join('\n'),
-  'test/coupon.test.js': "import { test } from 'node:test';\ntest('valid on the last day', () => {});\n",
-};
 
 const BODY = `Coupons now work on their last day.
 
@@ -95,35 +39,6 @@ expiry time, and the coupon is rejected. Support gets about 40 tickets a week.
 - Risk: low. Review focus: \`src/coupon.js\` time-zone handling.
 - Still unverified: shoppers in other time zones.
 `;
-
-function writeTree(ws: string, files: Record<string, string>) {
-  for (const [rel, text] of Object.entries(files)) {
-    fs.mkdirSync(path.dirname(path.join(ws, rel)), { recursive: true });
-    fs.writeFileSync(path.join(ws, rel), text);
-  }
-}
-
-// A repo with main pushed to a local origin and a feature branch one commit ahead.
-function buildRepo(ws: string) {
-  const git = (...a: string[]) => execFileSync('git', a, { cwd: ws, encoding: 'utf8' }).trim();
-  const remote = path.join(path.dirname(ws), 'origin.git');
-  execFileSync('git', ['init', '-q', '--bare', '-b', 'main', remote]);
-  git('init', '-q', '-b', 'main');
-  git('config', 'user.name', 'Eval User');
-  git('config', 'user.email', 'eval@example.com');
-  git('config', 'commit.gpgsign', 'false');
-  fs.appendFileSync(path.join(ws, '.git', 'info', 'exclude'), '.claude/\n.agents/\n.cursor/\nvideo-work/\npr-body.md\n');
-  writeTree(ws, BASE_FILES);
-  git('add', '-A');
-  git('commit', '-qm', 'chore: shop');
-  git('remote', 'add', 'origin', remote);
-  git('push', '-q', '-u', 'origin', 'main');
-  git('checkout', '-qb', 'fix/coupon-last-day');
-  writeTree(ws, HEAD_FILES);
-  git('add', '-A');
-  git('commit', '-qm', 'fix: coupons work on their last day');
-  return git('rev-parse', 'HEAD');
-}
 
 // The skill calls its siblings' scripts (../vs-explain-video, ../vs-internal-shared).
 function stageSiblings(ws: string) {
@@ -150,7 +65,7 @@ describe.skipIf(!process.env.EXPLAIN_PR_DIFF_LIVE)(`vs-explain-pr starts from th
       const agent = await createAgent({ agent: EVAL_AGENT, timeout: 900, skillDir: path.join(ROOT, 'vs-explain-pr') });
       try {
         const ws = agent.workspace;
-        const sha = buildRepo(ws);
+        const sha = buildRepo(ws, ['video-work/', 'pr-body.md']);
         stageSiblings(ws);
         fs.writeFileSync(path.join(ws, 'pr-body.md'), BODY);
         fs.mkdirSync(path.join(ws, 'video-work'), { recursive: true });
@@ -164,7 +79,7 @@ describe.skipIf(!process.env.EXPLAIN_PR_DIFF_LIVE)(`vs-explain-pr starts from th
             }
           }),
           check('keeps-the-body-change', () => /coupon/i.test(beatsText(ws))),
-          check('covers-the-diff-only-change', () => /lock|failed (?:login|sign.?in|attempt)|attempts?\b/i.test(beatsText(ws))),
+          check('covers-the-diff-only-change', () => /\block(?:s|ed|out|ing)?\b|log-?in attempts?|failed (?:log-?in|sign.?in|attempts?)|\b5 (?:failed |wrong |bad )?(?:attempts|tries)/i.test(beatsText(ws))),
         ], { failFast: false, onScorerError: 'zero' });
         fs.appendFileSync('/tmp/explain-pr-diff-first.jsonl', `${JSON.stringify({ root: ROOT, run, score: result.score, workspace: ws })}\n`);
         expect(result.score).toBe(1);

@@ -52,10 +52,10 @@ without the user's consent.
 
 ## 2. Read the diff, then state the question
 
-Branch or PR: first run `node <skill-dir>/scripts/diff.mjs <work-dir>` and read
-each listed file's diff; chat loses context, so it gives only the why (`covers`,
-`skip`: [scenarist](references/scenarist.md)). Other topics: read the named code.
-Put the question and viewer in `question` and `audience`; every scene serves it.
+Branch or PR: first run `node <skill-dir>/scripts/diff.mjs <work-dir>` (an empty diff blocks) and read each
+file's diff; chat loses context, so it gives only the why. A behaviour change the chat never named gets a
+beat; `skip` is only for edits that change no behaviour ([scenarist](references/scenarist.md)). Other topics:
+read the named code; set `"diff": {"none": "<why>"}`. Put the question and viewer in `question` and `audience`.
 
 ## 3. Scaffold
 

@@ -7,15 +7,16 @@
 //
 // Writes <work-dir>/quiz/BRIEF.md (the beats and the questions, no answers) and
 // prints the expected answers for the maker to compare with the reply.
-// With <work-dir>/diff.json (diff.mjs), it first checks that the beats cover
-// the diff ("covers" and "skip" in script.json).
+// It first checks the beats against <work-dir>/diff.json (diff.mjs): every
+// changed file is in "covers" or "skip". With no diff.json, script.json must
+// say the topic is not a change: "diff": {"none": "<why>"}.
 // Exit codes: 0 brief written; 1 the quiz already ran, or a changed file is not
-// covered; 2 blocked (no script, or a quiz without 3 questions and answers).
+// covered, or diff.json is missing with no reason; 2 blocked (no script, or a quiz without 3 questions and answers).
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 
 import { quizIssues } from './checks.mjs';
-import { coverageIssues } from './diff.mjs';
+import { coverageIssues, isMinor, noDiffIssues } from './diff.mjs';
 import { fail } from './media.mjs';
 
 const [workArg] = process.argv.slice(2).filter((arg) => !arg.startsWith('--'));
@@ -26,13 +27,17 @@ if (!existsSync(scriptFile)) fail(`${scriptFile} is missing. Write the beats fir
 const script = JSON.parse(readFileSync(scriptFile, 'utf8'));
 const issues = quizIssues(script);
 if (issues.length) fail(`${issues.join('; ')}. Add the quiz to script.json (references/scenarist.md), then rerun quiz.mjs.`);
-// For a branch or PR, diff.mjs wrote diff.json: the beats must cover the diff first.
+// A branch or PR has diff.json (diff.mjs), and the beats must cover it first.
+// Anything else must opt out with a reason, so a skipped diff.mjs is never silent.
 const diffFile = path.join(work, 'diff.json');
-const gaps = existsSync(diffFile) ? coverageIssues(script, JSON.parse(readFileSync(diffFile, 'utf8'))) : [];
+const diff = existsSync(diffFile) ? JSON.parse(readFileSync(diffFile, 'utf8')) : null;
+const gaps = diff ? coverageIssues(script, diff) : noDiffIssues(script);
 if (gaps.length) {
   process.stdout.write(`${JSON.stringify({
     problems: gaps,
-    next: 'The beats do not match the diff. Add a beat for each uncovered change, fix "covers" and "skip" in script.json, then rerun quiz.mjs.',
+    next: diff
+      ? 'The beats do not match the diff. Add a beat for each uncovered change, fix "covers" and "skip" in script.json, then rerun quiz.mjs.'
+      : 'Run diff.mjs <work-dir> for a branch or PR and write the beats from it; only a topic that is not a change sets "diff": {"none": "<why>"}. Then rerun quiz.mjs.',
   }, null, 2)}\n`);
   process.exit(1);
 }
@@ -66,5 +71,6 @@ writeFileSync(brief, text);
 process.stdout.write(`${JSON.stringify({
   brief,
   expected: script.quiz,
+  ...(diff ? { minor: diff.files.filter(isMinor).map((f) => f.path) } : {}),
   next: `Give ${brief}, and nothing else, to a NEW agent. Compare each answer with "expected". A wrong answer or "not said" means a beat is missing: add it to script.json once, then narrate. Do not quiz again.`,
 }, null, 2)}\n`);
