@@ -30,25 +30,28 @@ render, and one review whose score is reported. No step loops back.
 
 ```text
 script.json (beats) --quiz (text, one fix)--> --narrate--> narration.wav + timeline.js
-scenes.js (update(t, B)) + motion.js + index.html --render--> stills (audited) | mp4
-stills + check.mjs (one fix) --> mp4 --pack.mjs--> new reviewer --> score in the handoff
+ff/src/main.rs (Rust scenes) --fframes.mjs check--> stills --render--> mp4 --pack.mjs--> reviewer
 ```
 
-One 1920x1080 page. Each scene is a function of time: `render.mjs` calls
-`window.seek(t)` and screenshots, so every frame is exact and repeatable. The
-stage draws the chrome, dot field, scene handoffs, camera push, and word captions
-([references/captions.md](references/captions.md)). You write only `script.json` and `scenes.js`.
+The default renderer is fframes (Rust and SVG, Skia on the CPU, no GPU), one
+build shared per machine; Playwright (`scenes.js`) is the fallback. Each scene
+is a function of time on a 1920x1080 stage, so every frame is exact. The kit
+draws the chrome, dot field, handoffs, camera push, and captions
+([references/captions.md](references/captions.md)); you write `script.json` and
+the arms of `ff/src/main.rs` ([references/fframes.md](references/fframes.md)).
 
 ## 1. Check the tools
 
-Run `node <skill-dir>/scripts/preflight.mjs [<work-dir>]`. The skill owns its
-browser driver: when no Playwright resolves, preflight installs the pinned
-`playwright-core` into `~/.vs/tooling/` once, outside any project, and drives
-the installed Chrome. Do not ask before that install. It prints JSON:
-`ttsEngine`, found tools, and an install hint for each missing one. Exit 2
-means blocked: show the `next` text, offer the storyboard as a `/vs-show-me`
-page meanwhile, and stop. Do not install system tools (ffmpeg, voices)
-without the user's consent.
+Run `node <skill-dir>/scripts/preflight.mjs [<work-dir>]`. It installs the
+pinned `playwright-core` into `~/.vs/tooling/` when none resolves; do not ask
+first. It prints JSON: `ttsEngine`, `renderer`, found tools, and an install
+hint per missing one. Exit 2 means blocked: show `next`, offer the storyboard
+as a `/vs-show-me` page, and stop. Do not install system tools (ffmpeg, voices,
+Rust, dev libraries) without the user's consent. With `fframes.warmable`, run
+`node <skill-dir>/scripts/fframes.mjs doctor --warm` once (about 5 minutes,
+4 GB in `~/.cache`). When `renderer` is `playwright` or `--warm` fails, use the
+fallback (`scenes.js`) and put the FALLBACK warning in the handoff. Never
+switch renderers silently.
 
 ## 2. Read the diff, then state the question
 
@@ -65,11 +68,13 @@ PROJECT_ID=$(git config --get remote.origin.url 2>/dev/null \
 [ -z "$PROJECT_ID" ] && PROJECT_ID=$(basename "$PWD")
 WORK="$HOME/.vs/$PROJECT_ID/videos/<topic>"
 node <skill-dir>/scripts/init.mjs "$WORK"
+node <skill-dir>/scripts/fframes.mjs init "$WORK"
 ```
 
-It copies the stage, motion kit, fonts, and a worked example (`script.json`,
-`scenes.js`); read it first. A rerun refreshes the kit, never your files.
-Never commit videos, audio, or frames, or write them into the project tree.
+`init.mjs` copies fonts, a script, and the fallback stage; `fframes.mjs init`
+writes the crate `$WORK/ff/` (read the example it names) and `renderer.json`.
+If fframes fails later, run `fframes.mjs fallback "$WORK" --reason "<why>"`
+first; a fallback sticks (only `init --fframes` undoes it). Never commit videos, audio, or frames, or write them into the project.
 
 ## 4. Write the beats
 
@@ -83,19 +88,17 @@ this area works today, what is wrong, and the question, before any example
 Ground every claim in the code, PR, or source you read.
 
 `pronounce` changes only what the voice says, not subtitles or the screen:
-add each acronym said letter by letter (`"AICM": "A I C M"`) and each name the
-voice gets wrong. Ask how the team says a name you do not know.
-
-Run `node <skill-dir>/scripts/narrate.mjs "$WORK/script.json" --dry-run`. It
+add each letter-by-letter acronym (`"AICM": "A I C M"`) and each name the voice
+gets wrong. Run `node <skill-dir>/scripts/narrate.mjs "$WORK/script.json" --dry-run`. It
 writes `narration.md` and estimates the length. Run
 `node <skill-dir>/../vs-write/scripts/check-ste.mjs narration.md` on it. Exit
 1: rewrite the flagged beats once; do not rerun it. Exit 2 means not
 checked, not a pass.
 
 Run `node <skill-dir>/scripts/quiz.mjs "$WORK"` and give the printed
-`BRIEF.md`, and nothing else, to a new agent. It answers the script's three
-`quiz` questions from the beats alone. A wrong answer or "not said" means a
-beat is missing: add it once. The quiz never runs twice.
+`BRIEF.md`, and nothing else, to a new agent: it answers the three `quiz`
+questions from the beats alone. A wrong answer or "not said" means a beat is
+missing: add it once. The quiz never runs twice.
 
 ## 5. Narrate
 
@@ -104,32 +107,30 @@ Run `narrate.mjs` without `--dry-run`. It picks ElevenLabs when
 kokoro, then piper, then macOS `say`. It speaks each beat separately (cached,
 so a rerun only speaks changed beats), then writes `narration.wav` and
 `timeline.js`. It prints each scene's `cues`: `B[i] = <seconds>` per beat.
-When the user cares about the voice, narrate one beat with 4-6 voices first
-(`KOKORO_VOICE=am_michael`; default `af_heart`) and let them pick.
-
-It then checks without ears (`narration-check.json`). With whisper installed,
-it transcribes each beat; a flagged beat lost or gained words: report it in
-the handoff and do not narrate again. Without whisper it says the words were not
-checked; report that (`--require-word-check` exits 2). It levels the track to -16 LUFS.
-
+When the user cares about the voice, let them pick from 4-6 voices on one beat
+(`KOKORO_VOICE=am_michael`; default `af_heart`). It then checks without ears
+(`narration-check.json`). With whisper installed, it transcribes each beat; a
+flagged beat lost or gained words: report it in the handoff and do not narrate again.
+Without whisper it says the words were not checked; report that
+(`--require-word-check` exits 2). It levels the track to -16 LUFS.
 The API key is a secret. Never print, log, echo, or write the key, and never
 put it in a command line. Never ask the user to paste it into chat; ask them
 to export it in their shell. Report only whether it is set.
 
 ## 6. Write the scenes
 
-In `scenes.js`, one `scene(id, build)` per script scene. `build(root)` makes
-the DOM once and returns `update(t, B, D)`; drive every change from `t` and the
-beat starts `B`. Never use timers, `requestAnimationFrame`, or CSS animations;
-they do not move under seek. Moves spring (`rise`, `pop`, `spring`,
-`springTo`); never move anything linearly. Hold each build for its settle plus
-`readTime(text)` before the next one lands.
+In `ff/src/main.rs`, one `match` arm per script scene id draws the scene at
+time `s.t` from the beat starts `s.b` (`B` in the craft notes) with the kit's
+helpers (`s.words`, `s.card`, `s.row`, `s.terminal`, `s.still`, `s.clip`).
+No state carries between frames. Fallback: `scenes.js`, one `scene(id, build)`
+whose `update(t, B, D)` does the same. Never use timers, `requestAnimationFrame`,
+or CSS animations. Moves spring (`rise`, `pop`, `spring_to`); never move anything linearly.
+Hold each build for its settle plus `readTime(text)` (`read_time`) first.
 
 Every sentence gets a visual change. Start the build for beat i at `B[i]` (or
 up to a second after, on the word that names it). A beat with no build is a
 slide; redraw it as the example moving through the system. Kit helpers,
 layout grid, and the design rules: [references/motion-craft.md](references/motion-craft.md).
-
 Short form: fixed colors (accent = under discussion, red = broken or removed,
 green = fixed or kept), type 20px or larger, staggered entrances, keep old
 state dimmed rather than removed, at most three regions, bottom 150px clear.
@@ -137,31 +138,30 @@ state dimmed rather than removed, at most three regions, bottom 150px clear.
 ## 7. Check, then render
 
 ```bash
-node <skill-dir>/scripts/render.mjs "$WORK" --stills [--scene <id>]
-node <skill-dir>/scripts/check.mjs "$WORK"
+node <skill-dir>/scripts/fframes.mjs check "$WORK" [--scene <id>]
+node <skill-dir>/scripts/fframes.mjs render "$WORK" --out "$WORK/<topic>.mp4"
 ```
 
-`--stills` screenshots each beat end and scene end, and audits the layout.
-`check.mjs` measures over time: seek drift or randomness (`DETERMINISM`), a
-beat that changes under 0.5% of the frame (`NO-BUILD`), and text that
-flashes, is under 20px, holds too long, or overlaps (`FLASH`, `SMALL`,
-`LONG`, `OVERLAP`). Exit 1: fix each FAIL in `scenes.js` once
+`check` builds the crate (fix a Rust error at its line), renders each beat end
+and scene end to `stills/` with fframes' `frame` command, and audits them:
+overlap, safe area, chapter bar, subtitles, text past its card or clipped,
+`SMALL` text, and a beat that changes under 0.5% of the frame (`NO-BUILD`). Exit 1: fix each issue in `main.rs` once
 ([references/checks.md](references/checks.md)) and rerun once; what still
 fails goes in the handoff. Then open each still and look at it: the checks
 catch geometry and timing, not meaning. A frame you did not look at is not
-verified.
+verified. `render` muxes `narration.wav` and checks the ffprobe duration
+against the timeline; on a mismatch report it, do not narrate again.
+Fallback (Playwright) only, the same checks on `scenes.js`:
 
 ```bash
+node <skill-dir>/scripts/render.mjs "$WORK" --stills
+node <skill-dir>/scripts/check.mjs "$WORK"
 node <skill-dir>/scripts/render.mjs "$WORK" --out "$WORK/<topic>.mp4"
 ```
 
-Use `--scene <id>` with `--out` for a quick preview of one scene. The full
-render checks the ffprobe duration against the timeline and exits 1 when they
-differ by more than 0.25 s; report that, do not narrate again.
-
-Subtitles are burned in only, drawn by the stage. Do not add a soft subtitle
-track or a sidecar `.srt`: players show every line twice. Do not add
-HyperFrames, Remotion, or Manim to a project for this video.
+Subtitles are burned in only. Do not add a soft subtitle track or a sidecar
+`.srt`. Do not add HyperFrames, Remotion, or Manim to a project for this video;
+the fframes crate lives in the work dir, its build in `~/.cache`.
 
 ## 8. Fresh review
 
@@ -179,10 +179,10 @@ happen. Rules: [references/reviewer-brief.md](references/reviewer-brief.md).
 ## 9. Handoff
 
 Give the mp4 path as a `file://` link, the stills folder, and a 2-4 line
-TLDR: the question, the answer, the voice, the length, the review verdict
-with its scores (or "not reviewed by fresh eyes"), and any open quiz gap,
-word flag, or check failure. Listen-check is not possible for the agent; say
-so. Mark anything not checked as unverified.
+TLDR: the question, the answer, the voice, the renderer (and any FALLBACK),
+the length, the review verdict with its scores (or "not reviewed by fresh eyes"),
+and any open quiz gap, word flag, or check failure. Listen-check is not
+possible for the agent; say so. Mark anything not checked as unverified.
 
 Topic: $ARGUMENTS
 

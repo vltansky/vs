@@ -254,6 +254,22 @@ describe.skipIf(!hasFfmpeg)('finish.mjs on a real file', () => {
     expect(outside.stdout[0]).toBeLessThan(40);
   });
 
+  it('does not splice again when fframes already played the clips in frame', () => {
+    const work = fs.mkdtempSync(path.join(os.tmpdir(), 'vs-explain-pr-ff-'));
+    const raw = path.join(work, 'raw.mp4');
+    expect(spawnSync('ffmpeg', ['-y', '-v', 'error', '-f', 'lavfi', '-i', 'color=c=black:size=1280x720:rate=30:duration=4', '-f', 'lavfi', '-i', 'sine=d=4',
+      '-pix_fmt', 'yuv420p', '-shortest', raw]).status).toBe(0);
+    // No clips.json and no Playwright needed: the sidecar says the clips are in the frames.
+    fs.writeFileSync(path.join(work, 'raw.fframes.json'), JSON.stringify({ engine: 'fframes', output: raw, size: 720,
+      clipsInFrame: [{ src: 'apply.mp4', scene: 'after', window: 3, clipSeconds: 1.5, rate: 0.5, heldSeconds: 0, trimmed: false }] }));
+    const out = path.join(work, 'final.mp4');
+    const run = spawnSync(process.execPath, [path.join(SCRIPTS, 'finish.mjs'), work, raw, '--out', out], { encoding: 'utf8', env: { ...process.env, NODE_PATH: '/nonexistent' } });
+    expect(run.status, run.stderr + run.stdout).toBe(0);
+    const res = JSON.parse(run.stdout);
+    expect([res.width, res.height]).toEqual([1280, 720]);
+    expect(res.clips).toEqual([expect.objectContaining({ src: 'apply.mp4', rate: 0.5, inFrame: true })]);
+  });
+
   it('refuses a video over 75 seconds', () => {
     const work = fs.mkdtempSync(path.join(os.tmpdir(), 'vs-explain-pr-'));
     const raw = path.join(work, 'raw.mp4');
@@ -261,6 +277,83 @@ describe.skipIf(!hasFfmpeg)('finish.mjs on a real file', () => {
     const run = spawnSync(process.execPath, [path.join(SCRIPTS, 'finish.mjs'), work, raw, '--out', path.join(work, 'f.mp4')], { encoding: 'utf8' });
     expect(run.status).toBe(1);
     expect(run.stdout + run.stderr).toMatch(/75/);
+  });
+});
+
+describe('explain-pr on the fframes renderer', () => {
+  it('writes Rust scenes, checks with fframes, and falls back loudly', () => {
+    expect(SKILL).toContain('../vs-explain-video/scripts/fframes.mjs init');
+    expect(SKILL).toMatch(/fframes\.mjs check "\$WORK" --pr/);
+    expect(SKILL).toMatch(/fframes\.mjs render "\$WORK" --out "\$WORK\/raw\.mp4" --size 720/);
+    expect(SKILL).toMatch(/s\.clip\("media\/<name>\.mp4"/);
+    expect(SKILL).toMatch(/FALLBACK warning/);
+    expect(SKILL).toMatch(/fframes\.mjs fallback "\$WORK" --reason/);
+    expect(SKILL).toContain('renderer.json');
+  });
+
+  // A Playwright fallback work dir still has ff/src/main.rs (init wrote it) next to
+  // scenes.js: the renderer must come from renderer.json, not from leftover files.
+  const lintWork = (marker: string | null) => {
+    const work = fs.mkdtempSync(path.join(os.tmpdir(), 'vs-explain-pr-lint-'));
+    fs.copyFileSync(path.join(ROOT, 'skills', 'vs-explain-video', 'assets', 'script.example.json'), path.join(work, 'script.json'));
+    for (const f of ['index.html', 'timeline.js', 'scenes.js']) fs.writeFileSync(path.join(work, f), '');
+    fs.mkdirSync(path.join(work, 'ff', 'src'), { recursive: true });
+    fs.writeFileSync(path.join(work, 'ff', 'src', 'main.rs'), 'fn main() {}');
+    if (marker) fs.writeFileSync(path.join(work, 'renderer.json'), marker);
+    return work;
+  };
+  const lint = (work: string, extra: string[] = [], env: Record<string, string> = {}) => {
+    const run = spawnSync(process.execPath, [path.join(SCRIPTS, 'lint.mjs'), work, ...extra], { encoding: 'utf8', env: { ...process.env, ...env } });
+    expect([0, 1], run.stderr).toContain(run.status);
+    return JSON.parse(run.stdout);
+  };
+
+  it('lint.mjs leaves the page checks to fframes check --pr when renderer.json says fframes', () => {
+    const res = lint(lintWork('{"renderer":"fframes"}'));
+    expect(res.renderer).toBe('fframes');
+    expect(res.pageChecked).toBe(false);
+  });
+
+  it('lint.mjs runs the fallback page checks when renderer.json says playwright, even with ff/src/main.rs', () => {
+    const res = lint(lintWork('{"renderer":"playwright","reason":"warm failed"}'), ['--no-page']);
+    expect(res.renderer).toBe('playwright');
+  });
+
+  it('lint.mjs names the next step for the marked renderer: pending goes the fframes way, playwright to render.mjs', () => {
+    const noFf = { VS_FF_CARGO: '/nonexistent/cargo', VS_FF_CACHE: fs.mkdtempSync(path.join(os.tmpdir(), 'vs-ff-c-')) };
+    // A script that passes, so `next` is the renderer's next step, not "fix each problem".
+    const clean = (marker: string) => {
+      const work = lintWork(marker);
+      const s = JSON.parse(fs.readFileSync(path.join(work, 'script.json'), 'utf8'));
+      s.scenes = ['problem', 'before', 'change', 'after', 'risk'].map((role, i) => ({ ...s.scenes[i % s.scenes.length], id: `s${i}`, role }));
+      fs.writeFileSync(path.join(work, 'script.json'), JSON.stringify(s));
+      // lint requires diff.json for the pinned head; an empty diff has nothing to cover.
+      const head = 'a'.repeat(40);
+      fs.writeFileSync(path.join(work, 'diff.json'), JSON.stringify({ head, headRef: head, files: [] }));
+      return work;
+    };
+    const pending = lint(clean('{"renderer":"pending"}'), [], noFf);
+    expect(pending.problems).toEqual([]);
+    expect(pending.renderer).toBe('pending');
+    expect(pending.pageChecked).toBe(false);
+    expect(pending.next).toMatch(/fframes\.mjs check <work-dir> --pr/);
+    expect(pending.next).toMatch(/doctor --warm/);
+    expect(pending.next).toMatch(/fframes\.mjs fallback <work-dir> --reason/);
+    expect(pending.next).not.toMatch(/^Lint passed\. Run render\.mjs/);
+    const ff = lint(clean('{"renderer":"fframes"}'), [], noFf);
+    expect(ff.next).toMatch(/fframes\.mjs check <work-dir> --pr/);
+    expect(ff.next).not.toMatch(/render\.mjs/);
+    const pw = lint(clean('{"renderer":"playwright","reason":"warm failed"}'), ['--no-page'], noFf);
+    expect(pw.problems).toEqual([]);
+    expect(pw.next).not.toMatch(/fframes\.mjs/);
+  });
+
+  it('lint.mjs without a marker treats a leftover crate as fframes only when fframes can run', () => {
+    const res = lint(lintWork(null), ['--no-page'], { VS_FF_CARGO: '/nonexistent/cargo', VS_FF_CACHE: fs.mkdtempSync(path.join(os.tmpdir(), 'vs-ff-c-')) });
+    expect(res.renderer).toBe('playwright');
+    // A corrupt marker reads as no marker, not a crash.
+    const bad = lint(lintWork('{"renderer":'), ['--no-page'], { VS_FF_CARGO: '/nonexistent/cargo', VS_FF_CACHE: fs.mkdtempSync(path.join(os.tmpdir(), 'vs-ff-c-')) });
+    expect(bad.renderer).toBe('playwright');
   });
 });
 

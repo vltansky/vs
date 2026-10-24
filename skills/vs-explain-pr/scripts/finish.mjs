@@ -14,7 +14,10 @@
 //    when the first one is still too big.
 //
 // Clip slots come from --clips, else <work>/clips.json, else the page itself
-// (window.VS.clips after boot, with absolute times from timeline.js).
+// (window.VS.clips after boot, with absolute times from timeline.js). A render
+// by fframes (the default renderer) already plays each clip in its slot and
+// says so in <rendered>.fframes.json: then nothing is spliced, and the clip
+// report (rates, holds, cuts) comes from that file.
 // Each slot: { src, x, y, w, h, from, to } in stage pixels (1920x1080) and seconds.
 //
 // Exit codes: 0 done; 1 over 75 s, over 10 MB after the retry, or ffmpeg failed;
@@ -65,12 +68,15 @@ const readSlotsFromPage = async () => {
   }
 };
 
+const sidecarFile = `${raw.replace(/\.mp4$/i, '')}.fframes.json`;
+const sidecar = !opt('--clips') && existsSync(sidecarFile) ? JSON.parse(readFileSync(sidecarFile, 'utf8')) : null;
+const inFrame = sidecar?.engine === 'fframes';
 const clipsFile = opt('--clips') ?? (existsSync(path.join(work, 'clips.json')) ? path.join(work, 'clips.json') : null);
-const slots = clipsFile ? JSON.parse(readFileSync(clipsFile, 'utf8')) : await readSlotsFromPage();
+const slots = inFrame ? [] : clipsFile ? JSON.parse(readFileSync(clipsFile, 'utf8')) : await readSlotsFromPage();
 
 const inputs = ['-i', raw];
 const filters = [];
-const report = [];
+const report = inFrame ? (sidecar.clipsInFrame ?? []).map(({ scene, ...clip }) => ({ ...clip, scene, inFrame: true })) : [];
 let last = '0:v';
 slots.forEach((slot, i) => {
   const src = path.resolve(work, slot.src);
