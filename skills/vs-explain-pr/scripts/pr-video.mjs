@@ -9,7 +9,7 @@ export const HEIGHT = 720;
 export const AUDIO_KBPS = 128;
 export const ROLES = ['problem', 'before', 'change', 'after', 'risk'];
 import { VIDEO_END, VIDEO_START } from '../../vs-internal-shared/scripts/video-block.mjs';
-import { coverageIssues } from '../../vs-explain-video/scripts/diff.mjs';
+import { coverageIssues, headIssues } from '../../vs-explain-video/scripts/diff.mjs';
 
 export { VIDEO_END, VIDEO_START, findVideoBlocks, keepVideoBlock, upsertVideoBlock } from '../../vs-internal-shared/scripts/video-block.mjs';
 // Spoken rate of the shared narrator at speed 1.0, in words a second (150 a minute).
@@ -34,7 +34,8 @@ export function estimateSeconds(script) {
 // list of files prep.mjs copied in; when it is not empty, the before or after
 // scene must show one of them. diff is diff.json (diff.mjs): every changed file
 // that is not minor must be covered or skipped; requireDiff fails without it.
-export function lintScript(script, { media = [], diff, requireDiff = false } = {}) {
+// head is the pinned head SHA; diff.json must be for it (headIssues).
+export function lintScript(script, { media = [], diff, requireDiff = false, head } = {}) {
   const problems = [];
   const scenes = script.scenes ?? [];
   const roles = scenes.map((scene) => scene.role ?? '(none)');
@@ -58,7 +59,7 @@ export function lintScript(script, { media = [], diff, requireDiff = false } = {
     if (!shown.length) problems.push('the PR has screenshots or recordings, but no before/after scene shows that media: set "still" or "clip" on those scenes.');
     for (const file of shown) if (!media.includes(file)) problems.push(`"${file}" is not in media.json; run prep.mjs with it.`);
   }
-  if (diff) problems.push(...coverageIssues(script, diff));
+  if (diff) problems.push(...headIssues(diff, head), ...coverageIssues(script, diff));
   else if (requireDiff) problems.push('diff.json is missing: run ../vs-explain-video/scripts/diff.mjs <work-dir> --base origin/<base> --head <sha> first, and write the beats from the diff.');
   return { seconds, problems };
 }

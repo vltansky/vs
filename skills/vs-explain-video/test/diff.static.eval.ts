@@ -19,6 +19,7 @@ const flat = (text: string) => text.replace(/\s+/g, ' ');
 const read = (rel: string) => flat(fs.readFileSync(path.join(SKILLS, rel), 'utf8'));
 const section = (text: string, from: string, to: string) => text.slice(text.indexOf(from), text.indexOf(to, text.indexOf(from)));
 const lib = async () => import(DIFF);
+const PIN = 'a'.repeat(40); // the PR head a saved patch is for
 const node = (args: string[], cwd?: string) => spawnSync(process.execPath, args, { encoding: 'utf8', cwd });
 
 const PATCH = [
@@ -151,7 +152,7 @@ describe('diff.mjs reads the change, not the chat', () => {
   it('reads a saved `gh pr diff` with --patch', () => {
     const work = fs.mkdtempSync(path.join(os.tmpdir(), 'vs-diff-patch-'));
     fs.writeFileSync(path.join(work, 'pr.diff'), PATCH);
-    const r = node([DIFF, work, '--patch', path.join(work, 'pr.diff')], os.tmpdir());
+    const r = node([DIFF, work, '--patch', path.join(work, 'pr.diff'), '--head', PIN], os.tmpdir());
     expect(r.status, r.stderr).toBe(0);
     expect(JSON.parse(r.stdout).changed).toEqual(['src/coupon.js +1 -2', 'src/login.js +1 -0']);
   });
@@ -252,7 +253,7 @@ describe('an empty diff blocks, it never passes', () => {
     fs.writeFileSync(path.join(work, 'empty.diff'), '');
     fs.writeFileSync(path.join(work, 'junk.diff'), 'HTTP 406: diff too large\n');
     for (const file of ['empty.diff', 'junk.diff']) {
-      const r = node([DIFF, work, '--patch', path.join(work, file)]);
+      const r = node([DIFF, work, '--patch', path.join(work, file), '--head', PIN]);
       expect(r.status, file).toBe(2);
       expect(r.stdout).toMatch(/Blocked, not a pass/);
       expect(r.stdout).not.toMatch(/Only minor/);
@@ -276,7 +277,7 @@ describe('an empty diff blocks, it never passes', () => {
   it('says "only minor" only when there are files and all are minor', () => {
     const work = fs.mkdtempSync(path.join(os.tmpdir(), 'vs-diff-minor-'));
     fs.writeFileSync(path.join(work, 'p.diff'), ['diff --git a/test/a.test.js b/test/a.test.js', '--- a/test/a.test.js', '+++ b/test/a.test.js', '@@ -1 +1 @@', '-a', '+b'].join('\n'));
-    const r = node([DIFF, work, '--patch', path.join(work, 'p.diff')]);
+    const r = node([DIFF, work, '--patch', path.join(work, 'p.diff'), '--head', PIN]);
     expect(r.status).toBe(0);
     expect(JSON.parse(r.stdout)).toMatchObject({ changed: [], minor: ['test/a.test.js'] });
     expect(r.stdout).toMatch(/Only minor/);
@@ -326,11 +327,113 @@ describe('diff.mjs picks the base from the remote default branch', () => {
   });
 });
 
+
+describe('diff.json is for the current head, never a stale run', () => {
+  const repoOn = () => {
+    const repo = fs.mkdtempSync(path.join(os.tmpdir(), 'vs-diff-stale-'));
+    const git = (...a: string[]) => execFileSync('git', a, { cwd: repo, encoding: 'utf8' }).trim();
+    git('init', '-q', '-b', 'main');
+    git('config', 'user.email', 't@t'); git('config', 'user.name', 't');
+    fs.writeFileSync(path.join(repo, 'a.js'), 'x\n');
+    git('add', '.'); git('commit', '-qm', 'base');
+    git('checkout', '-qb', 'feature');
+    fs.writeFileSync(path.join(repo, 'a.js'), 'y\n');
+    git('add', '.'); git('commit', '-qm', 'feature');
+    return { repo, git };
+  };
+
+  it('a blocked run deletes the last diff.json before it exits', () => {
+    const work = fs.mkdtempSync(path.join(os.tmpdir(), 'vs-diff-del-'));
+    fs.writeFileSync(path.join(work, 'pr.diff'), PATCH);
+    expect(node([DIFF, work, '--patch', path.join(work, 'pr.diff'), '--head', PIN]).status).toBe(0);
+    expect(fs.existsSync(path.join(work, 'diff.json'))).toBe(true);
+    fs.writeFileSync(path.join(work, 'empty.diff'), '');
+    expect(node([DIFF, work, '--patch', path.join(work, 'empty.diff'), '--head', 'b'.repeat(40)]).status).toBe(2);
+    expect(fs.existsSync(path.join(work, 'diff.json'))).toBe(false);
+    expect(node([DIFF, work, '--patch', path.join(work, 'pr.diff'), '--head', PIN]).status).toBe(0);
+    expect(node([DIFF, work, '--base', 'nope'], os.tmpdir()).status).toBe(2); // not a repo
+    expect(fs.existsSync(path.join(work, 'diff.json'))).toBe(false);
+  });
+
+  it('--patch needs --head, and diff.json records the head SHA and ref', () => {
+    const work = fs.mkdtempSync(path.join(os.tmpdir(), 'vs-diff-pin-'));
+    fs.writeFileSync(path.join(work, 'pr.diff'), PATCH);
+    const r = node([DIFF, work, '--patch', path.join(work, 'pr.diff')], os.tmpdir());
+    expect(r.status).toBe(2);
+    expect(r.stdout).toMatch(/--patch needs --head <sha>/);
+    const { repo, git } = repoOn();
+    expect(node([DIFF, path.join(repo, '.w'), '--base', 'main'], repo).status).toBe(0);
+    expect(JSON.parse(fs.readFileSync(path.join(repo, '.w', 'diff.json'), 'utf8'))).toMatchObject({ head: git('rev-parse', 'HEAD'), headRef: 'HEAD' });
+  });
+
+  it('quiz.mjs and check fail when the branch moved on after diff.mjs', () => {
+    const { repo, git } = repoOn();
+    const work = path.join(repo, '.w');
+    expect(node([DIFF, work, '--base', 'main'], repo).status).toBe(0);
+    fs.writeFileSync(path.join(work, 'script.json'), JSON.stringify(scriptWith([{ covers: ['a.js'] }])));
+    expect(node([DIFF, 'check', work], repo).status).toBe(0);
+    fs.writeFileSync(path.join(repo, 'b.js'), 'new\n');
+    git('add', 'b.js'); git('commit', '-qm', 'more');
+    const check = node([DIFF, 'check', work], repo);
+    expect(check.status).toBe(1);
+    expect(check.stdout).toMatch(/it is stale/);
+    const quiz = node([QUIZ, work], repo);
+    expect(quiz.status).toBe(1);
+    expect(quiz.stdout).toMatch(/it is stale/);
+    expect(fs.existsSync(path.join(work, 'quiz', 'BRIEF.md'))).toBe(false);
+    expect(node([QUIZ, work, '--head', 'HEAD~1'], repo).status).toBe(0);
+  });
+
+  it('explain-pr lint.mjs fails a diff.json for another head, or with no head', () => {
+    const roles = ['problem', 'before', 'change', 'after', 'risk'];
+    const script = { title: 't', scenes: roles.map((role) => ({ id: role, role, beats: ['One short sentence.'], covers: role === 'change' ? ['src/coupon.js', 'src/login.js'] : [] })) };
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'vs-diff-prhead-'));
+    fs.writeFileSync(path.join(dir, 'pr.diff'), PATCH);
+    expect(node([DIFF, dir, '--patch', path.join(dir, 'pr.diff'), '--head', PIN]).status).toBe(0);
+    fs.writeFileSync(path.join(dir, 'script.json'), JSON.stringify(script));
+    expect(node([PR_LINT, dir, '--no-page', '--head', PIN]).status).toBe(0);
+    const other = node([PR_LINT, dir, '--no-page', '--head', 'c'.repeat(40)]);
+    expect(other.status).toBe(1);
+    expect(JSON.parse(other.stdout).problems.join('\n')).toMatch(/diff\.json is for aaaaaaaaaaaa, but the head is cccccccccccc: it is stale/);
+    fs.writeFileSync(path.join(dir, 'diff.json'), JSON.stringify({ files: [] }));
+    const headless = node([PR_LINT, dir, '--no-page', '--head', PIN]);
+    expect(headless.status).toBe(1);
+    expect(JSON.parse(headless.stdout).problems.join('\n')).toMatch(/diff\.json has no head SHA/);
+  });
+});
+
+describe('diff.mjs reads CRLF patches and blank context lines', () => {
+  it('strips \r and keeps counting after a blank context line', async () => {
+    const { parsePatch } = await lib();
+    const patch = [
+      'diff --git a/src/a.js b/src/a.js',
+      '--- a/src/a.js',
+      '+++ b/src/a.js',
+      '@@ -1,4 +1,4 @@',
+      ' const a = 1;',
+      '',
+      '-const b = 2;',
+      '+const b = 3;',
+      ' export { a, b };',
+      'diff --git a/src/b.js b/src/b.js',
+      '--- a/src/b.js',
+      '+++ b/src/b.js',
+      '@@ -1 +1 @@',
+      '-x',
+      '+y',
+    ];
+    const lf = parsePatch(patch.join('\n')).map((f: any) => [f.path, f.added, f.deleted]);
+    expect(lf).toEqual([['src/a.js', 1, 1], ['src/b.js', 1, 1]]);
+    expect(parsePatch(patch.join('\r\n')).map((f: any) => [f.path, f.added, f.deleted])).toEqual(lf);
+    expect(parsePatch(patch.join('\r\n')).every((f: any) => !/\r/.test(f.path + f.lines.join('')))).toBe(true);
+  });
+});
+
 describe('the scripts refuse a script that skips the diff', () => {
   const work = () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'vs-diff-gate-'));
     fs.writeFileSync(path.join(dir, 'pr.diff'), PATCH);
-    expect(node([DIFF, dir, '--patch', path.join(dir, 'pr.diff')]).status).toBe(0);
+    expect(node([DIFF, dir, '--patch', path.join(dir, 'pr.diff'), '--head', PIN]).status).toBe(0);
     return dir;
   };
 
@@ -378,11 +481,11 @@ describe('the scripts refuse a script that skips the diff', () => {
     expect(missing.stdout).toMatch(/diff\.json is missing/);
     const dir = work();
     fs.writeFileSync(path.join(dir, 'script.json'), JSON.stringify(pr({ change: ['src/coupon.js'] })));
-    const gap = node([PR_LINT, dir, '--no-page']);
+    const gap = node([PR_LINT, dir, '--no-page', '--head', PIN]);
     expect(gap.status).toBe(1);
     expect(JSON.parse(gap.stdout).problems.join('\n')).toMatch(/"src\/login\.js" changed/);
     fs.writeFileSync(path.join(dir, 'script.json'), JSON.stringify(pr({ change: ['src/coupon.js'], risk: ['src/login.js'] })));
-    const ok = node([PR_LINT, dir, '--no-page']);
+    const ok = node([PR_LINT, dir, '--no-page', '--head', PIN]);
     expect(ok.status, ok.stdout).toBe(0);
   });
 });
@@ -407,7 +510,8 @@ describe('both skills start from the diff', () => {
     expect(step3).toMatch(/by the exact path in `diff\.json` \(no directories\)/);
     expect(step3).toMatch(/reason of 3 or more words/);
     expect(step3).toMatch(/An empty diff blocks \(exit 2\)/);
-    expect(step3).toMatch(/lint\.mjs "\$WORK" --no-page`\. It also checks `diff\.json`/);
+    expect(step3).toMatch(/lint\.mjs "\$WORK" --no-page --head <head SHA>`\. It also checks `diff\.json`: it must be for that head/);
+    expect(step3).toMatch(/--patch <file>` \(keep `--head <head SHA>`\)\. A blocked run deletes `diff\.json`/);
     expect(step3).not.toMatch(/Do not read the diff/);
     expect(step3).not.toMatch(/from the PR body, not from the diff/);
   });

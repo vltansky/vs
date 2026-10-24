@@ -60,7 +60,8 @@ node <skill-dir>/../vs-explain-video/scripts/diff.mjs "$WORK" --base origin/<bas
 
 It writes `diff.json`: each changed file, with tests, lockfiles, version
 bumps, and generated files marked minor. With no checkout, save
-`gh pr diff <N> --repo <owner/name>` to a file and pass `--patch <file>`.
+`gh pr diff <N> --repo <owner/name>` to a file and pass `--patch <file>` (keep
+`--head <head SHA>`). A blocked run deletes `diff.json`.
 Read the diff of each file that is not minor and write one line per change:
 what it does. Then read the body file and `media.json` for the why, the
 proof, and the media. The body must not contradict the diff. Write
@@ -90,9 +91,9 @@ total (about 150 words a minute); a beat has 24 words or fewer. Write in STE
 Never claim more than the diff and the body prove: cut a beat the diff does
 not show. Carry `Still unverified` into `risk`.
 
-Run `node <skill-dir>/scripts/lint.mjs "$WORK" --no-page`. It also checks
-`diff.json`: a changed file that no scene covers or skips, or a `covers` entry
-that is not a changed file. Exit 1: fix the named problems first.
+Run `node <skill-dir>/scripts/lint.mjs "$WORK" --no-page --head <head SHA>`. It
+also checks `diff.json`: it must be for that head, and a changed file that no
+scene covers or skips, or a `covers` entry that is not a changed file, fails. Exit 1: fix the named problems first.
 
 ## 4. Narrate
 

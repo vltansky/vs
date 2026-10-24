@@ -3,17 +3,19 @@
 // body is written from that chat, so either can lose a change. This lists every
 // changed file from base...head, and checks that script.json covers each one.
 //
-//   node diff.mjs <work-dir> [--base <ref>] [--head <ref>] [--patch <file>]
-//   node diff.mjs check <work-dir>
+//   node diff.mjs <work-dir> [--base <ref>] [--head <ref>] [--patch <file> --head <sha>]
+//   node diff.mjs check <work-dir> [--head <ref>]
 //
 // List: with no --base, the base is the default branch of the `upstream`
 // remote (a fork), else of `origin` (<remote>/HEAD, then gh, then
 // <remote>/main or master); a local main or master is the last resort and
-// prints a warning. File names come from `git diff --numstat -z -M` from the
+// prints a warning. A fork with no `upstream` remote: pass --base. File names come from `git diff --numstat -z -M` from the
 // merge-base to head, so quoted, spaced, and renamed paths stay exact. --patch
 // reads a saved `gh pr diff <N>` (for an open PR with no checkout) and takes
 // names from the ---/+++ and rename headers. An empty diff is blocked, never a
-// pass. Writes <work-dir>/diff.json and prints the files. Tests, lockfiles,
+// pass. Every run first deletes <work-dir>/diff.json, so a blocked run never
+// leaves an old one behind; a run that passes writes it with the head SHA and
+// the head ref it was given, and prints the files. Tests, lockfiles,
 // version-only bumps, changelogs, snapshots, and top-level build output are
 // "minor": they need no scene.
 //
@@ -21,10 +23,12 @@
 // top-level "skip" with a reason of 3 or more words, by its exact path. A
 // "covers" entry that is not a changed file is a claim the diff does not show.
 // "minor" is worked out again from the path, never read from diff.json.
+// diff.json must be for the current head: --head when given, else the head ref
+// diff.mjs was given, resolved again (new commits make it stale).
 //
 // Exit codes: 0 pass; 1 problems; 2 blocked (no repo, no base, empty diff, no script).
 import { execFileSync } from 'node:child_process';
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -37,6 +41,8 @@ const GENERATED = /^((packages|apps|libs)\/[^/]+\/)?(dist|out|generated)\/|\.min
 const MANIFEST = /(^|\/)(package|plugin|composer|manifest)\.json$|(^|\/)(Cargo|pyproject)\.toml$/;
 const VERSION_LINE = /^\s*"?version"?\s*[:=]/;
 const MIN_REASON_WORDS = 3;
+const MIN_NONE_WORDS = 4;
+const SHA = /^[0-9a-f]{7,40}$/i;
 
 // Undoes git's C-style path quoting: "a/src/\327\236.ts" -> a/src/מ.ts.
 export function unquote(text) {
@@ -64,23 +70,32 @@ const headerPath = (rest) => (rest.startsWith('"') ? unquote(rest) : rest.replac
 export function parsePatch(text) {
   const files = [];
   let file = null;
-  let inHunk = false;
-  for (const line of String(text).split('\n')) {
+  // Lines left in the current hunk, from its @@ header. A blank line is context
+  // (some tools drop the leading space), so it never ends a hunk early.
+  let oldLeft = 0;
+  let newLeft = 0;
+  for (const line of String(text).split(/\r?\n/)) {
     if (line.startsWith('diff --git ')) {
       file = { path: '', status: 'modified', added: 0, deleted: 0, binary: false, lines: [], header: line.slice(11) };
       files.push(file);
-      inHunk = false;
+      oldLeft = 0;
+      newLeft = 0;
       continue;
     }
     if (!file) continue;
-    if (line.startsWith('@@')) { inHunk = true; continue; }
-    if (inHunk && (line.startsWith('+') || line.startsWith('-'))) {
-      if (line.startsWith('+')) file.added += 1; else file.deleted += 1;
-      file.lines.push(line.slice(1));
+    const hunk = line.match(/^@@ -\d+(?:,(\d+))? \+\d+(?:,(\d+))? @@/);
+    if (hunk) {
+      oldLeft = hunk[1] === undefined ? 1 : Number(hunk[1]);
+      newLeft = hunk[2] === undefined ? 1 : Number(hunk[2]);
       continue;
     }
-    if (inHunk && !line.startsWith(' ') && !line.startsWith('\\')) inHunk = false;
-    if (inHunk) continue;
+    if (oldLeft > 0 || newLeft > 0) {
+      if (line.startsWith('\\')) continue;
+      if (line.startsWith('+')) { file.added += 1; newLeft -= 1; file.lines.push(line.slice(1)); }
+      else if (line.startsWith('-')) { file.deleted += 1; oldLeft -= 1; file.lines.push(line.slice(1)); }
+      else { oldLeft -= 1; newLeft -= 1; }
+      continue;
+    }
     if (line.startsWith('new file mode')) file.status = 'added';
     else if (line.startsWith('deleted file mode')) file.status = 'deleted';
     else if (line.startsWith('rename from ')) { file.status = 'renamed'; file.oldPath = headerPath(line.slice(12)); }
@@ -147,9 +162,11 @@ export function isMinor(file) {
 // can work minor out again.
 export function summarize(files) {
   return files.map((f) => {
-    const entry = { path: f.path, ...(f.oldPath ? { oldPath: f.oldPath } : {}), status: f.status, added: f.added, deleted: f.deleted, binary: !!f.binary };
+    const entry = { path: f.path, status: f.status, added: f.added, deleted: f.deleted, binary: !!f.binary };
+    if (f.oldPath) entry.oldPath = f.oldPath;
     if (MANIFEST.test(f.path)) entry.lines = f.lines ?? [];
-    return { ...entry, minor: isMinor({ path: f.path, lines: f.lines }) };
+    entry.minor = isMinor({ path: f.path, lines: f.lines });
+    return entry;
   });
 }
 
@@ -192,11 +209,12 @@ export function coverageIssues(script, diff) {
 export function noDiffIssues(script) {
   const { none } = readCoverage(script);
   if (!none) return ['diff.json is missing. For a branch or PR, run diff.mjs <work-dir> first. For a topic that is not a change, set "diff": {"none": "<why>"} in script.json.'];
-  if (words(none) < 4) return ['"diff": {"none": ...} needs a reason of 4 or more words (for example "explains how the retry loop works today").'];
+  if (words(none) < MIN_NONE_WORDS) return [`"diff": {"none": ...} needs a reason of ${MIN_NONE_WORDS} or more words (for example "explains how the retry loop works today").`];
   return [];
 }
 
 const git = (args) => execFileSync('git', args, { encoding: 'utf8', maxBuffer: 256 * 1024 * 1024, stdio: ['ignore', 'pipe', 'pipe'] });
+// For probes (does this ref exist?): a git error means no, so it returns ''.
 const tryGit = (args) => { try { return git(args).trim(); } catch { return ''; } };
 const refExists = (ref) => !!tryGit(['rev-parse', '--verify', '--quiet', `${ref}^{commit}`]);
 
@@ -209,11 +227,29 @@ export function defaultBase() {
     let name = '';
     try {
       name = execFileSync('gh', ['repo', 'view', '--json', 'defaultBranchRef', '-q', '.defaultBranchRef.name'], { encoding: 'utf8', timeout: 8000, stdio: ['ignore', 'pipe', 'ignore'] }).trim();
-    } catch { /* gh missing or offline */ }
+    } catch (err) {
+      // gh missing (ENOENT), timed out (signal), or failed (offline, no auth,
+      // not a GitHub repo: exit status): fall back to main and master.
+      if (!(err.code === 'ENOENT' || err.signal || typeof err.status === 'number')) throw err;
+    }
     for (const branch of [name, 'main', 'master'].filter(Boolean)) if (refExists(`${remote}/${branch}`)) return { base: `${remote}/${branch}` };
   }
   const local = ['main', 'master'].find(refExists);
   return local ? { base: local, warning: `no remote default branch found; using local ${local}, which can be stale. Pass --base <remote>/<branch> to be sure.` } : { base: '' };
+}
+
+const resolve = (ref) => tryGit(['rev-parse', '--verify', '--quiet', `${ref}^{commit}`]);
+
+// diff.json must be for the head being explained: the pinned head when given,
+// else diff.json's own head ref resolved again. A stale or headless diff.json fails.
+export function headIssues(diff, pinned) {
+  const have = String(diff.head ?? '').toLowerCase();
+  if (!SHA.test(have)) return [`diff.json has no head SHA (head is "${diff.head ?? ''}"): rerun diff.mjs <work-dir> --head <sha>.`];
+  const ref = pinned ?? diff.headRef;
+  const want = String((ref && resolve(ref)) || (SHA.test(ref ?? '') ? ref : '')).toLowerCase();
+  if (!want) return [`cannot check diff.json against head "${ref ?? ''}": run from the repo, or pass --head <sha>.`];
+  if (want.startsWith(have) || have.startsWith(want)) return [];
+  return [`diff.json is for ${have.slice(0, 12)}, but the head is ${want.slice(0, 12)}: it is stale. Rerun diff.mjs <work-dir> --head ${ref}, then fix the beats.`];
 }
 
 function out(obj, code) {
@@ -233,18 +269,23 @@ function main(argv) {
     if (!existsSync(scriptFile)) out({ error: `${scriptFile} is missing`, next: 'Write the beats first.' }, 2);
     const script = JSON.parse(readFileSync(scriptFile, 'utf8'));
     const diff = existsSync(diffFile) ? JSON.parse(readFileSync(diffFile, 'utf8')) : null;
-    const problems = diff ? coverageIssues(script, diff) : noDiffIssues(script);
+    const problems = diff ? [...headIssues(diff, opt('--head')), ...coverageIssues(script, diff)] : noDiffIssues(script);
     const minor = (diff?.files ?? []).filter(isMinor).map((f) => f.path);
     out({ problems, minor, next: problems.length ? 'Fix "covers" and "skip" in script.json (add a beat for each uncovered change), then rerun.' : 'Every changed file is covered or skipped.' }, problems.length ? 1 : 0);
   }
   const work = plain[0] && path.resolve(plain[0]);
-  if (!work) out({ error: 'Usage: node diff.mjs <work-dir> [--base <ref>] [--head <ref>] [--patch <file>]' }, 2);
+  if (!work) out({ error: 'Usage: node diff.mjs <work-dir> [--base <ref>] [--head <ref>] [--patch <file> --head <sha>]' }, 2);
+  // Before any exit: a blocked run must not leave the last run's diff.json behind.
+  rmSync(path.join(work, 'diff.json'), { force: true });
   let files;
   let base = opt('--base');
-  let head = opt('--head') ?? 'HEAD';
+  const headRef = opt('--head') ?? 'HEAD';
+  let head = headRef;
   let mergeBase = '';
   let warning;
   if (opt('--patch')) {
+    head = resolve(headRef) || headRef;
+    if (!SHA.test(head)) out({ error: '--patch needs --head <sha>: the PR head the patch is for', next: 'Pass --head with the head SHA (gh pr view <N> --json headRefOid).' }, 2);
     const patch = readFileSync(path.resolve(opt('--patch')), 'utf8');
     base = base ?? '(patch)';
     files = parsePatch(patch);
@@ -280,12 +321,12 @@ function main(argv) {
   }
   const listed = summarize(files);
   mkdirSync(work, { recursive: true });
-  writeFileSync(path.join(work, 'diff.json'), `${JSON.stringify({ base, mergeBase, head, files: listed }, null, 2)}\n`);
+  writeFileSync(path.join(work, 'diff.json'), `${JSON.stringify({ base, mergeBase, head, headRef, files: listed }, null, 2)}\n`);
   const main = listed.filter((f) => !f.minor);
+  const report = { diff: path.join(work, 'diff.json'), base, mergeBase, head };
+  if (warning) report.warning = warning;
   out({
-    diff: path.join(work, 'diff.json'),
-    base, mergeBase, head,
-    ...(warning ? { warning } : {}),
+    ...report,
     changed: main.map((f) => `${f.path} +${f.added} -${f.deleted}${f.oldPath ? ` (renamed from ${f.oldPath})` : ''}${f.binary ? ' (binary)' : ''}`),
     minor: listed.filter((f) => f.minor).map((f) => f.path),
     next: main.length
