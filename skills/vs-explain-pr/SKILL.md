@@ -1,6 +1,6 @@
 ---
 name: vs-explain-pr
-description: "Make a short narrated video explainer of an open PR from its finished body and evidence media, then add it to the PR body. Composed by /vs-ship-it after the PR is open (a background agent); also direct when the user types /vs-explain-pr or asks for a video of a PR. Reuses the vs-explain-video kit; produces one 1280x720 mp4 under 10 MB in a marked body block."
+description: "Make a short narrated video explainer of an open PR from its base...head diff, finished body, and evidence media, then add it to the PR body. Composed by /vs-ship-it after the PR is open (a background agent); also direct when the user types /vs-explain-pr or asks for a video of a PR. Reuses the vs-explain-video kit; produces one 1280x720 mp4 under 10 MB in a marked body block."
 ---
 
 # Explain a PR in a video
@@ -14,8 +14,9 @@ the written proof.
 ## Flow Contract
 
 - **Kind:** Building block
-- **Inputs:** PR number and repo, head SHA, base ref, the final PR body file,
-  and the record-flow manifest(s) or media files ship-it used. Nothing else.
+- **Inputs:** PR number and repo, head SHA, base ref (the diff is
+  `<base>...<head>`), the final PR body file, and the record-flow manifest(s)
+  or media files ship-it used. Nothing else: no conversation.
 - **Outputs:** `final.mp4` (1280x720, 75 seconds or less, under 10 MB) under
   `~/.vs/$PROJECT_ID/videos/pr-<N>/`, and one `<!-- vs:video -->` block in the
   PR body
@@ -55,31 +56,52 @@ last frame, and writes `media.json`. Do not open the media files. The captions
 in `media.json` say what each one shows. A PR without media gets a
 motion-only video; say so in the handoff.
 
-## 3. Write the beats from the PR body, not from the diff
+## 3. Write the beats from the diff, then the PR body
 
-Read only the body file and `media.json`. The body already says what the PR
-does, and the reviewer already checked it. Do not read the diff, the code, or
-the conversation. Write `script.json` (format: the explain-video example) with
-one scene per role, in this order, and set `"role"` on each:
+The diff says what changed. The body says why, and holds the proof and the
+media. Ship-it writes the body from a chat that can lose context, so the body
+can miss a change. Do not read the conversation. Start from the diff:
+
+```bash
+node <skill-dir>/../vs-explain-video/scripts/diff.mjs "$WORK" --base origin/<base> --head <head SHA>
+```
+
+It writes `diff.json`: each changed file, with tests, lockfiles, version
+bumps, and generated files marked minor. With no checkout, save
+`gh pr diff <N> --repo <owner/name>` to a file and pass `--patch <file>` (keep
+`--head <head SHA>`). A blocked run deletes `diff.json`.
+Read the diff of each file that is not minor and write one line per change:
+what it does. Then read the body file and `media.json` for the why, the
+proof, and the media. The body must not contradict the diff. Write
+`script.json` (format: the explain-video example) with one scene per role, in
+this order, and set `"role"` on each:
 
 `problem` → `before` → `change` → `after` → `risk`
 
-| Role | Source in the body | Beats |
+| Role | Source | Beats |
 | --- | --- | --- |
-| `problem` | TL;DR line 1, What problem / scenario | 1-2 beats: who is blocked and the cost |
-| `before` | **Before** proof | The real example: `"still"` or `"clip"` from `media.json` |
-| `change` | What was done / implementation bullets | One mechanism, as pseudocode or a short flow |
-| `after` | **After** proof | Same example, same framing: `"still"` or `"clip"` |
-| `risk` | Review map Risk/Review, Review focus, Still unverified | Where to look first and what is not proven |
+| `problem` | Body: TL;DR line 1, What problem / scenario | 1-2 beats: who is blocked and the cost |
+| `before` | Body: **Before** proof | The real example: `"still"` or `"clip"` from `media.json` |
+| `change` | The diff's change list; body: What was done | One mechanism, as pseudocode or a short flow |
+| `after` | Body: **After** proof | Same example, same framing: `"still"` or `"clip"` |
+| `risk` | Body: Review map Risk/Review, Review focus, Still unverified | Where to look first and what is not proven |
+
+A change the diff shows and the body does not name gets a beat in `change`,
+or in `risk` as "also changes" when it is small. Set `"covers"` on each scene
+to the files it explains, by the exact path in `diff.json` (no directories).
+Put each file you leave out in the top-level `"skip"`, with a reason of 3 or
+more words. An empty diff blocks (exit 2): get the right head, never go on.
 
 Start with the problem, then lead with the example: from `before` on, the same
 user, report, or request moves through every scene. 75 seconds or less in
 total (about 150 words a minute); a beat has 24 words or fewer. Write in STE
 ([../vs-internal-shared/references/ste-writing.md](../vs-internal-shared/references/ste-writing.md)).
-Never claim more than the body proves. Carry `Still unverified` into `risk`.
+Never claim more than the diff and the body prove: cut a beat the diff does
+not show. Carry `Still unverified` into `risk`.
 
-Run `node <skill-dir>/scripts/lint.mjs "$WORK" --no-page`. Exit 1: fix the
-named problems first.
+Run `node <skill-dir>/scripts/lint.mjs "$WORK" --no-page --head <head SHA>`. It
+also checks `diff.json`: it must be for that head, and a changed file that no
+scene covers or skips, or a `covers` entry that is not a changed file, fails. Exit 1: fix the named problems first.
 
 ## 4. Narrate
 
@@ -137,8 +159,8 @@ The default is no fresh review. The block then says "not reviewed by fresh
 eyes". Run the explain-video review (`pack.mjs`, a new agent, `verdict.mjs`)
 only when the user asked for it. It runs once: pass `--reviewed` only on a
 PASS; on BELOW, report the scores and do not re-render or review again. The
-explain-video quiz is skipped here: the beats come from the PR body, which
-was already reviewed.
+explain-video quiz is skipped here: the beats come from the diff and the PR
+body, which was already reviewed.
 
 ## 8. Attach to the PR
 

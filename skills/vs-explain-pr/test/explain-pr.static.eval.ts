@@ -121,7 +121,8 @@ describe('the explain-pr skill', () => {
   it('orders the scenes problem, before, change, after, risk', () => {
     expect(SKILL).toMatch(/`problem` → `before` → `change` → `after` → `risk`/);
     expect(SKILL).toMatch(/1-2 beats/);
-    expect(SKILL).toMatch(/not from the diff/i);
+    expect(SKILL).toMatch(/Write the beats from the diff, then the PR body/);
+    expect(SKILL).not.toMatch(/not from the diff/i);
   });
 
   it('caps length and size, and says when nobody reviewed it', () => {
@@ -326,6 +327,9 @@ describe('explain-pr on the fframes renderer', () => {
       const s = JSON.parse(fs.readFileSync(path.join(work, 'script.json'), 'utf8'));
       s.scenes = ['problem', 'before', 'change', 'after', 'risk'].map((role, i) => ({ ...s.scenes[i % s.scenes.length], id: `s${i}`, role }));
       fs.writeFileSync(path.join(work, 'script.json'), JSON.stringify(s));
+      // lint requires diff.json for the pinned head; an empty diff has nothing to cover.
+      const head = 'a'.repeat(40);
+      fs.writeFileSync(path.join(work, 'diff.json'), JSON.stringify({ head, headRef: head, files: [] }));
       return work;
     };
     const pending = lint(clean('{"renderer":"pending"}'), [], noFf);

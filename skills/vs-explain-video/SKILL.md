@@ -16,8 +16,7 @@ render, and one review whose score is reported. No step loops back.
 ## Flow Contract
 
 - **Kind:** Building block
-- **Inputs:** A topic, code path, or PR, plus enough context to answer one
-  question about it
+- **Inputs:** A topic, code path, or PR; for a branch or PR, its `base...head` diff
 - **Outputs:** An mp4 with burned-in subtitles under
   `~/.vs/$PROJECT_ID/videos/<topic>/`, audited stills per beat, a fresh
   reviewer's score, and a 2-4 line chat TLDR
@@ -54,11 +53,12 @@ Rust, dev libraries) without the user's consent. With `fframes.warmable`, run
 fallback (`scenes.js`) and put the FALLBACK warning in the handoff. Never
 switch renderers silently.
 
-## 2. State the question and audience
+## 2. Read the diff, then state the question
 
-Write one sentence: the single question this video answers, and who watches
-it. Put them in `script.json` as `question` and `audience`; the reviewer gets
-them. Every scene must move toward that answer. Cut any scene that does not.
+Branch or PR: first run `node <skill-dir>/scripts/diff.mjs <work-dir>` (an empty diff blocks) and read each
+file's diff; chat loses context, so it gives only the why. A behaviour change the chat never named gets a
+beat; `skip` is only for edits that change no behaviour ([scenarist](references/scenarist.md)). Other topics:
+read the named code; set `"diff": {"none": "<why>"}`. Put the question and viewer in `question` and `audience`.
 
 ## 3. Scaffold
 

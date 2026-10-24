@@ -56,8 +56,9 @@ after Step 4.
    Then continue at once with commit, push, `gh pr create`, the gate, and
    babysitting. Do not end the turn, wait, or ask again. Missing capture tools
    (no preview, browser, or Playwright) do not cancel the offer: the explainer
-   is narrated from the PR body, with stills only when they exist. Unattended
-   runs and the `vs-build-it` handoff keep the line and never stall on it.
+   is narrated from the diff and the PR body, with stills only when they
+   exist. Unattended runs and the `vs-build-it` handoff keep the line and never
+   stall on it.
 4. **The answer can come at any time.** A yes before the PR exists: run Step
    4b after the PR is verified. A yes after the PR is open: run Step 4b on the
    open PR at its current head. No answer, or no: no video.

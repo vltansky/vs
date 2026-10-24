@@ -14,8 +14,10 @@ reason, and every side detail, costs them the next sentence.
 
 ## Input
 
-- A source: a PR (read its description, diff, and linked issues), a design
-  doc, or a code path. Read enough of the code to ground every claim.
+- A source: a branch or PR, a design doc, or a code path. For a branch or PR,
+  start from the diff (`diff.json` and `git diff <base>...<head>`): it says
+  what changed. The description and linked issues say why; they must not
+  contradict the diff. Read enough of the code to ground every claim.
 - Optional: the audience. Default: engineers on the team that owns the
   product, who have not read this area of the code.
 
@@ -33,8 +35,9 @@ Return one JSON object, the `script.json` file:
   "speed": 1.05,
   "pronounce": { "AICM": "A I C M" },
   "scenes": [
-    { "id": "intro", "title": "Intro", "beats": ["One spoken sentence.", "..."] }
+    { "id": "intro", "title": "Intro", "beats": ["One spoken sentence.", "..."], "covers": ["src/auth/session.ts"] }
   ],
+  "skip": { "src/log.ts": "only the log wording changes" },
   "quiz": [
     { "q": "Why did <the pain> happen?", "a": "<the chain, one line>" },
     { "q": "What does the change do to <the example>?", "a": "..." },
@@ -50,6 +53,17 @@ Return one JSON object, the `script.json` file:
   broke, what the change does, why it is safe. Each answer comes only from
   the beats, in one line. A fresh reader answers them from the beats before
   any voice is made; a wrong answer gets one fix: the missing beat.
+- `covers` and `skip` (branch or PR only): each scene lists the changed files
+  it explains, by the exact path in `diff.json` (no directories). Each changed
+  file is in a scene's `covers` or in `skip` with a reason of 3 or more words.
+  `skip` is only for an edit that changes no behaviour (wording, a rename, a
+  comment). A behaviour change the user never named, even one that looks
+  unrelated, gets a beat: a lost change is what the diff is for.
+  Tests, lockfiles, version bumps, and generated files need neither. A beat
+  the diff does not show is cut.
+- `diff` (not a change only): a topic with no branch or PR has no `diff.json`,
+  so it says why: `"diff": { "none": "explains how the retry loop works today" }`.
+  `quiz.mjs` stops when `diff.json` is missing and this reason is not set.
 - `pronounce` changes only what the voice says. Add each acronym said letter
   by letter, and each name the voice would read badly.
 
