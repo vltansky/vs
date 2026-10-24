@@ -31,11 +31,13 @@ import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { cpus, tmpdir } from 'node:os';
 import path from 'node:path';
-import { pathToFileURL } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
+import { readJson, recordPlaywright } from './fframes.mjs';
 import { ensurePlaywright, fail, probeDuration, run, which } from './media.mjs';
 import { boundaryParity, changedPixels, defaultWorkers, frameParity, planPieces } from './pieces.mjs';
 
+const here = path.dirname(fileURLToPath(import.meta.url));
 const args = process.argv.slice(2);
 const opt = (name) => (args.includes(name) ? args[args.indexOf(name) + 1] : null);
 const workArg = args.find((arg, i) => !arg.startsWith('--') && !['--out', '--scene', '--at', '--workers'].includes(args[i - 1]));
@@ -54,9 +56,17 @@ for (const file of ['index.html', 'timeline.js', 'scenes.js', 'motion.js', 'capt
     fail(`${path.join(work, file)} is missing. ${file === 'timeline.js' ? 'Run narrate.mjs first.' : 'Run init.mjs first.'}`);
   }
 }
+// A video marked fframes or pending renders with fframes: refuse, and change nothing.
+// Switching it to Playwright is a fallback, which `fframes.mjs fallback` records on purpose.
+const marked = readJson(path.join(work, 'renderer.json'))?.renderer ?? null;
+if (marked === 'fframes' || marked === 'pending') {
+  fail(`This video renders with fframes (renderer.json: ${marked}), so render.mjs did not run and changed nothing. Use node ${path.join(here, 'fframes.mjs')} check ${work}${marked === 'pending' ? ' (after fframes.mjs doctor --warm)' : ''}. If fframes cannot render it, first run node ${path.join(here, 'fframes.mjs')} fallback ${work} --reason "<why>", then rerun render.mjs, and say FALLBACK in the handoff.`);
+}
 if (!which('ffmpeg') || !which('ffprobe')) fail('ffmpeg/ffprobe missing. Run: brew install ffmpeg. Then rerun render.mjs.');
 const { entry, error: playwrightError } = ensurePlaywright([work]);
 if (!entry) fail(`Playwright is not available: ${playwrightError}. Fix that and rerun render.mjs, or set PLAYWRIGHT_MODULE=/abs/path/node_modules/playwright-core.`);
+// This is the Playwright renderer: a work dir with no marker records playwright (a no-op when already playwright).
+recordPlaywright(work, `the Playwright renderer (render.mjs ${stillsMode ? '--stills' : '--out'}) ran`);
 const playwright = await import(pathToFileURL(entry).href);
 const chromium = playwright.chromium ?? playwright.default?.chromium;
 
@@ -136,6 +146,8 @@ try {
     const seconds = to - from;
     const frames = Math.ceil(seconds * fps);
     const out = path.resolve(outArg);
+    // A sidecar from an earlier fframes render would tell finish.mjs the clips are in frame.
+    rmSync(`${out.replace(/\.mp4$/i, '')}.fframes.json`, { force: true });
     mkdirSync(path.dirname(out), { recursive: true });
     const pieces = planPieces(frames, workersArg ? Number(workersArg) : defaultWorkers(cpus().length));
     const scratch = mkdtempSync(path.join(tmpdir(), 'vs-render-'));

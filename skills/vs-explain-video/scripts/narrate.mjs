@@ -52,6 +52,7 @@ import path from 'node:path';
 
 import { checkBeat, findWhisper, levelFilter, loudnessVerdict, measureLoudness, transcribe } from './audio.mjs';
 import { buildCaptions, DEFAULT_STYLE, STYLES } from './captions.mjs';
+import { animateStep } from './fframes.mjs';
 import { fail, probeDuration, run, which } from './media.mjs';
 
 const args = process.argv.slice(2);
@@ -336,7 +337,7 @@ process.stdout.write(`${JSON.stringify({
   next: wordCheck.flagged?.length
     ? `The voice did not say ${wordCheck.flagged.length} beat(s) as written (see words.flagged). Rewrite the beat or add a pronounce entry, then rerun narrate.mjs.`
     : unchecked
-      ? `The word check was ${wordCheck.status}: report the narration as not word-checked. Then animate scenes.js on these beat starts and run render.mjs --stills.`
-      : 'Animate scenes.js on these beat starts, then run render.mjs --stills.',
+      ? `The word check was ${wordCheck.status}: report the narration as not word-checked. Then ${animateStep(dir).step}.`
+      : `${animateStep(dir).step.replace(/^a/, 'A')}.`,
 }, null, 2)}\n`);
 if (unchecked && args.includes('--require-word-check')) process.exit(2);
