@@ -279,9 +279,16 @@ WebM when `ffmpeg` is available:
 ffmpeg -i in.webm -c:v libx264 -pix_fmt yuv420p out.mp4
 ```
 
-Embed images as `<img src="<returned-url>" alt="<concise caption>" width="260" />`
-so a tall phone screenshot stays phone-sized; GitHub strips `style=`, so
-`max-height` never survives and `width` is the only cap. Door, blast and surface
+Embed images as HTML `<img>` sized by orientation, so a tall phone screenshot
+does not take over the page and a desktop screenshot stays readable:
+
+- Portrait (height > width): `<img src="<returned-url>" alt="<concise caption>" width="260" />`
+- Landscape (width >= height): `<img src="<returned-url>" alt="<concise caption>" width="800" />`
+
+Read orientation from the record-flow manifest `viewport` (default 1280×720 is
+landscape), else from the file itself (`file <image>` prints its size). When
+neither is known, omit `width`. GitHub strips `style=`, so `max-height` does
+not survive; `width` is the cap that does. Door, blast and surface
 badges keep their own embed. Embed videos as the
 returned URL on its own bare line; `![]()` does not render GitHub's video player.
 Insert the URLs into the body file before `gh pr create` so the initial PR

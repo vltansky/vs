@@ -905,7 +905,7 @@ const next = [
         ...media.reasons.map(reason => `  - ${reason}`),
         '  Next, one of:',
         '    1. Capture: write flow.json with captions, run node <shared>/scripts/record-flow.mjs flow.json --out <dir>,',
-        '       upload the stills and video from the manifest, embed the URLs (image: <img src="<url>" alt="<caption>" width="260" />, video: bare URL line).',
+        '       upload the stills and video from the manifest, embed the URLs (image: <img src="<url>" alt="<caption>" width="260"> portrait or width="800"> landscape per manifest viewport, video: bare URL line).',
         '    2. State the gap in the body: "**Still unverified:** visual proof; <exact blocker>".',
         '    3. Frontend refactor with identical output: write "No visual change: <why>" in the body.',
         `  Changed: ${frontendFiles.join(', ')}`,
