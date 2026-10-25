@@ -216,13 +216,13 @@ Root cause: <mechanism that made the bug happen>
 <!-- Issue/spec only when found; root cause only for bugfixes. -->
 **Before** <same-state setup and what to notice>
 
-![Before: <result>](<hosted-before-screenshot>)
+<img src="<hosted-before-screenshot>" alt="Before: <result>" width="260" />
 
 <hosted-before-video-URL on its own bare line for functional UI changes>
 
 **After** <same-state setup and what changed>
 
-![After: <result>](<hosted-after-screenshot>)
+<img src="<hosted-after-screenshot>" alt="After: <result>" width="260" />
 
 <hosted-after-video-URL on its own bare line for functional UI changes>
 

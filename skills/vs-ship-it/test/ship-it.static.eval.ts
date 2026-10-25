@@ -162,7 +162,15 @@ describe('vs-ship-it media preparation', () => {
     expect(PR_WORKFLOW).toContain(
       'ffmpeg -i in.webm -c:v libx264 -pix_fmt yuv420p out.mp4',
     );
-    expect(PR_WORKFLOW).toMatch(/Embed images as `!\[concise caption\]/i);
+    expect(PR_WORKFLOW).toContain(
+      'Embed images as `<img src="<returned-url>" alt="<concise caption>" width="260" />`',
+    );
+    expect(PR_WORKFLOW).toMatch(/GitHub strips `style=`/);
+    expect(PR_WORKFLOW).toMatch(/badges keep their own embed/i);
+    expect(SKILL).not.toMatch(/Embed images as `!\[/);
+    expect(SKILL).toContain('<img src="<hosted-before-screenshot>" alt="Before: <result>" width="260" />');
+    expect(SKILL).toContain('<img src="<hosted-after-screenshot>" alt="After: <result>" width="260" />');
+    expect(SKILL).not.toMatch(/!\[(?:Before|After)[^\]]*\]\(<hosted-/);
     expect(PR_WORKFLOW).toMatch(/videos as the\s+returned URL on its own bare line/i);
     expect(PR_WORKFLOW).toMatch(/every uploaded image renders and\s+every video exposes a player/i);
   });

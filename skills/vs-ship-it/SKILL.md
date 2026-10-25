@@ -279,7 +279,10 @@ WebM when `ffmpeg` is available:
 ffmpeg -i in.webm -c:v libx264 -pix_fmt yuv420p out.mp4
 ```
 
-Embed images as `![concise caption](<returned-url>)`. Embed videos as the
+Embed images as `<img src="<returned-url>" alt="<concise caption>" width="260" />`
+so a tall phone screenshot stays phone-sized; GitHub strips `style=`, so
+`max-height` never survives and `width` is the only cap. Door, blast and surface
+badges keep their own embed. Embed videos as the
 returned URL on its own bare line; `![]()` does not render GitHub's video player.
 Insert the URLs into the body file before `gh pr create` so the initial PR
 description is complete. Use the manifest caption as the image caption.

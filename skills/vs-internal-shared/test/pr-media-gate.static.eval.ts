@@ -52,6 +52,21 @@ describe('compact body gate integration', () => {
     expect(result.status, result.stderr).toBe(0);
     expect(result.json.tests.lines).toBe(1);
   });
+  it('counts width-capped HTML img embeds as hosted screenshots', () => {
+    const cwd = repoWithBranch(['src/components/Checkout.tsx']);
+    const htmlImages = compact.replace(HOSTED_IMAGE,
+      '<img src="https://github.com/user-attachments/assets/before-image" alt="Before: spinner" width="260" />\n<img src="https://github.com/user-attachments/assets/after-image" alt="After: inline error" width="260" />');
+    const result = rawGate(cwd, htmlImages, '--functional');
+    expect(result.status, result.stderr).toBe(0);
+    expect(result.json.images).toBe(2);
+  });
+  it('tells a frontend PR to embed screenshots as width-capped HTML img', () => {
+    const cwd = repoWithBranch(['src/components/Checkout.tsx']);
+    const result = rawGate(cwd, compact.replace(HOSTED_IMAGE, ''), '--functional');
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain('<img src="<url>" alt="<caption>" width="260" />');
+    expect(result.stderr).not.toContain('![caption](url)');
+  });
   it('does not count HTML video embeds as screenshots', () => {
     const cwd = repoWithBranch(['src/components/Checkout.tsx']);
     const videosOnly = compact.replace(HOSTED_IMAGE, '<video src="https://github.com/user-attachments/assets/clip-before"></video>\n<video src="https://github.com/user-attachments/assets/clip-after"></video>');
