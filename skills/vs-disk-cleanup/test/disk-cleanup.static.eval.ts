@@ -202,6 +202,16 @@ describe('vs-disk-cleanup contract', () => {
     expect(SKILL).toMatch(/remove\.sh" --backup <dir>/);
   });
 
+  it('cleans running Colima VMs from inside and trims the disk, keeping volumes', () => {
+    const scan = fs.readFileSync(path.join(DIR, 'scripts/disk-report/scan.mts'), 'utf8');
+    const colima = scan.match(/id: 'colima'[\s\S]*?\] \},/)?.[0] ?? '';
+    expect(colima).toMatch(/container prune -f/);
+    expect(colima).toMatch(/image prune -a -f/);
+    expect(colima).toMatch(/fstrim/);
+    expect(colima).not.toMatch(/volume prune|system prune|--volumes/);
+    expect(SKILL).toMatch(/fstrim/);
+  });
+
   it('ships no machine-specific paths', () => {
     const files = ['scan.mts', 'cleanup.mts', 'cleanup-script.mjs', 'template.html']
       .map((f) => path.join(DIR, 'scripts/disk-report', f));

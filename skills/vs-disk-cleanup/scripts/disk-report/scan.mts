@@ -138,8 +138,16 @@ const items: Item[] = [
   { id: 'kokoro-models', label: 'Kokoro TTS models', group: 'review', tag: 'model', paths: [h('.cache/kokoro')],
     effect: 'TTS voices re-download on next use.', clean: trash },
   { id: 'colima', label: 'Colima VMs', group: 'review', tag: 'docker', paths: [h('.colima/_lima')],
-    effect: 'Each profile holds its own images, containers and volumes. Delete only profiles you no longer use.',
-    clean: () => ['colima list', 'echo "Colima: run colima delete <profile> for each unused profile above"'] },
+    effect: 'Running profiles: removes stopped containers and unused images (pulled ones re-pull; locally built ones need a rebuild), keeps volumes. Stopped profiles are listed for colima delete.',
+    // The VM disk is a sparse file: pruning inside frees nothing on the Mac until fstrim
+    // punches the holes. Volumes are skipped because they can hold test data.
+    clean: () => [
+      'for p in $(colima list -j | sed -n \'s/.*"name":"\\([^"]*\\)","status":"Running".*/\\1/p\'); do',
+      '  ctx=colima; [ "$p" = default ] || ctx="colima-$p"',
+      '  docker --context "$ctx" container prune -f; docker --context "$ctx" image prune -a -f',
+      '  colima ssh -p "$p" -- sudo fstrim -a',
+      'done',
+      'colima list; echo "Colima: stopped profiles above are untouched; colima delete <profile> after review"'] },
   { id: 'vs-artifacts', label: 'vs session artifacts (~/.vs)', group: 'review', tag: 'session', paths: [h('.vs')],
     effect: 'Reports, videos and evidence from vs skills. Trashes only entries idle 30+ days in render kinds; specs, RFCs, issues and context stay.',
     clean: () => [`DAYS=30 bash ${q(VS_ARTIFACTS)} | awk -F'\\t' '$1=="STALE"{print $4}' | bash ${q(VS_ARTIFACTS)} --remove`] },
