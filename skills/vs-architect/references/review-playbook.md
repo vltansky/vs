@@ -37,10 +37,12 @@ do not assert coupling from adjacency alone. Recipe:
 
 ```bash
 # commits that touched A in the last N months
-git log --since='6 months ago' --pretty=format:%H -- path/A
+# Prefer --format=%H so every hash ends with a newline; pretty=format leaves the
+# final hash unterminated, and a while-read loop drops the oldest (often only) commit.
+git log --since='6 months ago' --format=%H -- path/A
 # how often B changed in those same commits
-git log --since='6 months ago' --pretty=format:%H -- path/A |
-  while read c; do git diff-tree --no-commit-id --name-only -r "$c"; done |
+git log --since='6 months ago' --format=%H -- path/A |
+  while read c; do git diff-tree --no-commit-id --name-only --root -r "$c"; done |
   sort | uniq -c | sort -rn | head
 ```
 

@@ -80,6 +80,9 @@ describe('vs-architect contract', () => {
   it('requires git co-change counts for always-change-together claims', () => {
     expect(PLAYBOOK).toMatch(/## Co-change evidence/);
     expect(PLAYBOOK).toMatch(/git log --since=/);
+    expect(PLAYBOOK).toMatch(/git log[^\n]*--format=%H/);
+    expect(PLAYBOOK).toMatch(/git diff-tree[^\n]*--root/);
+    expect(PLAYBOOK).not.toMatch(/^[^#\n]*--pretty=format:%H/m);
     expect(PLAYBOOK).toMatch(/N\/M commits that touched A also touched B/);
     expect(SKILL).toMatch(/cite git co-change counts/);
   });
