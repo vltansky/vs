@@ -42,6 +42,7 @@ describe('vs-architect contract', () => {
 
   it('requires evidence-backed deepening rather than refactor vibes', () => {
     for (const field of [
+      'Dissolves',
       'Files/modules',
       'Problem',
       'Evidence',
@@ -50,6 +51,7 @@ describe('vs-architect contract', () => {
       'Locality/leverage',
       'Deletion test',
       'Dependencies',
+      'Dependency direction',
       'ADR',
       'Confidence',
     ]) {
@@ -58,6 +60,44 @@ describe('vs-architect contract', () => {
     expect(PLAYBOOK).toMatch(/two callers/i);
     expect(PLAYBOOK).toMatch(/rename, move, wrap, or invert code/i);
     expect(PLAYBOOK).toMatch(/One adapter is a hypothetical seam/);
+  });
+
+  it('uses a change-together lens with hidden, needless, surplus, and special cases', () => {
+    expect(SKILL).toMatch(/should these change together\?/i);
+    expect(SKILL).toMatch(/\*\*Hidden links\*\*/);
+    expect(SKILL).toMatch(/\*\*Needless links\*\*/);
+    expect(SKILL).toMatch(/\*\*Surplus\*\*/);
+    expect(SKILL).toMatch(/hand-synced lists/);
+    expect(SKILL).toMatch(/split ownership/);
+    expect(SKILL).toMatch(/importable internals/);
+    expect(SKILL).toMatch(/two supported ways to do one task/);
+    expect(SKILL).toMatch(/one-value `if`/);
+    expect(SKILL).toMatch(/swallowed exception/);
+    expect(SKILL).toMatch(/disabled test/);
+    expect(SKILL).toMatch(/Stay read-only: list them as candidate evidence/);
+  });
+
+  it('requires git co-change counts for always-change-together claims', () => {
+    expect(PLAYBOOK).toMatch(/## Co-change evidence/);
+    expect(PLAYBOOK).toMatch(/git log --since=/);
+    expect(PLAYBOOK).toMatch(/N\/M commits that touched A also touched B/);
+    expect(SKILL).toMatch(/cite git co-change counts/);
+  });
+
+  it('groups file:line problems under one dissolving deepening', () => {
+    expect(PLAYBOOK).toMatch(/Group several file:line problems/);
+    expect(PLAYBOOK).toContain('- Dissolves:');
+    expect(PLAYBOOK).toMatch(/`path\/a\.ts:12`/);
+  });
+
+  it('checks dependency direction: nothing imports more volatile code', () => {
+    expect(PLAYBOOK).toMatch(/## Dependency direction/);
+    expect(PLAYBOOK).toMatch(
+      /nothing imports anything more volatile than itself/,
+    );
+    expect(SKILL).toMatch(
+      /nothing imports anything more\s+volatile than itself/,
+    );
   });
 
   it('compares interfaces only after selection and within shared budgets', () => {
