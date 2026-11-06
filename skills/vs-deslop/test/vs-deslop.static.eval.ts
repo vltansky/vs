@@ -65,3 +65,13 @@ describe('vs-deslop: second miss fails the workspace scorer', () => {
     expect(SKILL).not.toMatch(/second-miss-after-pass/);
   });
 });
+
+describe('vs-deslop: restating comments and weak tests are defer-or-rewrite', () => {
+  it('pins defer-or-rewrite and forbids mass-delete wording', () => {
+    expect(SKILL).toMatch(/defer or rewrite, do not mass-delete/i);
+    expect(SKILL).toMatch(/tests that cannot fail/i);
+    expect(SKILL).toMatch(/mirror the implementation/i);
+    expect(SKILL).toMatch(/rewrite or defer, not mass-delete/i);
+    expect(SKILL).not.toMatch(/mass-delete the suite as cleanup/i);
+  });
+});

@@ -22,6 +22,33 @@ One adapter is a hypothetical seam. Two justified adapters make it real. A
 production adapter plus a test adapter counts only when the test adapter enables
 behavioral tests that would otherwise be impractical.
 
+## Dependency direction
+
+Within those categories, check volatility: a more-stable module must not import
+a more-volatile one. Prefer depending on what changes less (owned seams, domain
+types, stable ports) over what changes more (adapters, providers, UI, feature
+flags). Flag any import that pulls a stable module toward a volatile one —
+nothing imports anything more volatile than itself.
+
+## Co-change evidence
+
+When Evidence claims modules always change together, cite git co-change counts —
+do not assert coupling from adjacency alone. Recipe:
+
+```bash
+# commits that touched A in the last N months
+# Prefer --format=%H so every hash ends with a newline; pretty=format leaves the
+# final hash unterminated, and a while-read loop drops the oldest (often only) commit.
+git log --since='6 months ago' --format=%H -- path/A
+# how often B changed in those same commits
+git log --since='6 months ago' --format=%H -- path/A |
+  while read c; do git diff-tree --no-commit-id --name-only --root -r "$c"; done |
+  sort | uniq -c | sort -rn | head
+```
+
+Report as `N/M commits that touched A also touched B` (or equivalent). If
+history is too thin, say so and lower Confidence.
+
 ## Candidate evidence
 
 Require:
@@ -31,6 +58,7 @@ Require:
 - the current interface obligations callers must know;
 - the current test surface and the behavior it misses;
 - the deletion-test result;
+- co-change counts when claiming pieces "always change together";
 - any applicable ADR decision;
 - confidence based on observed code, not aesthetics.
 
@@ -39,27 +67,33 @@ caller obligations unchanged.
 
 ## Candidate shape
 
-Use this exact structure for every candidate:
+Use this exact structure for every candidate. Group several file:line problems
+under the one deepening that dissolves them — do not list each as its own
+candidate when one seam fixes the set.
 
 ```markdown
 ### <N>. <domain-named deepening>
 
 - Strength: Strong | Worth exploring | Speculative
+- Dissolves:
+  - `path/a.ts:12` — <concrete problem>
+  - `path/b.ts:40` — <concrete problem>
 - Files/modules: <paths and lines>
-- Problem: <caller friction and leaked knowledge>
-- Evidence: <observed call/test/change pattern>
+- Problem: <caller friction and leaked knowledge; one deepening for the group>
+- Evidence: <observed call/test/co-change pattern>
 - Suggested deepening: <what behavior moves behind which seam; no interface sketch yet>
 - Test surface: <observable behavior through the future interface>
 - Locality/leverage: <what concentrates; which callers benefit>
 - Deletion test: <where complexity would reappear today>
 - Dependencies: in-process | local-substitutable | remote-owned | external
+- Dependency direction: ok | stable imports volatile (<where>)
 - ADR: aligned | none found | conflicts with <ADR and why reopening may be justified>
 - Confidence: High | Medium | Low
 ```
 
 Keep the problem and suggested deepening in domain language. A source symbol may
-appear in `Files/modules`, but it should not become the candidate's conceptual
-name when the repository already defines the domain term.
+appear in `Files/modules` or `Dissolves`, but it should not become the
+candidate's conceptual name when the repository already defines the domain term.
 
 ## Recommendation strength
 
