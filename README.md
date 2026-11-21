@@ -104,7 +104,7 @@ Publishes the scoped work and reports its CI and review status.
 flowchart TD
     I[Permission to publish] --> D{PR or direct push?}
     D -- PR --> C["Check, commit, push<br/>/vs-eval for skill contracts"]
-    C --> B["Prepare PR description<br/>feature_area: title<br/>One sentence and matched Before/After proof<br/>One risk line (first for a merge blocker)<br/>One expander for recordings and verification"]
+    C --> B["Prepare PR description<br/>feature_area: title<br/>One sentence and matched Before/After proof<br/>Risk badges, then the explanation (blocker action first)<br/>One expander for recordings and verification"]
     B --> M["Reuse or capture proof<br/>matched Before/After screenshots<br/>short video for interactions<br/>paired output, key diff hunk, optional mermaid"]
     M --> O[Create and verify a regular PR] --> W["Follow CI and GitHub review<br/>repairs go draft until the new head is green<br/>/vs-baby-sit"]
     D -- Direct push --> F[Check destination, commit, push] --> S[Verify remote SHA]

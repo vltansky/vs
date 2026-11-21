@@ -67,9 +67,11 @@ The team membership page used to let an admin remove the last owner. Now it reje
           return body.match(/<details\b/g)?.length === 1 && body.indexOf('assets/clip-before') > open &&
             body.indexOf('assets/clip-after') > open && body.indexOf('</details>') > body.indexOf('assets/clip-after');
         }),
-        check('keeps-both-badges-with-the-blocker', () => {
+        check('puts-the-badge-row-and-explanation-below-the-blocker', () => {
           const risk = draft.split(/\r?\n\s*\r?\n/, 1)[0];
-          return /badge-(?:one|two)-way-door\.svg/.test(risk) && /badge-(?:wide|narrow)-blast\.svg/.test(risk);
+          const [action, badges, explanation] = risk.split(/<br[ \t]*\/?>|(?:\\| {2,})\r?\n/i);
+          return !/badge-/.test(action) && /badge-(?:one|two)-way-door\.svg/.test(badges ?? '') &&
+            /badge-(?:wide|narrow)-blast\.svg/.test(badges ?? '') && Boolean(explanation?.trim());
         }),
       ], { failFast: false, onScorerError: 'zero' });
       expect(result.score, draft).toBe(1);

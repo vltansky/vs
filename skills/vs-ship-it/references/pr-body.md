@@ -10,8 +10,16 @@ and avoid repeating the same claim in the sentence, captions, and details.
 
 **Merge blocker.** Move the same risk paragraph to the very top only when a known
 condition must be resolved before merge. Start it with
-`**Risk:** Block merge until …` and state the specific action and consequence.
-A blocker leads with the action. Place both badges after it in that paragraph.
+`**Risk:** Block merge until …` and end that action row with `<br>`.
+Put both badges on the next row and end it with `<br>`. Put the consequence
+or rollback guidance on the third row. For example:
+
+```markdown
+**Risk:** Block merge until staging confirms staff can still sign in.<br>
+<img alt="Two-way door" height="20" src="https://raw.githubusercontent.com/vltansky/vs/master/skills/vs-ship-it/assets/badge-two-way-door.svg"> <img alt="Narrow blast radius" height="20" src="https://raw.githubusercontent.com/vltansky/vs/master/skills/vs-ship-it/assets/badge-narrow-blast.svg"><br>
+A revert restores the previous staff sign-in rules.
+```
+
 A risky change, a pending routine check, or a post-merge follow-up alone does
 not move the risk line. Keep the summary sentence immediately before the proof.
 Put the verification procedure inside the expander when the blocker needs steps.
@@ -143,7 +151,8 @@ this example and omit optional rows without evidence.
 | --- | --- |
 | ![Previous inspector stays assigned](<hosted-before-screenshot>) | ![New inspector is assigned](<hosted-after-screenshot>) |
 
-**Risk:** <img alt="One-way door" height="20" src="https://raw.githubusercontent.com/vltansky/vs/master/skills/vs-ship-it/assets/badge-one-way-door.svg"> <img alt="Narrow blast radius" height="20" src="https://raw.githubusercontent.com/vltansky/vs/master/skills/vs-ship-it/assets/badge-narrow-blast.svg"> Reverting the Reportan Web editor won't undo saved assignments.
+**Risk:** <img alt="One-way door" height="20" src="https://raw.githubusercontent.com/vltansky/vs/master/skills/vs-ship-it/assets/badge-one-way-door.svg"> <img alt="Narrow blast radius" height="20" src="https://raw.githubusercontent.com/vltansky/vs/master/skills/vs-ship-it/assets/badge-narrow-blast.svg"><br>
+Reverting the Reportan Web editor won't undo saved assignments.
 
 <details>
 <summary>Recordings and verification</summary>
@@ -191,9 +200,9 @@ rollout instructions inside the expander.
 
 Embed one door badge (`badge-one-way-door.svg` or `badge-two-way-door.svg`) and
 one blast-radius badge (`badge-wide-blast.svg` or `badge-narrow-blast.svg`)
-inline in that paragraph. Use accessible alt text and the published URLs from
-the example. Wrap the Markdown source as needed while keeping the badges and
-risk sentence in the same paragraph.
+on one rendered line in that paragraph. Put `<br>` after both badges and place
+the risk explanation below. Use accessible alt text and the published URLs
+from the example. Keep the rendered rows in one Markdown paragraph.
 
 ### Surfaces
 

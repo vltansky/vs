@@ -62,7 +62,7 @@ describe('vs-ship-it publishing boundary', () => {
   it('shows the PR format and available proof in the README flow', () => {
     expect(README).not.toContain('Review explicitly approved?');
     expect(README).toMatch(/Prepare PR description<br\/>feature_area: title/);
-    expect(README).toMatch(/One sentence and matched Before\/After proof.*One risk line.*One expander/);
+    expect(README).toMatch(/One sentence and matched Before\/After proof.*Risk badges, then the explanation.*One expander/);
     expect(README).toMatch(/Reuse or capture proof<br\/>matched Before\/After screenshots/);
     expect(README).toMatch(/short video for interactions/);
   });

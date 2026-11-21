@@ -51,5 +51,9 @@ export function proofFirstLayout(body, required = false) {
   if (!proof || /^##[ \t]+(?:Review map|Change and proof|Verification|Walkthrough)\b/im.test(maskFences(proof))) {
     reasons.push('keep only the Before/After proof between the summary and the details or risk line');
   }
-  return { proof, details, risk: (blocker ? firstRisk : lastRisk) ?? null, blocker, reasons, ok: reasons.length === 0 };
+  const risk = (blocker ? firstRisk : lastRisk) ?? null;
+  // Source wrapping leaves badges on one rendered row. Only Markdown hard breaks
+  // and HTML break tags separate the action, badge row, and explanation.
+  const riskRows = risk?.split(/<br[ \t]*\/?>|(?:\\| {2,})\r?\n/i).map((row) => row.trim()) ?? [];
+  return { proof, details, risk, riskRows, blocker, reasons, ok: reasons.length === 0 };
 }

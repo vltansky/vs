@@ -147,8 +147,8 @@ describe('proof-first PR bodies', () => {
   const assets = 'https://raw.githubusercontent.com/vltansky/vs/master/skills/vs-ship-it/assets';
   const door = `<img alt="Two-way door" src="${assets}/badge-two-way-door.svg">`;
   const blast = `<img alt="Narrow blast radius" src="${assets}/badge-narrow-blast.svg">`;
-  const risk = `**Risk:** ${door} ${blast} A revert restores the old payment flow.`;
-  const blocker = `**Risk:** Block merge until a reviewer verifies payment retries.\n${door} ${blast}`;
+  const risk = `**Risk:** ${door} ${blast}<br>\nA revert restores the old payment flow.`;
+  const blocker = `**Risk:** Block merge until a reviewer verifies payment retries.<br>\n${door} ${blast}<br>\nA broken checkout blocks payments.`;
   const proof = '| Before | After |\n| --- | --- |\n'
     + '| ![Spinner](https://github.com/user-attachments/assets/before) | ![Inline error](https://github.com/user-attachments/assets/after) |';
   const details = '<details>\n<summary>Recordings and verification</summary>\n\n<!-- vs:proof-first -->\n\n'
@@ -178,6 +178,21 @@ describe('proof-first PR bodies', () => {
     expect(missing.stderr).toMatch(/door badge and one blast-radius badge/i);
     const hidden = body.replace(blast, '').replace('## Verification', `${blast}\n\n## Verification`);
     expect(bareGate(cwd, hidden).status).toBe(1);
+  });
+
+  it('requires the explanation below a dedicated badge row', () => {
+    const cwd = repoWithBranch(['src/components/Checkout.tsx']);
+    expect(bareGate(cwd, body.replace('<br>\n', '\\\n')).status).toBe(0);
+    for (const invalidRisk of [
+      risk.replace('<br>\n', ' '),
+      risk.replace(`${door} ${blast}`, `${door}<br>\n${blast}`),
+      `**Risk:** A revert restores the old payment flow.<br>\n${door} ${blast}`,
+      `**Risk:** ${door} ${blast}`,
+    ]) {
+      expect(bareGate(cwd, body.replace(risk, invalidRisk)).status).toBe(1);
+    }
+    const blockerWithBadgesOnAction = blocker.replace('retries.<br>\n', 'retries. ');
+    expect(bareGate(cwd, [blockerWithBadgesOnAction, summary, proof, details].join('\n\n')).status).toBe(1);
   });
 
   it('rejects extra sentences, expanded or nested details, and proof hidden inside details', () => {

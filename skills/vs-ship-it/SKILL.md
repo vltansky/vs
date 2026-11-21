@@ -294,7 +294,7 @@ node <vs-internal-shared>/scripts/pr-media-gate.mjs "$BODY_FILE" --base origin/<
 Run it against the `origin/<base>` fetched in Step 1, never a stale local ref.
 
 - Exit 0: one sentence, visible Before/After, one correctly placed risk paragraph
-  with both badges inline, and one collapsed expander. Visible UI proof has at least two distinct
+  with one badge row and the explanation below, and one collapsed expander. Visible UI proof has at least two distinct
   hosted screenshots. Functional UI proof also has two distinct hosted videos
   inside the expander. CSS-only changes need screenshots;
   other frontend paths default to functional unless `--static-ui` is justified.
@@ -479,7 +479,7 @@ separate `vs-baby-sit` goal only when the user explicitly requested a Codex goal
       radius, both derived from the diff, both in the handoff.
 - [ ] One plain sentence precedes the primary proof. One visible **Risk:**
       paragraph follows the proof, or comes first when it names a merge blocker.
-      The door and blast-radius badges sit inline with the risk.
+      The door and blast-radius badges share one row above the explanation.
       Supporting content lives in one collapsed expander.
 - [ ] Visible UI changes have matched Before/After screenshots; functional UI
       changes also have matched Before/After videos. Each missing media kind

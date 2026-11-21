@@ -47,7 +47,7 @@ describe('pr-media-gate ignores the video explainer block', () => {
     const compact = [
       'Customers can retry checkout after removing an expired coupon.',
       `**Before:** spinner\n\n**After:** inline error\n\n${IMAGES}`,
-      '**Risk:** <img alt="Two-way door" src="https://raw.githubusercontent.com/vltansky/vs/master/skills/vs-ship-it/assets/badge-two-way-door.svg"> <img alt="Narrow blast radius" src="https://raw.githubusercontent.com/vltansky/vs/master/skills/vs-ship-it/assets/badge-narrow-blast.svg"> A revert restores the old checkout behavior.',
+      '**Risk:** <img alt="Two-way door" src="https://raw.githubusercontent.com/vltansky/vs/master/skills/vs-ship-it/assets/badge-two-way-door.svg"> <img alt="Narrow blast radius" src="https://raw.githubusercontent.com/vltansky/vs/master/skills/vs-ship-it/assets/badge-narrow-blast.svg"><br>\nA revert restores the old checkout behavior.',
       `<details>\n<summary>Recordings</summary>\n\n<!-- vs:proof-first -->\n\n${VIDEOS}\n\n</details>`,
     ].join('\n\n');
     const withExplainer = upsertVideoBlock(compact, EXPLAINER.trimEnd());

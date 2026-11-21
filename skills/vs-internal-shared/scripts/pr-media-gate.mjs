@@ -301,7 +301,14 @@ const gapStated = body.match(STATED_GAP)?.[0].trim() ?? null;
 const beforeAfter = { before: BEFORE_MARKER.test(comparison), after: AFTER_MARKER.test(comparison) };
 const DOOR_BADGE = /\/skills\/vs-ship-it\/assets\/badge-(?:one|two)-way-door\.svg/i;
 const BLAST_BADGE = /\/skills\/vs-ship-it\/assets\/badge-(?:wide|narrow)-blast\.svg/i;
-const riskBadges = layout ? readMediaRefs(proofMarkup(layout.risk ?? '')).filter((ref) => ref.kind === 'image') : [];
+const badgeRowIndex = layout?.blocker ? 1 : 0;
+const badgeRow = proofMarkup(layout?.riskRows[badgeRowIndex] ?? '');
+const riskBadges = readMediaRefs(badgeRow).filter((ref) => ref.kind === 'image');
+const riskExplanation = layout?.riskRows.slice(badgeRowIndex + 1).join(' ') ?? '';
+const riskRowsOk = !layout || (
+  riskBadges.length === 2 && readMediaRefs(proofMarkup(layout.risk ?? '')).length === 2 &&
+  !badgeRow.replace(MARKDOWN_IMAGE, '').replace(/<img\b[^>]*>/gi, '').trim() && /[\p{L}\p{N}]/u.test(riskExplanation)
+);
 const mergeDanger = layout ? {
   door: riskBadges.filter((ref) => DOOR_BADGE.test(ref.url)).length === 1,
   blastRadius: riskBadges.filter((ref) => BLAST_BADGE.test(ref.url)).length === 1,
@@ -317,7 +324,7 @@ const media = checkMediaPairs({
 });
 const mediaOk = media.ok;
 const beforeAfterOk = beforeAfter.before && beforeAfter.after;
-const mergeDangerOk = mergeDanger.door && mergeDanger.blastRadius;
+const mergeDangerOk = mergeDanger.door && mergeDanger.blastRadius && riskRowsOk;
 const contract = {
   endpoint: apiFiles.length === 0 || labelledBlock(ENDPOINT_MARKER) || ENDPOINT_GAP.test(body),
   schema: schemaFiles.length === 0 || labelledBlock(SCHEMA_MARKER) || SCHEMA_GAP.test(body),
@@ -830,7 +837,7 @@ const next = [
       ].join('\n')
     : null,
   !mergeDangerOk && layout
-    ? 'pr-media-gate: place one door badge and one blast-radius badge inside the visible **Risk:** paragraph.'
+    ? 'pr-media-gate: place one door badge and one blast-radius badge on one line, then put the risk explanation below. Put a merge blocker before the badges.'
     : !mergeDangerOk
     ? [
         `pr-media-gate: the PR body has no ${[!mergeDanger.door && 'Door', !mergeDanger.blastRadius && 'Blast radius'].filter(Boolean).join(' and ')} line. Every PR states its merge risk.`,
