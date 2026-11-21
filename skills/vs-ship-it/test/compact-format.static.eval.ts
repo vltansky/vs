@@ -10,6 +10,7 @@ describe('compact ship-it body', () => {
     const [visible, details] = live.trim().split('<details>');
     expect(visible).toMatch(/^<one sentence[^\n]+>\n\n\| Before \| After \|/);
     expect(visible.trim()).toMatch(/\*\*Risk:\*\* [^\n]+$/);
+    expect(visible.trim().split('**Risk:**')[1]).toMatch(/badge-one-way-door\.svg[^\n]+badge-narrow-blast\.svg/);
     expect(visible).not.toMatch(/^## /m);
     expect(details).toMatch(/<summary>[^<]+<\/summary>[\s\S]+## Verification[\s\S]+<\/details>/);
     expect(live.match(/<details>/g)).toHaveLength(1);

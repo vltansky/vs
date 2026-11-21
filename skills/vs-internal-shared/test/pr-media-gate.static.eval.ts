@@ -144,8 +144,11 @@ function bareGate(cwd: string, body: string, ...flags: string[]) {
 
 describe('proof-first PR bodies', () => {
   const summary = 'Shoppers can retry checkout after removing an expired coupon.';
-  const risk = '**Risk:** Two-way for checkout. A revert restores the old payment flow.';
-  const blocker = '**Risk:** Block merge until a reviewer verifies payment retries.';
+  const assets = 'https://raw.githubusercontent.com/vltansky/vs/master/skills/vs-ship-it/assets';
+  const door = `<img alt="Two-way door" src="${assets}/badge-two-way-door.svg">`;
+  const blast = `<img alt="Narrow blast radius" src="${assets}/badge-narrow-blast.svg">`;
+  const risk = `**Risk:** ${door} ${blast} A revert restores the old payment flow.`;
+  const blocker = `**Risk:** Block merge until a reviewer verifies payment retries.\n${door} ${blast}`;
   const proof = '| Before | After |\n| --- | --- |\n'
     + '| ![Spinner](https://github.com/user-attachments/assets/before) | ![Inline error](https://github.com/user-attachments/assets/after) |';
   const details = '<details>\n<summary>Recordings and verification</summary>\n\n<!-- vs:proof-first -->\n\n'
@@ -164,6 +167,17 @@ describe('proof-first PR bodies', () => {
     expect(bareGate(cwd, [blocker, summary, proof, details].join('\n\n')).status).toBe(0);
     expect(bareGate(cwd, body.replace(risk, blocker)).stderr).toMatch(/blocker.*first/i);
     expect(bareGate(cwd, [risk, summary, proof, details].join('\n\n')).stderr).toMatch(/risk.*after.*proof/i);
+  });
+
+  it('allows readable line breaks and requires both badges in the risk paragraph', () => {
+    const cwd = repoWithBranch(['src/components/Checkout.tsx']);
+    const wrapped = body.replace('after removing', '\nafter removing').replace(`${door} ${blast}`, `${door}\n${blast}`);
+    expect(bareGate(cwd, wrapped).status).toBe(0);
+    const missing = bareGate(cwd, body.replace(blast, ''));
+    expect(missing.status).toBe(1);
+    expect(missing.stderr).toMatch(/door badge and one blast-radius badge/i);
+    const hidden = body.replace(blast, '').replace('## Verification', `${blast}\n\n## Verification`);
+    expect(bareGate(cwd, hidden).status).toBe(1);
   });
 
   it('rejects extra sentences, expanded or nested details, and proof hidden inside details', () => {

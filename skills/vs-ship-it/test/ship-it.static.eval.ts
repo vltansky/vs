@@ -279,7 +279,7 @@ describe('vs-ship-it risk and supporting context', () => {
 
 describe('vs-ship-it merge blockers and proof selectors', () => {
   it('puts risk first only when a condition must be resolved before merge', () => {
-    expect(PR_WORKFLOW).toMatch(/Move the same risk line to the very top only when a known\s+condition must be resolved before merge/);
+    expect(PR_WORKFLOW).toMatch(/Move the same risk paragraph to the very top only when a known\s+condition must be resolved before merge/);
     expect(PR_WORKFLOW).toContain('`**Risk:** Block merge until …`');
     expect(PR_WORKFLOW).toMatch(/post-merge follow-up alone does\s+not move the risk line/);
   });

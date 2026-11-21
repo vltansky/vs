@@ -3,7 +3,7 @@
 const MARKER = '<!-- vs:proof-first -->';
 const expanderStart = /^<details>[ \t]*\r?\n<summary>([^<>\r\n]+)<\/summary>[ \t]*\r?\n\s*<!-- vs:proof-first -->[ \t]*$/im;
 export const walkthroughHeading = /^##[ \t]+Walkthrough(?:[: \t][^\r\n]*)?$/im;
-const riskLine = /^\*\*Risk:\*\*[ \t]+(\S.*)$/i;
+const riskBlock = /^\*\*Risk:\*\*[ \t]+(\S[\s\S]*)$/i;
 const blockerPrefix = /^Block merge until\b/i;
 const sentences = new Intl.Segmenter('en', { granularity: 'sentence' });
 
@@ -35,15 +35,15 @@ export function proofFirstLayout(body, required = false) {
   if (details && !details.content.trim()) reasons.push('put supporting evidence or context inside the expander');
 
   const blocks = visible.replace(/^\uFEFF/, '').trim().split(/\r?\n[ \t]*\r?\n/).map((block) => block.trim());
-  const riskLines = maskFences(visible).split(/\r?\n/).filter((line) => riskLine.test(line.trim()));
-  const firstRisk = blocks[0].match(riskLine);
-  const lastRisk = blocks.at(-1).match(riskLine);
-  const blocker = riskLines.some((line) => blockerPrefix.test(line.trim().match(riskLine)[1]));
-  const summary = blocks[blocker ? 1 : 0] ?? '';
-  if (riskLines.length !== 1) reasons.push('write exactly one visible **Risk:** line');
-  if (blocker && (!firstRisk || !blockerPrefix.test(firstRisk[1]))) reasons.push('put a merge blocker first as **Risk:** Block merge until …');
-  if (!blocker && !lastRisk) reasons.push('put the risk line after the Before/After proof and immediately before the expander');
-  if (!summary || /[\r\n]/.test(summary) || /^(?:#|[-*+>|][ \t]|\d+[.)][ \t]|\*\*|__|<)/.test(summary) ||
+  const riskLines = maskFences(visible).split(/\r?\n/).flatMap((line) => line.trim().match(riskBlock)?.[1] ?? []);
+  const firstRisk = blocks[0].match(riskBlock)?.[1];
+  const lastRisk = blocks.at(-1).match(riskBlock)?.[1];
+  const blocker = riskLines.some((line) => blockerPrefix.test(line));
+  const summary = blocks[blocker ? 1 : 0]?.replace(/\s+/g, ' ') ?? '';
+  if (riskLines.length !== 1) reasons.push('write exactly one visible **Risk:** paragraph');
+  if (blocker && (!firstRisk || !blockerPrefix.test(firstRisk))) reasons.push('put a merge blocker first as **Risk:** Block merge until …');
+  if (!blocker && !lastRisk) reasons.push('put the risk paragraph after the Before/After proof and immediately before the expander');
+  if (!summary || /^(?:#|[-*+>|][ \t]|\d+[.)][ \t]|\*\*|__|<)/.test(summary) ||
       [...sentences.segment(summary)].length !== 1) {
     reasons.push('write one standalone sentence about what changes, immediately before the proof');
   }
@@ -51,5 +51,5 @@ export function proofFirstLayout(body, required = false) {
   if (!proof || /^##[ \t]+(?:Review map|Change and proof|Verification|Walkthrough)\b/im.test(maskFences(proof))) {
     reasons.push('keep only the Before/After proof between the summary and the details or risk line');
   }
-  return { proof, details, risk: firstRisk?.[1] ?? lastRisk?.[1] ?? null, blocker, reasons, ok: reasons.length === 0 };
+  return { proof, details, risk: (blocker ? firstRisk : lastRisk) ?? null, blocker, reasons, ok: reasons.length === 0 };
 }

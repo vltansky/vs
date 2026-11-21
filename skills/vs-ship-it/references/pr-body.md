@@ -1,16 +1,17 @@
 ### Step 2: Prepare the PR description
 
 **Proof first.** Write one plain sentence that says what changes and for whom,
-then show the primary Before/After proof. Follow it with one `**Risk:**` line
+then show the primary Before/After proof. Follow it with one `**Risk:**` paragraph
 and one collapsed expander. Add a short visible caption only where the proof
-needs explanation. Put recordings,
+needs explanation. Use line breaks when they help each side read clearly. Put recordings,
 additional comparisons, verification, template fields, and the walkthrough
 inside that same expander. Name the contents in the summary. Skip empty sections
 and avoid repeating the same claim in the sentence, captions, and details.
 
-**Merge blocker.** Move the same risk line to the very top only when a known
+**Merge blocker.** Move the same risk paragraph to the very top only when a known
 condition must be resolved before merge. Start it with
 `**Risk:** Block merge until …` and state the specific action and consequence.
+A blocker leads with the action. Place both badges after it in that paragraph.
 A risky change, a pending routine check, or a post-merge follow-up alone does
 not move the risk line. Keep the summary sentence immediately before the proof.
 Put the verification procedure inside the expander when the blocker needs steps.
@@ -73,6 +74,12 @@ Make the description visual first. Every PR description must include **Before** 
 for the same actor, input, and precondition. State the concrete
 result in each caption. Put `**Before:**` and `**After:**` outside code fences, or
 use the plain headers `| Before | After |`.
+Pick the smallest visual that shows the change. For behavior changes, prefer
+matched captures, exact output, or the same focused regression failing on base
+and passing on head. Show the decisive assertion or output. For a structural
+change, show the smallest diff, call tree, or diagram that explains the change.
+When you have source evidence alone, label it **Source-derived**. Put secondary
+evidence in the expander.
 
 | What changed | Primary proof |
 | --- | --- |
@@ -85,14 +92,17 @@ use the plain headers `| Before | After |`.
 | Decisive logic | A fenced `diff` block of the key hunk |
 
 **Text diffs.** When the change itself is text (a command, flags, config, a
-short snippet), write `**Before** <old> **After** <new>` on one line (the gate
-needs both labels), then one `diff`. Split long lines one flag, arg or key per
+short snippet), write `**Before** <old>` and `**After** <new>` on separate lines
+when that reads better. The gate needs both labels. Follow them with one `diff`.
+Split long lines one flag, arg or key per
 line, flag and value together (`\` continuations for commands), so `-`/`+` mark
 only what changed and the rest stays context. When an edit moves a trailing
 `\` or JSON comma, mark that neighbor line too. UI and user-visible output keep
 the separate Before and After proof.
 
-**Before** loads user and project settings. **After** loads user settings only.
+**Before:** Loads user and project settings.
+
+**After:** Loads user settings only.
 
 ```diff
  claude --print --output-format stream-json \
@@ -133,7 +143,7 @@ this example and omit optional rows without evidence.
 | --- | --- |
 | ![Previous inspector stays assigned](<hosted-before-screenshot>) | ![New inspector is assigned](<hosted-after-screenshot>) |
 
-**Risk:** Reverting the Reportan Web editor won't undo saved assignments.
+**Risk:** <img alt="One-way door" height="20" src="https://raw.githubusercontent.com/vltansky/vs/master/skills/vs-ship-it/assets/badge-one-way-door.svg"> <img alt="Narrow blast radius" height="20" src="https://raw.githubusercontent.com/vltansky/vs/master/skills/vs-ship-it/assets/badge-narrow-blast.svg"> Reverting the Reportan Web editor won't undo saved assignments.
 
 <details>
 <summary>Recordings and verification</summary>
@@ -171,13 +181,19 @@ Root cause: <mechanism that made the bug happen>
 
 ### Risk and scope
 
-Classify from the scoped diff. Use the one risk line to explain who can be
+Classify from the scoped diff. Use the one risk paragraph to explain who can be
 affected and what a revert or recovery can do. Two-way means a revert restores
 the prior behavior. One-way means an effect can outlive the revert, as with data
 writes, released contracts, permissions or customer sends. Name the recovery
 path for irreversible or broad changes. Say when it is unknown. The line is
 required even for low-risk changes. Keep supporting scope, rollback steps, and
 rollout instructions inside the expander.
+
+Embed one door badge (`badge-one-way-door.svg` or `badge-two-way-door.svg`) and
+one blast-radius badge (`badge-wide-blast.svg` or `badge-narrow-blast.svg`)
+inline in that paragraph. Use accessible alt text and the published URLs from
+the example. Wrap the Markdown source as needed while keeping the badges and
+risk sentence in the same paragraph.
 
 ### Surfaces
 

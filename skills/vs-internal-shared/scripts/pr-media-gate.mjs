@@ -299,10 +299,13 @@ const videos = hosted.filter((ref) => ref.kind === 'video').length;
 const gapStated = body.match(STATED_GAP)?.[0].trim() ?? null;
 
 const beforeAfter = { before: BEFORE_MARKER.test(comparison), after: AFTER_MARKER.test(comparison) };
-// The badge alone is a label: ship-it bodies show the badge with the reason under it, no text label.
 const DOOR_BADGE = /\/skills\/vs-ship-it\/assets\/badge-(?:one|two)-way-door\.svg/i;
 const BLAST_BADGE = /\/skills\/vs-ship-it\/assets\/badge-(?:wide|narrow)-blast\.svg/i;
-const mergeDanger = {
+const riskBadges = layout ? readMediaRefs(proofMarkup(layout.risk ?? '')).filter((ref) => ref.kind === 'image') : [];
+const mergeDanger = layout ? {
+  door: riskBadges.filter((ref) => DOOR_BADGE.test(ref.url)).length === 1,
+  blastRadius: riskBadges.filter((ref) => BLAST_BADGE.test(ref.url)).length === 1,
+} : {
   door: DOOR_MARKER.test(body) || DOOR_BADGE.test(body),
   blastRadius: BLAST_MARKER.test(body) || BLAST_BADGE.test(body),
 };
@@ -314,7 +317,7 @@ const media = checkMediaPairs({
 });
 const mediaOk = media.ok;
 const beforeAfterOk = beforeAfter.before && beforeAfter.after;
-const mergeDangerOk = layout !== null || (mergeDanger.door && mergeDanger.blastRadius);
+const mergeDangerOk = mergeDanger.door && mergeDanger.blastRadius;
 const contract = {
   endpoint: apiFiles.length === 0 || labelledBlock(ENDPOINT_MARKER) || ENDPOINT_GAP.test(body),
   schema: schemaFiles.length === 0 || labelledBlock(SCHEMA_MARKER) || SCHEMA_GAP.test(body),
@@ -802,7 +805,7 @@ const explainerOk = explainerReasons.length === 0;
 const valid = rootCauseOk && formatOk && mediaOk && beforeAfterOk && mergeDangerOk && contractOk && surfacesOk && testsOk && walkthroughOk && templateOk && problemLinks.ok && explainerOk;
 
 const format = layout
-  ? { proofFirst: { ok: layout.ok, reasons: layout.reasons, risk: layout.risk, blocker: layout.blocker } }
+  ? { proofFirst: { ok: layout.ok && mergeDangerOk, reasons: layout.reasons, risk: layout.risk, blocker: layout.blocker, badges: mergeDanger } }
   : { tldr, mergeDanger };
 
 process.stdout.write(
@@ -826,7 +829,9 @@ const next = [
         '  header counts. Never fabricate the missing side.',
       ].join('\n')
     : null,
-  !mergeDangerOk
+  !mergeDangerOk && layout
+    ? 'pr-media-gate: place one door badge and one blast-radius badge inside the visible **Risk:** paragraph.'
+    : !mergeDangerOk
     ? [
         `pr-media-gate: the PR body has no ${[!mergeDanger.door && 'Door', !mergeDanger.blastRadius && 'Blast radius'].filter(Boolean).join(' and ')} line. Every PR states its merge risk.`,
         '  Next: classify from the diff, one line each, under a "## Review map" heading:',
