@@ -1,6 +1,6 @@
 // The PR video explainer lives between two marker lines in the PR body:
 //   <!-- vs:video -->
-//   <details><summary>Video explainer (N s)</summary> ... </details>
+//   A labeled video inside the shared expander, or its own details on older PRs.
 //   <!-- /vs:video -->
 // Only vs-explain-pr writes it. Everything else that rewrites the body keeps it
 // with keepVideoBlock(). A marker counts only on its own line and outside a code
@@ -10,6 +10,7 @@ import { spawnSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { maskFences, proofFirstLayout, walkthroughHeading } from './pr-proof-first.mjs';
 
 export const VIDEO_START = '<!-- vs:video -->';
 export const VIDEO_END = '<!-- /vs:video -->';
@@ -96,6 +97,17 @@ export function stripVideoBlocks(body) {
 // Everything outside the spans stays byte for byte.
 export function upsertVideoBlock(body, block) {
   const spans = findVideoBlocks(body);
+  const clean = cutSpans(body, spans);
+  const compact = proofFirstLayout(clean)?.details;
+  if (compact) {
+    const inside = block
+      .replace(/<details\b[^>]*>\s*<summary>([^<]+)<\/summary>/i, '**$1**')
+      .replace(/\n<\/details>[ \t]*(?=\r?\n)/i, '');
+    const walk = maskFences(compact.content).search(walkthroughHeading);
+    const at = walk === -1 ? compact.end : compact.start + walk;
+    // Reinsertion before the same section also removes malformed or duplicate spans.
+    return `${clean.slice(0, at).trimEnd()}\n\n${inside}\n\n${clean.slice(at)}`;
+  }
   // A span after the Walkthrough (a stray marker) must not decide where the block
   // goes: the gate rejects that spot, and a rerun would land there again. Cut every
   // span, then insert before the Walkthrough.

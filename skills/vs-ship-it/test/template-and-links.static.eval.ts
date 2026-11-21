@@ -19,7 +19,7 @@ function problems(skill: string): string[] {
   const out: string[] = [];
   const tpl = para(skill, '**Repo PR template first.**');
   const link = para(skill, '**Linked issue and spec.**');
-  const problem = skill.slice(skill.indexOf('\n## Change and proof\n'), skill.indexOf('\n## Verification\n'));
+  const problem = skill.slice(skill.indexOf('<!-- vs:proof-first -->'), skill.indexOf('\n## Verification\n'));
   if (!tpl) return ['no repo PR template rule'];
   if (!link) return ['no linked issue/spec rule'];
 
@@ -27,11 +27,11 @@ function problems(skill: string): string[] {
   const at = order.map((name) => tpl.indexOf('`' + name + '`'));
   if (at.some((i) => i === -1) || at.some((i, k) => k > 0 && i < at[k - 1]) || !/case-insensitive/.test(tpl))
     out.push('template lookup order is not fixed');
-  if (!/Before you write the body, look for the target/.test(tpl)) out.push('template ignored');
-  if (!/keep all of its headings and checklists, in its\s+order, and fill them/.test(tpl)) out.push('template headings not kept');
-  if (!/Never delete a template section: write `N\/A`/.test(tpl) || /(?:drop|delete|remove) (?:the )?template sections? that/i.test(tpl))
+  if (!/Before writing, look for the target repo template/.test(tpl)) out.push('template ignored');
+  if (!/keep its headings and checklist items in order\s+inside the single expander/.test(tpl)) out.push('template headings not kept');
+  if (!/Keep inapplicable sections with `N\/A`/.test(tpl) || /(?:drop|delete|remove) (?:the )?template sections? that/i.test(tpl))
     out.push('template sections may be deleted');
-  if (!/append the other vs sections after the template content\s+\(Walkthrough stays last\)/.test(tpl)) out.push('vs sections not appended after template');
+  if (!/Do not append a second template/.test(tpl)) out.push('VS sections can repeat the repository template');
   if (!/Keep template checkboxes unchecked unless the diff or\s+evidence proves them/.test(tpl)) out.push('checkboxes may be ticked without proof');
   if (!/Several templates \(a directory\), none clearly fits:\*\* ask once/.test(tpl) || !/only question ship-it may ask/.test(tpl))
     out.push('multi-template does not ask');
@@ -44,11 +44,11 @@ function problems(skill: string): string[] {
     out.push('issue may be invented');
   if (!/Default to `Refs #N`\. Use `Closes` only when this PR\s+meets every acceptance criterion in the issue/.test(link)) out.push('Closes used for partial');
   if (!/`gh issue view <N>`/.test(link)) out.push('issue not read before Closes');
-  if (!/fails an unpinned repo file link under this section/.test(link)) out.push('gate does not pin the spec link');
+  if (!/gate can recognize and pin it/.test(link)) out.push('gate does not pin the spec link');
   if (!/bold-label\s+line/.test(tpl) || !/`#`–`######` heading/.test(tpl)) out.push('template sections limited to ## headings');
-  if (!/dropped checklist item, fails it/.test(tpl)) out.push('template checklist not gated');
+  if (!/dropped checklist item, fails the gate/.test(tpl)) out.push('template checklist not gated');
   if (!/Pin the spec link to the head SHA/.test(link) || !/blob\/<HEAD_SHA>\/<spec path>/.test(problem)) out.push('spec link not pinned');
-  if (!/one separate line \(never part of the scenario prose\)/.test(link) || !/\n\nRefs #<N> · \[Spec\]/.test(problem))
+  if (!/one separate line inside the expander/.test(link) || !/\n\nRefs #<N> · \[Spec\]/.test(problem))
     out.push('link line merged into the STE prose');
   if (!/branch name \(`fix\/123-x`\), commit\s+messages, or the shape-it\/build-it handoff/.test(link)) out.push('issue sources missing');
   return out;
@@ -57,7 +57,7 @@ function problems(skill: string): string[] {
 const mutants: Record<string, (s: string) => string> = {
   'template ignored': (s) => s.replace(/\*\*Repo PR template first\.\*\*[\s\S]*?(?=\*\*Linked issue and spec\.\*\*)/, ''),
   'template sections deleted': (s) =>
-    s.replace('Never delete a template section: write `N/A` under\n  one that does not apply.', 'Delete template sections that do not apply.'),
+    s.replace('Keep inapplicable sections with `N/A`.', 'Delete template sections that do not apply.'),
   'multi-template does not ask': (s) =>
     s.replace('ask once with the\n  template names as options. This is the only question ship-it may ask.', 'pick the first template.'),
   'asks when single template': (s) => s.replace('Do not ask about a single template.', 'Ask the user to confirm the template.'),
@@ -66,18 +66,18 @@ const mutants: Record<string, (s: string) => string> = {
   'Closes used for partial': (s) =>
     s.replace('Default to `Refs #N`. Use `Closes` only when this PR\nmeets every acceptance criterion in the issue', 'Use `Closes` whenever the PR touches the issue'),
   'Closes without reading the issue': (s) => s.replace('`gh issue view <N>`', 'the branch name'),
-  'gate skips spec pin': (s) => s.replace('`pr-media-gate.mjs` fails an unpinned repo file link under this section.', ''),
-  'only ## headings': (s) => s.replace(' A section is any `#`–`######` heading or a bold-label\n  line (`**Notes:**`).', ''),
-  'checklist not gated': (s) => s.replace(', or a dropped checklist item,', ''),
+  'gate skips spec pin': (s) => s.replace('so the gate can recognize and pin it.', ''),
+  'only ## headings': (s) => s.replace(' A section is any `#`–`######` heading or bold-label\n  line (`**Notes:**`).', ''),
+  'checklist not gated': (s) => s.replace('heading,\nor a dropped checklist item, fails the gate.', 'heading fails the gate.'),
   'spec link not pinned': (s) =>
     s.replace('Pin the spec link to the head SHA', 'Link the spec on the branch').replace('blob/<HEAD_SHA>/<spec path>', 'blob/<branch>/<spec path>'),
   'link line merged into STE prose': (s) =>
     s
-      .replace('one separate line (never part of the scenario prose)', 'a clause at the end of the scenario sentence')
+      .replace('one separate line inside the expander', 'a clause at the end of the scenario sentence')
       .replace('scenario prose)', 'scenario prose)'),
   'checkboxes ticked': (s) => s.replace('Keep template checkboxes unchecked unless the diff or\n  evidence proves them.', 'Tick every template checkbox.'),
   'gate skips template': (s) => s.replace(' [--template <repo PR template>]', ''),
-  'lookup order shuffled': (s) => s.replace('`PULL_REQUEST_TEMPLATE.md`, `docs/pull_request_template.md`', '`docs/pull_request_template.md`, `PULL_REQUEST_TEMPLATE.md`'),
+  'lookup order shuffled': (s) => s.replace('`PULL_REQUEST_TEMPLATE.md`,\n`docs/pull_request_template.md`', '`docs/pull_request_template.md`,\n`PULL_REQUEST_TEMPLATE.md`'),
 };
 
 describe('ship-it repo PR template + linked issue/spec contract', () => {
