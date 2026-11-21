@@ -15,13 +15,22 @@ skill directory exposed by that runtime.
 Report in the shape defined by
 [`../vs-internal-shared/references/output-style.md`](../vs-internal-shared/references/output-style.md).
 
+## Start and resume
+
+- First run `df -k /System/Volumes/Data` and record the free-space baseline for this run. On resume, check it again: another task may have freed space. Never attribute that change to this cleanup.
+- Keep inventories, selected-path manifests and command logs in one scratchpad. Record each background handle and final exit status. A missing handle is not completion: inspect its log, recheck the disk and refresh the affected inventory before removing anything.
+- Wait for an inventory to exit successfully before consuming its TSV or JSON. A growing TSV is partial. Never run deletion while a storage scan is still measuring; it would make candidate sizes and growth comparisons stale.
+- For long commands, return control with the process still running, then wait for output using its handle. Avoid rapid polling; use the host's event wait or bounded waits of 30–60 seconds. Give a brief update at least every minute, without inventing a percentage or ETA. A permission error is not an empty result.
+- Finish only after each cleanup command exits, check the removal log for skips or failures, and verify selected paths and fresh disk capacity. Keep estimated candidate sizes, measured free-space change and bytes moved to Trash separate. If space is sufficient, stop and leave further candidates as optional review items.
+
 ## Entry points
 
 | User names | Start at |
 |---|---|
 | worktrees | step 1 |
 | `~/.vs`, vs reports, videos, artifacts | step 3 |
-| home folder, dev leftovers, disk space in general | step 6 (its report already covers worktrees and `~/.vs` as review items) |
+| home folder, dev leftovers report | step 6 |
+| disk full, no space left, disk space in general | step 1, then 3; use step 6 only if space is still tight |
 | plain "cleanup" | step 1, then 3; offer 4 and 6 only if space is still tight |
 
 ## 1. Inventory worktrees (read-only)
@@ -98,7 +107,7 @@ awk -F'\t' '$1=="DECIDE"{print $2}' "<scratchpad>/wt.tsv" | bash "$VS_DISK_CLEAN
 
 ## 5. Report
 
-- Report the MB freed and the free space before and after, plus MB moved to Trash from `~/.vs`.
+- Report the measured free-space change and capacity before and after this run, plus bytes moved to Trash from `~/.vs`. Values from `df -k` divided by 1024 are MiB, not decimal MB; concurrent activity can affect the measured change.
 - Show a table of `DECIDE` worktrees grouped by reason (uncommitted N / unpushed N / untracked files / secrets), sorted by size, largest first. Measure them with `du -sk` on the DECIDE paths only.
 - Call out `unpushed=N (upstream gone, likely merged)` rows separately. These branches were usually squash-merged, so they are the easiest ones to approve. The unpushed count uses local remote refs (no `git fetch`), so it can be stale.
 - List `REVIEW` rows from `~/.vs` with size and last used.
@@ -113,11 +122,13 @@ awk -F'\t' '$1=="DECIDE"{print $2}' "<scratchpad>/wt.tsv" | bash "$VS_DISK_CLEAN
 Read-only scan of the home folder: sizes only (`du`, `stat` mtimes), never file contents. It skips iCloud, Photos, external drives and TCC-protected folders (Desktop/Documents/Downloads, Mail, Messages, Safari, app Containers, Trash), so it raises no permission prompts.
 
 ```bash
-node "$VS_DISK_CLEANUP_DIR/scripts/disk-report/scan.mts"   # ~6 min; run in the background
+node "$VS_DISK_CLEANUP_DIR/scripts/disk-report/scan.mts" > "<scratchpad>/scan.log" 2> "<scratchpad>/scan-progress.log"
 ```
 
 - It reads `~/disk-report/sizes.csv` first, then appends this scan's rows. It flags items that grew by at least 100 MB and 5% since the previous scan. Lead the report with those, excluded ones included: they explain where space goes even though they are never offered.
-- Reuse: if `~/disk-report/latest.json` has a `scannedAt` less than 1 hour old and nothing was deleted since, reuse it instead of rescanning.
+- Run in the background. The scanner writes discovery and measurement progress to stderr, before each blocking probe; stdout contains the final summary. Inspect new progress or a bounded tail of the log, not the full log on every poll. Wait for exit 0 before using the report.
+- Reuse: if `~/disk-report/latest.json` has a `scannedAt` less than 1 hour old and nothing was deleted since, reuse it instead of rescanning. After cleanup, label retained inventory sizes as pre-cleanup; refresh the affected inventory before proposing another removal. Do not restart the full home scan just to report a fresh `df` reading.
+- Read `latest.json` with a small projection: `scannedAt`, item `id`, `label`, `group`, `kb`, growth and last-used fields. Filter and sort before printing; do not dump the full JSON or every generated command. Put exact paths in a manifest for the selected items and link it when the list is long.
 - It writes `~/disk-report/index.html`: a treemap plus tables with path, size, last used and what happens if deleted. Ticking items there generates `cleanup.sh`. It also writes `~/disk-report/latest.json`, which `cleanup.mts` reads.
 - Grouping rules:
   - **Excluded, never offered:** whole package-manager caches (npm, Yarn, pnpm, uv, pip, Gradle, CocoaPods, Cargo, Go, Bun, Homebrew, node-gyp, Electron). They refill on the next install. Also any *safe* item touched in the last 14 days (`ACTIVE_DAYS`), meaning it is in use and would just rebuild. Both stay in the CSV for growth tracking.

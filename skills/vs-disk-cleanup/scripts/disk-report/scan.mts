@@ -12,6 +12,7 @@ const OUT_DIR = join(HOME, 'disk-report');
 const CSV = join(OUT_DIR, 'sizes.csv');
 const HTML = join(OUT_DIR, 'index.html');
 const LATEST = join(OUT_DIR, 'latest.json');
+console.error('[scan] Starting read-only storage inventory');
 mkdirSync(OUT_DIR, { recursive: true });
 const h = (p: string) => join(HOME, p);
 const VS_ARTIFACTS = join(import.meta.dirname, '..', 'vs-artifacts.sh');
@@ -188,6 +189,7 @@ const wtClean = (paths: string[]) => paths.flatMap((p) => [
 const wtEffect = 'Removes the checkout. git refuses if it has uncommitted changes (no --force). Committed branches stay in the main repo.';
 const wtGroups = new Map<string, string[]>();
 const addWt = (key: string, p: string) => wtGroups.set(key, [...(wtGroups.get(key) ?? []), p]);
+console.error('[scan] Discovering worktrees');
 for (const p of findWorktrees(h('.codex/worktrees'), 3)) addWt('Codex worktrees', p);
 for (const p of findWorktrees(h('.t3/worktrees'), 3)) addWt('T3 Code worktrees', p);
 for (const proj of lsDirs(h('Projects'))) {
@@ -204,6 +206,7 @@ const nameExpr = ARTIFACT_NAMES.flatMap((n, i) => (i ? ['-o', '-name', n] : ['-n
 // case-insensitive APFS volume collapse to one root; plain realpathSync keeps both and doubles every row.
 const artRoots = [...new Set(['Projects', 'projects', 'dev', 'src', 'code', 'repos', 'work', 'conductor']
   .map(h).filter(existsSync).map((p) => realpathSync.native(p)))];
+console.error('[scan] Discovering project build artifacts');
 const found = spawnSync('find', [...artRoots, '-xdev', '-type', 'd', '(', '-name', 'worktrees', '-o', '-name', '.git', ')', '-prune', '-o',
   '-type', 'd', '(', ...nameExpr, ')', '-prune', '-print'], { encoding: 'utf8', maxBuffer: 1 << 26 }).stdout.split('\n').filter(Boolean);
 const artGroups = new Map<string, string[]>();
@@ -255,7 +258,9 @@ const scannedAt = new Date().toISOString();
 const ACTIVE_DAYS = 14; // safe items touched more recently are in use and would just rebuild
 const MIN_KB = 200 * 1024; // hide items under 200 MB
 const GROW_KB = 100 * 1024; // flag growth >= 100 MB and >= 5%
-const results = items.map((it) => {
+const results = items.map((it, index) => {
+  // Emit before the blocking size probe so a slow directory still has an observable current phase.
+  console.error(`[scan] Measuring ${index + 1}/${items.length}: ${it.label}`);
   const kb = it.measure ? it.measure() : du(it.paths);
   const before = prev.get(it.id);
   const delta = before === undefined ? null : kb - before;
@@ -272,6 +277,7 @@ const results = items.map((it) => {
 }).filter((r) => r.kb >= MIN_KB).sort((a, b) => b.kb - a.kb);
 
 // ---- append to CSV (all items, including small ones, so growth is tracked from the start)
+console.error('[scan] Writing reports');
 if (!existsSync(CSV)) writeFileSync(CSV, 'scanned_at,id,label,group,kb,path\n');
 const csvSafe = (s: string) => encodeURIComponent(s);
 appendFileSync(CSV, results.map((r) => [scannedAt, csvSafe(r.id), csvSafe(r.label), r.group, r.kb, csvSafe(r.paths[0] ?? '')].join(',')).join('\n') + '\n');
