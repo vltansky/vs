@@ -120,7 +120,7 @@ describe('verify behavior', () => {
           /INVOICE_MAIL_API_KEY/.test(response) && /INVOICE_FROM_ADDRESS/.test(response),
         ),
         check('asks-for-a-config-presence-check', () =>
-          /(?:list|describe|secrets?:get|versions? (?:list|access)|present|presence|exists?)[^\n]*(?:secret|env|config)|(?:secret|env|config)[^\n]*(?:list|describe|present|presence|exists?)/i.test(response),
+          /INVOICE_(?:MAIL_API_KEY|FROM_ADDRESS)`?[^\n]{0,80}(?:presen|exist|listed|configured|verified|is set)|(?:presen|exist|list|describe|secrets?:get)[^\n]{0,80}INVOICE_(?:MAIL_API_KEY|FROM_ADDRESS)/i.test(response),
         ),
       ], { failFast: false, onScorerError: 'zero' });
 

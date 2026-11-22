@@ -501,7 +501,7 @@ describe('roast-code deploy config', () => {
           { weight: 3 },
         ),
         check('recommends-an-explicit-memory-value', () =>
-          /memory:\s*['"]?\d+\s*(?:MiB|GiB|MB|GB)|\b\d{3,4}\s*MiB\b|\b[12]\s*GiB\b/i.test(output),
+          /memory:\s*['"]?\d+\s*(?:MiB|GiB|MB|GB)|\b\d{3,4}\s*MiB\b|\b[12]\s*GiB\b|(?:set|add|declare)\s+(?:an?\s+)?explicit[^\n]{0,30}`?memory`?/i.test(output),
           { weight: 2 },
         ),
         check('cites-the-scheduler-lines', () => /schedulers\.ts:\d+/.test(output), { weight: 1 }),
