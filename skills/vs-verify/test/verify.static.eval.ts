@@ -28,7 +28,8 @@ describe('verification status contract', () => {
     expect(VERIFY).toMatch(/name the listing\s+command when it was not run/);
     expect(VERIFY).toMatch(/A smoke or health check\s+that\s+never\s+reads\s+that\s+config\s+proves\s+nothing\s+about\s+it/);
     expect(VERIFY).toMatch(/smoke never read the new config is `WARN` until config\s+presence is shown/);
-    expect(VERIFY).toMatch(/Config shown missing on the live target is `FAIL`, even\s+when the smoke is green/);
+    expect(VERIFY).toMatch(/Read the deployed code even when only a deploy log was\s+handed over, and list each unproven key by name in Gaps/);
+    expect(VERIFY).toMatch(/Config shown\s+missing on the live target is `FAIL`, even\s+when the smoke is green/);
     expect(VERIFY).not.toMatch(/(?:smoke|health check)[^.\n]*(?:passes|green|200)[^.\n]*(?:is|report) `PASS`/i);
   });
 

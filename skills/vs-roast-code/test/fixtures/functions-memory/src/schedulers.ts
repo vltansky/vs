@@ -17,7 +17,7 @@ export const sendVisitReminders = onSchedule(
       .get();
     const batch = db.batch();
     for (const doc of due.docs) {
-      batch.set(db.collection('outbox').doc(`reminder-${doc.id}`), formatReminder(doc.data()));
+      batch.create(db.collection('outbox').doc(`reminder-${doc.id}`), formatReminder(doc.data()));
       batch.update(doc.ref, { reminded: true });
     }
     await batch.commit();
@@ -30,7 +30,7 @@ export const deliverQueuedMessages = onSchedule(
     const db = getFirestore();
     const queued = await db.collection('outbox').where('status', '==', 'queued').limit(50).get();
     for (const doc of queued.docs) {
-      await sendMessage(doc.data());
+      await sendMessage({ ...doc.data(), id: doc.id });
       await doc.ref.update({ status: 'sent', sentAt: new Date() });
     }
   },

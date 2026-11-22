@@ -487,7 +487,7 @@ describe('roast-code deploy config', () => {
 
     await promptOnce(agent,
       '/vs-roast-code Review src/ before we deploy these Cloud Functions to production. ' +
-        'Give me the top 3 issues to fix before merge, ordered by severity, with file:line citations and one-line fix advice. ' +
+        'List the issues to fix before merge, ordered by severity, with file:line citations and one-line fix advice. ' +
         'This is an automated eval — do not ask for confirmation, just deliver the review.',
     );
     const output = [...agent.messages].reverse().find((m) => m.role === 'agent')?.content ?? '';

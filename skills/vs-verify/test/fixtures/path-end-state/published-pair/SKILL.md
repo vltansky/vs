@@ -104,8 +104,9 @@ factory lives in that shared contract, not here.
 - A deploy claim verified only by reachability is `WARN` until artifact
   identity is confirmed.
 - A deploy claim whose smoke never read the new config is `WARN` until config
-  presence is shown. Config shown missing on the live target is `FAIL`, even
-  when the smoke is green.
+  presence is shown. Read the deployed code even when only a deploy log was
+  handed over, and list each unproven key by name in Gaps. Config shown
+  missing on the live target is `FAIL`, even when the smoke is green.
 - Keep logs concise. The result should be a proof summary, not a transcript dump.
 
 ## Status inheritance
