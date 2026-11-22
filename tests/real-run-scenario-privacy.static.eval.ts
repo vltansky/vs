@@ -38,6 +38,8 @@ const SCENARIO_ROOTS = [
     'fixtures',
     'suggestion-project',
   ),
+  path.join(ROOT, 'skills', 'vs-ship-it', 'test', 'fixtures', 'incident-hotfix'),
+  path.join(ROOT, 'skills', 'vs-roast-code', 'test', 'fixtures', 'functions-memory'),
 ];
 
 function listFiles(root: string): string[] {

@@ -1,3 +1,4 @@
+import * as fs from 'fs';
 import * as path from 'path';
 import { check, evaluate } from '@wix/pathgrade';
 import { describe, expect, it } from 'vitest';
@@ -7,6 +8,25 @@ import { createAgent } from '../../vs-internal-shared/test/pathgrade-agent';
 
 const SKILL_DIR = path.resolve(__dirname, '..');
 const EVAL_AGENT = (process.env.PATHGRADE_AGENT ?? 'codex') as 'claude' | 'codex';
+const INCIDENT_FIXTURE = path.join(__dirname, 'fixtures', 'incident-hotfix');
+const INCIDENT_TEMPLATE = fs.readFileSync(
+  path.join(INCIDENT_FIXTURE, '.github', 'pull_request_template.md'),
+  'utf8',
+);
+const TEMPLATE_SECTIONS = [...INCIDENT_TEMPLATE.matchAll(/^#{1,6}\s+(.+?)\s*$/gm)].map((m) => m[1]);
+const TEMPLATE_CHECKS = [...INCIDENT_TEMPLATE.matchAll(/^- \[ \] ([^:<\n]+)/gm)].map((m) => m[1].trim());
+
+function fencedBody(output: string) {
+  return (output.match(/^(\x60{3,})(?:markdown|md)?[ \t]*\n([\s\S]*?)^\1[ \t]*$/im)?.[2] ?? output).trim();
+}
+
+// Each template heading as found in the body, in body order; -1 when missing.
+function sectionStarts(body: string) {
+  return TEMPLATE_SECTIONS.map((name) => {
+    const escaped = name.replace(/[.*+?^${}()|[\]\\/]/g, '\\$&');
+    return body.search(new RegExp(`^#{1,6}\\s+${escaped}\\s*$`, 'm'));
+  });
+}
 
 function assistantOutput(log: Array<{ type: string; assistant_message?: string }>) {
   return log
@@ -75,6 +95,39 @@ The team membership page used to let an admin remove the last owner. Now it reje
         }),
       ], { failFast: false, onScorerError: 'zero' });
       expect(result.score, draft).toBe(1);
+    } finally {
+      await agent.dispose();
+    }
+  });
+
+  // mt-reports failure class: a hurried incident hotfix PR shipped without required
+  // template sections. Urgency must not shrink the repo's PR template.
+  it('keeps every repo template section in a hurried incident hotfix', async () => {
+    const agent = await createAgent({ agent: EVAL_AGENT, timeout: 360, skillDir: SKILL_DIR, workspace: INCIDENT_FIXTURE });
+    try {
+      await promptOnce(agent, `Use $vs-ship-it. Production incident, payments are failing right now. Since the last deploy the payment provider sends \`payment.pending\` events without \`data\`, and the webhook threw a 500 on every one, so the provider is retrying and queuing payments. The hotfix is already committed on branch \`hotfix/webhook-missing-data\`: src/payments-webhook.ts now answers 400 for an event without \`data.paymentId\` instead of throwing. No tests were added yet; the on-call engineer replayed one captured event locally and got 400 instead of 500.
+We're mid-incident, so keep it short and get it up fast. Read the skill and its required PR-body reference, then return just the PR body in one fenced Markdown block. Do not run checks, capture evidence, or publish.`);
+      let body = '';
+      const result = await evaluate(agent, [
+        check('keeps-every-template-section-in-order', ({ log }) => {
+          body = fencedBody(assistantOutput(log));
+          const at = sectionStarts(body);
+          return at.every((i) => i >= 0) && at.every((i, k) => k === 0 || i > at[k - 1]);
+        }),
+        check('keeps-template-checklist-items', () =>
+          TEMPLATE_CHECKS.every((item) => new RegExp(`^\\s*- \\[[ xX]\\] ${item.replace(/[.*+?^${}()|[\]\\/]/g, '\\$&')}`, 'm').test(body)),
+        ),
+        check('fills-or-marks-every-section', () => {
+          const at = sectionStarts(body);
+          if (at.some((i) => i < 0)) return false;
+          return at.every((start, k) => {
+            const end = k + 1 < at.length ? at[k + 1] : body.length;
+            const text = body.slice(start, end).split('\n').slice(1).join('\n').replace(/<!--[\s\S]*?-->/g, '').trim();
+            return text.length > 0;
+          });
+        }),
+      ], { failFast: false, onScorerError: 'zero' });
+      expect(result.score, body).toBe(1);
     } finally {
       await agent.dispose();
     }

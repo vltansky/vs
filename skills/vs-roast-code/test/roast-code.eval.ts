@@ -54,6 +54,7 @@ Structural correctness (0-0.2):
 const REDACTION_FIXTURE = path.join(__dirname, 'fixtures', 'secret-code');
 const PRIORITY_FIXTURE = path.join(__dirname, 'fixtures', 'prioritized-review');
 const SMALL_CHANGE_FIXTURE = path.join(__dirname, 'fixtures', 'small-change');
+const FUNCTIONS_MEMORY_FIXTURE = path.join(__dirname, 'fixtures', 'functions-memory');
 
 // ──────────────────────────────────────────────────────────────────
 // Proportionality test — a small, low-risk diff gets a small review
@@ -473,6 +474,46 @@ describe('roast-code proportionality', () => {
     );
 
     expect(result.score).toBeGreaterThan(0.6);
+    await agent.dispose();
+  });
+});
+
+// mt-reports failure class: scheduled Cloud Functions shipped on the platform
+// default memory and were OOM-killed in production. A review must flag the
+// functions that declare no explicit memory limit, not the one that does.
+describe('roast-code deploy config', () => {
+  it('flags Cloud Functions that run on the default memory limit', async () => {
+    const agent = await createRoastAgent(FUNCTIONS_MEMORY_FIXTURE);
+
+    await promptOnce(agent,
+      '/vs-roast-code Review src/ before we deploy these Cloud Functions to production. ' +
+        'Give me the top 3 issues to fix before merge, ordered by severity, with file:line citations and one-line fix advice. ' +
+        'This is an automated eval — do not ask for confirmation, just deliver the review.',
+    );
+    const output = [...agent.messages].reverse().find((m) => m.role === 'agent')?.content ?? '';
+
+    const result = await evaluate(
+      agent,
+      [
+        check('flags-missing-memory-limit', () =>
+          /schedulers\.ts/.test(output) &&
+          /(?:no|missing|without|unset|implicit|default)[^\n]{0,80}memory|memory[^\n]{0,80}(?:default|missing|not set|unset|OOM|limit)/i.test(output),
+          { weight: 3 },
+        ),
+        check('recommends-an-explicit-memory-value', () =>
+          /memory:\s*['"]?\d+\s*(?:MiB|GiB|MB|GB)|\b\d{3,4}\s*MiB\b|\b[12]\s*GiB\b/i.test(output),
+          { weight: 2 },
+        ),
+        check('cites-the-scheduler-lines', () => /schedulers\.ts:\d+/.test(output), { weight: 1 }),
+        check('does-not-blame-the-explicit-function', () =>
+          !/reconcile\.ts[^\n]{0,120}(?:no|missing|without|default)[^\n]{0,40}memory/i.test(output),
+          { weight: 1 },
+        ),
+      ],
+      { failFast: false, onScorerError: 'zero' },
+    );
+
+    expect(result.score, output).toBeGreaterThanOrEqual(0.85);
     await agent.dispose();
   });
 });
