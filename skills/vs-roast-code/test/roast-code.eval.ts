@@ -497,7 +497,7 @@ describe('roast-code deploy config', () => {
       [
         check('flags-missing-memory-limit', () =>
           /schedulers\.ts/.test(output) &&
-          /(?:no|missing|without|unset|implicit|default)[^\n]{0,80}memory|memory[^\n]{0,80}(?:default|missing|not set|unset|OOM|limit)/i.test(output),
+          /(?:explicit|default|no|missing|without(?: an?)?(?: explicit)?|unset)\s+`?memory`?|memory\s+(?:limit|setting|option|config)|`memory`/i.test(output),
           { weight: 3 },
         ),
         check('recommends-an-explicit-memory-value', () =>

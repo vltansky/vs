@@ -182,6 +182,11 @@ used, and give the exact re-authentication step. Do not retry unchanged auth.
 
 Read and follow [PR body format](references/pr-body.md) before writing the body.
 
+Find the repo PR template before drafting:
+`find . -maxdepth 3 -ipath '*pull_request_template*' -not -path './node_modules/*'`.
+When one exists, every section and checklist item it has stays in the body,
+even for an incident or hotfix (**Repo PR template first** in the reference).
+
 ### Step 3: Prepare screenshots and video
 
 For visible UI changes, matched Before/After screenshots are required.

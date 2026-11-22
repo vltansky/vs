@@ -23,8 +23,10 @@ describe('verification status contract', () => {
 
   it('requires config presence, not a green smoke, for deploy claims', () => {
     expect(VERIFY).toMatch(/\*\*Config presence\*\* - for deploy claims, prove the config the change reads/);
-    expect(VERIFY).toMatch(/list it from the live revision or secret store \(names and metadata only,\s+never values\)/);
-    expect(VERIFY).toMatch(/A smoke or health check\s+that never reads that config proves nothing about it/);
+    expect(VERIFY).toMatch(/Grep the changed code for each key[\s\S]{0,80}name every key in Evidence or Gaps/);
+    expect(VERIFY).toMatch(/listing\s+it from the live revision or secret store \(names and metadata only, never\s+values\)/);
+    expect(VERIFY).toMatch(/name the listing\s+command when it was not run/);
+    expect(VERIFY).toMatch(/A smoke or health check\s+that\s+never\s+reads\s+that\s+config\s+proves\s+nothing\s+about\s+it/);
     expect(VERIFY).toMatch(/smoke never read the new config is `WARN` until config\s+presence is shown/);
     expect(VERIFY).toMatch(/Config shown missing on the live target is `FAIL`, even\s+when the smoke is green/);
     expect(VERIFY).not.toMatch(/(?:smoke|health check)[^.\n]*(?:passes|green|200)[^.\n]*(?:is|report) `PASS`/i);

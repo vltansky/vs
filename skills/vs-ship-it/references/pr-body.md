@@ -5,8 +5,8 @@ then show the primary Before/After proof. Follow it with one `**Risk:**` paragra
 and one collapsed expander. Add a short visible caption only where the proof
 needs explanation. Use line breaks when they help each side read clearly. Put recordings,
 additional comparisons, verification, template fields, and the walkthrough
-inside that same expander. Name the contents in the summary. Skip empty sections
-and avoid repeating the same claim in the sentence, captions, and details.
+inside that same expander. Name the contents in the summary. Skip empty vs
+sections (never a repo template section) and avoid repeating the same claim in the sentence, captions, and details.
 
 **Merge blocker.** Move the same risk paragraph to the very top only when a known
 condition must be resolved before merge. Start it with

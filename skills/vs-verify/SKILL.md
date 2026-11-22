@@ -55,10 +55,13 @@ enough; do not run the entire suite by reflex.
    the built output. Reachability (HTTP 200) alone proves nothing about which
    build is live.
 8. **Config presence** - for deploy claims, prove the config the change reads
-   (env vars, secrets, flags, resource names) exists on the deployed target:
-   list it from the live revision or secret store (names and metadata only,
-   never values), or exercise the path that reads it. A smoke or health check
-   that never reads that config proves nothing about it.
+   (env vars, secrets, flags, resource names) exists on the deployed target.
+   Grep the changed code for each key (`process.env.X`, `defineSecret('X')`,
+   config params) and name every key in Evidence or Gaps. Prove it by listing
+   it from the live revision or secret store (names and metadata only, never
+   values) or by exercising the path that reads it, and name the listing
+   command when it was not run. A smoke or health check that never reads that
+   config proves nothing about it.
 
 ## User path and observable end state
 
