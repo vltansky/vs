@@ -16,8 +16,12 @@ const INCIDENT_TEMPLATE = fs.readFileSync(
 const TEMPLATE_SECTIONS = [...INCIDENT_TEMPLATE.matchAll(/^#{1,6}\s+(.+?)\s*$/gm)].map((m) => m[1]);
 const TEMPLATE_CHECKS = [...INCIDENT_TEMPLATE.matchAll(/^- \[ \] ([^:<\n]+)/gm)].map((m) => m[1].trim());
 
+// The body the agent returned: the fenced block holding the most template headings, or the
+// whole answer when an inner fence (```diff inside ```) breaks the outer one.
 function fencedBody(output: string) {
-  return (output.match(/^(\x60{3,})(?:markdown|md)?[ \t]*\n([\s\S]*?)^\1[ \t]*$/im)?.[2] ?? output).trim();
+  const blocks = [...output.matchAll(/^(\x60{3,})[^\n]*\n([\s\S]*?)^\1[ \t]*$/gm)].map((m) => m[2]);
+  const found = (text: string) => sectionStarts(text).filter((i) => i >= 0).length;
+  return [...blocks, output].reduce((best, text) => (found(text) > found(best) ? text : best), blocks[0] ?? output).trim();
 }
 
 // Each template heading as found in the body, in body order; -1 when missing.
