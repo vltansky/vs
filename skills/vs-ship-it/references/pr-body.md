@@ -1,155 +1,116 @@
 ### Step 2: Prepare the PR description
 
-**Compact default.** Give each fact one home. Use the two-line TL;DR, then
-`## Review map`, `## Change and proof`, and `## Verification`.
-Aim for 60 visible lines for ordinary PRs; media and necessary security,
-contract, migration, rollout, or recovery detail are never cut to meet a budget.
-Review map combines risk badges, surface chips, scope and review pointers.
-Change and proof owns the scenario, root cause, matched evidence and at most
-three implementation bullets. Verification combines check results, test intent
-and remaining gaps. Do not repeat the comparison in User Impact, Evidence,
-Tests, or a separate implementation section. Replace stale verification history
-with current results; retain revision provenance only where it matters.
+**Proof first.** Write one plain sentence that says what changes and for whom,
+then show the primary Before/After proof. Follow it with one `**Risk:**` paragraph
+and one collapsed expander. Add a short visible caption only where the proof
+needs explanation. Use line breaks when they help each side read clearly. Put recordings,
+additional comparisons, verification, template fields, and the walkthrough
+inside that same expander. Name the contents in the summary. Skip empty sections
+and avoid repeating the same claim in the sentence, captions, and details.
+
+**Merge blocker.** Move the same risk paragraph to the very top only when a known
+condition must be resolved before merge. Start it with
+`**Risk:** Block merge until …` and end that action row with `<br>`.
+Put both badges on the next row and end it with `<br>`. Put the consequence
+or rollback guidance on the third row. For example:
+
+```markdown
+**Risk:** Block merge until staging confirms staff can still sign in.<br>
+<img alt="Two-way door" height="20" src="https://raw.githubusercontent.com/vltansky/vs/master/skills/vs-ship-it/assets/badge-two-way-door.svg"> <img alt="Narrow blast radius" height="20" src="https://raw.githubusercontent.com/vltansky/vs/master/skills/vs-ship-it/assets/badge-narrow-blast.svg"><br>
+A revert restores the previous staff sign-in rules.
+```
+
+A risky change, a pending routine check, or a post-merge follow-up alone does
+not move the risk line. Keep the summary sentence immediately before the proof.
+Put the verification procedure inside the expander when the blocker needs steps.
 
 **Retention before compression.** Make a private fact ledger from the source:
 conditions, failure consequences, unchanged behavior, recovery/deploy effects,
 evidence limits, media URLs and revision mapping, and real rejected alternatives.
-Check the final body against it. Keep each fact once; fold secondary rationale
-rather than deleting it to meet a bullet or line budget. Retain exact commands,
-outputs and security constraints; do not infer a new assurance from a shorter summary.
+Check the final body against it. Keep each fact once. Compare the full-body word count
+for a rewrite and keep it no longer than the source unless missing required proof
+or risk detail justifies the increase. Unknown templates or missing inputs are not reviewer tasks.
 
-**Do not expand a rewrite to fill the format.** Compare the full-body word count
-before finalizing: keep the rewrite no longer than the source. Growth is allowed
-only for mandatory proof, risk or template detail the source lacked; name that
-exception in the handoff. Shorten boilerplate first, never required evidence.
-For historical inputs, state provenance once outside the body instead of repeating
-it in every result. Preserve known revision limits where they qualify a claim.
-Unknown templates or missing inputs are not reviewer tasks; do not invent gaps,
-checklists or verification results merely because the supplied context lacks them.
-Keep actionable, source-supported unverified behavior in Verification.
+Write the description from the scoped diff, conversation, and available evidence.
+Do not ask the user to write or approve PR copy. Do not echo the PR title.
 
-**Final shape check.** Use `**Before:**` and `**After:**` outside code fences;
-table-only proof uses the plain headers `| Before | After |` without colons.
-Keep the final collapsed Walkthrough for multiple architectural areas, even
-when compressing. Check these directly in description-only replays; never run
-the git-aware gate against an unrelated checkout to validate a historical PR.
+**Repo PR template first.** Before writing, look for the target repo template,
+case-insensitively, in this order: `.github/pull_request_template.md`,
+`.github/PULL_REQUEST_TEMPLATE.md`, `PULL_REQUEST_TEMPLATE.md`,
+`docs/pull_request_template.md`, then `.github/PULL_REQUEST_TEMPLATE/*.md`.
 
-Write the description directly from the live conversation, scoped diff, runtime
-evidence, and existing test results. Do not ask the user to write or approve PR
-copy. If motivation cannot be established honestly, describe the observable
-problem without inventing business impact; omit inapplicable optional detail.
-
-**TL;DR first.** The first thing in every PR body is a two-line TL;DR, above
-Review map. Line 1 says what changes and for whom; line 2 says the effect or
-result. Write exactly 2 short plain lines (3 to 20 words each) in STE
-style, with no heading or only a lone `**TL;DR**` label above them. No links (not even a bare `github.com/…`),
-no code, no badges, no HTML, no list markers, no bold or italic inside the lines. Do not echo the PR title: say
-what it means for the reader. With a repo template, the TL;DR still goes
-first, before the template content. `pr-media-gate.mjs` fails a body whose
-first non-empty content is not this block.
-
-**Repo PR template first.** Before you write the body, look for the target
-repo's PR template in this order, case-insensitive:
-`.github/pull_request_template.md`, `.github/PULL_REQUEST_TEMPLATE.md`,
-`PULL_REQUEST_TEMPLATE.md`, `docs/pull_request_template.md`, then
-`.github/PULL_REQUEST_TEMPLATE/*.md`.
-
-- **Exactly one template:** keep all of its headings and checklists, in its
-  order, and fill them. A section is any `#`–`######` heading or a bold-label
-  line (`**Notes:**`). Put a vs section into a template heading only when they
-  clearly match; append the other vs sections after the template content
-  (Walkthrough stays last). Never delete a template section: write `N/A` under
-  one that does not apply. Keep template checkboxes unchecked unless the diff or
+- **Exactly one template:** keep its headings and checklist items in order
+  inside the single expander. A section is any `#`–`######` heading or bold-label
+  line (`**Notes:**`). Use matching headings for supporting content (for
+  example `## Evidence` can hold verification). Point a required summary,
+  risk, or proof section to the material above when it would repeat it.
+  Keep inapplicable sections with `N/A`. Keep template checkboxes unchecked unless the diff or
   evidence proves them. Do not ask about a single template.
 - **Several templates (a directory), none clearly fits:** ask once with the
   template names as options. This is the only question ship-it may ask.
-- **No template:** use the vs body below as is.
+- **No template:** use the vs body below.
 
-Pass the template you used to the gate (`--template <path>`) so a dropped or
-reordered template section, or a dropped checklist item, fails it. A template
-with no sections exits 2 (could not check). The locked vs sections stay required either way.
+Pass the template used as `--template <path>`. A missing or reordered heading,
+or a dropped checklist item, fails the gate. Do not append a second template.
 
-**Linked issue and spec.** Under **Change and proof**, after the STE
-scenario, add one separate line (never part of the scenario prose) only when
-something is found: `Closes #N` and a link to the shape-it spec, ADR, or plan
-this PR implements. Take `#N` from the branch name (`fix/123-x`), commit
+**Linked issue and spec.** Put them on one separate line inside the expander.
+Take the issue number from the branch name (`fix/123-x`), commit
 messages, or the shape-it/build-it handoff. Never invent an issue; if nothing
 is found, skip the line. Default to `Refs #N`. Use `Closes` only when this PR
-meets every acceptance criterion in the issue: read it with
-`gh issue view <N>` first. Pin the spec link to the head SHA like the
-Walkthrough links (`blob/<HEAD_SHA>/<path>`) and refresh it with them;
-`pr-media-gate.mjs` fails an unpinned repo file link under this section.
+meets every acceptance criterion in the issue. Read it with `gh issue view <N>`.
+Pin the spec link to the head SHA and refresh it alongside walkthrough links.
+Use the Markdown link label `[Spec]` so the gate can recognize and pin it.
 
-Under **Change and proof**, write a short ASD-STE100 scenario
-flow: **actor → attempt → block**. One perspective per PR — **user/admin** or
-**system**; either is OK (do not lock the skill to one forever). Keep it to one
-tight line (or a single arrow chain), not a multi-paragraph prose wall.
+**Root cause (bugfix PRs only).** A bugfix has a branch starting
+with `fix/`, `fix-`, or `hotfix/` (including after `<user>/`), a PR title or
+FIRST commit subject after the merge-base with a `fix:` / `fix(<scope>):`
+conventional prefix, a linked issue labeled `bug`, or ship-it was entered from a `/vs-bugfix` handoff.
+Put `Root cause: <mechanism>` inside the expander. Explain the failure
+mechanism in at least 4 words, never a `<…>` placeholder or TBD/TODO/unknown/N/A.
+From `/vs-bugfix`, reuse its `**Root cause:**` sentence as is. Non-bug PRs skip the line.
+The gate auto-detects a bugfix from the head branch, `--title "<PR title>"`,
+or the first commit subject. Later `fix:` commits (CI repairs, review fixes) never count.
+Pass `--bugfix` for a bug-label or vs-bugfix handoff, and use `--bugfix=false` only when
+a `fix` name does not represent a bug fix. When a repo template asks for Why,
+write the problem from one user/admin or system perspective in ASD-STE100
+(actor → attempt → block). Do not name the fix in that block. Example:
+Agent sends `POST /api/assistant/preview` → request fails → only a browser session works.
+From the admin perspective: Admin needs an agent to call Playground preview →
+agent has no browser session → call is blocked.
 
-**No How in Why.** "Why" means only the opening scenario line under
-**Change and proof**: **actor → attempt → block**. Do not name the fix in that block (mintable tokens,
-rewrite, JSON shape, OAuth piggyback, collections, new routes, "this PR adds …"
-as the solution). Mechanism How stays in **Endpoint** / **Schema** / **UI**
-Before→After — those fenced proofs stay primary alongside Surfaces chips and
-Door/Blast bullets. Use up to three implementation bullets only when the proof does not explain the mechanism.
+Make the description visual first. Every PR description must include **Before** and **After**
+for the same actor, input, and precondition. State the concrete
+result in each caption. Put `**Before:**` and `**After:**` outside code fences, or
+use the plain headers `| Before | After |`.
+Pick the smallest visual that shows the change. For behavior changes, prefer
+matched captures, exact output, or the same focused regression failing on base
+and passing on head. Show the decisive assertion or output. For a structural
+change, show the smallest diff, call tree, or diagram that explains the change.
+When you have source evidence alone, label it **Source-derived**. Put secondary
+evidence in the expander.
 
-**Root cause (bugfix PRs only).** A PR is a bugfix when the branch starts
-with `fix/`, `fix-`, or `hotfix/` (also after `<user>/`), the PR title or the
-FIRST commit subject after the merge-base has the `fix:` / `fix(<scope>):`
-conventional prefix, the linked issue is labeled `bug`, or
-ship-it was entered from a `/vs-bugfix` handoff. For a bugfix, add one line
-after the STE scenario (and after the Refs/spec line): `Root cause: <mechanism>`
-— what in the code made the bug happen, at least 4 words, never a `<…>`
-placeholder or TBD/TODO/unknown/N/A. From a `/vs-bugfix` handoff, reuse its
-`**Root cause:**` sentence as is. The root-cause sentence explains the failure
-mechanism; proof and implementation bullets explain the repair. The scenario itself still has no How.
-Non-bug PRs skip the line. `pr-media-gate.mjs` auto-detects a bugfix from the
-head branch, `--title "<PR title>"` (ship-it always passes it), or the first
-commit subject; later `fix:` commits (CI repairs, review fixes) never count; pass `--bugfix` for a bug-label or vs-bugfix
-handoff, and `--bugfix=false` only when a `fix` name is not a bug fix.
-A repo template with no Change and proof heading: put the scenario and
-Root cause in its description section. Preserve template headings and pass the
-template to the gate; if the gate needs a semantic heading, append Change and
-proof unless the template forbids extras. Never misclassify a real bugfix just
-to bypass its root-cause check.
-
-Examples (either perspective; pick one for the PR):
-
-- System: Agent sends `POST /api/assistant/preview` → request fails → only a browser Firebase Auth session works.
-- User/admin: Admin needs an agent to call Playground preview → agent has no browser session → call is blocked.
-
-Make the description visual first. A reviewer should see matched
-Before/After proof (Endpoint / Schema / UI) before reading mechanism prose, and
-anything enumerable goes in bullets, a table, or a code block instead of a
-paragraph — no prose walls anywhere in the body. Keep key-hunk `diff` short;
-fold longer captures into details.
-
-Every PR description must include **Before** and **After**:
-compare the same actor, input, and precondition, then state the concrete result
-on each side and why the difference matters. Choose the proof shape from what
-actually changed:
-
-| What changed | Proof to embed |
+| What changed | Primary proof |
 | --- | --- |
-| Static UI state | Matched screenshots at the same viewport and data |
-| Functional UI behavior, including clicks, timing, dragging, multi-step interaction | Matched Before/After screenshots plus short Before/After videos of each flow |
+| UI | Matched screenshots, preferably side by side. Functional UI also needs matched recordings in the expander. |
 | CLI, API, log, or error output | Paired output blocks copied verbatim from the same input |
 | A command, flags or args, config, or a small code snippet | One fenced `diff`, never separate Before and After blocks (see Text diffs) |
-| Endpoint, handler, or RPC behavior | **Endpoint** label, then one request and both responses to that same request (see Endpoint and schema proof) |
-| Schema, migration, or wire contract | **Schema** label, then a fenced `diff` of the resulting shape before and after |
-| HTML prototype or interactive demo | A hosted link the reviewer can click (see Prototype links) |
-| Numbers such as latency, size, count, rate | A table that shows both operands beside any derived figure (`240 ms → 90 ms`, not a bare `2.7× faster`) |
-| Multi-hop control or data flow, ordering, topology | Optional: a fenced `mermaid` diagram of the changed path, only when it shows what bullets and the key hunk do not; never redraw one before/after decision |
-| A decisive logic change | A fenced `diff` block of the key hunk, trimmed to the lines that carry the change |
+| Endpoint or Schema | One request with both responses, or a diff of the resulting schema |
+| Numbers such as latency, size, count, rate | A table with both operands beside any derived figure |
+| Multi-hop flow or ordering | A Mermaid diagram when needed to see the behavior |
+| Decisive logic | A fenced `diff` block of the key hunk |
 
 **Text diffs.** When the change itself is text (a command, flags, config, a
-short snippet), write `**Before** <old> **After** <new>` on one line (the gate
-needs both labels), then one `diff`. Split long lines one flag, arg or key per
+short snippet), write `**Before** <old>` and `**After** <new>` on separate lines
+when that reads better. The gate needs both labels. Follow them with one `diff`.
+Split long lines one flag, arg or key per
 line, flag and value together (`\` continuations for commands), so `-`/`+` mark
 only what changed and the rest stays context. When an edit moves a trailing
 `\` or JSON comma, mark that neighbor line too. UI and user-visible output keep
 the separate Before and After proof.
 
-**Before** loads user and project settings. **After** loads user settings only.
+**Before:** Loads user and project settings.
+
+**After:** Loads user settings only.
 
 ```diff
  claude --print --output-format stream-json \
@@ -158,201 +119,100 @@ the separate Before and After proof.
    --no-session-persistence
 ```
 
+When removing the last JSON key, the preceding line changes too:
+
+```diff
+ {
+-  "schedule": ["weekly"],
+-  "automerge": true
++  "schedule": ["weekly"]
+ }
+```
+
 Put **Source-derived** after the diff, never inside the Before/After label.
-
-Prefer a compact comparison table for several outcomes. Neither a table nor a
-Mermaid diagram replaces evidence. Label source-derived comparisons
-**Source-derived**, not observed or tested.
-
-Borrow the discipline of the explaining skills and apply it inline; do not
-spawn them as shipping phases. From `vs-before-after`: same setup on both
-sides, each claim labeled observed, tested, or source-derived, and the relevant
-behavior that intentionally stayed the same. From `vs-show-me`: conclusion
-first, structure drawn as a diagram rather than described, and no metric or
-status the evidence does not contain. From `vs-eli5`: when the mechanism is not
-obvious, one familiar analogy mapped to the real parts, not a glossary.
-
-Write the PR body prose in `vs-write` STE mode. The reviewer reads risk,
-the problem, the proof, and remaining gaps once, under time pressure. Pointer
-only: [../../vs-internal-shared/references/ste-writing.md](../../vs-internal-shared/references/ste-writing.md). Before
+Prefer a compact comparison table when there are multiple decisive outcomes.
+Label proof observed, tested, or source-derived. Claim no metric or status the
+evidence does not contain. Never paste the whole diff.
+Borrow this discipline from the explaining skills and apply it inline; do not
+spawn them as shipping phases. Write in `vs-write` STE mode. Pointer only:
+[STE guide](../../vs-internal-shared/references/ste-writing.md). Before
 `gh pr create`, run `node skills/vs-write/scripts/check-ste.mjs "$BODY_FILE"`.
-Exit 1: split or rewrite the reported sentences, then run it again. Code,
-output blocks, tables, and technical names stay exactly as they are.
+Fix flagged sentences and rerun. Preserve exact code, outputs, and technical names.
 
-Keep the first screen short. Fold anything longer than about twenty lines — a
-full output capture, a wider diff, a second video — into
-`<details><summary>…</summary></details>` so the proof stays above the fold.
-Never paste the whole diff; the Files tab already has it. The first screen
-answers what was wrong, why this repair is appropriate, and what visibly
-changed. Use this structure:
+The title is passed separately as `--title`. The body starts with the sentence,
+or the risk line when it names a merge blocker. Retain the invisible format marker
+after the expander summary so later refreshes apply the same layout. Start with
+this example and omit optional rows without evidence.
 
 ````markdown
-<feature_area>: <Title> (80 chars max; this line is the `--title`, and the
-body file starts at the TL;DR)
+<one sentence that says what changes and for whom>
 
-**TL;DR**
-<what changes, for whom — one short plain line>
-<the effect or result — one short plain line>
+| Before | After |
+| --- | --- |
+| ![Previous inspector stays assigned](<hosted-before-screenshot>) | ![New inspector is assigned](<hosted-after-screenshot>) |
 
-## Review map
+**Risk:** <img alt="One-way door" height="20" src="https://raw.githubusercontent.com/vltansky/vs/master/skills/vs-ship-it/assets/badge-one-way-door.svg"> <img alt="Narrow blast radius" height="20" src="https://raw.githubusercontent.com/vltansky/vs/master/skills/vs-ship-it/assets/badge-narrow-blast.svg"><br>
+Reverting the Reportan Web editor won't undo saved assignments.
 
-<img alt="Two-way door: easy to revert" src="https://raw.githubusercontent.com/vltansky/vs/master/skills/vs-ship-it/assets/badge-two-way-door.svg"> <img alt="Narrow blast radius: contained" src="https://raw.githubusercontent.com/vltansky/vs/master/skills/vs-ship-it/assets/badge-narrow-blast.svg">
-<img alt="Surface: Endpoint · 2 modules" src="https://raw.githubusercontent.com/vltansky/vs/master/skills/vs-ship-it/assets/badge-surface-endpoint-2.svg">
+<details>
+<summary>Recordings and verification</summary>
 
-<!-- Pick matching risk badges. Omit Surfaces when paths prove no product surface
-     (skill-only / docs-only); Infra only on infra-only PRs. -->
-- **Risk:** <revert/recovery cost, who can break, adjacent surfaces untouched>
-- **Scope:** <deployable modules; no file inventory>
-- **Review:** <one or two paths and the human decision, omit for trivial changes>
-
-## Change and proof
-
-<Short STE100 scenario: actor → attempt → block; no How in the scenario.>
+<!-- vs:proof-first -->
 
 Refs #<N> · [Spec](https://github.com/<owner>/<repo>/blob/<HEAD_SHA>/<spec path>)
 
 Root cause: <mechanism that made the bug happen>
 
-<!-- Issue/spec only when found; root cause only for bugfixes. -->
-**Before** <same-state setup and what to notice>
+**Before recording**
 
-![Before: <result>](<hosted-before-screenshot>)
+<hosted-before-video-URL on its own bare line>
 
-<hosted-before-video-URL on its own bare line for functional UI changes>
+**After recording**
 
-**After** <same-state setup and what changed>
-
-![After: <result>](<hosted-after-screenshot>)
-
-<hosted-after-video-URL on its own bare line for functional UI changes>
-
-<!-- For API/CLI use paired captured output; Schema, commands, config and
-     snippets use one fenced diff.
-     Label source-derived evidence. Screenshots and videos are not substitutes. -->
-- <one to three implementation facts the proof does not already explain>
+<hosted-after-video-URL on its own bare line>
 
 ## Verification
 
-- **Automated:** `<command>` — <result; reuse fresh checks>
-- **Coverage:** <changed tests grouped by behavior; deleted guards included>
+- **Automated:** `<command>` passed.
+- **Coverage:** <changed tests grouped by behavior, including deleted guards>
 - **Not covered:**
-  - [ ] <action the reviewer runs> — <expected result>
-- **Still unverified:** <exact blocker, only when one remains>
+  - [ ] <action the reviewer runs and expected result>
 
-<!-- Red checks only: list each failed check once, using its evidence class.
+<!-- For failed checks, keep one evidence class per check and link the baseline when available.
   - New: `<check>` — <failure> ([base run](<base run URL>))
   - Already failing on base: `<check>` — <failure> ([base run](<base run URL>))
   - Environment: `<check>` — <allowlisted reason and log line>
   - Unknown: `<check>` — <why no baseline>
 -->
 
-<!-- From the diff only; no new runs. About 5 lines max for coverage and gaps.
-     No manual gaps: **Not covered:** none. No tests changed: warn here.
-     Fold long output, real alternatives, rollout and multi-area Walkthrough
-     only when they add review value. -->
+</details>
 ````
 
-Drop any optional VS sample row or block the evidence does not fill; an empty
-diagram or a table of one row is worse than prose. **Merge risk** is not
-droppable: it is how the reviewer decides how much attention this PR deserves.
+### Risk and scope
 
-Classify merge risk from the scoped diff, never from the change's intent:
+Classify from the scoped diff. Use the one risk paragraph to explain who can be
+affected and what a revert or recovery can do. Two-way means a revert restores
+the prior behavior. One-way means an effect can outlive the revert, as with data
+writes, released contracts, permissions or customer sends. Name the recovery
+path for irreversible or broad changes. Say when it is unknown. The line is
+required even for low-risk changes. Keep supporting scope, rollback steps, and
+rollout instructions inside the expander.
 
-| Signal in the diff | Door | Reason |
-| --- | --- | --- |
-| Schema migration, data backfill, destructive write, deletion | One-way | Reverting the code does not revert the data |
-| Published artifact, release, public API or wire-contract change | One-way | Consumers pin the old shape |
-| Auth/permission changes, billing writes, or side effects on send | One-way | The effect escapes before a revert lands |
-| Behavior behind a flag, internal refactor, copy, styling, tests | Two-way | `git revert` restores the previous behavior |
-
-Meanings stay literal. **Two-way** = easy to revert. **One-way** = hard to
-reverse — review carefully. Never map one-way to "safe to merge". Blast radius
-is a separate axis from the door: a two-way change can still have a wide blast.
-
-State the blast radius as who breaks and how widely, not as a severity word:
-one route, one command, every caller of a shared helper, every tenant. Name the
-adjacent surfaces the change does **not** touch — the bounded half is what lets
-a reviewer skip the rest. When the diff is one-way or broad, say what makes it
-recoverable (flag, staged rollout, backup, reversible migration) or state that
-nothing does. Use compact Risk and Scope bullets beneath the badges. If the classification is
-uncertain, write the uncertainty rather than the reassuring guess.
-
-### Merge-risk badges
-
-Under **Review map**, place the matching door and blast badges together on one
-line, then the surface chips on one line. Supporting **Risk**, **Scope**, and
-**Review** bullets explain the labels once. No separate Merge risk or Surfaces
-section is emitted. Keep the existing catalog URLs and accessible alt text.
-
-Door / Blast catalog (committed under `skills/vs-ship-it/assets/`, generated by
-`scripts/generate-badges.mts`):
-
-| Badge | When | File | Alt |
-| --- | --- | --- | --- |
-| Two-way door | Door is two-way | `badge-two-way-door.svg` | Two-way door: easy to revert |
-| One-way door | Door is one-way | `badge-one-way-door.svg` | One-way door: hard to reverse — review carefully |
-| Wide blast | Blast radius is wide / many consumers | `badge-wide-blast.svg` | Wide blast radius: many consumers |
-| Narrow blast | Blast radius is narrow / contained | `badge-narrow-blast.svg` | Narrow blast radius: contained |
-
-Each badge carries its own background, so one file reads in GitHub light and
-dark mode; no `<picture>` pair is needed. Use stable `raw.githubusercontent.com`
-URLs against the master path:
-
-`https://raw.githubusercontent.com/vltansky/vs/master/skills/vs-ship-it/assets/<file>`
-
-PR description bodies on github.com do not reliably resolve relative repo paths,
-so prefer these absolute raw URLs. They render after the assets land on
-`master`. Embed the door badge that matches the door classification; embed the wide-blast
-badge only when blast is wide, and the narrow-blast badge otherwise. Door and
-Blast badges classify risk and are not visual proof: `pr-media-gate.mjs` does not
-count them (Surfaces chips are also excluded from media counts). Do not invent
-other badges or hand-edit the SVGs; change the generator and rerun it.
+Embed one door badge (`badge-one-way-door.svg` or `badge-two-way-door.svg`) and
+one blast-radius badge (`badge-wide-blast.svg` or `badge-narrow-blast.svg`)
+on one rendered line in that paragraph. Put `<br>` after both badges and place
+the risk explanation below. Use accessible alt text and the published URLs
+from the example. Keep the rendered rows in one Markdown paragraph.
 
 ### Surfaces
 
-Surfaces are proof selectors **plus** a deployable-module inventory — not risk art. Door and Blast own merge risk; Surfaces never replace them. Omit Surfaces
-when paths prove no product surface and the PR is not solely Infra (skill-only /
-docs-only) — never invent a product stamp to fill the section. No separate
-**Affected modules** section: chips + scope bullets live under `## Review map`.
-
-Shape (locked):
-
-1. Kind-colored SVG chips on **ONE line** (space-separated `<img>`s).
-2. The **Scope** bullet names the **deployable modules**, grouped if useful.
-   Optional `(Endpoint)` / `(Schema)` / `(UI)` / `(CLI)` / `(MCP)` / `(Infra)` tags.
-
-**Count on chip** = number of distinct deployable modules for that kind (not
-severity, files, or blast). Emit `badge-surface-{kind}-{n}.svg` for
-`kind ∈ endpoint|schema|ui|cli|mcp|infra` and `n = 1..6` (black body, kind
-accent strip, kind-colored count pill). Raw master URLs match door/blast:
-
-`https://raw.githubusercontent.com/vltansky/vs/master/skills/vs-ship-it/assets/badge-surface-<kind>-<n>.svg`
-
-Surfaces catalog (same generator):
-
-| Kind | Color | File pattern | Alt |
-| --- | --- | --- | --- |
-| Endpoint | `#1a7f64` teal | `badge-surface-endpoint-{n}.svg` | Surface: Endpoint · n modules |
-| Schema | `#8250df` purple | `badge-surface-schema-{n}.svg` | Surface: Schema · n modules |
-| UI | `#0969da` blue | `badge-surface-ui-{n}.svg` | Surface: UI · n modules |
-| CLI | `#57606a` slate | `badge-surface-cli-{n}.svg` | Surface: CLI · n modules |
-| MCP | `#0e8a7d` teal-green | `badge-surface-mcp-{n}.svg` | Surface: MCP · n modules |
-| Infra | `#c2530a` orange | `badge-surface-infra-{n}.svg` | Surface: Infra · n modules |
-
-Vocabulary (locked): **UI · Endpoint · Schema · CLI · MCP**. Infra only when the PR is solely CI/deploy/flags/env — never stack with a product surface. Names
-lock: Endpoint not backend; Schema = wire + persistence (no separate DB). Never invent backend/DB surface names or hand-edit chip SVGs — change
-`scripts/generate-badges.mts` and regenerate.
-
-Wrapper precedence: MCP wrap of unchanged route → MCP only; CLI shim of unchanged MCP → CLI only. Multi-select when paths match more than one class.
-`pr-media-gate.mjs` asserts claim↔path from Surfaces chips and optional kind
-tags: any stamped product surface without a matching path class fails
-(skill-only + Schema included); migration-only ≠ UI; MCP-wrap-only ≠ Endpoint;
-Infra+product fails; Infra without infra paths fails; stamping backend/DB fails;
->3 product surfaces without matching path classes fails.
-
-CLI and MCP proof blocks are Later — this cut only selects those surfaces; do
-not invent paired CLI/MCP contract blocks yet. Endpoint/Schema proof stays the
-current fenced Before/After primary.
+Use the affected surfaces to select proof: UI · Endpoint · Schema · CLI · MCP.
+Endpoint covers handlers and Schema covers wire + persistence (no separate DB).
+Infra only when the PR is solely CI/deploy/flags/env. Never stack Infra with a product surface.
+MCP wrap of unchanged route → MCP only; CLI shim of unchanged MCP → CLI only.
+Omit Surfaces when paths prove no product surface and the PR is not solely Infra
+(skill-only / docs-only). Otherwise name relevant modules in the expander when
+that helps a reviewer. Surface and old merge-risk badges never count as proof.
 
 ### Endpoint and schema proof
 
@@ -397,7 +257,8 @@ POST /v1/tokens/refresh
 ````
 
 These blocks are the Before/After proof for an Endpoint or Schema PR: put them
-directly under **Before**/**After**. Response JSON written from source rather
+directly under **Before**/**After** for a contract-first change. Supporting
+contract proof can go in the expander when the primary proof is UI. Response JSON written from source rather
 than captured is labeled source-derived, and Verification adds
 `**Still unverified:** endpoint response; <blocker>`. An Endpoint/Schema-only
 PR needs no visual-proof line at all.
@@ -426,7 +287,8 @@ runner `include` glob, a `checks/` folder) and pass it to the gate as
 `--tests <regex>`.
 
 - **Tests block.** When any test/eval file was added, changed, or deleted, add
-  coverage bullets inside `## Verification`. Write one line per behavior:
+  coverage bullets inside `## Verification` (or a matching template heading such
+  as `## Evidence`). Write one line per behavior:
   `<path or case>` — the behavior it proves, in behavior words, not the test
   name restated. List deleted tests too, with the behavior they no longer
   guard. Keep it to about 5 lines; group many tests into one line per behavior.
@@ -439,7 +301,8 @@ runner `include` glob, a `checks/` folder) and pass it to the gate as
   check the human runs: the action and the expected result (`- [ ] Open
   /settings on Safari: the save button stays enabled`), never a vague area
   ("test auth"). When nothing needs a human, write `**Not covered:** none` with
-  no boxes. Never tick a box yourself.
+  no boxes. Never tick a box yourself. Bring any actual pre-merge blocker
+  into the opening risk line.
 - **No-test flag.** When the diff changes behavior (product or runtime code,
   or a skill contract: `SKILL.md`, a skill `references/*.md`, `CONTEXT.md`)
   and touches zero test/eval files,
@@ -476,25 +339,10 @@ backtick-heavy Markdown through inline `--body` or `gh pr edit --body`.
 
 ### Video explainer block
 
-Only `vs-explain-pr` writes it, after the PR is open:
-
-```markdown
-<!-- vs:video -->
-<details>
-<summary>Video explainer (61 s)</summary>
-
-Narrated walkthrough of this PR: problem, example, change, risk. made for `abc1234`; not reviewed by fresh eyes. The proof is in Change and proof above.
-
-https://github.com/user-attachments/assets/<id>
-
-</details>
-<!-- /vs:video -->
-```
-
-It sits after Verification and before the Walkthrough. `pr-media-gate.mjs`
-cuts it before every check: its video is not Before/After proof and never
-counts toward the screenshot or video pairs. Do not write it by hand, and keep
-it as it is when you refresh the body.
+Only `vs-explain-pr` writes the marked `<!-- vs:video -->` block after the PR
+opens. Its attachment script places it inside the one expander, before the
+Walkthrough when present. It does not count as Before/After proof. Preserve
+the marked block when refreshing a body.
 
 ### Walkthrough
 
@@ -504,9 +352,8 @@ architectural area by themselves; count independent behavior/ownership boundarie
 Omit it for a single-area change; file count is not the trigger. There is no size gate and no child agent: ship-it writes it
 from the scoped diff while it writes the rest of the body, with no extra runs.
 
-- **Collapsed:** `<details><summary>Walkthrough: N areas, M files</summary>`
-  … `</details>`, the last block of the body, after Verification. Nothing follows it.
-  N counts groups; M counts changed files.
+- **Collapsed:** add `## Walkthrough` at the end of the existing expander,
+  after Verification. Use the same expander for all supporting content.
 - **Grouped by area, not by file:** one group per deployable module, skill,
   package, or subsystem. Several files of one area share a group.
 - **Riskiest first:** each group heading is `### <marker> <Area> · <risk>`
@@ -533,7 +380,6 @@ unresolvable head exits 2 (not checked); pass `--head <ref>`. Refresh the links 
 them to the new head SHA, rerun `pr-media-gate.mjs` on the body, then update the
 PR body. When that rerun fails on an older body's inline `Not covered: <text>`
 (breaking since 1.23.0), convert the text to `- [ ]` reviewer checkboxes, or to
-`none`, before updating. When that rerun reports the TL;DR missing or invalid
-(breaking since 1.24.0), write two TL;DR lines from the existing body — the problem and result
-from the existing description — prepend them
-above everything else, rerun the gate, and update only when it passes. A body whose links pin an old head is a stale body.
+`none`, before updating. Existing bodies with the old format still validate
+under its original rules. When rewriting an existing body to proof-first,
+keep the evidence, template fields, and live explainer, then validate the new shape.

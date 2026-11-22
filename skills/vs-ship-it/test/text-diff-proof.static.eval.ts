@@ -12,11 +12,11 @@ describe('text before/after renders as one diff', () => {
     expect(textDiffs).toMatch(/`-`\/`\+` mark\s+only what changed/);
   });
 
-  it('keeps both gate labels on one line above the diff', () => {
-    expect(textDiffs).toContain('`**Before** <old> **After** <new>` on one line');
-    expect(textDiffs).toMatch(/gate\s+needs both labels/);
+  it('allows separate Before and After paragraphs above one diff', () => {
+    expect(textDiffs).toMatch(/`\*\*Before\*\* <old>` and `\*\*After\*\* <new>` on separate lines/);
+    expect(textDiffs).toMatch(/gate needs both labels/);
     expect(textDiffs).toMatch(/Put \*\*Source-derived\*\* after the diff, never inside the Before\/After label/);
-    expect(textDiffs).toMatch(/^\*\*Before\*\* .+ \*\*After\*\* .+\n\n```diff/m);
+    expect(textDiffs).toMatch(/^\*\*Before:\*\* .+\n\n\*\*After:\*\* .+\n\n```diff/m);
   });
 
   it('shows a split command with only the changed flag marked', () => {

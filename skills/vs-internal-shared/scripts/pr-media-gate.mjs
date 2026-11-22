@@ -4,7 +4,7 @@
 // schema changes with no contract proof, Surfaces claim↔path mismatches, or changed tests
 // with no ## Verification block.
 //
-//   node pr-media-gate.mjs <body-file> [--base <ref>] [--frontend <regex>] [--api <regex>] [--schema <regex>] [--tests <regex>] [--head <ref>] [--template <path>] [--title <PR title>] [--bugfix[=true|false]]
+//   node pr-media-gate.mjs <body-file> [--base <ref>] [--frontend <regex>] [--api <regex>] [--schema <regex>] [--tests <regex>] [--head <ref>] [--template <path>] [--title <PR title>] [--bugfix[=true|false]] [--proof-first]
 //
 // Reads git (which paths changed against the base) and the body text. It never opens the
 // media, so it costs the model no context. Exit codes match check-visual-evidence.mjs:
@@ -30,13 +30,14 @@
 //      checkboxes (or has a ticked box), or the PR is a bugfix (--bugfix, a fix/ fix- hotfix/ branch, a fix: --title, or a fix: FIRST commit;
 //      --bugfix=false opts out) and Change and proof has no real `Root cause:` line
 //      (no <placeholder>, TBD/TODO/unknown/N/A, at least 4 words)
-//      or the body does not start with a two-line plain TL;DR (no links, code, badges; not the title)
+//      or the body fails its layout (proof-first for new PRs, two-line TL;DR for legacy bodies)
 //   2  not checked: body missing, git cannot resolve the base, or --template is unreadable or has no sections
 //
 // Output is one JSON object on stdout so the caller can quote counts instead of re-reading.
 import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import { checkMediaPairs } from './pr-media-pairs.mjs';
+import { maskFences, proofFirstLayout, walkthroughHeading } from './pr-proof-first.mjs';
 import { findVideoBlocks, stripVideoBlocks, walkthroughOffset } from './video-block.mjs';
 
 const FRONTEND_PATH =
@@ -107,7 +108,7 @@ const labelMarker = (label) =>
   new RegExp(
     String.raw`(?:\*\*|__)[ \t]*${label}\b[^*_\n]*(?:\*\*|__)` +
       String.raw`|^[ \t]*#{1,6}[ \t]*${label}\b` +
-      String.raw`|^[ \t]*\|.*\|[ \t]*${label}[ \t]*\|`,
+      String.raw`|^[ \t]*\|(?:[^\r\n|]*\|)*[ \t]*${label}[ \t]*\|`,
     'im',
   );
 const BEFORE_MARKER = labelMarker('Before');
@@ -232,9 +233,18 @@ const rawBody = fs.readFileSync(bodyPath, 'utf8');
 const videoSpans = findVideoBlocks(rawBody);
 const videoBlocks = videoSpans.filter((span) => span.kind === 'block');
 const body = stripVideoBlocks(rawBody);
+const layout = proofFirstLayout(body, args.includes('--proof-first'));
+const videoExpander = layout ? proofFirstLayout(rawBody)?.details : null;
 const explainerReasons = [];
 const walkAt = walkthroughOffset(rawBody);
 for (const span of videoBlocks) {
+  if (layout) {
+    if (!videoExpander || span.start < videoExpander.start || span.end > videoExpander.end ||
+        !/^<!-- vs:video -->\s*\*\*Video explainer\b/i.test(span.text) || /<\/?details\b/i.test(maskFences(span.text))) {
+      explainerReasons.push('keep the marked Video explainer inside the shared expander without nested details');
+    }
+    continue;
+  }
   if (!/^<!-- vs:video -->\s*<details\b[^>]*>\s*<summary\b[^>]*>\s*Video explainer\b[\s\S]*<\/details>\s*<!-- \/vs:video -->[ \t]*\r?$/i.test(span.text))
     explainerReasons.push('Video explainer block must be one collapsed <details> whose <summary> starts "Video explainer"');
   if (walkAt !== -1 && span.start > walkAt) explainerReasons.push('Video explainer block must come before the Walkthrough');
@@ -247,41 +257,62 @@ const explainer = videoSpans.length
 // The label must carry a code block after it: a request/response or schema shape, not a sentence.
 // The Walkthrough's pseudocode fences are not proof, so the search stops where it starts.
 const WALKTHROUGH_OPEN = /<details\b[^>]*>\s*<summary\b[^>]*>\s*(?:<(?:b|strong)>\s*)?Walkthrough\b/i;
-// Blanks fenced blocks and inline code spans but keeps offsets, so prose or a code block
-// that quotes the Walkthrough summary does not cut the proof scan short.
-const blank = (block) => block.replace(/[^\n]/g, ' ');
-const maskFences = (text) =>
-  text.replace(/^[ \t]*(```|~~~)[^\n]*\n[\s\S]*?^[ \t]*\1[ \t]*$/gm, blank).replace(/`[^`\n]+`/g, blank);
+const compactDetails = layout?.details?.content ?? '';
+// Walkthrough pseudocode can describe a contract but cannot supply its proof.
+const compactWalkAt = maskFences(compactDetails).search(walkthroughHeading);
 const proofEnd = maskFences(body).search(WALKTHROUGH_OPEN);
-const proofBody = proofEnd === -1 ? body : body.slice(0, proofEnd);
+const proofBody = layout
+  ? `${layout.proof}\n${compactWalkAt === -1 ? compactDetails : compactDetails.slice(0, compactWalkAt)}`
+  : proofEnd === -1 ? body : body.slice(0, proofEnd);
 const labelledBlock = (marker) => {
   const at = proofBody.search(marker);
   return at !== -1 && FENCE.test(proofBody.slice(at));
 };
-const refs = [];
-for (const match of body.matchAll(MARKDOWN_IMAGE)) refs.push({ url: match[1], kind: 'image' });
-for (const match of body.matchAll(HTML_MEDIA)) {
-  refs.push({ url: match[2], kind: match[1].toLowerCase() === 'img' ? 'image' : 'video' });
-}
-for (const line of body.split('\n')) {
-  const match = line.match(BARE_URL);
-  if (match) refs.push({ url: match[1], kind: 'video' });
-}
-
+const readMediaRefs = (markdown) => {
+  const refs = [];
+  for (const match of markdown.matchAll(MARKDOWN_IMAGE)) refs.push({ url: match[1], kind: 'image' });
+  for (const match of markdown.matchAll(HTML_MEDIA)) {
+    refs.push({ url: match[2], kind: match[1].toLowerCase() === 'img' ? 'image' : 'video' });
+  }
+  for (const line of markdown.split('\n')) {
+    const match = line.match(BARE_URL);
+    if (match) refs.push({ url: match[1], kind: 'video' });
+  }
+  return refs;
+};
+const refs = readMediaRefs(body);
+const proofMarkup = (markdown) => maskFences(markdown).replace(/<!--[\s\S]*?-->/g, '');
+const comparison = layout ? proofMarkup(layout.proof) : body;
+const proofRefs = layout
+  ? [
+      ...readMediaRefs(comparison).filter((ref) => ref.kind === 'image'),
+      ...readMediaRefs(proofMarkup(compactDetails)).filter((ref) => ref.kind === 'video'),
+    ]
+  : refs;
 const isHosted = (url) =>
   !MERGE_RISK_BADGE.test(url) &&
   (HOSTED_MEDIA_HOST.test(url) || (/^https?:\/\//i.test(url) && MEDIA_EXTENSION.test(url)));
-const hosted = [...new Map(refs.filter((ref) => isHosted(ref.url)).map(ref => [`${ref.kind}:${ref.url}`, ref])).values()];
+const hosted = [...new Map(proofRefs.filter((ref) => isHosted(ref.url)).map(ref => [`${ref.kind}:${ref.url}`, ref])).values()];
 const localRefs = refs.filter((ref) => !/^(?:https?:|data:)/i.test(ref.url));
 const images = hosted.filter((ref) => ref.kind === 'image').length;
 const videos = hosted.filter((ref) => ref.kind === 'video').length;
 const gapStated = body.match(STATED_GAP)?.[0].trim() ?? null;
 
-const beforeAfter = { before: BEFORE_MARKER.test(body), after: AFTER_MARKER.test(body) };
-// The badge alone is a label: ship-it bodies show the badge with the reason under it, no text label.
+const beforeAfter = { before: BEFORE_MARKER.test(comparison), after: AFTER_MARKER.test(comparison) };
 const DOOR_BADGE = /\/skills\/vs-ship-it\/assets\/badge-(?:one|two)-way-door\.svg/i;
 const BLAST_BADGE = /\/skills\/vs-ship-it\/assets\/badge-(?:wide|narrow)-blast\.svg/i;
-const mergeDanger = {
+const badgeRowIndex = layout?.blocker ? 1 : 0;
+const badgeRow = proofMarkup(layout?.riskRows[badgeRowIndex] ?? '');
+const riskBadges = readMediaRefs(badgeRow).filter((ref) => ref.kind === 'image');
+const riskExplanation = layout?.riskRows.slice(badgeRowIndex + 1).join(' ') ?? '';
+const riskRowsOk = !layout || (
+  riskBadges.length === 2 && readMediaRefs(proofMarkup(layout.risk ?? '')).length === 2 &&
+  !badgeRow.replace(MARKDOWN_IMAGE, '').replace(/<img\b[^>]*>/gi, '').trim() && /[\p{L}\p{N}]/u.test(riskExplanation)
+);
+const mergeDanger = layout ? {
+  door: riskBadges.filter((ref) => DOOR_BADGE.test(ref.url)).length === 1,
+  blastRadius: riskBadges.filter((ref) => BLAST_BADGE.test(ref.url)).length === 1,
+} : {
   door: DOOR_MARKER.test(body) || DOOR_BADGE.test(body),
   blastRadius: BLAST_MARKER.test(body) || BLAST_BADGE.test(body),
 };
@@ -293,7 +324,7 @@ const media = checkMediaPairs({
 });
 const mediaOk = media.ok;
 const beforeAfterOk = beforeAfter.before && beforeAfter.after;
-const mergeDangerOk = mergeDanger.door && mergeDanger.blastRadius;
+const mergeDangerOk = mergeDanger.door && mergeDanger.blastRadius && riskRowsOk;
 const contract = {
   endpoint: apiFiles.length === 0 || labelledBlock(ENDPOINT_MARKER) || ENDPOINT_GAP.test(body),
   schema: schemaFiles.length === 0 || labelledBlock(SCHEMA_MARKER) || SCHEMA_GAP.test(body),
@@ -427,7 +458,7 @@ const section = (heading) => {
   if (afterHeading === -1) return '';
   return untilNextBlock(proseBody.slice(afterHeading + 1));
 };
-const verificationSection = section('Verification');
+const verificationSection = section('Verification') ?? (layout ? section('Evidence') : null);
 const testsSection = verificationSection ?? section('Tests');
 // The label closes explicitly (**Not covered:**, **Not covered**:, __…__, or plain Not covered:),
 // and what follows must carry a letter or digit: `none` or a named behavior, never only
@@ -585,7 +616,9 @@ function pinReasons(links) {
 const walkthroughReasons = [];
 const walkthroughWarnings = [];
 const walkthroughGroups = [];
-const walkthroughBlock = findWalkthrough(body);
+const walkthroughBlock = layout
+  ? compactWalkAt === -1 ? null : { inner: compactDetails.slice(compactWalkAt), trailing: '' }
+  : findWalkthrough(body);
 if (!walkthroughBlock) {
   if (/^#{1,6}[ \t]+Walkthrough\b/im.test(maskFences(body)))
     walkthroughReasons.push('Walkthrough must be collapsed in <details>');
@@ -633,6 +666,10 @@ if (!walkthroughBlock) {
 }
 // Change and proof: the Closes/Refs spec link (any repo file link there) pins the head too.
 const problemSection = (() => {
+  if (layout) {
+    return proofMarkup(compactDetails).split('\n')
+      .filter((line) => /\[Spec(?:[ :\]]|$)|\b(?:Refs|Closes) #\d+/.test(line)).join('\n');
+  }
   const match = maskFences(body).match(/^##[ \t]+(?:Change and proof|What Problem This Solves)[ \t]*$([\s\S]*?)(?=^##[ \t]|<details\b|$(?![\s\S]))/im);
   return match ? match[1].replace(/<!--[\s\S]*?-->/g, '') : '';
 })();
@@ -694,7 +731,7 @@ const templateOk = template === null || template.ok;
 warnings.push(...walkthroughWarnings);
 // Root cause: a bugfix PR (--bugfix) has one `Root cause: <mechanism>` line under What Problem.
 const ROOT_CAUSE = /^[ \t]*(?:\*\*Root cause:?\*\*:?|__Root cause:?__:?|Root cause:)[ \t]*(.*)$/im;
-const problemText = section('Change and proof') ?? section('What Problem This Solves') ?? '';
+const problemText = layout ? proseBody : section('Change and proof') ?? section('What Problem This Solves') ?? '';
 const rootCauseMatch = problemText.match(ROOT_CAUSE);
 // Bugfix detection: the branch name, the PR title (--title, else `gh pr view` when it
 // answers), or the FIRST commit subject after the merge-base. Later `fix:` commits
@@ -738,7 +775,7 @@ const rootCauseOk = !bugfix || rootCause.present;
 // TL;DR: the first non-empty content of the body is exactly two short plain lines
 // (optionally under a lone **TL;DR** label): what changes and for whom, then the effect.
 // No heading, list, link, code, badge, or HTML, and line 1 must not echo --title.
-const tldr = (() => {
+const tldr = layout ? null : (() => {
   const lines = body.replace(/^\uFEFF/, '').split('\n');
   let i = 0;
   while (i < lines.length && !lines[i].trim()) i += 1;
@@ -770,12 +807,16 @@ const tldr = (() => {
   if (title && content[0] && norm(content[0]) === norm(title)) reasons.push('line 1 echoes the PR title; say what changes and for whom');
   return { ok: reasons.length === 0, labeled, lines: content.length, reasons };
 })();
-const tldrOk = tldr.ok;
+const formatOk = (layout ?? tldr).ok;
 const explainerOk = explainerReasons.length === 0;
-const valid = rootCauseOk && tldrOk && mediaOk && beforeAfterOk && mergeDangerOk && contractOk && surfacesOk && testsOk && walkthroughOk && templateOk && problemLinks.ok && explainerOk;
+const valid = rootCauseOk && formatOk && mediaOk && beforeAfterOk && mergeDangerOk && contractOk && surfacesOk && testsOk && walkthroughOk && templateOk && problemLinks.ok && explainerOk;
+
+const format = layout
+  ? { proofFirst: { ok: layout.ok && mergeDangerOk, reasons: layout.reasons, risk: layout.risk, blocker: layout.blocker, badges: mergeDanger } }
+  : { tldr, mergeDanger };
 
 process.stdout.write(
-  `${JSON.stringify({ valid, base, frontendFiles, apiFiles, schemaFiles, cliFiles, mcpFiles, infraFiles, images, videos, media, localRefs: localRefs.map((ref) => ref.url), gapStated, beforeAfter, mergeDanger, contract, surfaces, tests, walkthrough, template, problemLinks, rootCause, tldr, explainer: { ...explainer, ok: explainerOk, reasons: explainerReasons }, warnings: warnings.length }, null, 2)}\n`,
+  `${JSON.stringify({ valid, base, frontendFiles, apiFiles, schemaFiles, cliFiles, mcpFiles, infraFiles, images, videos, media, localRefs: localRefs.map((ref) => ref.url), gapStated, beforeAfter, contract, surfaces, tests, walkthrough, template, problemLinks, rootCause, ...format, explainer: { ...explainer, ok: explainerOk, reasons: explainerReasons }, warnings: warnings.length }, null, 2)}\n`,
 );
 
 if (warnings.length > 0) process.stderr.write(`${warnings.join('\n')}\n`);
@@ -795,7 +836,9 @@ const next = [
         '  header counts. Never fabricate the missing side.',
       ].join('\n')
     : null,
-  !mergeDangerOk
+  !mergeDangerOk && layout
+    ? 'pr-media-gate: place one door badge and one blast-radius badge on one line, then put the risk explanation below. Put a merge blocker before the badges.'
+    : !mergeDangerOk
     ? [
         `pr-media-gate: the PR body has no ${[!mergeDanger.door && 'Door', !mergeDanger.blastRadius && 'Blast radius'].filter(Boolean).join(' and ')} line. Every PR states its merge risk.`,
         '  Next: classify from the diff, one line each, under a "## Review map" heading:',
@@ -863,7 +906,9 @@ const next = [
         '  language-agnostic logic pseudocode (- old, + new) and head-pinned file links. No real code.',
       ].join('\n')
     : null,
-  !tldrOk
+  !formatOk && layout
+    ? ['pr-media-gate: Proof-first layout failed.', ...layout.reasons.map((reason) => `  - ${reason}`)].join('\n')
+    : !formatOk
     ? [
         'pr-media-gate: TL;DR failed.',
         ...tldr.reasons.map((reason) => `  - ${reason}`),
@@ -877,7 +922,7 @@ const next = [
     ? [
         `pr-media-gate: bugfix PR (${rootCause.source}) and the Change and proof Root cause line is ${rootCause.problem}.`,
         '  Not a bugfix? pass --bugfix=false.',
-        '  Next: after the STE scenario, add one line "Root cause: <mechanism that caused the bug>".',
+        `  Next: ${layout ? 'inside the expander' : 'after the STE scenario'}, add one line "Root cause: <mechanism that caused the bug>".`,
       ].join('\n')
     : null,
   !templateOk

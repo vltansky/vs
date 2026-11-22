@@ -19,7 +19,7 @@ describe('vs-ship-it behavior', () => {
   it('explains before and after and obtains frontend proof', async () => {
     const agent = await createAgent({ agent: EVAL_AGENT, timeout: 360, skillDir: SKILL_DIR });
     try {
-      await promptOnce(agent, `Use $vs-ship-it. Prepare the description and evidence plan only; do not publish or invoke tools beyond reading the skill and its required PR-body reference. Use its exact compact top-level headings.
+      await promptOnce(agent, `Use $vs-ship-it. Prepare the description and evidence plan only; do not publish or invoke tools beyond reading the skill and its required PR-body reference.
 The PR fixes checkout: with an expired coupon, clicking Pay previously spun forever; now an inline error lets the customer remove the coupon and retry. This is source-derived; tests and media have not been supplied. Base and head previews and browser recording tools are available. No screenshots or videos exist. The user said create pr and do not watch.
 Then give the Before/After copy for a separate internal refactor that preserves the API response while consolidating duplicate parsing, and a new CSV export feature where export was previously unavailable.`);
       const result = await evaluate(agent, [
@@ -39,6 +39,42 @@ Then give the Before/After copy for a separate internal refactor that preserves 
         }),
       ], { failFast: false, onScorerError: 'zero' });
       expect(result.score).toBe(1);
+    } finally {
+      await agent.dispose();
+    }
+  });
+
+  it('moves a known merge blocker ahead of the proof', async () => {
+    const agent = await createAgent({ agent: EVAL_AGENT, timeout: 360, skillDir: SKILL_DIR });
+    try {
+      await promptOnce(agent, `Use $vs-ship-it. Read the skill and its required PR-body reference, then return just the PR body in one fenced Markdown block. Do not run checks, capture evidence, or publish.
+The team membership page used to let an admin remove the last owner. Now it rejects the same action. The authorization owner requires manual staging verification before merge. Matched screenshots are hosted at https://github.com/user-attachments/assets/owner-before and https://github.com/user-attachments/assets/owner-after. Matched recordings are hosted at https://github.com/user-attachments/assets/clip-before and https://github.com/user-attachments/assets/clip-after. There is no repository PR template.`);
+      let draft = '';
+      const result = await evaluate(agent, [
+        check('puts-blocker-above-visible-proof', ({ log }) => {
+          const output = assistantOutput(log);
+          draft = (output.match(/^\x60{3,}(?:markdown|md)?[ \t]*\n([\s\S]*?)^\x60{3,}[ \t]*$/im)?.[1] ?? output).trim();
+          const expander = draft.indexOf('<details>');
+          return /^\*\*Risk:\*\* Block merge until[^\n]*stag/i.test(draft) &&
+            ['owner-before', 'owner-after'].every((asset) => {
+              const at = draft.indexOf(`assets/${asset}`);
+              return at > 0 && at < expander;
+            });
+        }),
+        check('uses-one-expander-for-supporting-evidence', ({ log }) => {
+          const body = assistantOutput(log);
+          const open = body.indexOf('<details>');
+          return body.match(/<details\b/g)?.length === 1 && body.indexOf('assets/clip-before') > open &&
+            body.indexOf('assets/clip-after') > open && body.indexOf('</details>') > body.indexOf('assets/clip-after');
+        }),
+        check('puts-the-badge-row-and-explanation-below-the-blocker', () => {
+          const risk = draft.split(/\r?\n\s*\r?\n/, 1)[0];
+          const [action, badges, explanation] = risk.split(/<br[ \t]*\/?>|(?:\\| {2,})\r?\n/i);
+          return !/badge-/.test(action) && /badge-(?:one|two)-way-door\.svg/.test(badges ?? '') &&
+            /badge-(?:wide|narrow)-blast\.svg/.test(badges ?? '') && Boolean(explanation?.trim());
+        }),
+      ], { failFast: false, onScorerError: 'zero' });
+      expect(result.score, draft).toBe(1);
     } finally {
       await agent.dispose();
     }

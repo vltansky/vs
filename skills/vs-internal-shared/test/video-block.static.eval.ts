@@ -45,6 +45,18 @@ describe('video-block.mjs', () => {
     expect(keepVideoBlock(fresh, 'no video yet')).toBe(fresh);
     expect(keepVideoBlock(keepVideoBlock(fresh, live), live)).toBe(keepVideoBlock(fresh, live));
   });
+  it('keeps an existing explainer inside the one proof-first expander', () => {
+    const fresh = 'Intro\n\n<details>\n<summary>Details</summary>\n\n<!-- vs:proof-first -->\n\nProof notes.\n\n## Walkthrough\n\nNotes.\n\n</details>\n';
+    const live = `Old text\n\n${block('live')}`;
+    const result = keepVideoBlock(fresh, live);
+    expect(result.match(/<details>/g)).toHaveLength(1);
+    expect(result).toContain('**Video explainer (live)**');
+    expect(result).toContain('https://github.com/user-attachments/assets/live');
+    expect(result.indexOf(VIDEO_START)).toBeGreaterThan(result.indexOf('<!-- vs:proof-first -->'));
+    expect(result.indexOf(VIDEO_END)).toBeLessThan(result.indexOf('## Walkthrough'));
+    expect(keepVideoBlock(result, live)).toBe(result);
+  });
+
   it('puts the block before the Walkthrough when a stray marker sits after it, and a rerun changes nothing', () => {
     const stray = `Intro\n\n${WALK}\n${VIDEO_END}\n`;
     const out = upsertVideoBlock(stray, block('new'));

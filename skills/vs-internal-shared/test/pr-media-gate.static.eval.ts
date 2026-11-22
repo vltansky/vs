@@ -142,6 +142,85 @@ function bareGate(cwd: string, body: string, ...flags: string[]) {
   return { ...result, json: result.stdout ? JSON.parse(result.stdout) : null };
 }
 
+describe('proof-first PR bodies', () => {
+  const summary = 'Shoppers can retry checkout after removing an expired coupon.';
+  const assets = 'https://raw.githubusercontent.com/vltansky/vs/master/skills/vs-ship-it/assets';
+  const door = `<img alt="Two-way door" src="${assets}/badge-two-way-door.svg">`;
+  const blast = `<img alt="Narrow blast radius" src="${assets}/badge-narrow-blast.svg">`;
+  const risk = `**Risk:** ${door} ${blast}<br>\nA revert restores the old payment flow.`;
+  const blocker = `**Risk:** Block merge until a reviewer verifies payment retries.<br>\n${door} ${blast}<br>\nA broken checkout blocks payments.`;
+  const proof = '| Before | After |\n| --- | --- |\n'
+    + '| ![Spinner](https://github.com/user-attachments/assets/before) | ![Inline error](https://github.com/user-attachments/assets/after) |';
+  const details = '<details>\n<summary>Recordings and verification</summary>\n\n<!-- vs:proof-first -->\n\n'
+    + HOSTED_VIDEO + '\n\n## Verification\n\n- **Coverage:** checkout can retry after removing the coupon\n- **Not covered:** none\n\n</details>';
+  const body = [summary, proof, risk, details].join('\n\n');
+
+  it('accepts visible screenshots with functional recordings and coverage in one expander', () => {
+    const cwd = repoWithBranch(['src/components/Checkout.tsx', 'src/checkout.test.ts']);
+    const result = bareGate(cwd, body, '--proof-first', '--functional');
+    expect(result.status, result.stderr).toBe(0);
+    expect(result.json).toMatchObject({ images: 2, videos: 2, tests: { lines: 1 } });
+  });
+
+  it('requires blocker risk first and ordinary risk after the proof', () => {
+    const cwd = repoWithBranch(['src/components/Checkout.tsx']);
+    expect(bareGate(cwd, [blocker, summary, proof, details].join('\n\n')).status).toBe(0);
+    expect(bareGate(cwd, body.replace(risk, blocker)).stderr).toMatch(/blocker.*first/i);
+    expect(bareGate(cwd, [risk, summary, proof, details].join('\n\n')).stderr).toMatch(/risk.*after.*proof/i);
+  });
+
+  it('allows readable line breaks and requires both badges in the risk paragraph', () => {
+    const cwd = repoWithBranch(['src/components/Checkout.tsx']);
+    const wrapped = body.replace('after removing', '\nafter removing').replace(`${door} ${blast}`, `${door}\n${blast}`);
+    expect(bareGate(cwd, wrapped).status).toBe(0);
+    const missing = bareGate(cwd, body.replace(blast, ''));
+    expect(missing.status).toBe(1);
+    expect(missing.stderr).toMatch(/door badge and one blast-radius badge/i);
+    const hidden = body.replace(blast, '').replace('## Verification', `${blast}\n\n## Verification`);
+    expect(bareGate(cwd, hidden).status).toBe(1);
+  });
+
+  it('requires the explanation below a dedicated badge row', () => {
+    const cwd = repoWithBranch(['src/components/Checkout.tsx']);
+    expect(bareGate(cwd, body.replace('<br>\n', '\\\n')).status).toBe(0);
+    for (const invalidRisk of [
+      risk.replace('<br>\n', ' '),
+      risk.replace(`${door} ${blast}`, `${door}<br>\n${blast}`),
+      `**Risk:** A revert restores the old payment flow.<br>\n${door} ${blast}`,
+      `**Risk:** ${door} ${blast}`,
+    ]) {
+      expect(bareGate(cwd, body.replace(risk, invalidRisk)).status).toBe(1);
+    }
+    const blockerWithBadgesOnAction = blocker.replace('retries.<br>\n', 'retries. ');
+    expect(bareGate(cwd, [blockerWithBadgesOnAction, summary, proof, details].join('\n\n')).status).toBe(1);
+  });
+
+  it('rejects extra sentences, expanded or nested details, and proof hidden inside details', () => {
+    const cwd = repoWithBranch(['src/components/Checkout.tsx']);
+    for (const bad of [
+      body.replace(summary, summary + ' It works better now.'),
+      body.replace('<details>', '<details open>'),
+      body.replace('</details>', '<details><summary>More</summary>Extra</details>\n</details>'),
+      [summary, '**Before:** spinner **After:** retry', risk, details.replace(HOSTED_VIDEO, proof)].join('\n\n'),
+      body.replace(proof, `**Before:** spinner **After:** retry\n\n<!--\n${proof}\n-->`),
+      body.replace('<!-- vs:proof-first -->', ''),
+    ]) {
+      expect(bareGate(cwd, bad, '--proof-first').status).toBe(1);
+    }
+  });
+
+  it('preserves templates and bugfix context inside the expander', () => {
+    const cwd = repoWithBranch(['src/components/Checkout.tsx', 'src/checkout.test.ts']);
+    const template = path.join(cwd, 'template.md');
+    fs.writeFileSync(template, '## Why\n\n## QA\n\n- [ ] Run the checkout review\n\n## Evidence\n');
+    const described = body.replace('## Verification', '## Why\n\nRoot cause: expired coupons bypassed payment recovery.\n\n'
+      + 'Refs #42 · [Spec](https://github.com/o/r/blob/__HEAD__/spec.md)\n\n## QA\n\n- [ ] Run the checkout review\n\n## Evidence');
+    const result = bareGate(cwd, described, '--proof-first', '--bugfix', '--template', template);
+    expect(result.status, result.stderr).toBe(0);
+    expect(bareGate(cwd, described.replace('/__HEAD__/', '/master/'), '--bugfix').json.problemLinks.ok).toBe(false);
+  });
+});
+
 describe('pr-media-gate blocks a frontend PR body that shows nothing', () => {
   it('fails when frontend files changed and the body carries no hosted media', () => {
     const cwd = repoWithBranch(['src/components/Toggle.tsx', 'src/toggle.css']);
@@ -555,19 +634,17 @@ describe('vs-ship-it runs the gate and never reads the pixels', () => {
   });
 
   it('classifies merge risk from the diff and reports it in the handoff', () => {
-    expect(SHIP_IT).toContain('## Review map');
-    expect(SHIP_IT).toMatch(/\*\*Merge risk\*\* is not\s+droppable/);
-    expect(SHIP_IT).toMatch(/Classify merge risk from the scoped diff, never from/);
-    expect(SHIP_IT).toMatch(/Schema migration, data backfill, destructive write, deletion \| One-way/);
-    expect(SHIP_IT).toMatch(/Behavior behind a flag, internal refactor, copy, styling, tests \| Two-way/);
-    expect(SHIP_IT).toMatch(/adjacent surfaces the change does \*\*not\*\* touch/);
+    expect(SHIP_IT).toContain('**Risk:**');
+    expect(SHIP_IT).toMatch(/Classify from the scoped diff/);
+    expect(SHIP_IT).toMatch(/One-way means an effect can outlive the revert/);
+    expect(SHIP_IT).toMatch(/line is\s+required even for low-risk changes/);
     expect(SHIP_IT).toMatch(/- Merge risk: <two-way \| one-way> door/);
     expect(SHIP_IT).toMatch(/- \[ \] Every PR classifies merge risk/);
   });
 
   it('names the backend proof shapes and the prototype-sharing skills', () => {
-    expect(SHIP_IT).toMatch(/\*\*Endpoint\*\*[^\n]*same\s+request/);
-    expect(SHIP_IT).toMatch(/\*\*Schema\*\*[^\n]*`diff`/);
+    expect(SHIP_IT).toMatch(/\*\*Endpoint\*\*[\s\S]{0,180}same\s+request/);
+    expect(SHIP_IT).toMatch(/\*\*Schema\*\*[\s\S]{0,210}`diff`/);
     expect(SHIP_IT).toMatch(/No contract change: <why>/);
     expect(SHIP_IT).toMatch(/No schema change: <why>/);
     expect(SHIP_IT).toMatch(/`using-wix-stash`/);

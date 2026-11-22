@@ -6,19 +6,14 @@ const template = skill.match(/````markdown([\s\S]*?)````/)?.[1] ?? '';
 const live = template.replace(/<!--[\s\S]*?-->/g, '');
 
 describe('compact ship-it body', () => {
-  it('gives each fact one home in three sections', () => {
-    expect([...live.matchAll(/^## (.+)$/gm)].map(m => m[1])).toEqual([
-      'Review map', 'Change and proof', 'Verification',
-    ]);
-    expect(skill).toMatch(/60 visible lines/);
-    expect(skill).toMatch(/Replace stale verification history/);
-  });
-
-  it('keeps risk and surface badges together', () => {
-    const review = live.split('## Review map')[1]?.split('## Change and proof')[0] ?? '';
-    expect(review).toContain('badge-two-way-door.svg');
-    expect(review).toContain('badge-narrow-blast.svg');
-    expect(review).toContain('badge-surface-endpoint-2.svg');
+  it('keeps proof and risk outside one collapsed expander', () => {
+    const [visible, details] = live.trim().split('<details>');
+    expect(visible).toMatch(/^<one sentence[^\n]+>\n\n\| Before \| After \|/);
+    expect(visible.trim()).toMatch(/\*\*Risk:\*\* [^\n]+<br>\n[^\n]+$/);
+    expect(visible.trim().split('**Risk:**')[1]).toMatch(/badge-one-way-door\.svg[^\n]+badge-narrow-blast\.svg[^\n]+<br>/);
+    expect(visible).not.toMatch(/^## /m);
+    expect(details).toMatch(/<summary>[^<]+<\/summary>[\s\S]+## Verification[\s\S]+<\/details>/);
+    expect(live.match(/<details>/g)).toHaveLength(1);
   });
 
   it('keeps both screenshot and functional-video pairs mandatory', () => {
@@ -43,6 +38,6 @@ describe('compact ship-it body', () => {
     expect(skill).toMatch(/missing inputs are not reviewer tasks/);
     expect(skill).toMatch(/\*\*Coverage:\*\* Deleted/);
     expect(skill).toMatch(/`\*\*Before:\*\*` and `\*\*After:\*\*` outside code fences/);
-    expect(skill).toMatch(/Keep the final collapsed Walkthrough for multiple architectural areas/);
+    expect(skill).toMatch(/add `## Walkthrough` at the end of the existing expander/);
   });
 });

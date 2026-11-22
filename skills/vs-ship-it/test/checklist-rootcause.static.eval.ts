@@ -4,7 +4,7 @@ import * as path from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 // Static contract for two ship-it body rules: Not covered becomes a reviewer checklist of
-// `- [ ]` boxes (or `none`), and bugfix PRs add one `Root cause:` line under What Problem.
+// `- [ ]` boxes (or `none`), and bugfix PRs add one `Root cause:` line inside the expander.
 // `problems(skill, gate)` returns every broken rule; shipped files return none, mutants some.
 
 const SKILL = SHIP_IT_SOURCE;
@@ -23,8 +23,8 @@ function problems(skill: string, gate: string, bugfix = BUGFIX): string[] {
   const out: string[] = [];
   const box = para(skill, '- **Reviewer checklist.**');
   const root = para(skill, '**Root cause (bugfix PRs only).**');
-  const problem = skill.slice(skill.indexOf('\n## Change and proof\n'), skill.indexOf('\n**Before** <same-state'));
-  const tests = skill.slice(skill.indexOf('\n## Verification\n'), skill.indexOf('<!-- From the diff only'));
+  const problem = skill.match(/````markdown[\s\S]*?````/)?.[0] ?? '';
+  const tests = problem.split('\n## Verification\n')[1] ?? '';
   if (!box) out.push('no reviewer checklist rule');
   if (!root) out.push('no root cause rule');
   if (!/`- \[ \]`\s+checkboxes the reviewer must verify/.test(box)) out.push('Not covered not a checklist');
@@ -32,18 +32,18 @@ function problems(skill: string, gate: string, bugfix = BUGFIX): string[] {
   if (!/write `\*\*Not covered:\*\* none` with\s+no boxes/.test(box)) out.push('none path has boxes or is missing');
   if (!/Never tick a box yourself/.test(box)) out.push('agent may tick boxes');
   if (!/- \*\*Not covered:\*\*\n  - \[ \] </.test(tests)) out.push('template Not covered is not a checklist');
-  if (!/branch starts\s+with `fix\/`, `fix-`, or `hotfix\/`/.test(root) || !/`fix:` \/ `fix\(<scope>\):`\s+conventional prefix/.test(root) || !/labeled `bug`/.test(root))
+  if (!/branch starting\s+with `fix\/`, `fix-`, or `hotfix\/`/.test(root) || !/`fix:` \/ `fix\(<scope>\):`\s+conventional prefix/.test(root) || !/labeled `bug`/.test(root))
     out.push('bugfix detection incomplete');
-  if (!/after the STE scenario/.test(root) || !/`Root cause: <mechanism>`/.test(root)) out.push('root cause line not after scenario');
-  if (!/root-cause sentence explains the failure\s+mechanism/.test(root) || !/The scenario itself still has no How/.test(root))
+  if (!/inside the expander/.test(root) || !/`Root cause: <mechanism>`/.test(root)) out.push('root cause line not inside expander');
+  if (!/Explain the failure\s+mechanism/.test(root) || !/Do not name the fix in that block/.test(root))
     out.push('no-How rule loosened');
   if (!/Non-bug PRs skip the line/.test(root)) out.push('non-bug PRs get root cause');
   if (!/\nRoot cause: <mechanism[^\n]*>\n/.test(problem)) out.push('template has no Root cause line');
-  if (!/pass `--bugfix` for a bug-label or vs-bugfix\s+handoff/.test(root) || !/\[--bugfix\]/.test(skill)) out.push('gate not told about bugfix');
+  if (!/Pass `--bugfix` for a bug-label or vs-bugfix handoff/.test(root) || !/\[--bugfix\]/.test(skill)) out.push('gate not told about bugfix');
   if (!/ship-it was entered from a `\/vs-bugfix` handoff/.test(root) || !/reuse its\s+`\*\*Root cause:\*\*` sentence as is/.test(root))
     out.push('vs-bugfix handoff not a bugfix');
   if (!/at least 4 words, never a `<…>`\s+placeholder or TBD\/TODO\/unknown\/N\/A/.test(root)) out.push('placeholder root cause allowed');
-  if (!/FIRST commit subject after the merge-base/.test(root) || !/later `fix:` commits \(CI repairs, review fixes\) never count/.test(root))
+  if (!/FIRST commit subject after the merge-base/.test(root) || !/Later `fix:` commits \(CI repairs, review fixes\) never count/.test(root))
     out.push('any fix: commit makes a bugfix');
   if (!/--title "<PR title>" \[--template/.test(skill)) out.push('ship-it does not pass the PR title');
   if (!/auto-detects a bugfix from the\s+head branch, `--title "<PR title>"`/.test(root) || !/`--bugfix=false` only when/.test(root)) out.push('no auto-detect or opt-out');
@@ -74,14 +74,14 @@ const mutants: Record<string, (p: P) => P> = {
   'vague checklist items': ([s, g]) => [s.replace('one concrete\n  check the human runs: the action and the expected result', 'one area to look at'), g],
   'none with boxes': ([s, g]) => [s.replace('write `**Not covered:** none` with\n  no boxes', 'add a `- [ ] none` box'), g],
   'agent ticks boxes': ([s, g]) => [s.replace(' Never tick a box yourself.', ''), g],
-  'template inline Not covered': ([s, g]) => [s.replace('- **Not covered:**\n  - [ ] <action the reviewer runs>', '- **Not covered:** <action the reviewer runs>'), g],
-  'no root cause rule': ([s, g]) => [s.replace(/\*\*Root cause \(bugfix PRs only\)\.\*\*[\s\S]*?(?=Examples \(either perspective)/, ''), g],
-  'bugfix detection drops issue label': ([s, g]) => [s.replace(' the linked issue is labeled `bug`,', ''), g],
-  'vs-bugfix handoff not a bugfix': ([s, g]) => [s.replace(', or\nship-it was entered from a `/vs-bugfix` handoff', ''), g],
-  'handoff root cause rewritten': ([s, g]) => [s.replace('reuse its\n`**Root cause:**` sentence as is', 'write a new root cause'), g],
-  'placeholder root cause allowed': ([s, g]) => [s.replace('at least 4 words, never a `<…>`\nplaceholder or TBD/TODO/unknown/N/A', 'any text'), g],
-  'no auto-detect in skill': ([s, g]) => [s.replace('auto-detects a bugfix from the\nhead branch', 'needs the flag'), g],
-  'any fix: commit is a bugfix (skill)': ([s, g]) => [s.replace('the PR title or the\nFIRST commit subject after the merge-base', 'any commit subject').replace('; later `fix:` commits (CI repairs, review fixes) never count', ''), g],
+  'template inline Not covered': ([s, g]) => [s.replace('- **Not covered:**\n  - [ ] <action the reviewer runs and expected result>', '- **Not covered:** <action the reviewer runs>'), g],
+  'no root cause rule': ([s, g]) => [s.replace(/\*\*Root cause \(bugfix PRs only\)\.\*\*[\s\S]*?(?=Make the description visual first)/, ''), g],
+  'bugfix detection drops issue label': ([s, g]) => [s.replace(' a linked issue labeled `bug`,', ''), g],
+  'vs-bugfix handoff not a bugfix': ([s, g]) => [s.replace(', or ship-it was entered from a `/vs-bugfix` handoff', ''), g],
+  'handoff root cause rewritten': ([s, g]) => [s.replace('reuse its `**Root cause:**` sentence as is', 'write a new root cause'), g],
+  'placeholder root cause allowed': ([s, g]) => [s.replace('at least 4 words, never a `<…>` placeholder or TBD/TODO/unknown/N/A', 'any text'), g],
+  'no auto-detect in skill': ([s, g]) => [s.replace('auto-detects a bugfix from the head branch', 'needs the flag'), g],
+  'any fix: commit is a bugfix (skill)': ([s, g]) => [s.replace('a PR title or\nFIRST commit subject after the merge-base', 'any commit subject').replace('Later `fix:` commits (CI repairs, review fixes) never count.', ''), g],
   'skill drops hotfix': ([s, g]) => [s.replace(', or `hotfix/`', ''), g],
   'ship-it omits --title': ([s, g]) => [s.replace(' --title "<PR title>" [--template', ' [--template'), g],
   'gate scans every commit': ([s, g]) => [s, g.replace("log.stdout.split('\\n')[0]", "log.stdout.split('\\n').find((l) => FIX_SUBJECT.test(l))")],
@@ -96,7 +96,7 @@ const mutants: Record<string, (p: P) => P> = {
   'gate accepts placeholder': ([s, g]) => [s, g.replace('/<[^>]*>/.test(rootText)', 'false')],
   'gate accepts short root cause': ([s, g]) => [s, g.replace('.length < 4', '.length < 1')],
   'gate accepts ticked boxes': ([s, g]) => [s, g.replace('if (ticked) return { ok: false', 'if (false) return { ok: false')],
-  'mechanism allowed in scenario': ([s, g]) => [s.replace('The scenario itself still has no How', 'The scenario may name it too'), g],
+  'mechanism allowed in scenario': ([s, g]) => [s.replace('Do not name the fix in that block', 'The scenario may name it too'), g],
   'root cause on every PR': ([s, g]) => [s.replace('Non-bug PRs skip the line.', 'Every PR gets the line.'), g],
   'template drops root cause': ([s, g]) => [s.replace('\nRoot cause: <mechanism that made the bug happen>\n', '\n'), g],
   'gate call without --bugfix': ([s, g]) => [s.replace(' [--bugfix]', ''), g],

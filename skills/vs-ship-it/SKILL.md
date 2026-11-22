@@ -280,7 +280,7 @@ ffmpeg -i in.webm -c:v libx264 -pix_fmt yuv420p out.mp4
 ```
 
 Embed images as `![concise caption](<returned-url>)`. Embed videos as the
-returned URL on its own bare line; `![]()` does not render GitHub's video player.
+returned URL on its own bare line in the single expander; `![]()` does not render GitHub's video player.
 Insert the URLs into the body file before `gh pr create` so the initial PR
 description is complete. Use the manifest caption as the image caption.
 
@@ -288,20 +288,21 @@ Then run the proof gate on the body file. It reads git and the body, never the
 media, and refuses a PR that shows nothing:
 
 ```bash
-node <vs-internal-shared>/scripts/pr-media-gate.mjs "$BODY_FILE" --base origin/<base> --title "<PR title>" [--template <repo PR template>] [--bugfix] [--functional | --static-ui]
+node <vs-internal-shared>/scripts/pr-media-gate.mjs "$BODY_FILE" --base origin/<base> --title "<PR title>" [--template <repo PR template>] [--bugfix] [--functional | --static-ui] --proof-first
 ```
 
 Run it against the `origin/<base>` fetched in Step 1, never a stale local ref.
 
-- Exit 0: Before/After, door/blast risk and matching surface claims are present.
-  Visible UI proof has at least two distinct hosted screenshots. Functional UI
-  proof also has two distinct hosted videos. CSS-only changes need screenshots;
+- Exit 0: one sentence, visible Before/After, one correctly placed risk paragraph
+  with one badge row and the explanation below, and one collapsed expander. Visible UI proof has at least two distinct
+  hosted screenshots. Functional UI proof also has two distinct hosted videos
+  inside the expander. CSS-only changes need screenshots;
   other frontend paths default to functional unless `--static-ui` is justified.
   Each missing kind needs its own exact blocker; an endpoint gap does not
   excuse missing screenshots or video. No visible output change may be stated
   explicitly. Endpoint/schema proof and changed-test coverage remain required.
   A Walkthrough is optional; when included it must be collapsed, last, risk
-  ordered, and linked to the current head. A no-test warning is non-blocking.
+  ordered inside the shared expander, and linked to the current head. A no-test warning is non-blocking.
 - Exit 1: add the missing side of the comparison, add the missing merge-risk
   line, or capture with `record-flow.mjs` and upload, or write the exact gap in
   the body. Do not create the PR from a failing body. Local paths never count:
@@ -476,16 +477,10 @@ separate `vs-baby-sit` goal only when the user explicitly requested a Codex goal
       the pair on every PR, not only frontend ones.
 - [ ] Every PR classifies merge risk: a one-way/two-way door and a blast
       radius, both derived from the diff, both in the handoff.
-- [ ] Merge risk shows the matching door/blast badges, on one compact line
-      with supporting **Risk**, **Scope**, and **Review** bullets (wide-blast only when blast is
-      wide), using
-      `raw.githubusercontent.com/vltansky/vs/master/skills/vs-ship-it/assets/badge-*.svg`.
-- [ ] Surfaces (when present) shows kind-colored chips on one line
-      (`badge-surface-{kind}-{n}.svg`, count = deployable modules for that
-      kind) and names the modules in Scope; only UI|Endpoint|Schema|CLI|MCP
-      classes the paths prove (Infra alone on infra-only PRs), or the section is
-      omitted for skill-only / docs-only; no backend/DB stamps; no separate
-      Affected modules section; Door/Blast own risk.
+- [ ] One plain sentence precedes the primary proof. One visible **Risk:**
+      paragraph follows the proof, or comes first when it names a merge blocker.
+      The door and blast-radius badges share one row above the explanation.
+      Supporting content lives in one collapsed expander.
 - [ ] Visible UI changes have matched Before/After screenshots; functional UI
       changes also have matched Before/After videos. Each missing media kind
       has an exact capture blocker; captions explain the difference.
@@ -502,10 +497,10 @@ separate `vs-baby-sit` goal only when the user explicitly requested a Codex goal
       (`N/A` where it does not apply) and was passed as `--template`; no
       template → vs body as is.
 - [ ] A `Closes #N` / `Refs #N` and head-pinned spec line appears only when
-      found, on its own line under the STE scenario.
+      found, on its own line inside the expander.
 - [ ] Open non-draft PR state, branch, and head SHA were re-resolved
       successfully.
-- [ ] The body includes a collapsed Walkthrough only for multiple architectural areas: area groups ordered riskiest
+- [ ] The body includes a Walkthrough in the expander only for multiple architectural areas: groups ordered riskiest
       first, a logic pseudocode `diff` per group, links pinned to the head SHA.
 - [ ] Walkthrough links pin the current head at every handoff; each refresh
       reran `pr-media-gate.mjs`.

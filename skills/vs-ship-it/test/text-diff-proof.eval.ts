@@ -13,7 +13,7 @@ function assistantOutput(log: Array<{ type: string; assistant_message?: string }
 
 const fences = (out: string) => [...out.matchAll(/```([\w-]*)\n([\s\S]*?)```/g)].map((m) => ({ lang: m[1], body: m[2] }));
 
-const ASK = `Use $vs-ship-it. Write only the "## Change and proof" section of the PR body as markdown. Do not run git, gh, or any tool beyond reading the skill and its PR-body reference.`;
+const ASK = `Use $vs-ship-it. Write only the Before/After proof block of the PR body as markdown. Do not run git, gh, or any tool beyond reading the skill and its PR-body reference.`;
 
 describe('vs-ship-it text before/after', () => {
   it('renders a flag removal as one diff with only the changed flag marked', async () => {
@@ -95,8 +95,9 @@ After: https://github.com/user-attachments/assets/2222bbbb-0000-0000-0000-000000
       const result = await evaluate(agent, [
         check('screenshot-pair-kept', ({ log }) => {
           const out = assistantOutput(log);
+          const labeled = /\|\s*Before\s*\|\s*After\s*\|/.test(out) || (/\*\*Before\b/.test(out) && /\*\*After\b/.test(out));
           return /!\[[^\]]*\]\([^)]*1111aaaa/.test(out) && /!\[[^\]]*\]\([^)]*2222bbbb/.test(out)
-            && /\*\*Before\b/.test(out) && /\*\*After\b/.test(out);
+            && labeled;
         }),
         check('no-diff-instead-of-ui-proof', ({ log }) => {
           const out = assistantOutput(log);

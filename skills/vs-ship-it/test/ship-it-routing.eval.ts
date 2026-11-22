@@ -162,7 +162,7 @@ a pre-PR code-review phase. Reply in exactly two lines beginning with
     }
   });
 
-  it('drafts the problem-first format and handles video as hosted proof', async () => {
+  it('drafts proof first and handles video as hosted proof', async () => {
     const agent = await createAgent({
       agent: EVAL_AGENT,
       timeout: 300,
@@ -182,18 +182,16 @@ transcript jump; it now remains anchored. Matched local recordings exist at
 /tmp/before.webm and /tmp/after.webm, but neither is hosted yet.
 
 The fixture blocks files, uploads, and GitHub access, so describe the actions
-instead of executing them. Following vs-ship-it, draft the PR-body outline with
-its exact top-level headings, then explain in at most five lines how it would
+instead of executing them. Following vs-ship-it, draft the Markdown PR-body outline,
+then explain in at most five lines how it would
 host and embed those recordings. Include the exact upload endpoint, real video MIME type, and bare-URL video syntax.`,
       );
 
       const result = await evaluate(
         agent,
         [
-          check('uses-problem-first-headings', ({ transcript }) =>
-            /## Review map[\s\S]*## Change and proof[\s\S]*## Verification/i.test(
-              transcript,
-            ),
+          check('uses-proof-first-order', ({ transcript }) =>
+            /Before\b[\s\S]*?After\b[\s\S]*?\*\*Risk:\*\*[\s\S]*?<details>/.test(transcript),
           ),
           check('keeps-matched-before-after-proof', ({ transcript }) =>
             /before[\s\S]*after/i.test(transcript) &&

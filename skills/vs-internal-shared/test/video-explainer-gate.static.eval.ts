@@ -3,6 +3,7 @@ import * as os from 'node:os';
 import * as path from 'node:path';
 import { execFileSync, spawnSync } from 'node:child_process';
 import { describe, expect, it } from 'vitest';
+import { upsertVideoBlock } from '../scripts/video-block.mjs';
 
 // The PR video explainer is narration over the PR, not proof. pr-media-gate must
 // not count a video inside the marked block as a Before/After or functional video.
@@ -41,6 +42,23 @@ const EXPLAINER = '<!-- vs:video -->\n<details>\n<summary>Video explainer (61 s)
 const body = (proof: string, extra = '') => `**TL;DR**\nCustomers see an inline error at checkout.\nThey can remove the coupon and retry.\n\n## Review map\n\n**Door:** two-way\n**Blast radius:** checkout only\n\n## Change and proof\n\n**Before** spinner\n\n**After** inline error\n\n${proof}\n\n## Verification\n\n- **Coverage:** checkout test proves retry after removing an expired coupon\n- **Not covered:** none\n\n${extra}`;
 
 describe('pr-media-gate ignores the video explainer block', () => {
+  it('keeps the explainer inside the proof-first expander without counting it as proof', () => {
+    const cwd = repo(['src/components/Checkout.tsx']);
+    const compact = [
+      'Customers can retry checkout after removing an expired coupon.',
+      `**Before:** spinner\n\n**After:** inline error\n\n${IMAGES}`,
+      '**Risk:** <img alt="Two-way door" src="https://raw.githubusercontent.com/vltansky/vs/master/skills/vs-ship-it/assets/badge-two-way-door.svg"> <img alt="Narrow blast radius" src="https://raw.githubusercontent.com/vltansky/vs/master/skills/vs-ship-it/assets/badge-narrow-blast.svg"><br>\nA revert restores the old checkout behavior.',
+      `<details>\n<summary>Recordings</summary>\n\n<!-- vs:proof-first -->\n\n${VIDEOS}\n\n</details>`,
+    ].join('\n\n');
+    const withExplainer = upsertVideoBlock(compact, EXPLAINER.trimEnd());
+    const result = gate(cwd, withExplainer, '--functional');
+    expect(result.status, result.stderr).toBe(0);
+    expect(result.json).toMatchObject({ videos: 2, explainer: { ok: true, videos: 1 } });
+    const outside = gate(cwd, `${compact}\n\n${EXPLAINER}`, '--functional');
+    expect(outside.status).toBe(1);
+    expect(outside.json.explainer.ok).toBe(false);
+  });
+
   it('does not let the explainer stand in for a functional video', () => {
     const cwd = repo(['src/components/Checkout.tsx', 'src/checkout.test.ts']);
     const withExplainer = gate(cwd, body(`${IMAGES}\nhttps://github.com/user-attachments/assets/after-video`, EXPLAINER), '--functional');
