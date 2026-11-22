@@ -33,7 +33,8 @@ function problems(skill: string): string[] {
     out.push('template sections may be deleted');
   if (!/Do not append a second template/.test(tpl)) out.push('VS sections can repeat the repository template');
   if (!/Urgency does not shrink the template: an incident, hotfix, or "keep it short"\s+request still keeps every section and checklist item/.test(tpl) ||
-    !/mark missing proof `Pending: <what>` instead of dropping a section/.test(tpl) ||
+    !/mark missing proof `\*\*Still unverified:\*\* <what>` instead of dropping\s+a section/.test(tpl) ||
+    /`Pending:/.test(tpl) ||
     /(?:incident|hotfix|urgent)[^.]*(?:skip|drop|omit) (?:the )?template/i.test(tpl))
     out.push('urgency drops template sections');
   if (!/Find the repo PR template before drafting:\s+`find \. -maxdepth 3 -ipath '\*pull_request_template\*'/.test(skill) ||
@@ -86,11 +87,12 @@ const mutants: Record<string, (s: string) => string> = {
   'checkboxes ticked': (s) => s.replace('Keep template checkboxes unchecked unless the diff or\n  evidence proves them.', 'Tick every template checkbox.'),
   'gate skips template': (s) => s.replace(' [--template <repo PR template>]', ''),
   'urgency drops template sections': (s) =>
-    s.replace(/Urgency does not shrink the template:[\s\S]*?instead of dropping a section\.\n/, ''),
+    s.replace(/Urgency does not shrink the template:[\s\S]*?instead of dropping\na section\.\n/, ''),
   'hotfix skips the template': (s) =>
     s.replace('Urgency does not shrink the template: an incident, hotfix, or "keep it short"\nrequest still keeps every section and checklist item.', 'For an incident or hotfix, skip the template and keep only Why.'),
   'template not looked up before drafting': (s) => s.replace(/Find the repo PR template before drafting:[\s\S]*?in the reference\)\.\n/, ''),
   'empty template sections skipped': (s) => s.replace('Skip empty vs\nsections (never a repo template section)', 'Skip empty sections'),
+  'gap marker the gate cannot read': (s) => s.replace('mark missing proof `**Still unverified:** <what>`', 'mark missing proof `Pending: <what>`'),
   'lookup order shuffled': (s) => s.replace('`PULL_REQUEST_TEMPLATE.md`,\n`docs/pull_request_template.md`', '`docs/pull_request_template.md`,\n`PULL_REQUEST_TEMPLATE.md`'),
 };
 
@@ -103,5 +105,20 @@ describe('ship-it repo PR template + linked issue/spec contract', () => {
     const mutated = mutate(SKILL);
     expect(mutated).not.toBe(SKILL);
     expect(problems(mutated).length).toBeGreaterThan(0);
+  });
+});
+
+// The gap marker the template rule tells agents to write must be one the gate reads as a stated gap.
+describe('urgency gap marker matches pr-media-gate', () => {
+  it('pr-media-gate STATED_GAP accepts the marker the rule prescribes', async () => {
+    const fs = await import('node:fs');
+    const path = await import('node:path');
+    const gate = fs.readFileSync(path.resolve(__dirname, '../../vs-internal-shared/scripts/pr-media-gate.mjs'), 'utf8');
+    const src = gate.match(/^const STATED_GAP = \/(.+)\/([a-z]*);$/m);
+    expect(src).not.toBeNull();
+    const stated = new RegExp(src![1], src![2]);
+    const marker = SKILL.match(/mark missing proof `([^`]+)`/)?.[1] ?? '';
+    expect(stated.test(marker.replace('<what>', 'tests after the incident'))).toBe(true);
+    expect(stated.test('Pending: tests after the incident')).toBe(false);
   });
 });

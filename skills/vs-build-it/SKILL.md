@@ -362,11 +362,14 @@ rollout gap and blocks a rollout-safety claim.
 ### Step 1f: Set runtime limits explicitly
 
 When the plan adds or changes a serverless function, scheduled job, or container
-service (Cloud Functions, Lambda, Cloud Run), its step sets `memory` (and the
-timeout) explicitly in the deploy config, sized from the measured footprint or
-an existing sibling, with the value and its source in the plan. The platform
-default is not a decision: a new function left on the default memory is an
-unfinished step, not a done one.
+service (Cloud Functions, Lambda, Cloud Run), its step names the memory (and
+timeout) the function runs with, and the source of that value, in the plan.
+When the repo sets a default (`setGlobalOptions({ memory })` or an equivalent),
+the function inherits it: do not add a per-function override unless measurement
+shows this function needs more. With no repo-level default, set `memory`
+explicitly, sized from the measured footprint or an existing sibling. The
+platform default is not a decision: a function on it is an unfinished step,
+not a done one.
 
 ---
 

@@ -55,13 +55,15 @@ enough; do not run the entire suite by reflex.
    the built output. Reachability (HTTP 200) alone proves nothing about which
    build is live.
 8. **Config presence** - for deploy claims, prove the config the change reads
-   (env vars, secrets, flags, resource names) exists on the deployed target.
-   Grep the changed code for each key (`process.env.X`, `defineSecret('X')`,
-   config params) and name every key in Evidence or Gaps. Prove it by listing
-   it from the live revision or secret store (names and metadata only, never
-   values) or by exercising the path that reads it, and name the listing
-   command when it was not run. A smoke or health check that never reads that
-   config proves nothing about it.
+   exists on the deployed target. Grep the changed code for each new or
+   changed key (`process.env.X`, `defineSecret('X')`, config params) and name
+   every one in Evidence or Gaps. A secret bound with `defineSecret` is
+   resolved at deploy, so a successful deploy of that function is evidence it
+   exists. A plain env var, flag, or resource name is the real gap: the deploy
+   succeeds without it. Prove it by listing it from the live revision (names
+   and metadata only, never values) or by exercising the path that reads it,
+   and name the listing command when it was not run. A smoke or health check
+   that never reads that config proves nothing about it.
 
 ## User path and observable end state
 
@@ -103,10 +105,11 @@ factory lives in that shared contract, not here.
   not `PASS`.
 - A deploy claim verified only by reachability is `WARN` until artifact
   identity is confirmed.
-- A deploy claim whose smoke never read the new config is `WARN` until config
-  presence is shown. Read the deployed code even when only a deploy log was
-  handed over, and list each unproven key by name in Gaps. Config shown
-  missing on the live target is `FAIL`, even when the smoke is green.
+- A deploy claim whose smoke never read the new or changed config is `WARN`
+  until config presence is shown. Read the deployed code even when only a
+  deploy log was handed over, and list each unproven key by name in Gaps.
+  Config shown missing on the live target is `FAIL`, even when the smoke is
+  green.
 - Keep logs concise. The result should be a proof summary, not a transcript dump.
 
 ## Status inheritance

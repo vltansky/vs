@@ -24,7 +24,7 @@ Tier is assigned by impact, not by which lens or model found it. A hallucinated 
 | `any` abuse | FELONIES | Type system betrayal, trust issues |
 | Try/catch swallowing | FELONIES | Hiding problems, ostrich behavior |
 | Empty catch blocks | FELONIES | Ignoring reality, denial |
-| Function on default memory (no explicit limit) | FELONIES | OOM roulette on a schedule |
+| Serverless function with no memory set (neither per-function nor a repo-level default) | FELONIES | OOM roulette on a schedule |
 | Nested callbacks | FELONIES | Depth metaphors (Dante, Inception, archaeology) |
 | N+1 queries | FELONIES | Database restraining order |
 | Silent failures | FELONIES | catch-log-continue, optional chaining hiding ops |

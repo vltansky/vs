@@ -299,7 +299,6 @@ or symbol when a relevant hunk falls beyond the initial orientation sample.
 5. TOCTOU existence checks — operate directly, handle error
 6. Unbounded data structures, missing cleanup, listener leaks
 7. Reading entire files when only a portion is needed
-8. Serverless functions or jobs with no explicit memory limit — see Runtime limits below
 
 ### Auto-apply
 
@@ -333,14 +332,18 @@ Gather intel first: imports/exports, callers, tests. Then sweep all scan lenses 
 - **Security** — injection, unsafe input, missing auth
 - **Architecture** — structural regressions, god objects, circular deps, mixed concerns
 - **Error handling** — swallowed exceptions, silent failures, empty catches
-- **Runtime limits** — a Cloud Function, Lambda, Cloud Run service, or
-  scheduled job whose deploy config sets no explicit `memory` runs on the
-  platform default and gets OOM-killed as the bundle or data grows. Cite each
-  definition at file:line, rank it with correctness (FELONIES), and set an
-  explicit value sized from the measured footprint. A function that already
-  declares its memory is not a finding. Find every definition in scope, then
-  read each options object for `memory`:
+- **Runtime limits (serverless deploy config)** — only when scope defines a
+  Cloud Function, Lambda, Cloud Run service, or scheduled job. A function runs
+  on the platform default memory when neither its own options nor a repo-level
+  default sets `memory`, and it gets OOM-killed as the bundle or data grows.
+  Check the repo-level default first (`setGlobalOptions({ memory })`, SAM
+  `Globals.Function.MemorySize`, a Terraform or `firebase.json` default):
+  `rg -n 'setGlobalOptions|Globals:|MemorySize' .`. A repo-level default
+  counts as explicit: do not ask for per-function overrides. Then find each
+  definition in scope and read its options object:
   `rg -n 'onSchedule|onRequest|onCall|onDocument|onTask|runWith\(|MemorySize|google_cloudfunctions' <scope>`.
+  Cite each function that has neither at file:line as a FELONY, and set one
+  value sized from the measured footprint, preferably once at repo level.
 
 For the **Architecture** lens, when changed code suggests a structural
 regression, load and follow

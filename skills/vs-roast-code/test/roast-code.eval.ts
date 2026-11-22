@@ -5,6 +5,7 @@ import { check, score, judge, evaluate } from '@wix/pathgrade';
 import { promptOnce } from '../../vs-internal-shared/test/pathgrade-v1';
 
 import { createAgent } from '../../vs-internal-shared/test/pathgrade-agent';
+import { flagsCoveredFunctions, scoreMemoryReview } from './functions-memory-scorers';
 
 const SKILL_DIR = path.resolve(__dirname, '..');
 const EVAL_AGENT = (process.env.PATHGRADE_AGENT ?? 'codex') as 'claude' | 'codex';
@@ -55,6 +56,11 @@ const REDACTION_FIXTURE = path.join(__dirname, 'fixtures', 'secret-code');
 const PRIORITY_FIXTURE = path.join(__dirname, 'fixtures', 'prioritized-review');
 const SMALL_CHANGE_FIXTURE = path.join(__dirname, 'fixtures', 'small-change');
 const FUNCTIONS_MEMORY_FIXTURE = path.join(__dirname, 'fixtures', 'functions-memory');
+const FUNCTIONS_MEMORY_GLOBAL_FIXTURE = path.join(__dirname, 'fixtures', 'functions-memory-global');
+const FUNCTIONS_PROMPT =
+  '/vs-roast-code Review src/ before we deploy these Cloud Functions to production. ' +
+  'Give me the top 3 issues to fix before merge, ordered by severity, with file:line citations and one-line fix advice. ' +
+  'This is an automated eval — do not ask for confirmation, just deliver the review.';
 
 // ──────────────────────────────────────────────────────────────────
 // Proportionality test — a small, low-risk diff gets a small review
@@ -478,42 +484,46 @@ describe('roast-code proportionality', () => {
   });
 });
 
-// mt-reports failure class: scheduled Cloud Functions shipped on the platform
-// default memory and were OOM-killed in production. A review must flag the
-// functions that declare no explicit memory limit, not the one that does.
+// mt-reports failure class: scheduled Cloud Functions shipped on the platform default
+// memory and were OOM-killed in production. A review must flag the functions that set no
+// memory, not the one that does. Scorers live in functions-memory-scorers.ts and are
+// unit-tested against wrong answers in functions-memory-scorers.static.eval.ts.
 describe('roast-code deploy config', () => {
   it('flags Cloud Functions that run on the default memory limit', async () => {
     const agent = await createRoastAgent(FUNCTIONS_MEMORY_FIXTURE);
-
-    await promptOnce(agent,
-      '/vs-roast-code Review src/ before we deploy these Cloud Functions to production. ' +
-        'List the issues to fix before merge, ordered by severity, with file:line citations and one-line fix advice. ' +
-        'This is an automated eval — do not ask for confirmation, just deliver the review.',
-    );
+    await promptOnce(agent, FUNCTIONS_PROMPT);
     const output = [...agent.messages].reverse().find((m) => m.role === 'agent')?.content ?? '';
+    const s = scoreMemoryReview(output);
 
     const result = await evaluate(
       agent,
       [
-        check('flags-missing-memory-limit', () =>
-          /schedulers\.ts/.test(output) &&
-          /(?:explicit|default|no|missing|without(?: an?)?(?: explicit)?|unset)\s+`?memory`?|memory\s+(?:limit|setting|option|config)|`memory`/i.test(output),
-          { weight: 3 },
-        ),
-        check('recommends-an-explicit-memory-value', () =>
-          /memory:\s*['"]?\d+\s*(?:MiB|GiB|MB|GB)|\b\d{3,4}\s*MiB\b|\b[12]\s*GiB\b|(?:set|add|declare)\s+(?:an?\s+)?explicit[^\n]{0,30}`?memory`?/i.test(output),
-          { weight: 2 },
-        ),
-        check('cites-the-scheduler-lines', () => /schedulers\.ts:\d+/.test(output), { weight: 1 }),
-        check('does-not-blame-the-explicit-function', () =>
-          !/reconcile\.ts[^\n]{0,120}(?:no|missing|without|default)[^\n]{0,40}memory/i.test(output),
-          { weight: 1 },
-        ),
+        check('flags-missing-memory-limit', () => s.flags, { weight: 3 }),
+        check('recommends-an-explicit-memory-value', () => s.recommends, { weight: 2 }),
+        check('cites-the-scheduler-lines', () => s.cites, { weight: 1 }),
+        check('does-not-blame-the-explicit-function', () => s.sparesExplicit, { weight: 1 }),
       ],
       { failFast: false, onScorerError: 'zero' },
     );
 
     expect(result.score, output).toBeGreaterThanOrEqual(0.85);
+    await agent.dispose();
+  });
+
+  // mt-reports later moved to one repo-level default (setGlobalOptions 512MiB) and dropped
+  // per-function overrides. That is explicit; flagging it is a false positive.
+  it('does not flag functions covered by a repo-level memory default', async () => {
+    const agent = await createRoastAgent(FUNCTIONS_MEMORY_GLOBAL_FIXTURE);
+    await promptOnce(agent, FUNCTIONS_PROMPT);
+    const output = [...agent.messages].reverse().find((m) => m.role === 'agent')?.content ?? '';
+
+    const result = await evaluate(
+      agent,
+      [check('does-not-flag-covered-functions', () => !flagsCoveredFunctions(output))],
+      { failFast: false, onScorerError: 'zero' },
+    );
+
+    expect(result.score, output).toBe(1);
     await agent.dispose();
   });
 });

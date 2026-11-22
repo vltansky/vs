@@ -40,6 +40,7 @@ const SCENARIO_ROOTS = [
   ),
   path.join(ROOT, 'skills', 'vs-ship-it', 'test', 'fixtures', 'incident-hotfix'),
   path.join(ROOT, 'skills', 'vs-roast-code', 'test', 'fixtures', 'functions-memory'),
+  path.join(ROOT, 'skills', 'vs-roast-code', 'test', 'fixtures', 'functions-memory-global'),
   path.join(ROOT, 'skills', 'vs-verify', 'test', 'fixtures', 'deploy-config'),
 ];
 

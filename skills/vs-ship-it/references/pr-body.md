@@ -54,7 +54,8 @@ Pass the template used as `--template <path>`. A missing or reordered heading,
 or a dropped checklist item, fails the gate. Do not append a second template.
 Urgency does not shrink the template: an incident, hotfix, or "keep it short"
 request still keeps every section and checklist item. Shorten the prose, write
-`N/A`, or mark missing proof `Pending: <what>` instead of dropping a section.
+`N/A`, or mark missing proof `**Still unverified:** <what>` instead of dropping
+a section.
 
 **Linked issue and spec.** Put them on one separate line inside the expander.
 Take the issue number from the branch name (`fix/123-x`), commit
