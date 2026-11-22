@@ -5,8 +5,8 @@ then show the primary Before/After proof. Follow it with one `**Risk:**` paragra
 and one collapsed expander. Add a short visible caption only where the proof
 needs explanation. Use line breaks when they help each side read clearly. Put recordings,
 additional comparisons, verification, template fields, and the walkthrough
-inside that same expander. Name the contents in the summary. Skip empty sections
-and avoid repeating the same claim in the sentence, captions, and details.
+inside that same expander. Name the contents in the summary. Skip empty vs
+sections (never a repo template section) and avoid repeating the same claim in the sentence, captions, and details.
 
 **Merge blocker.** Move the same risk paragraph to the very top only when a known
 condition must be resolved before merge. Start it with
@@ -52,6 +52,10 @@ case-insensitively, in this order: `.github/pull_request_template.md`,
 
 Pass the template used as `--template <path>`. A missing or reordered heading,
 or a dropped checklist item, fails the gate. Do not append a second template.
+Urgency does not shrink the template: an incident, hotfix, or "keep it short"
+request still keeps every section and checklist item. Shorten the prose, write
+`N/A`, or mark missing proof `**Still unverified:** <what>` instead of dropping
+a section.
 
 **Linked issue and spec.** Put them on one separate line inside the expander.
 Take the issue number from the branch name (`fix/123-x`), commit

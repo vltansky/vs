@@ -359,6 +359,18 @@ The change cannot be called complete until every applicable matrix row is
 proven against the final implementation. An untestable row remains an explicit
 rollout gap and blocks a rollout-safety claim.
 
+### Step 1f: Set runtime limits explicitly
+
+When the plan adds or changes a serverless function, scheduled job, or container
+service (Cloud Functions, Lambda, Cloud Run), its step names the memory (and
+timeout) the function runs with, and the source of that value, in the plan.
+When the repo sets a default (`setGlobalOptions({ memory })` or an equivalent),
+the function inherits it: do not add a per-function override unless measurement
+shows this function needs more. With no repo-level default, set `memory`
+explicitly, sized from the measured footprint or an existing sibling. The
+platform default is not a decision: a function on it is an unfinished step,
+not a done one.
+
 ---
 
 ## Phase 1: Roast the Plan

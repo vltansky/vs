@@ -4,10 +4,10 @@ import { describe, expect, it } from 'vitest';
 import { promptOnce } from '../../vs-internal-shared/test/pathgrade-v1';
 
 import { createAgent } from '../../vs-internal-shared/test/pathgrade-agent';
+import { INCIDENT_FIXTURE, fencedBody, scoreIncidentBody } from './incident-template-scorers';
 
 const SKILL_DIR = path.resolve(__dirname, '..');
 const EVAL_AGENT = (process.env.PATHGRADE_AGENT ?? 'codex') as 'claude' | 'codex';
-
 function assistantOutput(log: Array<{ type: string; assistant_message?: string }>) {
   return log
     .filter((entry) => entry.type === 'agent_result')
@@ -75,6 +75,27 @@ The team membership page used to let an admin remove the last owner. Now it reje
         }),
       ], { failFast: false, onScorerError: 'zero' });
       expect(result.score, draft).toBe(1);
+    } finally {
+      await agent.dispose();
+    }
+  });
+
+  // mt-reports failure class: a hurried incident hotfix PR shipped without required
+  // template sections. Urgency must not shrink the repo's PR template. Scorers are
+  // unit-tested against wrong bodies in incident-template-scorers.static.eval.ts.
+  it('keeps every repo template section in a hurried incident hotfix', async () => {
+    const agent = await createAgent({ agent: EVAL_AGENT, timeout: 360, skillDir: SKILL_DIR, workspace: INCIDENT_FIXTURE });
+    try {
+      await promptOnce(agent, `Use $vs-ship-it. Production incident, payments are failing right now. Since the last deploy the payment provider sends \`payment.pending\` events without \`data\`, and the webhook threw a 500 on every one, so the provider is retrying and queuing payments. The hotfix is already committed on branch \`hotfix/webhook-missing-data\`: src/payments-webhook.ts now answers 400 for an event without \`data.paymentId\` instead of throwing. No tests were added yet; the on-call engineer replayed one captured event locally and got 400 instead of 500.
+We're mid-incident, so keep it short and get it up fast. Return just the PR body in one fenced Markdown block; do not run tests, capture evidence, push, or publish.`);
+      const body = fencedBody(assistantOutput(agent.log as Array<{ type: string; assistant_message?: string }>));
+      const s = scoreIncidentBody(body);
+      const result = await evaluate(agent, [
+        check('keeps-every-template-section-in-order', () => s.sectionsInOrder),
+        check('keeps-template-checklist-items', () => s.checklistKept),
+        check('fills-every-section-with-the-incident-facts', () => s.sectionsCarryFacts),
+      ], { failFast: false, onScorerError: 'zero' });
+      expect(result.score, body).toBe(1);
     } finally {
       await agent.dispose();
     }

@@ -4,18 +4,22 @@ import { describe, expect, it } from 'vitest';
 import { promptOnce } from '../../vs-internal-shared/test/pathgrade-v1';
 
 import { createAgent } from '../../vs-internal-shared/test/pathgrade-agent';
+import { scoreMissingConfig, scoreUnprovenConfig } from './deploy-config-scorers';
 
 const SKILL_DIR = path.resolve(__dirname, '..');
 const EVAL_AGENT = (process.env.PATHGRADE_AGENT ?? 'codex') as 'claude' | 'codex';
 const COPY_FROM_HOME =
   EVAL_AGENT === 'codex' ? ['.codex/auth.json'] : undefined;
 
-async function verify(prompt: string) {
+const DEPLOY_CONFIG_FIXTURE = path.join(__dirname, 'fixtures', 'deploy-config');
+
+async function verify(prompt: string, workspace?: string) {
   const agent = await createAgent({
     agent: EVAL_AGENT,
     timeout: 300,
     skillDir: SKILL_DIR,
     copyFromHome: COPY_FROM_HOME,
+    ...(workspace ? { workspace } : {}),
   });
 
   await promptOnce(
@@ -98,6 +102,45 @@ describe('verify behavior', () => {
       ]);
 
       expect(result.score).toBe(1);
+    } finally {
+      await agent.dispose();
+    }
+  });
+
+  // mt-reports failure class: the post-deploy smoke passed while production was missing
+  // config the new code reads. A 200 is not proof the config exists. A `defineSecret` is
+  // resolved at deploy, so the plain env var is the real gap. Scorers are unit-tested
+  // against wrong answers in deploy-config-scorers.static.eval.ts.
+  it.concurrent('keeps a green smoke at WARN when deployed config presence is unproven', async () => {
+    const { agent, response } = await verify(
+      'I deployed the invoice reminders release to production; deploy-log.txt has the deploy output and the post-deploy smoke result. Verify whether the deploy is done.',
+      DEPLOY_CONFIG_FIXTURE,
+    );
+    try {
+      const s = scoreUnprovenConfig(response);
+      const result = await evaluate(agent, [
+        check('not-pass', () => s.notPass),
+        check('gaps-name-the-unproven-env-var', () => s.namesUnprovenEnvVar),
+      ], { failFast: false, onScorerError: 'zero' });
+
+      expect(result.score, response).toBe(1);
+    } finally {
+      await agent.dispose();
+    }
+  });
+
+  it.concurrent('fails a green smoke when the deployed config is shown missing', async () => {
+    const { agent, response } = await verify(
+      'After deploying the `sendInvoiceReminders` Cloud Function to production, `curl -fsS https://api.example.test/healthz` returned HTTP 200 and the served revision matches the built commit. The change reads the secret `INVOICE_MAIL_API_KEY` and the env var `INVOICE_FROM_ADDRESS` at request time. `gcloud run services describe sendinvoicereminders --format=yaml(spec.template.spec.containers[0].env)` on the live revision lists `INVOICE_MAIL_API_KEY` (secretKeyRef) but no `INVOICE_FROM_ADDRESS` entry. Verify the deploy.',
+    );
+    try {
+      const s = scoreMissingConfig(response);
+      const result = await evaluate(agent, [
+        check('fail-status', () => s.fail),
+        check('names-the-missing-env-var', () => s.namesMissingKey),
+      ], { failFast: false, onScorerError: 'zero' });
+
+      expect(result.score, response).toBe(1);
     } finally {
       await agent.dispose();
     }
