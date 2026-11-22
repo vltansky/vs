@@ -61,6 +61,14 @@ meets every acceptance criterion in the issue. Read it with `gh issue view <N>`.
 Pin the spec link to the head SHA and refresh it alongside walkthrough links.
 Use the Markdown link label `[Spec]` so the gate can recognize and pin it.
 
+**Plan.** When the work came from a shape-it plan (a build-it handoff, its
+progress note, or the matching `~/.vs/$PROJECT_ID/specs/` doc), the reviewer
+sees it. A plan committed in the repo gets the head-pinned `[Spec]` link. A plan
+outside the repo cannot be linked: add a `**Plan:**` block inside the expander
+with the goal, the slice this PR delivers, and the slices still to come, in
+about 3 to 6 lines. Never add a second `<details>` for it. No plan found: skip
+the block; never invent one.
+
 **Root cause (bugfix PRs only).** A bugfix has a branch starting
 with `fix/`, `fix-`, or `hotfix/` (including after `<user>/`), a PR title or
 FIRST commit subject after the merge-base with a `fix:` / `fix(<scope>):`
@@ -161,6 +169,8 @@ Reverting the Reportan Web editor won't undo saved assignments.
 
 Refs #<N> · [Spec](https://github.com/<owner>/<repo>/blob/<HEAD_SHA>/<spec path>)
 
+**Plan:** <goal> · This PR: <slice> · Next: <remaining slices, or none>
+
 Root cause: <mechanism that made the bug happen>
 
 **Before recording**
@@ -174,6 +184,7 @@ Root cause: <mechanism that made the bug happen>
 ## Verification
 
 - **Automated:** `<command>` passed.
+- **Prod:** <observed result after deploy, with URL or log line and time>
 - **Coverage:** <changed tests grouped by behavior, including deleted guards>
 - **Not covered:**
   - [ ] <action the reviewer runs and expected result>
@@ -312,6 +323,13 @@ runner `include` glob, a `checks/` folder) and pass it to the gate as
   warning only: it never blocks PR creation, never asks the user, and never
   starts a test run or new test writing. Exempt docs-only, copy/styling-only,
   config/CI-only, and test-only PRs.
+
+- **Test or prod evidence.** Verification shows at least one real result
+  for this head: `**Automated:**` with the command and its result, or
+  `**Prod:**` with what was observed after a deploy. Reuse existing results;
+  this adds no runs. When neither exists, write
+  `**Still unverified:** tests; <blocker>`. Never claim a pass without the
+  command that produced it.
 
 `pr-media-gate.mjs` fails a body that has changed test/eval files but no
 `## Verification` block whose `Not covered:` is `none` or the label followed by
