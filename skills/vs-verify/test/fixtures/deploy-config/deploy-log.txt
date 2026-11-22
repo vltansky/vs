@@ -1,0 +1,5 @@
+deploy: functions[sendInvoiceReminders(europe-west1)] Successful update operation.
+deploy: functions[healthz(europe-west1)] Successful update operation.
+deploy: served revision sendinvoicereminders-00042 matches build 2026-11-21.3
+smoke: scripts/smoke.sh -> smoke ok (HTTP 200)
+deploy: done

@@ -359,6 +359,15 @@ The change cannot be called complete until every applicable matrix row is
 proven against the final implementation. An untestable row remains an explicit
 rollout gap and blocks a rollout-safety claim.
 
+### Step 1f: Set runtime limits explicitly
+
+When the plan adds or changes a serverless function, scheduled job, or container
+service (Cloud Functions, Lambda, Cloud Run), its step sets `memory` (and the
+timeout) explicitly in the deploy config, sized from the measured footprint or
+an existing sibling, with the value and its source in the plan. The platform
+default is not a decision: a new function left on the default memory is an
+unfinished step, not a done one.
+
 ---
 
 ## Phase 1: Roast the Plan

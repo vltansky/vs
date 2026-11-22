@@ -299,6 +299,7 @@ or symbol when a relevant hunk falls beyond the initial orientation sample.
 5. TOCTOU existence checks — operate directly, handle error
 6. Unbounded data structures, missing cleanup, listener leaks
 7. Reading entire files when only a portion is needed
+8. Serverless functions or jobs with no explicit memory limit — see Runtime limits below
 
 ### Auto-apply
 
@@ -332,6 +333,12 @@ Gather intel first: imports/exports, callers, tests. Then sweep all scan lenses 
 - **Security** — injection, unsafe input, missing auth
 - **Architecture** — structural regressions, god objects, circular deps, mixed concerns
 - **Error handling** — swallowed exceptions, silent failures, empty catches
+- **Runtime limits** — a Cloud Function, Lambda, Cloud Run service, or
+  scheduled job whose deploy config sets no explicit `memory` runs on the
+  platform default and gets OOM-killed as the bundle or data grows. Cite each
+  definition at file:line, rank it with correctness (FELONIES), and set an
+  explicit value sized from the measured footprint. A function that already
+  declares its memory is not a finding.
 
 For the **Architecture** lens, when changed code suggests a structural
 regression, load and follow

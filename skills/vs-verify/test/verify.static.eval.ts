@@ -21,6 +21,15 @@ describe('verification status contract', () => {
     expect(VERIFY).toMatch(/Reachability \(HTTP 200\) alone proves nothing/);
   });
 
+  it('requires config presence, not a green smoke, for deploy claims', () => {
+    expect(VERIFY).toMatch(/\*\*Config presence\*\* - for deploy claims, prove the config the change reads/);
+    expect(VERIFY).toMatch(/list it from the live revision or secret store \(names and metadata only,\s+never values\)/);
+    expect(VERIFY).toMatch(/A smoke or health check\s+that never reads that config proves nothing about it/);
+    expect(VERIFY).toMatch(/smoke never read the new config is `WARN` until config\s+presence is shown/);
+    expect(VERIFY).toMatch(/Config shown missing on the live target is `FAIL`, even\s+when the smoke is green/);
+    expect(VERIFY).not.toMatch(/(?:smoke|health check)[^.\n]*(?:passes|green|200)[^.\n]*(?:is|report) `PASS`/i);
+  });
+
   it('propagates verification status through delivery workflows', () => {
     expect(BUILD_IT).toMatch(/handoff verdict inherits the verification status/);
     expect(BUILD_IT).toMatch(/`WARN`, `FAIL`, or\s+`BLOCKED`[\s\S]+do not\s+describe the outcome as fixed or working/);

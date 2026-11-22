@@ -54,6 +54,11 @@ enough; do not run the entire suite by reflex.
    artifact actually changed: compare bundle hash, version, or etag against
    the built output. Reachability (HTTP 200) alone proves nothing about which
    build is live.
+8. **Config presence** - for deploy claims, prove the config the change reads
+   (env vars, secrets, flags, resource names) exists on the deployed target:
+   list it from the live revision or secret store (names and metadata only,
+   never values), or exercise the path that reads it. A smoke or health check
+   that never reads that config proves nothing about it.
 
 ## User path and observable end state
 
@@ -95,6 +100,9 @@ factory lives in that shared contract, not here.
   not `PASS`.
 - A deploy claim verified only by reachability is `WARN` until artifact
   identity is confirmed.
+- A deploy claim whose smoke never read the new config is `WARN` until config
+  presence is shown. Config shown missing on the live target is `FAIL`, even
+  when the smoke is green.
 - Keep logs concise. The result should be a proof summary, not a transcript dump.
 
 ## Status inheritance

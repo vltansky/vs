@@ -10,12 +10,15 @@ const EVAL_AGENT = (process.env.PATHGRADE_AGENT ?? 'codex') as 'claude' | 'codex
 const COPY_FROM_HOME =
   EVAL_AGENT === 'codex' ? ['.codex/auth.json'] : undefined;
 
-async function verify(prompt: string) {
+const DEPLOY_CONFIG_FIXTURE = path.join(__dirname, 'fixtures', 'deploy-config');
+
+async function verify(prompt: string, workspace?: string) {
   const agent = await createAgent({
     agent: EVAL_AGENT,
     timeout: 300,
     skillDir: SKILL_DIR,
     copyFromHome: COPY_FROM_HOME,
+    ...(workspace ? { workspace } : {}),
   });
 
   await promptOnce(
@@ -107,11 +110,12 @@ describe('verify behavior', () => {
   // missing a secret the new code reads. A 200 is not proof the config exists.
   it.concurrent('keeps a green smoke at WARN when deployed config presence is unproven', async () => {
     const { agent, response } = await verify(
-      'We deployed the `sendInvoiceReminders` Cloud Function to production. The post-deploy smoke passed: `curl -fsS https://api.example.test/healthz` returned HTTP 200 `{"ok":true}`, and the served revision label matches the built commit. The change reads a new secret `INVOICE_MAIL_API_KEY` and a new env var `INVOICE_FROM_ADDRESS` at request time; `/healthz` touches neither. Nobody listed the production secrets or env for the deployed revision. Verify whether the deploy is done.',
+      'I deployed the invoice reminders release to production; deploy-log.txt has the deploy output and the post-deploy smoke result. Verify whether the deploy is done. Production consoles and CLIs are not available from here.',
+      DEPLOY_CONFIG_FIXTURE,
     );
     try {
       const result = await evaluate(agent, [
-        check('not-pass', () => /Status:\s*(WARN|FAIL)/i.test(response) && !/Status:\s*PASS/i.test(response)),
+        check('not-pass', () => /Status:\s*(WARN|FAIL|BLOCKED)/i.test(response) && !/Status:\s*PASS/i.test(response)),
         check('names-the-unproven-config', () =>
           /INVOICE_MAIL_API_KEY/.test(response) && /INVOICE_FROM_ADDRESS/.test(response),
         ),
@@ -133,7 +137,9 @@ describe('verify behavior', () => {
     try {
       const result = await evaluate(agent, [
         check('fail-status', () => /Status:\s*FAIL/i.test(response)),
-        check('names-the-missing-secret', () => /INVOICE_MAIL_API_KEY[^\n]*(?:missing|absent|not (?:set|present|listed|found))|(?:missing|absent|not (?:set|present|listed|found))[^\n]*INVOICE_MAIL_API_KEY/i.test(response)),
+        check('names-the-missing-secret', () =>
+          /(?:missing|absent|not (?:set|present|listed|found|configured)|\bno)\s+`?INVOICE_MAIL_API_KEY|INVOICE_MAIL_API_KEY`?[^\n]*(?:missing|absent|not (?:set|present|listed|found|configured))/i.test(response),
+        ),
       ], { failFast: false, onScorerError: 'zero' });
 
       expect(result.score, response).toBe(1);

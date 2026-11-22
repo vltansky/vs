@@ -32,6 +32,10 @@ function problems(skill: string): string[] {
   if (!/Keep inapplicable sections with `N\/A`/.test(tpl) || /(?:drop|delete|remove) (?:the )?template sections? that/i.test(tpl))
     out.push('template sections may be deleted');
   if (!/Do not append a second template/.test(tpl)) out.push('VS sections can repeat the repository template');
+  if (!/Urgency does not shrink the template: an incident, hotfix, or "keep it short"\s+request still keeps every section and checklist item/.test(tpl) ||
+    !/mark missing proof `Pending: <what>` instead of dropping a section/.test(tpl) ||
+    /(?:incident|hotfix|urgent)[^.]*(?:skip|drop|omit) (?:the )?template/i.test(tpl))
+    out.push('urgency drops template sections');
   if (!/Keep template checkboxes unchecked unless the diff or\s+evidence proves them/.test(tpl)) out.push('checkboxes may be ticked without proof');
   if (!/Several templates \(a directory\), none clearly fits:\*\* ask once/.test(tpl) || !/only question ship-it may ask/.test(tpl))
     out.push('multi-template does not ask');
@@ -77,6 +81,10 @@ const mutants: Record<string, (s: string) => string> = {
       .replace('scenario prose)', 'scenario prose)'),
   'checkboxes ticked': (s) => s.replace('Keep template checkboxes unchecked unless the diff or\n  evidence proves them.', 'Tick every template checkbox.'),
   'gate skips template': (s) => s.replace(' [--template <repo PR template>]', ''),
+  'urgency drops template sections': (s) =>
+    s.replace(/Urgency does not shrink the template:[\s\S]*?instead of dropping a section\.\n/, ''),
+  'hotfix skips the template': (s) =>
+    s.replace('Urgency does not shrink the template: an incident, hotfix, or "keep it short"\nrequest still keeps every section and checklist item.', 'For an incident or hotfix, skip the template and keep only Why.'),
   'lookup order shuffled': (s) => s.replace('`PULL_REQUEST_TEMPLATE.md`,\n`docs/pull_request_template.md`', '`docs/pull_request_template.md`,\n`PULL_REQUEST_TEMPLATE.md`'),
 };
 
