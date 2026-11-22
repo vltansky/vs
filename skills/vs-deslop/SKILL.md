@@ -52,8 +52,13 @@ Inspect the requested scope for:
   or a catch that logs and swallows a real failure
 - `any`, a non-null assertion (`!`), and an uncommented type assertion
   that fabricates evidence
-- comments that narrate obvious code, hand-holding notes, and JSDoc that
-  is only restating the signature
+- restating comments and weak tests — **defer or rewrite, do not mass-delete**:
+  - comments that narrate obvious code, hand-holding notes, and JSDoc that
+    is only restating the signature: rewrite into a real why, or defer under
+    Deferred when risky; do not wipe a whole comment block as cleanup theater
+  - tests that cannot fail, or that only mirror the implementation against
+    itself: rewrite to assert observable behavior, or defer under Deferred;
+    do not mass-delete the suite
 - dead imports, stale flags, temporary debug leftovers, `console.log` /
   `console.debug` / `console.info` left in production paths, and a stale
   TODO fossil
@@ -144,7 +149,8 @@ Do not skip or invert these.
 - `?.` / `?? []` / `?? {}` hiding a required value?
 - unnecessary `async`/`await` or Promise wrapping?
 - `any` or uncommented type assertion?
-- hand-holding comment or JSDoc restating the signature?
+- restating comment or JSDoc — rewrite or defer, not mass-delete?
+- weak test (can't fail / mirrors impl) — rewrite or defer, not mass-delete?
 - `console.log` / stale TODO fossil / dead import?
 - synonym cycling of one domain name?
 - still cuttable concept left in scope after one flatten pass?

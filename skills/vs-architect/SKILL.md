@@ -88,6 +88,26 @@ Follow understanding friction, not a fixed smell checklist. Look for:
 - tightly coupled modules that always change and fail together;
 - an interface almost as complicated as its implementation.
 
+Also ask of related pieces: **should these change together?** Classify each
+mismatch (covers split ownership, two ways to do one task, importable
+internals, and hand-synced lists):
+
+- **Hidden links** — must change together, but the code does not show it:
+  copied logic or values (hand-synced lists); a feature split across folders
+  by layer (split ownership); a call order or convention callers just know.
+- **Needless links** — tied together though they change for different reasons:
+  callers that import internals (importable internals); stable code that
+  imports something more volatile; two supported ways to do one task; a
+  shallow module whose interface moves with its internals.
+- **Surplus** — no reason of their own to change: pass-through wrappers,
+  speculative extension points, dead code.
+
+Also note **special cases** that reveal a missing design: a one-value `if`,
+a parameter only one caller understands, a swallowed exception, a retry or
+sleep, a disabled test. Prefer one deepening that dissolves several of these
+over fixing them one by one. Stay read-only: list them as candidate evidence;
+do not edit.
+
 For each suspected candidate:
 
 1. Trace at least two callers or explain why the one critical caller is enough.
@@ -95,9 +115,12 @@ For each suspected candidate:
 3. Apply the deletion test: if the module vanished, would its complexity vanish
    or reappear across callers?
 4. Classify dependencies and the resulting test surface using the review
-   playbook.
-5. Check the candidate against ADRs and domain vocabulary.
-6. Reject it unless the proposed deepening improves locality or leverage with a
+   playbook. Check dependency direction: nothing imports anything more
+   volatile than itself.
+5. When claiming pieces always change together, cite git co-change counts
+   from the playbook recipe — do not assert coupling from adjacency alone.
+6. Check the candidate against ADRs and domain vocabulary.
+7. Reject it unless the proposed deepening improves locality or leverage with a
    smaller caller-facing interface.
 
 Use direct exploration for `quick` and small scopes. At standard depth, use at

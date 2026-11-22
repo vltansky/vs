@@ -118,10 +118,18 @@ describe('vs-deslop: exclusive cleanup procedure', () => {
     );
   });
 
-  it('cuts comments that only restate a signature, not a JSDoc slogan', () => {
+  it('defers or rewrites restating comments and weak tests, never mass-deletes', () => {
     expect(SKILL).toMatch(
-      /comments that narrate obvious code, hand-holding notes, and JSDoc that is only restating the signature/i,
+      /defer or rewrite, do not mass-delete/i,
     );
+    expect(SKILL).toMatch(
+      /comments that narrate obvious code, hand-holding notes, and JSDoc that\s+is only restating the signature/i,
+    );
+    expect(SKILL).toMatch(
+      /tests that cannot fail, or that only mirror the implementation against\s+itself/i,
+    );
+    expect(SKILL).toMatch(/do not wipe a whole comment block as cleanup theater/i);
+    expect(SKILL).toMatch(/do not mass-delete the suite/i);
   });
 
   it('does not flatten local idiom', () => {
