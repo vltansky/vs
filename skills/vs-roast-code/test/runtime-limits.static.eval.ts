@@ -21,6 +21,8 @@ function problems(roast: string, build: string): string[] {
   if (!/Cite each\s+definition at file:line, rank it with correctness \(FELONIES\)/.test(parent)) out.push('roast: not cited or ranked');
   if (!/set an\s+explicit value sized from the measured footprint/.test(parent)) out.push('roast: no explicit value advised');
   if (!/A function that already\s+declares its memory is not a finding/.test(parent)) out.push('roast: flags functions that declare memory');
+  if (!/Find every definition in scope, then\s+read each options object for `memory`:\s+`rg -n 'onSchedule\|onRequest\|onCall/.test(parent))
+    out.push('roast: no deterministic sweep for function definitions');
   if (!/Serverless functions or jobs with no explicit memory limit/.test(lens)) out.push('roast: SMALL pass skips runtime limits');
   if (/(?:platform|provider) default (?:memory )?is (?:fine|acceptable|safe)/i.test(roast)) out.push('roast: default memory accepted');
   if (!step) return [...out, 'build-it: no runtime-limits step'];
@@ -32,10 +34,11 @@ function problems(roast: string, build: string): string[] {
 
 type Pair = [string, string];
 const mutants: Record<string, (p: Pair) => Pair> = {
-  'roast lens removed': ([r, b]) => [r.replace(/- \*\*Runtime limits\*\*[\s\S]*?is not a finding\.\n/, ''), b],
+  'roast lens removed': ([r, b]) => [r.replace(/- \*\*Runtime limits\*\*[\s\S]*?<scope>`\.\n/, ''), b],
   'roast accepts default': ([r, b]) => [r.replace('runs on the\n  platform default and gets OOM-killed', 'runs on the\n  platform default memory is fine'), b],
   'roast flags declared memory': ([r, b]) => [r.replace(' A function that already\n  declares its memory is not a finding.', ''), b],
   'roast skips file:line': ([r, b]) => [r.replace('Cite each\n  definition at file:line, rank', 'Rank'), b],
+  'no definition sweep': ([r, b]) => [r.replace(/ Find every definition in scope, then\n[\s\S]*?<scope>`\.\n/, '\n'), b],
   'SMALL pass skips it': ([r, b]) => [r.replace(/8\. Serverless functions or jobs[^\n]*\n/, ''), b],
   'build-it step removed': ([r, b]) => [r, b.replace(/### Step 1f: Set runtime limits explicitly[\s\S]*?unfinished step, not a done one\.\n/, '')],
   'build-it leaves default as done': ([r, b]) => [r, b.replace('a new function left on the default memory is an\nunfinished step, not a done one.', 'the default memory is fine for a first cut.')],

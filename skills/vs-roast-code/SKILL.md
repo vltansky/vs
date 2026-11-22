@@ -338,7 +338,9 @@ Gather intel first: imports/exports, callers, tests. Then sweep all scan lenses 
   platform default and gets OOM-killed as the bundle or data grows. Cite each
   definition at file:line, rank it with correctness (FELONIES), and set an
   explicit value sized from the measured footprint. A function that already
-  declares its memory is not a finding.
+  declares its memory is not a finding. Find every definition in scope, then
+  read each options object for `memory`:
+  `rg -n 'onSchedule|onRequest|onCall|onDocument|onTask|runWith\(|MemorySize|google_cloudfunctions' <scope>`.
 
 For the **Architecture** lens, when changed code suggests a structural
 regression, load and follow
