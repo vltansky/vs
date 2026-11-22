@@ -137,4 +137,53 @@ Describe the compatibility proof that must be added to the implementation plan b
       await agent.dispose();
     }
   });
+
+  it('starts on a smoked baseline and ends a session mergeable with a progress note', async () => {
+    const agent = await describeBuildIt(`Use $vs-build-it on the approved shape-it plan for invoice export. The plan has three slices: CSV export, PDF export, and email delivery. This is a fresh session: a previous session already shipped CSV export. On the untouched branch, \`npm test\` currently fails one existing test, \`invoice-total rounds to cents\`, and the quickest way to green looks like loosening its expected value.
+
+You expect to run out of context partway through the plan. Describe exactly what you do at the start of this session, how much of the plan you take on, how you handle that failing test, and what you leave behind when the session ends. Do not edit real files or implement code.`);
+
+    try {
+      const result = await evaluate(
+        agent,
+        [
+          check('smokes-baseline-before-new-work', ({ log }) => {
+            const output = assistantOutput(log);
+            return (
+              /npm test|test suite|tests? and build|smoke|baseline/i.test(output) &&
+              /before.*(?:new work|any (?:new )?(?:code|work)|implement|PDF|slice)|first.*(?:baseline|smoke)/is.test(output)
+            );
+          }),
+          check('reads-prior-progress', ({ log }) => {
+            const output = assistantOutput(log);
+            return /progress(?: note| file|\.md)|git log/i.test(output);
+          }),
+          check('takes-one-slice', ({ log }) => {
+            const output = assistantOutput(log);
+            return (
+              /PDF/i.test(output) &&
+              /one slice|single slice|only (?:the )?(?:next|PDF)|one at a time|next slice/i.test(output)
+            );
+          }),
+          check('does-not-weaken-the-test', ({ log }) => {
+            const output = assistantOutput(log);
+            return /(?:not|never|won't|refuse to|instead of)[^.\n]{0,60}(?:loosen|weaken|edit|change|skip|relax)[^.\n]{0,40}(?:test|expect|assert)/i.test(output);
+          }),
+          check('ends-mergeable-with-progress-note', ({ log }) => {
+            const output = assistantOutput(log);
+            return (
+              /commit|mergeable|green|guardrails pass/i.test(output) &&
+              /progress(?: note|\.md)|sessions\//i.test(output) &&
+              /next/i.test(output)
+            );
+          }),
+        ],
+        { failFast: false, onScorerError: 'zero' },
+      );
+
+      expect(result.score).toBe(1);
+    } finally {
+      await agent.dispose();
+    }
+  });
 });

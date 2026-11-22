@@ -138,6 +138,35 @@ broken plan.
 
 For READY or READY_WITH_RISKS verdicts: continue autonomously.
 
+## Session Discipline
+
+A build can span several sessions or context windows. Every session:
+
+1. **Starts on a green baseline.** Phase 0 Step 1b smokes the untouched branch
+   before any new work.
+2. **Takes one slice.** Phase 3 implements one slice of the plan at a time.
+3. **Ends mergeable, with a progress note.** However the session ends (Phase 7,
+   a circuit-breaker stop, a blocker, or context pressure mid-plan), the
+   committed code passes the guardrails and no half-built slice stays loose:
+   finish it, or `git stash --include-untracked` it and name the stash under
+   `Open`. Then append one entry to
+   `~/.vs/$PROJECT_ID/sessions/YYYY-MM-DD-<slug>-progress.md`:
+
+   ```markdown
+   ## <YYYY-MM-DD HH:MM> — <branch> @ <short SHA>
+   - Baseline: <smoke commands and result at session start>
+   - Changed: <slice delivered, in behavior words; commits>
+   - Next: <next slice from the plan, or done>
+   - Open: <red baseline, stash, deferred work, blockers, or none>
+   ```
+
+   Append only; never rewrite an earlier entry. The next session reads it in
+   Phase 0 Step 1, and the Phase 7 handoff links it.
+4. **Never edits tests to pass.** Never edit, weaken, skip, or delete a test,
+   eval assertion, or snapshot just to turn it green. Fix the code. Change a
+   test only when the plan changes the behavior that test guards, and log why
+   in the decision log.
+
 ## Score-Critical Guidance
 
 These are the behaviors evals punish hardest; prioritize them during autonomous runs.
@@ -189,6 +218,9 @@ when the user asks build-it to use a Codex goal.
   one is a blocker to surface, not a tactical call to make. If the work requires
   changing a recorded decision, say so and supersede it per Phase 2 Step 5.
 - Run `git status` and `git diff` to understand the current state.
+- Get your bearings from earlier sessions: read `git log --oneline -20` and the
+  newest `~/.vs/$PROJECT_ID/sessions/*-<slug>-progress.md` for this plan when
+  one exists. Resume at its `Next` slice; do not redo or re-declare done work.
 - Note the project's test command, build command, and lint command from CLAUDE.md.
   If not found, search for them in package.json, Makefile, or equivalent.
   If still not found, note "unknown" — do not guess.
@@ -242,6 +274,16 @@ If such a support-only guardrail fix is needed, treat it as a dedicated **prep s
 - in the final handoff, report it under support/guardrail prep, not as part of the product behavior change
 Do not proceed to Step 2 until all guardrail commands execute without
 "command not found" or "module not found" errors.
+
+**Baseline smoke.** A command that runs is not yet a healthy baseline. Before
+any new work, run the existing tests and build once on the untouched branch,
+plus the project's start or basic end-to-end check when one exists (boot the
+dev server, one happy-path request, a CLI `--help`). Record each command and
+result in the decision log. If the baseline is red, fix it first as a separate
+prep commit when the cause is small and inside the plan's area. Otherwise
+record it as already failing on base with the failing names and output, keep it
+out of the slice, and report it in the handoff; stop when it blocks proving the
+slice. Never start a slice on an unexplained red baseline.
 
 ### Step 1c: Capture the baseline before implementation
 
@@ -446,7 +488,12 @@ Emit a short transition summary:
 ## Phase 3: Execute
 
 Implement the fixed plan. Execute directly unless independent steps make
-delegation materially faster or safer. Follow the shared subagent breadth and
+delegation materially faster or safer.
+
+**One slice at a time.** Take the next slice from the plan: the shape-it
+Execution Strategy's next workstream or wave, or the Step 1d vertical slice.
+Bring it to green and commit it before you start the next one. Parallel workers
+split one slice's steps; they never start the next slice early. Follow the shared subagent breadth and
 depth budgets, including the checkpoint and stop-and-return rules.
 
 ### Step 0: Load TDD; escalate to debugging only on evidence
@@ -500,6 +547,8 @@ Implement the assigned step using TDD:
 4. If guardrails fail: read the error. Check build-it-debug logs for context.
    Fix and re-run. Max 2 retries. If still failing after retries, use the
    debug skill's hypothesis approach: generate 3 hypotheses, investigate each.
+   Never edit, weaken, skip, or delete an existing test to make it pass; fix
+   the code, or report the conflict if the plan changes that behavior.
 5. Commit with a descriptive message (not "build-it step N").
    Stage specific files only; avoid `git add .` or `git add -A`.
    For a tiny single-bug TDD fix, after proving the red failure you may keep the
@@ -713,6 +762,9 @@ After removal:
 ---
 
 ## Phase 7: Handoff
+
+Close the session first: Session Discipline step 3 (mergeable code, progress
+note appended).
 
 Load and run `../vs-verify/SKILL.md` when available and include its
 `## Verification Result` in the handoff. If unavailable, record the final

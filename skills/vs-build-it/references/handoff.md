@@ -24,6 +24,7 @@ Use this adaptive shell and omit every empty section:
 - <Material claim> — <exact blocker>.
 
 Report: `~/.vs/$PROJECT_ID/build-it/YYYY-MM-DD-<slug>.html`
+Progress: `~/.vs/$PROJECT_ID/sessions/YYYY-MM-DD-<slug>-progress.md`
 Next: `/vs-ship-it` with branch `<branch-name>`.
 ```
 

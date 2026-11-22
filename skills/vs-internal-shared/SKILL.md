@@ -57,7 +57,7 @@ Paste this inline — skills must stay self-contained in case they're installed 
 ├── prototypes/   # prototype questions, decisions, and evidence
 ├── videos/       # explain-video scenes, narration, and mp4 output
 ├── improve/      # improvement backlog plans and indexes
-├── sessions/     # workflow session handoffs
+├── sessions/     # workflow session handoffs and build-it progress notes
 ├── thread-analysis/ # cross-session thread comparison reports
 ├── issues/       # to-issues drafts / index
 └── steals/       # steal reports
