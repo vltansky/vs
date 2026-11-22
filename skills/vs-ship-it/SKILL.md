@@ -175,6 +175,10 @@ worktree and record the OS and browsers present as evidence. Never run the full
 suite to get a baseline. `skills/vs-baby-sit/scripts/classify-failures.mjs`
 turns this evidence into classes (exit 1 New, 3 Unknown, 0 base/env only).
 
+**Never edit tests to pass.** Do not edit, weaken, skip, or delete a test to
+turn a red check green. Fix the code, or classify the failure above and report
+it. A test changes only when the shipped behavior it guards changes.
+
 If authentication fails, stop after the first failure, identify the credential
 used, and give the exact re-authentication step. Do not retry unchanged auth.
 
@@ -498,6 +502,11 @@ separate `vs-baby-sit` goal only when the user explicitly requested a Codex goal
       template → vs body as is.
 - [ ] A `Closes #N` / `Refs #N` and head-pinned spec line appears only when
       found, on its own line inside the expander.
+- [ ] A shape-it plan, when found, is in the expander: a head-pinned `[Spec]`
+      link, or a `**Plan:**` block (goal, this slice, next slices).
+- [ ] Verification has test or prod evidence for this head (`Automated:` with
+      its command, or `Prod:`), or a `Still unverified: tests` blocker.
+- [ ] No test was edited, weakened, skipped, or deleted just to pass.
 - [ ] Open non-draft PR state, branch, and head SHA were re-resolved
       successfully.
 - [ ] The body includes a Walkthrough in the expander only for multiple architectural areas: groups ordered riskiest
