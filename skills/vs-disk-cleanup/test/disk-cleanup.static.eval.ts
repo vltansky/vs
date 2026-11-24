@@ -3,6 +3,7 @@ import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
+import { buildScript } from '../scripts/disk-report/cleanup-script.mjs';
 
 const DIR = path.resolve(__dirname, '..');
 const SKILL = fs.readFileSync(path.join(DIR, 'SKILL.md'), 'utf8').replace(/\s+/g, ' ');
@@ -125,6 +126,34 @@ function inventory(roots: string) {
 }
 
 describe('worktree scripts', () => {
+  it('preserves tracked fixtures inside a gitignored build directory in both cleanup paths', () => {
+    const { wt, git } = gitFixture();
+    const candidate = path.join(wt, 'node_modules');
+    const tracked = path.join(candidate, 'fixture.js');
+    const disposable = path.join(wt, '.cache');
+    fs.writeFileSync(path.join(wt, '.gitignore'), 'node_modules/\n.cache/\n');
+    fs.mkdirSync(candidate);
+    fs.mkdirSync(disposable);
+    fs.writeFileSync(tracked, 'fixture\n');
+    git(wt, 'add', '-f', '--', tracked);
+
+    const slim = spawnSync('bash', [path.join(DIR, 'scripts', 'slim.sh'), '--dry-run'], {
+      input: wt + '\n', encoding: 'utf8',
+    });
+    expect(slim.status, slim.stderr).toBe(0);
+    expect(slim.stdout).toContain(`SKIP not-ignored ${candidate}`);
+    expect(slim.stdout).toContain(disposable);
+
+    const script = buildScript([{ label: 'build outputs', kb: 4, commands: [
+      `rm_regen "${candidate}"`, `rm_regen "${disposable}"`,
+    ] }], { scannedAt: OLD.toISOString(), prompt: false });
+    const clean = spawnSync('bash', { input: script, encoding: 'utf8' });
+    expect(clean.status, clean.stderr).toBe(0);
+    expect(clean.stdout).toContain(`SKIP not git-ignored: ${candidate}`);
+    expect(fs.readFileSync(tracked, 'utf8')).toBe('fixture\n');
+    expect(fs.existsSync(disposable)).toBe(false);
+  });
+
   it('ignores a freshly touched worktree root when its work is old', () => {
     const { wt, age, roots } = gitFixture();
     fs.writeFileSync(path.join(wt, 'app.txt'), 'v2\n');
@@ -178,6 +207,19 @@ describe('worktree scripts', () => {
 });
 
 describe('vs-disk-cleanup contract', () => {
+  it('treats reconciliation as a read-only diagnosis and limits execution to the approved batch', () => {
+    const reference = fs.readFileSync(path.join(DIR, 'references', 'macos-reconciliation.md'), 'utf8').replace(/\s+/g, ' ');
+    expect(SKILL).toMatch(/An audit or cleanup plan authorizes measurement only/);
+    expect(SKILL).toMatch(/Spotlight \| step 0/);
+    expect(SKILL).toContain('references/macos-reconciliation.md');
+    expect(SKILL).toMatch(/--ids a,b --yes/);
+    expect(SKILL).toMatch(/verify the exact item and use selective deletion/);
+    expect(reference).toContain('du -x -k -d 2 /System/Volumes/Data');
+    expect(reference).toMatch(/If the root row is missing, report the file total as unavailable/);
+    expect(reference).toMatch(/report index size and health as unverified/);
+    expect(reference).toMatch(/preserve `Build\/Products`, signed apps, simulator state and active build roots/);
+  });
+
   it('limits implied consent to provably safe rows', () => {
     expect(SKILL).toMatch(/counts as consent for `SAFE` rows only/);
     expect(SKILL).toMatch(/counts as consent for `STALE` rows only/);

@@ -1,6 +1,6 @@
 ---
 name: vs-disk-cleanup
-description: "Free disk space left behind by coding agents: stale git worktrees (t3code, Codex, Claude Code), old vs session artifacts under ~/.vs, and home-folder dev leftovers. Removes only provably safe items and asks about the rest. Use when the user says /vs-disk-cleanup, cleanup/prune/remove worktrees, orphaned worktrees, clean ~/.vs, old vs reports or videos, out of disk space, disk full, no space left, free up space, or disk cleanup."
+description: "Audit and free disk space left behind by coding agents: stale git worktrees (t3code, Codex, Claude Code), old vs session artifacts under ~/.vs, and home-folder dev leftovers. Reconcile hidden macOS storage, APFS, snapshots, swap, or a suspected Spotlight index. Use for /vs-disk-cleanup, cleanup/prune/remove worktrees, clean ~/.vs, old vs reports or videos, disk full, no space left, free up space, or a disk cleanup plan."
 ---
 
 # Disk Cleanup
@@ -18,8 +18,10 @@ Report in the shape defined by
 ## Start and resume
 
 - First run `df -k /System/Volumes/Data` and record the free-space baseline for this run. On resume, check it again: another task may have freed space. Never attribute that change to this cleanup.
+- An audit or cleanup plan authorizes measurement only. Stop after reporting candidates and their project impact, even if a classifier marks them `SAFE` or `STALE`.
 - Keep inventories, selected-path manifests and command logs in one scratchpad. Record each background handle and final exit status. A missing handle is not completion: inspect its log, recheck the disk and refresh the affected inventory before removing anything.
 - Wait for an inventory to exit successfully before consuming its TSV or JSON. A growing TSV is partial. Never run deletion while a storage scan is still measuring; it would make candidate sizes and growth comparisons stale.
+- The reconciliation walk in step 0 can finish with access errors. Use its final root row only as partial accounting evidence, never as a removal manifest.
 - For long commands, return control with the process still running, then wait for output using its handle. Avoid rapid polling; use the host's event wait or bounded waits of 30–60 seconds. Give a brief update at least every minute, without inventing a percentage or ETA. A permission error is not an empty result.
 - Finish only after each cleanup command exits, check the removal log for skips or failures, and verify selected paths and fresh disk capacity. Keep estimated candidate sizes, measured free-space change and bytes moved to Trash separate. If space is sufficient, stop and leave further candidates as optional review items.
 
@@ -27,11 +29,16 @@ Report in the shape defined by
 
 | User names | Start at |
 |---|---|
+| hidden usage, reconciliation, System Data, APFS, snapshots, Spotlight | step 0 |
 | worktrees | step 1 |
 | `~/.vs`, vs reports, videos, artifacts | step 3 |
 | home folder, dev leftovers report | step 6 |
 | disk full, no space left, disk space in general | step 1, then 3; use step 6 only if space is still tight |
 | plain "cleanup" | step 1, then 3; offer 4 and 6 only if space is still tight |
+
+## 0. Reconcile macOS storage (read-only)
+
+Use the [macOS reconciliation procedure](references/macos-reconciliation.md) for the APFS and file totals, diagnostics for protected usage, and project-safe candidate selection. If free space is critical, run the targeted inventory alongside the full-volume walk so a verified cleanup plan can be reported while accounting finishes. Wait for overlapping measurements to finish before any approved removal.
 
 ## 1. Inventory worktrees (read-only)
 
@@ -87,7 +94,7 @@ awk -F'\t' '$1=="STALE"{print $4}' "<scratchpad>/vs.tsv" | bash "$VS_DISK_CLEANU
 ```
 
 - `--remove` re-classifies each path, refuses anything outside `~/.vs/<project>/` or not `STALE` right now, and refuses a whole render-kind dir (it would sweep baselines). It moves entries to Trash (`trash`, else `~/.Trash`), then deletes the kind and project dirs left empty.
-- Say that space frees only after Trash is emptied, and never empty Trash yourself.
+- Report that space remains allocated until the moved items are permanently deleted, and never empty Trash yourself.
 - Never delete `KEEP` rows. A spec or RFC is a decision record; losing it is not recoverable by re-running a skill.
 
 ## 4. Slim DECIDE worktrees (when disk is still tight)
@@ -99,7 +106,7 @@ awk -F'\t' '$1=="DECIDE"{print $2}' "<scratchpad>/wt.tsv" | bash "$VS_DISK_CLEAN
 ```
 
 - Add `--dry-run` to list the sizes without deleting anything.
-- The script deletes only paths that `git check-ignore` confirms are ignored, and it skips worktrees that are BUSY. Never run it on RECENT or BUSY rows, because they may be in use.
+- The script requires `git check-ignore` to recognize the directory and skips tracked fixtures and BUSY worktrees. Never run it on RECENT or BUSY rows, because they may be in use.
 - Deleting millions of files takes more than 10 minutes. Always run it in the background, then wait for the final `deleted N dirs; freed:` line.
 - Expect to free about half of what `--dry-run`/`du` reports. pnpm hard-links files from its store, so `du` counts space that deleting doesn't free.
 - `SKIP not-ignored .../node_modules` lines are expected. Some repos commit `node_modules` as test fixtures.
@@ -136,13 +143,13 @@ node "$VS_DISK_CLEANUP_DIR/scripts/disk-report/scan.mts" > "<scratchpad>/scan.lo
   - **Let me review first:** sessions, models and Docker always go here, along with worktrees, `~/.vs` artifacts, simulators/AVDs, runtimes and unknown tools' caches. This group needs explicit per-item approval.
     - Colima: on each running profile, the clean command prunes stopped containers and unused images (`docker image prune -a`), then runs `fstrim` in the VM. The VM disk is a sparse file, so a prune without `fstrim` frees nothing on the Mac. Volumes are kept, and stopped profiles only get a `colima delete <profile>` suggestion. Before asking, list each profile's images with `docker --context colima[-<profile>] images`. Images that were built locally can't be pulled again.
   - **Safe to remove:** stale, regenerable items (old project `node_modules`/build dirs, Xcode DerivedData, iOS DeviceSupport).
-- To remove, first show the item list with sizes, taken from `latest.json`. Once the user approves, generate the script with `--yes` (the y/N prompt would abort in a background run) and run it. Each item uses its tool's own clean command; the `~/.vs` item runs step 3's `vs-artifacts.sh` pipeline, never a whole-dir delete:
+- To remove, first show the exact batch, measured sizes, effect on active projects, and whether the operation moves files to Trash or permanently reclaims space. If several batches are on offer, a reply must identify which batch to act on. Once the user approves, generate the script with `--yes` (the y/N prompt would abort in a background run) and run it. Each item uses its tool's own clean command; the `~/.vs` item runs step 3's `vs-artifacts.sh` pipeline, never a whole-dir delete:
   ```bash
-  node "$VS_DISK_CLEANUP_DIR/scripts/disk-report/cleanup.mts" --group safe --yes > "<scratchpad>/cleanup.sh"   # or --ids a,b
+  node "$VS_DISK_CLEANUP_DIR/scripts/disk-report/cleanup.mts" --ids a,b --yes > "<scratchpad>/cleanup.sh"
   bash "<scratchpad>/cleanup.sh"   # long: run in the background
   ```
-  - `rm_regen` (safe items) deletes permanently, but inside a git repo it deletes only paths `git check-ignore` confirms, so committed `node_modules` are skipped.
-  - `rm_safe` (review items) moves to Trash. Say that space frees only after Trash is emptied.
+  - `rm_regen` (safe items) deletes permanently. Inside a git repo it requires an ignored path and zero tracked descendants.
+  - `rm_safe` (review items) moves to Trash. Report the move as recoverable and measure actual free space separately. For an explicitly approved permanent removal of a staged batch, verify the exact item and use selective deletion. Honor any action-time confirmation required by the tool. Never empty the entire Trash.
   - The script prints the MB freed. As with slim, expect less than `du` reports because of pnpm hard links.
 - Not dev, so not in the report: `~/Library/Application Support/com.apple.wallpaper` (Aerial wallpapers, tens of GB). Mention it if space is critical.
 
